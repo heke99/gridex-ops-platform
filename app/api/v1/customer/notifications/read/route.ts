@@ -1,6 +1,7 @@
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, IdempotentWriteNotStartedError, readJsonObject } from '@/lib/api/strictRequest'
+import { UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { supabaseService } from '@/lib/supabase/service'
 import { isPublicReference, publicReference } from '@/lib/integrations/publicReferences'
 import {
@@ -50,6 +51,10 @@ function notificationReferences(payload: Record<string, unknown>): string[] {
   return references
 }
 
+function isCanonicalPostgresUuid(id: unknown): id is string {
+  return typeof id === 'string' && id.length === 36 && id === id.toLowerCase() && UUID_PATTERN.test(id)
+}
+
 async function resolveNotificationIds(input: {
   companyId: string
   customerId: string
@@ -72,13 +77,18 @@ async function resolveNotificationIds(input: {
     if (lastId) page = page.gt('id', lastId)
     const { data, error } = await page
     if (error) throw error
-    const rows = data ?? []
-    if (rows.length === 0) break
-    for (const row of rows) {
-      const reference = publicReference('notification', input.companyId, row.id)
-      if (reference && requested.has(reference)) resolved.set(reference, row.id)
+    if (!Array.isArray(data) || data.length > pageSize) throw new Error('Notification lookup returned an invalid page.')
+    if (data.length === 0) break
+    for (const row of data) {
+      const id: unknown = row?.id
+      // Canonical UUID text sorts in the same order as its PostgreSQL bytes.
+      if (!isCanonicalPostgresUuid(id) || (lastId !== null && id <= lastId)) {
+        throw new Error('Notification lookup returned an invalid or out-of-order ID.')
+      }
+      const reference = publicReference('notification', input.companyId, id)
+      if (reference && requested.has(reference)) resolved.set(reference, id)
+      lastId = id
     }
-    lastId = rows[rows.length - 1].id
   }
   return resolved
 }

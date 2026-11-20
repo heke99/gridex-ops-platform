@@ -11,6 +11,8 @@ const io = vi.hoisted(() => ({
   beforeMark: null as (() => void) | null,
   afterLookup: null as (() => void) | null,
   lookups: [] as Array<{ offset: number; after: string | null; returned: number }>,
+  lookupResponses: [] as unknown[],
+  lookupAttempts: 0,
   lookupCap: Number.POSITIVE_INFINITY,
   lookupFailuresRemaining: 0,
   failMarkAcknowledgment: false,
@@ -73,6 +75,8 @@ vi.mock('@/lib/supabase/service', async () => ({
           expect(url.searchParams.get('company_id')).toBe('eq.company')
           expect(url.searchParams.get('customer_id')).toBe('eq.customer')
           expect(url.searchParams.get('order')).toBe('id.asc')
+          io.lookupAttempts += 1
+          if (io.lookupResponses.length > 0) return Response.json(io.lookupResponses.shift())
           if (io.lookupFailuresRemaining > 0) {
             io.lookupFailuresRemaining -= 1
             return Response.json({ code: '57P03', message: 'Synthetic lookup unavailable' }, {
@@ -139,6 +143,8 @@ beforeEach(() => {
   io.beforeMark = null
   io.afterLookup = null
   io.lookups = []
+  io.lookupResponses = []
+  io.lookupAttempts = 0
   io.lookupCap = Number.POSITIVE_INFINITY
   io.lookupFailuresRemaining = 0
   io.failMarkAcknowledgment = false
@@ -215,6 +221,80 @@ describe('customer notification read timestamps', () => {
       { offset: 0, after: `gt.${row(2, null).id}`, returned: 2 },
     ])
     expect(io.notifications[2].read_at).toBe(now)
+  })
+
+  it.each([
+    { name: 'null rather than an empty array', page: null },
+    { name: 'a non-array body', page: { length: 0 } },
+    { name: 'a row without an ID', page: [{}, row(2, null)] },
+    { name: 'an invalid UUID', page: [{ id: 'invalid-id' }, row(2, null)] },
+    { name: 'a noncanonical UUID', page: [{ id: '00000000-0000-0000-0000-00000000000A' }, row(2, null)] },
+    { name: 'a UUID with trailing whitespace', page: [{ id: `${row(1, null).id}\n` }, row(2, null)] },
+    { name: 'more rows than requested', page: Array.from({ length: 1001 }, (_, index) => row(index + 1, null)) },
+    { name: 'duplicate first-page rows', page: [row(2, null), row(2, null)] },
+    { name: 'descending first-page rows', page: [row(2, null), row(1, null)] },
+  ])('releases the reservation without marking when the first lookup returns $name', async ({ page }) => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    io.lookupResponses = [page]
+    const key = 'synthetic-bad-notification-page'
+    const selected = io.notifications[1]
+
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(await failed.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+    expect(io.lookupAttempts).toBe(1)
+    expect(io.notificationWrites).toBe(0)
+    expect(io.claims).toEqual([])
+
+    const recovered = await post(key, [selected])
+    expect(recovered.status).toBe(200)
+    expect((await recovered.json()).data.updated_count).toBe(1)
+    expect(io.notificationWrites).toBe(1)
+  })
+
+  it.each([
+    { name: 'repeats', firstOnNextPage: row(2, null) },
+    { name: 'goes below', firstOnNextPage: row(1, null) },
+  ])('rejects a second page that $name the previous pivot without marking a notification', async ({ firstOnNextPage }) => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    io.notifications = [row(1, null), row(2, null), row(4, null)]
+    const selected = io.notifications[2]
+    io.lookupResponses = [[row(2, null)], [firstOnNextPage, selected]]
+    const key = 'synthetic-nonprogressing-notification-page'
+
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(await failed.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+    expect(io.lookupAttempts).toBe(2)
+    expect(io.notificationWrites).toBe(0)
+    expect(io.claims).toEqual([])
+
+    const recovered = await post(key, [selected])
+    expect(recovered.status).toBe(200)
+    expect((await recovered.json()).data.updated_count).toBe(1)
+  })
+
+  it('keeps a genuinely empty terminal array as an established 404', async () => {
+    io.notifications = [row(1, null)]
+    const response = await post('synthetic-empty-notification-page', [row(2, null)])
+    expect(response.status).toBe(404)
+    expect(await response.json()).toMatchObject({ error: { code: 'notification_reference_not_found', field: 'notification_references' } })
+    expect(io.lookups.map(page => page.returned)).toEqual([1, 0])
+    expect(io.claims[0].status).toBe('failed')
+    expect(io.notificationWrites).toBe(0)
+  })
+
+  it('can advance from the minimum to the maximum PostgreSQL UUID', async () => {
+    const low = { ...row(1, null), id: '00000000-0000-0000-0000-000000000000' }
+    const high = { ...row(2, null), id: 'ffffffff-ffff-ffff-ffff-ffffffffffff' }
+    io.notifications = [low, high]
+    io.lookupCap = 1
+
+    const response = await post('synthetic-postgres-uuid-notification-page', [high])
+    expect(response.status).toBe(200)
+    expect((await response.json()).data.updated_count).toBe(1)
+    expect(io.lookups[1].after).toBe(`gt.${low.id}`)
+    expect(io.notifications[0].read_at).toBeNull()
   })
 
   it('releases the reservation after a failed lookup so a recovered same-key request can succeed', async () => {
