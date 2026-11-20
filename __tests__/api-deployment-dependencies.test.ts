@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F29 (deployment dependency preflight)
+import { spawnSync } from 'node:child_process'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
@@ -40,5 +44,88 @@ describe('OPS API deployment contract', () => {
     const catalog = complete()
     catalog.functions = catalog.functions.map((f) => f.signature === 'gridex_is_current_session_allowed()' ? { ...f, body: 'profile only' } : f)
     expect(evaluateDeploymentContract(catalog).staff_session_revocation.ready).toBe(false)
+  })
+})
+
+
+describe('OPS API deployment contract command', () => {
+  function runPreflight(args: string[]) {
+    const root = mkdtempSync(join(tmpdir(), 'gridex-deployment-preflight-'))
+    const scripts = join(root, 'scripts')
+    const migrations = join(root, 'supabase', 'migrations')
+    const fakeBin = join(root, 'bin')
+    const calls = join(root, 'psql-calls')
+    const script = join(scripts, 'check-ops-api-deployment-contract.cjs')
+    try {
+      mkdirSync(scripts)
+      mkdirSync(migrations, { recursive: true })
+      mkdirSync(fakeBin)
+      copyFileSync(new URL('../scripts/check-ops-api-deployment-contract.cjs', import.meta.url), script)
+      writeFileSync(join(migrations, '20261120000000_synthetic.sql'), `
+create function public.gridex_is_current_session_allowed() returns boolean
+language sql as $$ select true; $$; -- banned_until is part of the expected catalog fixture
+`)
+      // This shim substitutes for psql even if the argument checks regress.
+      writeFileSync(join(fakeBin, 'psql'), '#!/bin/sh\nprintf "call\\n" >> "$GRIDEX_SYNTHETIC_PSQL_CALLS"\nprintf "[]\\n"\n', { mode: 0o700 })
+      const result = spawnSync(process.execPath, [script, ...args], {
+        cwd: root, encoding: 'utf8', timeout: 5_000,
+        env: { PATH: fakeBin, GRIDEX_SYNTHETIC_PSQL_CALLS: calls },
+      })
+      expect(result.error).toBeUndefined()
+      return { ...result, psqlCalls: existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n').length : 0 }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+
+  it('preserves the default check of every configured feature', () => {
+    const result = runPreflight(['--static'])
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain('READY   staff_session_revocation')
+    expect(result.stdout.match(/^BLOCKED/gm)).toHaveLength(4)
+    expect(result.psqlCalls).toBe(0)
+  })
+
+  it('preserves a known feature selection and comma-separated selections', () => {
+    const ready = runPreflight(['--static', '--require', 'staff_session_revocation'])
+    expect(ready.status).toBe(0)
+    expect(ready.stdout.match(/^READY/gm)).toHaveLength(1)
+    expect(ready.stdout.match(/^SKIPPED/gm)).toHaveLength(4)
+    const multiple = runPreflight(['--static', '--require', 'staff_session_revocation,staff_core'])
+    expect(multiple.status).toBe(1)
+    expect(multiple.stdout).toContain('BLOCKED staff_core')
+    expect(multiple.psqlCalls).toBe(0)
+  })
+
+  const syntheticCatalogUrl = 'postgresql://fixture.invalid/deployment'
+  it.each([
+    { title: 'missing', args: ['--require'] },
+    { title: 'empty', args: ['--require', ''] },
+    { title: 'only separators', args: ['--require', ','] },
+    { title: 'empty comma-separated item', args: ['--require', 'staff_core,'] },
+  ])('rejects a $title feature selector before the catalog is read', ({ args }) => {
+    const result = runPreflight(['--url', syntheticCatalogUrl, ...args])
+    expect(result.psqlCalls).toBe(0)
+    expect(result.status).toBe(2)
+    expect(result.stderr).toContain('non-empty feature list')
+    expect(result.stdout).toBe('')
+  })
+
+  it.each(['nonexistent_feature', 'constructor', 'toString'])(
+    'rejects unknown feature %s before the catalog is read',
+    feature => {
+      const result = runPreflight(['--url', syntheticCatalogUrl, '--require', feature])
+      expect(result.psqlCalls).toBe(0)
+      expect(result.status).toBe(2)
+      expect(result.stderr).toContain(`Unknown feature(s): ${feature}`)
+      expect(result.stdout).toBe('')
+    },
+  )
+
+  it('keeps a valid catalog request blocked when the selected objects are missing', () => {
+    const result = runPreflight(['--url', syntheticCatalogUrl, '--require', 'staff_core'])
+    expect(result.psqlCalls).toBe(3)
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain('BLOCKED staff_core')
   })
 })
