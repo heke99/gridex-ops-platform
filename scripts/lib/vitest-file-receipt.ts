@@ -1,7 +1,7 @@
 import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname, isAbsolute, join, relative, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
 import type { Reporter, TestModule, TestRunEndReason, TestSpecification, Vitest } from 'vitest/node'
 
 const maximumFiles = 10_000
@@ -166,21 +166,30 @@ export class VitestFileReceiptReporter implements Reporter {
     ) {
       receipt.state = 'complete'
     }
-    this.save()
+    const emitFullStepMarker = receipt.state === 'complete' && receipt.workflowJob?.job === 'full' &&
+      process.env.GRIDEX_E2E_PARENT_MODE === 'full' && process.env.npm_lifecycle_event === 'test'
+    this.save(emitFullStepMarker)
   }
 
-  private save() {
+  private save(emitFullStepMarker = false) {
     const { path, receipt } = this
     if (!path || !receipt) return
     let bytes = JSON.stringify(receipt)
-    if (Buffer.byteLength(bytes) + 1 > maximumReceiptBytes) {
+    const oversized = Buffer.byteLength(bytes) + 1 > maximumReceiptBytes
+    if (oversized) {
       bytes = JSON.stringify({ ...receipt, state: 'incomplete', reason: 'receipt_size_limit', files: [] })
     }
     try {
       mkdirSync(dirname(path), { recursive: true })
       const temporary = `${path}.tmp`
-      writeFileSync(temporary, `${bytes}\n`, { flag: 'wx', mode: 0o600 })
+      const payload = `${bytes}\n`
+      writeFileSync(temporary, payload, { flag: 'wx', mode: 0o600 })
       renameSync(temporary, path)
+      // The full runner includes the npm step's stdout log in its execution index.
+      if (emitFullStepMarker && !oversized) {
+        const sha256 = createHash('sha256').update(payload).digest('hex')
+        console.log(`GRIDEX_VITEST_FILE_RECEIPT ${basename(path)} ${sha256}`)
+      }
     } catch {
       console.warn('Vitest file receipt could not be saved.')
     }
