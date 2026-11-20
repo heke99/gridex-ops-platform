@@ -1,7 +1,7 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import InvoicePage from '@/app/portal/fakturor/[id]/page'
+import InvoicePage from '@/app/(invoice-detail)/portal/fakturor/[id]/page'
 
 const { getPortalInvoiceDetail } = vi.hoisted(() => ({
   getPortalInvoiceDetail: vi.fn(),

@@ -123,7 +123,7 @@ vi.mock('@/lib/supabase/service', async () => {
 })
 
 import { getPortalInvoiceDetail } from '@/lib/customer-portal/db'
-import InvoicePage from '@/app/portal/fakturor/[id]/page'
+import InvoicePage from '@/app/(invoice-detail)/portal/fakturor/[id]/page'
 import { GET } from '@/app/api/v1/customer/invoices/[id]/route'
 import { requireInvoiceFileCopyAvailable } from '@/lib/ediel/retention/invoiceFileRetention'
 
