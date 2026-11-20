@@ -75,6 +75,12 @@ function assertImmutableArtifacts(specification, currentBytes) {
 }
 
 async function verify() {
+  const args = process.argv.slice(2)
+  const expectedCommit = args[1]
+  if (args.length && (args.length !== 2 || args[0] !== '--deploy-proof' || !/^[a-f0-9]{40}$/.test(expectedCommit))) {
+    throw new Error('Pass --deploy-proof with a full 40-character Git commit SHA.')
+  }
+
   const expectedReleases = []
   for (const specification of specifications) {
     const body = exactBytes(specification.path)
@@ -104,7 +110,12 @@ async function verify() {
     }
   }
 
-  const baseUrl = process.env.GRIDEX_API_BASE_URL?.replace(/\/$/, '')
+  const configuredBaseUrl = process.env.GRIDEX_API_BASE_URL
+  const proofOrigin = expectedCommit ? parseUrl(configuredBaseUrl) : null
+  if (expectedCommit && (proofOrigin?.protocol !== 'https:' || proofOrigin.href !== `${proofOrigin.origin}/`)) {
+    throw new Error('GRIDEX_API_BASE_URL must be an HTTPS origin for deployment proof.')
+  }
+  const baseUrl = proofOrigin?.origin ?? configuredBaseUrl?.replace(/\/$/, '')
   if (!baseUrl) {
     console.log(
       `Local release artifacts verified for ${version}; set GRIDEX_API_BASE_URL to verify deployed bytes.`,
@@ -112,7 +123,7 @@ async function verify() {
     return
   }
 
-  const targetOrigin = new URL(baseUrl).origin
+  const targetOrigin = proofOrigin?.origin ?? new URL(baseUrl).origin
   const manifestResponse = await fetch(
     `${baseUrl}/api/v1/openapi/release-manifest.json`,
     { redirect: 'error' },
@@ -122,6 +133,9 @@ async function verify() {
     throw new Error('deployed manifest has the wrong content type')
   }
   const manifest = await manifestResponse.json()
+  if (expectedCommit && manifest?.build_commit !== expectedCommit) {
+    throw new Error('deployed manifest build commit mismatch')
+  }
   if (manifest.release_version !== version || manifest.guide_version !== version || manifest.runtime_contract_version !== runtimeContractVersion) {
     throw new Error('deployed manifest version mismatch')
   }
@@ -166,7 +180,9 @@ async function verify() {
       }
     }
   }
-  console.log(`Deployed OpenAPI release ${version} verified.`)
+  console.log(expectedCommit
+    ? `Deployed OpenAPI release ${version} for commit ${expectedCommit} verified.`
+    : `Deployed OpenAPI release ${version} verified.`)
 }
 
 verify().catch((error) => {
