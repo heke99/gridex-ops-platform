@@ -1118,7 +1118,7 @@ function CompanyEmailSection({
   eventRules: EmailEventRule[]
   templates: CompanyEmailTemplate[]
   logs: CommunicationLog[]
-  effectiveSender: Awaited<ReturnType<typeof getEffectiveSender>>
+  effectiveSender: Awaited<ReturnType<typeof getEffectiveSender>> | null
 }) {
   const rulesByEvent = new Map(eventRules.map((rule) => [rule.event_key, rule]))
   const templatesByKey = new Map(templates.map((template) => [template.template_key, template]))
@@ -1131,16 +1131,16 @@ function CompanyEmailSection({
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-900">E-post</p>
         <h2 className="mt-2 text-2xl font-black text-slate-950">E-postinställningar för elbolag</h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
+        {effectiveSender ? <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
           Aktiv avsändare: {effectiveSender.from}. Reply-to: {effectiveSender.replyTo ?? 'saknas'}. Sender mode: {effectiveSender.mode === 'verified_domain' ? 'Verifierad domän' : 'Fallback via plattformens avsändare'}.
-        </p>
-        {effectiveSender.sendReady === false ? (
+        </p> : <p className="mt-2 text-sm font-semibold text-red-900">Avsändaren är inte konfigurerad för utskick. Aktivera en tillåten avsändare eller verifiera bolagets domän.</p>}
+        {effectiveSender?.sendReady === false ? (
           <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900">
             {effectiveSender.blocker ?? 'Avsändaren är inte redo för utskick.'}
           </p>
         ) : null}
         <div className="mt-4 grid gap-3 text-sm font-semibold md:grid-cols-4">
-          <ActionLine label="From-email" value={settings?.sender_email ?? effectiveSender.senderEmail} tone={effectiveSender.mode === 'verified_domain' ? 'emerald' : 'amber'} />
+          <ActionLine label="From-email" value={settings?.sender_email ?? effectiveSender?.senderEmail ?? 'saknas'} tone={effectiveSender?.mode === 'verified_domain' ? 'emerald' : 'amber'} />
           <ActionLine label="Domänstatus" value={VERIFICATION_STATUS_LABELS[settingStatus] ?? settingStatus} tone={settingStatus === 'verified' ? 'emerald' : 'amber'} />
           <ActionLine label="DKIM" value={settings?.dkim_status ?? 'ej kontrollerad'} tone={isReadyStatus(settings?.dkim_status) ? 'emerald' : 'slate'} />
           <ActionLine label="SPF/DMARC" value={`${settings?.spf_status ?? 'SPF saknas'} / ${settings?.dmarc_status ?? 'DMARC saknas'}`} tone={isReadyStatus(settings?.spf_status) && isReadyStatus(settings?.dmarc_status) ? 'emerald' : 'slate'} />
@@ -1215,7 +1215,7 @@ function CompanyEmailSection({
 
       <section id="email-testmail" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-black text-slate-950">4. Testmail</h3>
-        {effectiveSender.mode === 'fallback' ? <p className="mt-2 text-sm font-semibold text-amber-900">Testmail skickas via plattformens fallback-avsändare eftersom bolagets domän inte är verifierad.</p> : null}
+        {effectiveSender?.mode === 'fallback' ? <p className="mt-2 text-sm font-semibold text-amber-900">Testmail skickas via plattformens fallback-avsändare eftersom bolagets domän inte är verifierad.</p> : null}
         <form action={sendCompanyTestEmailAction} className="mt-4 flex flex-wrap gap-3">
           <input type="hidden" name="company_id" value={company.id} />
           <input name="to" type="email" required placeholder="namn@exempel.se" className="min-w-72 rounded-2xl border border-slate-300 px-4 py-3" />
@@ -1310,6 +1310,13 @@ export default async function CompanyDetailPage({
     )
   }
 
+  // A disabled sender is configuration to display, not an attempted send.
+  // Read settings first; unexpected settings/resolver failures still propagate.
+  const emailSettings = await getCompanyEmailSettings(row.id)
+  const senderDisabled = Boolean(emailSettings && (
+    !emailSettings.is_active || emailSettings.sender_mode === 'disabled' ||
+    (emailSettings.sender_mode === 'fallback_platform_sender' && emailSettings.fallback_allowed === false)
+  ))
   const invoiceProviderSelection = await loadTenantInvoiceProviderSelection(id).catch(() => null)
   const [
     company,
@@ -1338,12 +1345,12 @@ export default async function CompanyDetailPage({
     getActorTestingSummary(row.id),
     getCompanyActorConfiguration(row.id),
     getCompanyOperationalStats(row.id),
-    getCompanyEmailSettings(row.id),
+    emailSettings,
     getCompanyDnsRecords(row.id),
     getEmailEventRules(row.id),
     getCompanyEmailTemplates(row.id),
     getCompanyCommunicationLogs(row.id, { limit: 12 }),
-    getEffectiveSender(row.id),
+    senderDisabled ? null : getEffectiveSender(row.id),
     getCompanyApiClients(row.id),
     listWebhookSubscriptions({ companyId: row.id, limit: 50 }),
     getCompanyBillingPartnerCount(row.id),
@@ -1376,7 +1383,7 @@ export default async function CompanyDetailPage({
 
   const status = normalizeCompanyStatus(company.status)
   const copy = getCompanyStatusCopy(status)
-  const tenantReadiness = computeTenantReadiness({
+  const tenantReadiness = effectiveSender ? computeTenantReadiness({
     apiClients: companyApiClients,
     webhooks: companyWebhookSubscriptions,
     emailSettings: companyEmailSettings,
@@ -1388,7 +1395,7 @@ export default async function CompanyDetailPage({
     invoiceProvider: invoiceProviderSelection
       ? { selected: invoiceProviderSelection.invoice_export_target_system, dispatchEnabled: invoiceProviderSelection.invoice_export_enabled }
       : null,
-  })
+  }) : null
 
   return (
     <div className="min-h-screen">
@@ -1577,6 +1584,7 @@ export default async function CompanyDetailPage({
           <p className="mt-2 max-w-4xl text-sm leading-6 text-emerald-900">
             Kontrollera att bolagets API-client, webhook, avsändardomän, mailmallar och billing-mapping är redo innan extern hemsida kopplas på.
           </p>
+          {tenantReadiness ? <>
           <div className="mt-4 flex flex-wrap gap-2">
             <ReadinessPill ok={tenantReadiness.websiteApi} label="Website API" />
             <ReadinessPill ok={tenantReadiness.apiClient} label="API-client" />
@@ -1594,6 +1602,7 @@ export default async function CompanyDetailPage({
           ) : (
             <p className="mt-4 rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3 text-sm font-semibold text-emerald-900">Bolaget ser redo ut för website onboarding.</p>
           )}
+          </> : <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900">Samlad website-readiness är inte bedömd: avsändaren är inte konfigurerad för utskick. Separata readinesskontroller visas ovan.</p>}
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/admin/platform/api-clients" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">API-clients och webhooks</Link>
             <Link href="/admin/website-applications" className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 hover:bg-emerald-100">Website applications</Link>
