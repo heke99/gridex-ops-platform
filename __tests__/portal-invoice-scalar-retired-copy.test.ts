@@ -83,6 +83,12 @@ vi.mock('@/lib/supabase/service', async () => {
           let rows = [...io.tables[resource]]
           for (const [field, expression] of url.searchParams) {
             if (['select', 'order', 'limit'].includes(field)) continue
+            if (field === 'or') {
+              const owner = /^\(customer_id\.eq\.([0-9a-f-]{36}),customer_id\.is\.null\)$/u.exec(expression)?.[1]
+              if (resource !== 'customer_invoice_documents' || !owner) throw new Error('Unexpected customer document filter')
+              rows = rows.filter(row => row.customer_id === owner || row.customer_id == null)
+              continue
+            }
             const dot = expression.indexOf('.')
             const operator = expression.slice(0, dot), value = expression.slice(dot + 1)
             rows = rows.filter(row => {
