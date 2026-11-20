@@ -120,7 +120,10 @@ for (const name of files) {
     const serialized = JSON.stringify(parsed)
     if (receipt) vitestReceipts.push(receipt)
     evidence.push({ file: name, data: parsed })
-    if (receipt?.observed_result === 'failed' || /"status":"failed"|"status":\s*"failed"|"validation_status":"failed"|"validation_status":\s*"failed"/i.test(serialized)) {
+    const failed = receipt
+      ? receipt.observed_result === 'failed'
+      : /"status":"failed"|"status":\s*"failed"|"validation_status":"failed"|"validation_status":\s*"failed"/i.test(serialized)
+    if (failed) {
       failures.push({ file: name, summary: 'Deterministic evidence contains a failed status. Inspect this artifact for the first broken boundary.' })
     }
   } catch (error) {
