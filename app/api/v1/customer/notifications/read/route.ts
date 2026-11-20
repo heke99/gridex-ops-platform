@@ -1,6 +1,7 @@
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
-import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
+import { ApiInputError, executeIdempotentPortalWrite, IdempotentWriteNotStartedError, readJsonObject } from '@/lib/api/strictRequest'
+import { UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { supabaseService } from '@/lib/supabase/service'
 import { isPublicReference, publicReference } from '@/lib/integrations/publicReferences'
 import {
@@ -50,31 +51,44 @@ function notificationReferences(payload: Record<string, unknown>): string[] {
   return references
 }
 
+function isCanonicalPostgresUuid(id: unknown): id is string {
+  return typeof id === 'string' && id.length === 36 && id === id.toLowerCase() && UUID_PATTERN.test(id)
+}
+
 async function resolveNotificationIds(input: {
   companyId: string
   customerId: string
   references: string[]
 }): Promise<Map<string, string>> {
   const resolved = new Map<string, string>()
+  const requested = new Set(input.references)
   const pageSize = 1_000
+  let lastId: string | null = null
   // query-loop-budget: paginated-scan page=1000
-  // Public references are one-way hashes, so resolution walks disjoint pages;
-  // this is not a repeated child query for one parent collection.
-  for (let from = 0; resolved.size < input.references.length; from += pageSize) {
-    const { data, error } = await supabaseService
+  // Keep the last primary key so deletions cannot shift the next page.
+  while (resolved.size < requested.size) {
+    let page = supabaseService
       .from('customer_notifications')
       .select('id')
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
       .order('id', { ascending: true })
-      .range(from, from + pageSize - 1)
+      .limit(pageSize)
+    if (lastId) page = page.gt('id', lastId)
+    const { data, error } = await page
     if (error) throw error
-    const rows = data ?? []
-    for (const row of rows) {
-      const reference = publicReference('notification', input.companyId, row.id)
-      if (reference && input.references.includes(reference)) resolved.set(reference, String(row.id))
+    if (!Array.isArray(data) || data.length > pageSize) throw new Error('Notification lookup returned an invalid page.')
+    if (data.length === 0) break
+    for (const row of data) {
+      const id: unknown = row?.id
+      // Canonical UUID text sorts in the same order as its PostgreSQL bytes.
+      if (!isCanonicalPostgresUuid(id) || (lastId !== null && id <= lastId)) {
+        throw new Error('Notification lookup returned an invalid or out-of-order ID.')
+      }
+      const reference = publicReference('notification', input.companyId, id)
+      if (reference && requested.has(reference)) resolved.set(reference, id)
+      lastId = id
     }
-    if (rows.length < pageSize) break
   }
   return resolved
 }
@@ -109,6 +123,9 @@ async function resolveNotificationIds(input: {
           companyId: context.client.company_id,
           customerId: context.identity.customer_id,
           references,
+        }).catch((error: unknown) => {
+          // A failed lookup cannot have started the notification update.
+          throw new IdempotentWriteNotStartedError(error)
         })
         if (resolved.size !== references.length) {
           throw new ApiInputError(

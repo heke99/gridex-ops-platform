@@ -9,6 +9,13 @@ const io = vi.hoisted(() => ({
   notifications: [] as Row[],
   claims: [] as Row[],
   beforeMark: null as (() => void) | null,
+  afterLookup: null as (() => void) | null,
+  lookups: [] as Array<{ offset: number; after: string | null; returned: number }>,
+  lookupResponses: [] as unknown[],
+  lookupAttempts: 0,
+  lookupCap: Number.POSITIVE_INFINITY,
+  lookupFailuresRemaining: 0,
+  failMarkAcknowledgment: false,
   notificationWrites: 0,
 }))
 
@@ -45,6 +52,8 @@ vi.mock('@/lib/supabase/service', async () => ({
           return Response.json(row, { status: 201 })
         }
         if (method === 'PATCH' && isNotification) {
+          expect(url.searchParams.get('company_id')).toBe('eq.company')
+          expect(url.searchParams.get('customer_id')).toBe('eq.customer')
           io.notificationWrites += 1
           const concurrentMark = io.beforeMark
           io.beforeMark = null
@@ -55,11 +64,41 @@ vi.mock('@/lib/supabase/service', async () => ({
           if (filter === 'is.null') return row[key] === null
           if (filter.startsWith('eq.')) return String(row[key]) === filter.slice(3)
           if (filter.startsWith('in.(')) return filter.slice(4, -1).split(',').includes(String(row[key]))
+          if (filter.startsWith('gt.')) return String(row[key]) > filter.slice(3)
           throw new Error(`Unexpected fixture filter ${filter}`)
         }))
+        if (method === 'DELETE' && !isNotification) {
+          io.claims = io.claims.filter(row => !rows.includes(row))
+          return new Response(null, { status: 204 })
+        }
+        if (method === 'GET' && isNotification) {
+          expect(url.searchParams.get('company_id')).toBe('eq.company')
+          expect(url.searchParams.get('customer_id')).toBe('eq.customer')
+          expect(url.searchParams.get('order')).toBe('id.asc')
+          io.lookupAttempts += 1
+          if (io.lookupResponses.length > 0) return Response.json(io.lookupResponses.shift())
+          if (io.lookupFailuresRemaining > 0) {
+            io.lookupFailuresRemaining -= 1
+            return Response.json({ code: '57P03', message: 'Synthetic lookup unavailable' }, {
+              status: 503, headers: { 'Retry-After': '0' },
+            })
+          }
+          const offset = Number(url.searchParams.get('offset') ?? 0)
+          const limit = Math.min(Number(url.searchParams.get('limit') ?? rows.length), io.lookupCap)
+          const page = rows.sort((left, right) => String(left.id).localeCompare(String(right.id))).slice(offset, offset + limit)
+          io.lookups.push({ offset, after: url.searchParams.get('id'), returned: page.length })
+          const response = Response.json(page.map(row => ({ id: row.id })))
+          const afterLookup = io.afterLookup
+          io.afterLookup = null
+          afterLookup?.()
+          return response
+        }
         if (method === 'PATCH') {
           const patch = JSON.parse(String(init?.body)) as Row
           rows.forEach(row => Object.assign(row, patch))
+          if (isNotification && io.failMarkAcknowledgment) {
+            return Response.json({ code: '57P03', message: 'Synthetic acknowledgment unavailable' }, { status: 503 })
+          }
         } else if (method !== 'GET') {
           throw new Error(`Unexpected fixture method ${method}`)
         }
@@ -102,6 +141,13 @@ beforeEach(() => {
   io.notifications = [row(1, first), row(2, null), row(3, null, 'other-customer')]
   io.claims = []
   io.beforeMark = null
+  io.afterLookup = null
+  io.lookups = []
+  io.lookupResponses = []
+  io.lookupAttempts = 0
+  io.lookupCap = Number.POSITIVE_INFINITY
+  io.lookupFailuresRemaining = 0
+  io.failMarkAcknowledgment = false
   io.notificationWrites = 0
 })
 afterEach(() => vi.useRealTimers())
@@ -148,6 +194,148 @@ describe('customer notification read timestamps', () => {
     const response = await post('synthetic-read-foreign-001', [io.notifications[2]])
     expect(response.status).toBe(404)
     expect(io.notificationWrites).toBe(0)
+  })
+
+  it('still finds the first item of the next page after a row on the first page is deleted', async () => {
+    io.notifications = Array.from({ length: 1002 }, (_, index) => row(index + 1, null))
+    const selected = io.notifications[1000]
+    io.afterLookup = () => { io.notifications.shift() }
+
+    const response = await post('synthetic-read-deleted-earlier', [selected])
+    expect(response.status).toBe(200)
+    expect((await response.json()).data).toEqual({ updated_count: 1, notification_references: [reference(selected)], read_at: now })
+    expect(io.lookups).toEqual([
+      { offset: 0, after: null, returned: 1000 },
+      { offset: 0, after: `gt.${row(1000, null).id}`, returned: 2 },
+    ])
+    expect(io.notificationWrites).toBe(1)
+  })
+
+  it('continues after a nonempty page when the server caps it below the requested size', async () => {
+    io.notifications = Array.from({ length: 4 }, (_, index) => row(index + 1, null))
+    io.lookupCap = 2
+    const response = await post('synthetic-read-short-page', [io.notifications[2]])
+    expect(response.status).toBe(200)
+    expect(io.lookups).toEqual([
+      { offset: 0, after: null, returned: 2 },
+      { offset: 0, after: `gt.${row(2, null).id}`, returned: 2 },
+    ])
+    expect(io.notifications[2].read_at).toBe(now)
+  })
+
+  it.each([
+    { name: 'null rather than an empty array', page: null },
+    { name: 'a non-array body', page: { length: 0 } },
+    { name: 'a row without an ID', page: [{}, row(2, null)] },
+    { name: 'an invalid UUID', page: [{ id: 'invalid-id' }, row(2, null)] },
+    { name: 'a noncanonical UUID', page: [{ id: '00000000-0000-0000-0000-00000000000A' }, row(2, null)] },
+    { name: 'a UUID with trailing whitespace', page: [{ id: `${row(1, null).id}\n` }, row(2, null)] },
+    { name: 'more rows than requested', page: Array.from({ length: 1001 }, (_, index) => row(index + 1, null)) },
+    { name: 'duplicate first-page rows', page: [row(2, null), row(2, null)] },
+    { name: 'descending first-page rows', page: [row(2, null), row(1, null)] },
+  ])('releases the reservation without marking when the first lookup returns $name', async ({ page }) => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    io.lookupResponses = [page]
+    const key = 'synthetic-bad-notification-page'
+    const selected = io.notifications[1]
+
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(await failed.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+    expect(io.lookupAttempts).toBe(1)
+    expect(io.notificationWrites).toBe(0)
+    expect(io.claims).toEqual([])
+
+    const recovered = await post(key, [selected])
+    expect(recovered.status).toBe(200)
+    expect((await recovered.json()).data.updated_count).toBe(1)
+    expect(io.notificationWrites).toBe(1)
+  })
+
+  it.each([
+    { name: 'repeats', firstOnNextPage: row(2, null) },
+    { name: 'goes below', firstOnNextPage: row(1, null) },
+  ])('rejects a second page that $name the previous pivot without marking a notification', async ({ firstOnNextPage }) => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    io.notifications = [row(1, null), row(2, null), row(4, null)]
+    const selected = io.notifications[2]
+    io.lookupResponses = [[row(2, null)], [firstOnNextPage, selected]]
+    const key = 'synthetic-nonprogressing-notification-page'
+
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(await failed.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+    expect(io.lookupAttempts).toBe(2)
+    expect(io.notificationWrites).toBe(0)
+    expect(io.claims).toEqual([])
+
+    const recovered = await post(key, [selected])
+    expect(recovered.status).toBe(200)
+    expect((await recovered.json()).data.updated_count).toBe(1)
+  })
+
+  it('keeps a genuinely empty terminal array as an established 404', async () => {
+    io.notifications = [row(1, null)]
+    const response = await post('synthetic-empty-notification-page', [row(2, null)])
+    expect(response.status).toBe(404)
+    expect(await response.json()).toMatchObject({ error: { code: 'notification_reference_not_found', field: 'notification_references' } })
+    expect(io.lookups.map(page => page.returned)).toEqual([1, 0])
+    expect(io.claims[0].status).toBe('failed')
+    expect(io.notificationWrites).toBe(0)
+  })
+
+  it('can advance from the minimum to the maximum PostgreSQL UUID', async () => {
+    const low = { ...row(1, null), id: '00000000-0000-0000-0000-000000000000' }
+    const high = { ...row(2, null), id: 'ffffffff-ffff-ffff-ffff-ffffffffffff' }
+    io.notifications = [low, high]
+    io.lookupCap = 1
+
+    const response = await post('synthetic-postgres-uuid-notification-page', [high])
+    expect(response.status).toBe(200)
+    expect((await response.json()).data.updated_count).toBe(1)
+    expect(io.lookups[1].after).toBe(`gt.${low.id}`)
+    expect(io.notifications[0].read_at).toBeNull()
+  })
+
+  it('releases the reservation after a failed lookup so a recovered same-key request can succeed', async () => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    // Exhaust the SDK's initial GET and its three retries only after the first lookup page.
+    io.notifications = Array.from({ length: 1002 }, (_, index) => row(index + 1, null))
+    io.afterLookup = () => { io.lookupFailuresRemaining = 4 }
+    const selected = io.notifications[1000]
+    const key = 'synthetic-read-resume-key'
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(await failed.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+    expect(io.claims).toEqual([])
+    expect(io.notificationWrites).toBe(0)
+    expect(io.lookupFailuresRemaining).toBe(0)
+    expect(selected.read_at).toBeNull()
+
+    const fixed = await post(key, [selected])
+    expect(fixed.status).toBe(200)
+    const receipt = (await fixed.json()).data
+    expect(receipt).toEqual({ updated_count: 1, notification_references: [reference(selected)], read_at: now })
+    expect(io.notificationWrites).toBe(1)
+    const replay = await post(key, [selected])
+    expect(replay.status).toBe(200)
+    expect((await replay.json()).data).toEqual(receipt)
+    expect(io.notificationWrites).toBe(1)
+  })
+
+  it('retains the same-key protection if acknowledgment fails after a read mark was written', async () => {
+    vi.spyOn(console, 'error').mockImplementationOnce(() => undefined)
+    io.failMarkAcknowledgment = true
+    const key = 'synthetic-read-write-ack'
+    const selected = io.notifications[1]
+    const failed = await post(key, [selected])
+    expect(failed.status).toBe(500)
+    expect(selected.read_at).toBe(now)
+    expect(io.claims[0].status).toBe('failed')
+    const retry = await post(key, [selected])
+    expect(retry.status).toBe(409)
+    expect(await retry.json()).toMatchObject({ error: { code: 'idempotency_previous_attempt_failed' } })
+    expect(io.notificationWrites).toBe(1)
   })
 
   it('replays the initial receipt when the same set arrives in a different order with duplicates', async () => {
