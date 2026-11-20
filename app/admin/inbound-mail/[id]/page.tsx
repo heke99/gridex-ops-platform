@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { readInboundReceptionRequest } from '@/lib/ediel/inbound/receptions'
+import { UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { supabaseService } from '@/lib/supabase/service'
 import { reprocessInboundEmailAction } from '@/app/admin/inbound-mail/actions'
 import InboundManualReviewForm from './InboundManualReviewForm'
@@ -26,6 +28,27 @@ function reviewText(value: unknown): string | null {
 
 function reviewRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+async function readHeldReception(message: Record<string, unknown>, inboundEmailMessageId: string, actorUserId: string) {
+  const companyId = reviewText(message.company_id)
+  const snapshot = reviewRecord(reviewRecord(message.match_payload)?.protocolReception)
+  const sourceMessageId = reviewText(snapshot?.sourceMessageId)
+  if (!companyId || !UUID_PATTERN.test(companyId) || !sourceMessageId || !UUID_PATTERN.test(sourceMessageId)) {
+    return null
+  }
+
+  // The public snapshot supplies only a lookup key. The native reader
+  // validates the underlying original, receipt scope and current actor.
+  try {
+    const receipt = await readInboundReceptionRequest({
+      companyId, messageId: sourceMessageId, inboundEmailMessageId, actorUserId,
+    })
+    if (receipt?.status !== 'held' || receipt.classification === 'first_reception') return null
+    return { classification: receipt.classification, sourceMessageId: receipt.sourceMessageId }
+  } catch {
+    return null
+  }
 }
 
 async function currentSmimeFailure(
@@ -142,7 +165,12 @@ export default async function InboundMailDetailPage({ params }: Props) {
       </div>
     )
   }
-  const smimeFailure = await currentSmimeFailure(id, message, attachments)
+  const showsHeldReception = message.match_status === 'protocol_response_held'
+  const [smimeFailure, heldReception] = await Promise.all([
+    currentSmimeFailure(id, message, attachments),
+    showsHeldReception ? readHeldReception(message, id, admin.userId) : null,
+  ])
+  const hasReceivedOriginal = showsHeldReception && Boolean(reviewText(message.raw_edifact_payload) || reviewText(message.raw_email))
   if (attachmentResult.error && !smimeFailure) throw attachmentResult.error
   const smimeJob = smimeFailure ? smimeReviewJob(openReviews, message) : null
 
@@ -156,6 +184,28 @@ export default async function InboundMailDetailPage({ params }: Props) {
       />
 
       <main className="space-y-6 px-6 py-6 sm:px-8">
+        {showsHeldReception ? (
+          <section role="status" aria-label="Ediel-mottagningskvittot" className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5">
+            <h2 className="text-lg font-semibold text-slate-950">
+              {heldReception?.classification === 'identity_conflict'
+                ? 'Referenskonflikt i Ediel-mottagningen'
+                : heldReception ? 'Dubblett väntar på protokollsvar' : 'Mottagningskvittot kunde inte verifieras'}
+            </h2>
+            {heldReception?.classification === 'identity_conflict' ? (
+              <p className="mt-1 text-sm text-slate-700">Samma referens hör till olika original. Jämför meddelandena före fortsatt handläggning.</p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+              {hasReceivedOriginal ? (
+                <a href="#inbound-original" className="underline">Visa mottaget original</a>
+              ) : null}
+              {heldReception ? (
+                <Link href={`/admin/ediel/messages/${heldReception.sourceMessageId}`} prefetch={false} className="underline">
+                  Öppna tidigare Ediel-original
+                </Link>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         {smimeFailure ? (
           <section role="status" className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5">
             <h2 className="text-lg font-semibold text-slate-950">S/MIME kunde inte dekrypteras</h2>
@@ -225,7 +275,7 @@ export default async function InboundMailDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-2">
+        <section id="inbound-original" className="grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <h2 className="text-lg font-semibold text-slate-950">Raw EDIFACT payload</h2>
             <pre className="mt-4 max-h-[560px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-100">{codeBlock(message.raw_edifact_payload)}</pre>
