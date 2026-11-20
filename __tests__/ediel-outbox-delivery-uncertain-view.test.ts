@@ -30,10 +30,32 @@ let db: PGlite
 
 async function fetchPort(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = new URL(String(input))
-  expect(init?.method).toBe('GET')
   expect(url.searchParams.get('company_id')).toBe(`eq.${company}`)
+  const statusFilter = url.searchParams.get('status')
+  if (url.pathname === '/rest/v1/ediel_outbox' && statusFilter?.startsWith('in.(')) {
+    expect(statusFilter).toMatch(/^in\.\((prepared,queued|failed,blocked,blocked_tenant_state)\)$/)
+    const environmentFilter = url.searchParams.get('environment')
+    expect(environmentFilter).toMatch(/^eq\.(test|production)$/)
+    const scope = [company, environmentFilter!.slice(3), statusFilter.slice(4, -1).split(',')]
+    const predicate = 'from public.ediel_outbox where company_id=$1 and environment=$2 and status=any($3::text[])'
+    if (init?.method === 'HEAD') {
+      expect(new Headers(init.headers).get('prefer')).toContain('count=exact')
+      expect(url.searchParams.get('select')).toBe('id')
+      expect(url.searchParams.has('limit')).toBe(false)
+      const { rows } = await db.query<{ count: number }>('select count(*)::int ' + predicate, scope)
+      return new Response(null, { headers: { 'content-range': '*/' + rows[0].count } })
+    }
+    expect(init?.method).toBe('GET')
+    expect(url.searchParams.get('order')).toBe('created_at.desc,id.desc')
+    expect(url.searchParams.get('limit')).toBe('100')
+    const columns = url.searchParams.get('select')!.split(',')
+    expect(columns.every(column => /^[a-z_]+$/.test(column))).toBe(true)
+    const { rows } = await db.query<OutboxFixtureRow>(`select ${columns.join(',')} ${predicate} order by created_at desc,id desc limit 100`, scope)
+    return Response.json(rows)
+  }
+  expect(init?.method).toBe('GET')
   if (url.pathname !== '/rest/v1/ediel_outbox') return Response.json([])
-  const review = url.searchParams.has('status')
+  const review = statusFilter !== null
   if (review) {
     expect(url.searchParams.get('status')).toBe('eq.delivery_uncertain')
     expect(url.searchParams.get('order')).toBe('updated_at.desc,id.desc')

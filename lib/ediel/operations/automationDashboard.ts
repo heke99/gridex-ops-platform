@@ -2,6 +2,12 @@ import { supabaseService } from '@/lib/supabase/service'
 
 export type EdielAutomationRow = Record<string, unknown>
 
+const OUTBOX_FIELDS = 'id,company_id,ediel_message_id,source_message_id,status,priority,message_family,message_code,ack_outcome,environment,attempts,last_error,locked_at,locked_by,created_at,updated_at,sent_at'
+export const OUTBOX_READY_STATUSES: readonly string[] = ['prepared', 'queued']
+export const OUTBOX_PROBLEM_STATUSES: readonly string[] = ['failed', 'blocked', 'blocked_tenant_state']
+type OutboxEnvironment = 'production' | 'test'
+type OutboxWork = { rows: EdielAutomationRow[]; warning: string | null; count: number | null }
+
 export type EdielAutomationDashboard = {
   decisionTraces: EdielAutomationRow[]
   outboxItems: EdielAutomationRow[]
@@ -61,6 +67,59 @@ async function safeTableRows(params: {
   return { rows, warning: null }
 }
 
+async function readOutboxWorkRows(
+  companyId: string | null,
+  environment: OutboxEnvironment,
+  statuses: readonly string[],
+  unavailableMessage: string,
+): Promise<Omit<OutboxWork, 'count'>> {
+  const unavailable = { rows: [], warning: unavailableMessage }
+  try {
+    let query = supabaseService.from('ediel_outbox').select(OUTBOX_FIELDS)
+      .eq('environment', environment).in('status', statuses)
+      .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100)
+    if (companyId) query = query.eq('company_id', companyId)
+    const { data, error } = await query
+    if (error || !Array.isArray(data)) return unavailable
+    return { rows: data, warning: null }
+  } catch {
+    return unavailable
+  }
+}
+
+async function readOutboxWorkCount(companyId: string | null, environment: OutboxEnvironment, statuses: readonly string[]): Promise<number | null> {
+  try {
+    let query = supabaseService.from('ediel_outbox').select('id', { count: 'exact', head: true })
+      .eq('environment', environment).in('status', statuses)
+    if (companyId) query = query.eq('company_id', companyId)
+    const { count, error } = await query
+    return !error && typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null
+  } catch {
+    return null
+  }
+}
+
+export async function getEdielOutboxWorkload(companyId: string | null) {
+  async function readWork(environment: OutboxEnvironment, statuses: readonly string[], unavailableMessage: string): Promise<OutboxWork> {
+    const [list, count] = await Promise.all([
+      readOutboxWorkRows(companyId, environment, statuses, unavailableMessage),
+      readOutboxWorkCount(companyId, environment, statuses),
+    ])
+    return { ...list, count }
+  }
+
+  async function readEnvironment(environment: OutboxEnvironment) {
+    const [ready, problems] = await Promise.all([
+      readWork(environment, OUTBOX_READY_STATUSES, 'Listan över sändkön kunde inte läsas.'),
+      readWork(environment, OUTBOX_PROBLEM_STATUSES, 'Listan över fel och spärrar kunde inte läsas.'),
+    ])
+    return { ready, problems }
+  }
+
+  const [production, test] = await Promise.all([readEnvironment('production'), readEnvironment('test')])
+  return { production, test }
+}
+
 function statusOf(row: EdielAutomationRow): string {
   return String(row.status ?? row.lifecycle_status ?? row.decision ?? '').toLowerCase()
 }
@@ -97,7 +156,7 @@ export async function getEdielAutomationDashboard(params?: {
     }),
     safeTableRows({
       table: 'ediel_outbox',
-      select: 'id,company_id,ediel_message_id,source_message_id,status,priority,message_family,message_code,ack_outcome,environment,attempts,last_error,locked_at,locked_by,created_at,updated_at,sent_at',
+      select: OUTBOX_FIELDS,
       orderColumn: 'created_at',
       limit,
       companyId: params?.companyId ?? null,
