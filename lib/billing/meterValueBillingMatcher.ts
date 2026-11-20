@@ -147,9 +147,15 @@ export async function updateMeterValueBillingReadiness(params: {
     .in('status', ['active', 'confirmed_by_grid_owner', 'ended'])
     .lte('start_date', periodStart)
     .or(`end_date.is.null,end_date.gte.${periodEnd}`)
+    .or(`market_start_at.is.null,and(market_start_at.lte.${periodStartRaw},or(market_end_at.is.null,market_end_at.gte.${periodEndRaw}))`)
+    .order('market_start_at', { ascending: true, nullsFirst: false })
     .limit(3)
   if (periodsResponse.error) throw periodsResponse.error
-  const periods = (periodsResponse.data ?? []) as Array<Record<string, unknown>>
+  const civilCandidates = (periodsResponse.data ?? []) as Array<Record<string, unknown>>
+  // Only source periods with exact market boundaries can authorize readiness.
+  // Preserve legacy no-proof diagnostics if no exact candidate was returned.
+  const exactCandidates = civilCandidates.filter(row => typeof row.market_start_at === 'string')
+  const periods = exactCandidates.length > 0 ? exactCandidates : civilCandidates
   const period = periods.length === 1 ? periods[0] : null
 
   const contractId = typeof period?.contract_id === 'string' ? period.contract_id : null

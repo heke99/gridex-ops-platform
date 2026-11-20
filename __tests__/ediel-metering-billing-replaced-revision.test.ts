@@ -73,7 +73,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     const query = {
       select: () => query,
       eq(column: string, value: unknown) { filters.push([column, value]); return query },
-      limit: () => query, lte: () => query, or: () => query, in: () => query, contains: () => query,
+      limit: () => query, lte: () => query, or: () => query, order: () => query, in: () => query, contains: () => query,
       async insert(row: Row) { expect(table).toBe('ediel_unresolved_items'); io.unresolved.push(row); return { error: null } },
       then: (done: (response: { data: Row[]; error: null }) => unknown) =>
         Promise.resolve({ data: rows().filter(row => filters.every(([column, value]) => row[column] === value)), error: null }).then(done),
