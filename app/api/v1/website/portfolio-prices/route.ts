@@ -7,9 +7,8 @@ import {
   requireIntegrationApiAccess,
 } from "@/lib/integrations/apiAuth";
 import {
-  listPublicContractOffers,
   publicContractResponse,
-  publicOfferReference,
+  resolvePublicContractOffer,
 } from "@/lib/website/publicContracts";
 import { canonicalSwedishPriceArea } from "@/lib/pricing/types";
 
@@ -53,6 +52,7 @@ async function getPortfolioPrices(request: NextRequest) {
     .get("price_area")
     ?.trim()
     .toUpperCase();
+  const normalizedPriceArea = canonicalSwedishPriceArea(priceArea);
   if (!offerReference) {
     await logIntegrationApiRequest({
       client: auth.client,
@@ -72,7 +72,7 @@ async function getPortfolioPrices(request: NextRequest) {
       { status: 422 },
     );
   }
-  if (priceArea && !["SE1", "SE2", "SE3", "SE4"].includes(priceArea)) {
+  if (priceArea && !normalizedPriceArea) {
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -93,10 +93,11 @@ async function getPortfolioPrices(request: NextRequest) {
   }
 
   try {
-    const offers = await listPublicContractOffers({ client: auth.client });
-    const offer = offers.find(
-      (candidate) => publicOfferReference(candidate) === offerReference,
-    );
+    const offer = await resolvePublicContractOffer({
+      client: auth.client,
+      offerReference,
+      portfolioHistory: { priceArea: normalizedPriceArea },
+    });
     if (!offer || !["portfolio", "mixed"].includes(offer.contract_type)) {
       await logIntegrationApiRequest({
         client: auth.client,
@@ -123,11 +124,7 @@ async function getPortfolioPrices(request: NextRequest) {
       !Array.isArray(response.pricing)
         ? (response.pricing as Record<string, unknown>)
         : {};
-    const historical = records(pricing.portfolio_monthly_prices).filter(
-      (row) =>
-        !priceArea ||
-        canonicalSwedishPriceArea(row.price_area_code) === priceArea,
-    );
+    const historical = records(pricing.portfolio_monthly_prices);
     const publicMethod =
       pricing.portfolio_method &&
       typeof pricing.portfolio_method === "object" &&
