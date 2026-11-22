@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- paged PostgREST test port */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { PGlite } from '@electric-sql/pglite'
+import { GET as getPartnerRequest } from '@/app/api/partner/v1/[[...path]]/route'
 import { sortRows } from './helpers/postgrestOrFilter'
 
 type Row = Record<string, unknown>
 const state = vi.hoisted(() => ({
-  rows: [] as Row[], cap: 1000, pages: [] as number[], failOffset: -1, repeat: false,
+  rows: [] as Row[], cap: 1000, pages: [] as number[], failOffset: -1, repeat: false, databaseOrdered: false,
   timestamps: new WeakMap<Row, Map<string, { raw: string; parsed: number }>>(),
   requestRows: new Map<string, Row[]>(),
 }))
@@ -53,7 +55,8 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
         const key = JSON.stringify([table, filterKeys, orders])
         let rows = state.requestRows.get(key)
         if (rows === undefined) {
-          rows = sortRows(state.rows.filter(r => filters.every(f => f(r))), orders)
+          const filtered = state.rows.filter(r => filters.every(f => f(r)))
+          rows = state.databaseOrdered ? filtered : sortRows(filtered, orders)
           state.requestRows.set(key, rows)
         }
         const start = state.repeat ? 0 : offset
@@ -66,14 +69,15 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
 import { handleSimplePartnerApi } from '@/lib/partner-api/simple'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 
-beforeEach(() => { state.rows = []; state.cap = 1000; state.pages = []; state.failOffset = -1; state.repeat = false; state.timestamps = new WeakMap(); state.requestRows = new Map(); vi.spyOn(console, 'error').mockImplementation(() => {}) })
+beforeEach(() => { state.rows = []; state.cap = 1000; state.pages = []; state.failOffset = -1; state.repeat = false; state.databaseOrdered = false; state.timestamps = new WeakMap(); state.requestRows = new Map(); vi.spyOn(console, 'error').mockImplementation(() => {}) })
 function reading(i: number, extra: Row = {}): Row & { id: string; period_start: string } {
   return { id: `e0000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: new Date(Date.UTC(2026, 0, 1) + Math.floor(i / 2) * 900000).toISOString(), period_end: new Date(Date.UTC(2026, 0, 1) + (Math.floor(i / 2) + 1) * 900000).toISOString(), resolution: '15m', revision_status: 'current', quantity_kwh: i + 1, direction: i % 2 ? 'production' : 'consumption', unit: 'kWh', ...extra }
 }
-async function read(legacy = false) {
+async function read(legacy = false, mounted = false) {
   state.requestRows = new Map()
   const path = legacy ? ['sites', 'site_public', 'measurements'] : ['customer', 'customer_public', 'site', 'site_public', 'measurement']
   const request = new NextRequest(`https://example.invalid/api/partner/v1/${path.join('/')}?from_date=2026-01-01&to_date=2026-12-31&resolution=15m`)
+  if (mounted) return getPartnerRequest(request, { params: Promise.resolve({ path }) })
   return (legacy ? handlePartnerApi(request, 'GET', path) : handleSimplePartnerApi(request, 'GET', path))
 }
 describe('Partner measurements return the complete supported range', () => {
@@ -94,6 +98,33 @@ describe('Partner measurements return the complete supported range', () => {
     expect(r.status).toBe(200)
     expect((await r.json()).measurements).toHaveLength(300)
     expect(state.pages).toEqual([0, 137, 274, 300])
+  })
+  it.each([false, true])('preserves PostgreSQL microsecond order across pages in the mounted route (legacy=%s)', async legacy => {
+    const postgres = new PGlite()
+    const earlier = 'ef000000-0000-4000-8000-000000000002'
+    const later = 'ef000000-0000-4000-8000-000000000001'
+    try {
+      const result = await postgres.query<{ id: string; period_start: string }>(`
+        select t.id::text, to_json(t.period_start) #>> '{}' as period_start
+        from (values ($1::uuid, $2::timestamptz), ($3::uuid, $4::timestamptz)) t(id, period_start)
+        order by t.period_start, t.id
+      `, [later, '2026-01-01T00:00:00.000002Z', earlier, '2026-01-01T00:00:00.000001Z'])
+      expect(result.rows.map(row => row.id)).toEqual([earlier, later])
+      expect(Date.parse(result.rows[0].period_start)).toBe(Date.parse(result.rows[1].period_start))
+      state.rows = result.rows.map((row, index) => reading(index, row))
+      state.databaseOrdered = true
+      state.cap = 1
+
+      const response = (await read(legacy, true))!
+
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      const measurements = legacy ? body.data.measurements : body.measurements
+      expect(measurements.map((row: Row) => row.timestamp)).toEqual(result.rows.map(row => row.period_start))
+      expect(state.pages).toEqual([0, 1, 2])
+    } finally {
+      await postgres.close()
+    }
   })
   it('includes more than the old 40000 cap without changing the public DTO', async () => {
     state.rows = Array.from({ length: 41000 }, (_, i) => reading(i))
@@ -159,6 +190,28 @@ describe('Partner measurements return the complete supported range', () => {
 })
 
 describe('Partner measurement paging safety bounds', () => {
+  it('rejects a backwards microsecond step even when UUID order increases', async () => {
+    const { readCompletePartnerMeasurements } = await import('@/lib/partner-api/measurementRead')
+    const rows = [
+      reading(0, { period_start: '2026-01-01T00:00:00.000002Z' }),
+      reading(1, { period_start: '2026-01-01T00:00:00.000001Z' }),
+    ]
+    await expect(readCompletePartnerMeasurements(async offset => ({ data: rows.slice(offset, offset + 1), error: null })))
+      .rejects.toMatchObject({ status: 503, code: 'measurement_read_incomplete' })
+  })
+
+  it('uses UUIDs for the tie when offset and fractional formatting express the same instant', async () => {
+    const { readCompletePartnerMeasurements } = await import('@/lib/partner-api/measurementRead')
+    const rows = [
+      reading(0, { period_start: '2026-01-01T01:00:00.123450+01:00' }),
+      reading(1, { period_start: '2026-01-01T00:00:00.12345Z' }),
+    ]
+    const readRows = () => readCompletePartnerMeasurements(async offset => ({ data: rows.slice(offset, offset + 1), error: null }))
+    await expect(readRows()).resolves.toEqual(rows)
+    rows.reverse()
+    await expect(readRows()).rejects.toMatchObject({ status: 503, code: 'measurement_read_incomplete' })
+  })
+
   it('fails honestly when the finite row safety bound is exceeded', async () => {
     const { readCompletePartnerMeasurements } = await import('@/lib/partner-api/measurementRead')
     await expect(readCompletePartnerMeasurements(async (offset, size) => ({
