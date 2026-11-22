@@ -183,6 +183,43 @@ describe("D: explicit provider-state transition table", () => {
     expect(result.results[0].reason).toBe("stale_provider_state_ignored");
     expect(db.item.provider_status).toBe("unpaid");
   });
+
+  it.each([
+    ["2026-10-05T10:00:00.000000900Z", "2026-10-05T12:00:00.000000100+02:00", "2026-10-05T10:00:00.000Z"],
+    ["2026-10-05T12:00:00.420000900", "2026-10-05T10:00:00.419999999Z", "2026-10-05T10:00:00.000Z"],
+  ])("preserves event ordering and the existing timestamp representation for %s", async (newer, older, timestamp) => {
+    await run(event("newer", "invoice.unpaid", { occurred_at: newer }));
+
+    const result = await run(event("older", "invoice.overdue", { occurred_at: older }));
+
+    expect(result.results[0].reason).toBe("stale_provider_state_ignored");
+    expect(db.item.provider_status).toBe("unpaid");
+    expect(db.item.status_payload).toMatchObject({
+      last_provider_event_id: "newer",
+      last_provider_event_occurred_at: timestamp,
+    });
+    expect(db.itemWrites).toBe(1);
+    expect(db.portal).toHaveLength(1);
+  });
+
+  it("keeps allowed transitions for an equal instant expressed with a different offset", async () => {
+    await run(event("first", "invoice.unpaid", { occurred_at: "2026-10-05T10:00:00.900Z" }));
+    const result = await run(event("tie", "invoice.overdue", { occurred_at: "2026-10-05T12:00:00.900000000+0200" }));
+
+    expect(result.processed).toBe(1);
+    expect(result.results[0].reason).toBeUndefined();
+    expect(db.item.provider_status).toBe("overdue");
+  });
+
+  it("still uses the timestamp on a historical row without a precise clock", async () => {
+    db.item.provider_status = "unpaid";
+    db.item.status_payload = { last_provider_event_occurred_at: "2026-10-05T10:00:00.001Z" };
+
+    const result = await run(event("legacy-older", "invoice.overdue", { occurred_at: "2026-10-05T10:00:00.000999999Z" }));
+
+    expect(result.results[0].reason).toBe("stale_provider_state_ignored");
+    expect(db.itemWrites).toBe(0);
+  });
 });
 
 describe("C: concurrent paid/overdue cannot regress paid", () => {
@@ -225,14 +262,16 @@ describe("E: paid_at validated before any write; retries complete", () => {
   it("completes the portal mirror on retry after a mirror failure", async () => {
     db.item.provider_status = "unpaid";
     db.portalFail = true;
-    const first = await run(event("e1", "invoice.paid", { paid_at: "2026-10-05T10:00:00Z" }));
+    const payload = { paid_at: "2026-10-05T10:00:00.123456Z", occurred_at: "2026-10-05T10:00:00.123456Z" };
+    const first = await run(event("e1", "invoice.paid", payload));
     expect(first.failed).toBe(1);
     expect(db.item.provider_status).toBe("paid");
     db.portalFail = false;
-    db.events = [event("e1", "invoice.paid", { paid_at: "2026-10-05T10:00:00Z" })];
+    db.events = [event("e1", "invoice.paid", payload)];
     const retry = await retryReviewableInvoiceProviderEvents({ companyId: COMPANY });
     expect(retry.processed).toBe(1);
     expect(db.portal).toHaveLength(1);
     expect(db.portal[0].status).toBe("paid");
+    expect(db.portal[0].paid_at).toBe("2026-10-05T10:00:00.123Z");
   });
 });
