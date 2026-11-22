@@ -7,6 +7,7 @@ import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPr
 import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 /** Independently assembled directory facits, not encoder/parser round trips.
  * These prove syntax consumers only, never source custody, actor, guide, grant,
@@ -18,6 +19,53 @@ const prodat = ['BGM+Z03+DOC+9', 'DTM+137:202610011200:203', 'LIN+1++OBJ:::9']
 const row = (raw: string) => ({ id: 'syntax-source', company_id: 'company', direction: 'inbound', environment: 'test',
   message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z03', raw_payload: raw, parsed_payload: {},
   status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null }) as EdielMessageRow
+
+function e66WithEnvelopeClock(clock: string): EdielMessageRow {
+  const message = energyHandoffMessage('2026-11-18')
+  const raw = message.raw_payload!
+    .replace('260831:1811', clock)
+    .replace("++23-DDQ-E66-T++1'", "++23-DDQ-E66-T++1++1'")
+  return { ...message, raw_payload: raw }
+}
+
+describe('E66 UNB/S004 syntax at inbound acknowledgement decisions', () => {
+  it.each([
+    ['260230:1811', 'unb_date_invalid'],
+    ['250229:1811', 'unb_date_invalid'],
+    ['260800:1811', 'unb_date_invalid'],
+    ['261301:1811', 'unb_date_invalid'],
+    ['260831:2400', 'unb_time_invalid'],
+    ['260831:1260', 'unb_time_invalid'],
+    ['260831:18 11', 'unb_time_invalid'],
+    ['260831', 'unb_time_invalid'],
+    [':1811', 'unb_date_invalid'],
+    ['260831:1811:EXTRA', 'unb_datetime_composite_invalid'],
+    ['260831:1811:', 'unb_datetime_composite_invalid'],
+  ])('rejects malformed clock %s before E66 application handling', (clock, code) => {
+    const message = e66WithEnvelopeClock(clock)
+    expect(validateUnsmGrammar(message.raw_payload!).syntaxOk).toBe(true)
+    expect(validateEdifactSyntax(message).issues).toContainEqual(expect.objectContaining({ code, severity: 'error' }))
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision.syntaxDecision).toBe('rejected')
+    expect(decision.policy).toBeNull()
+    expect(decision.utiltsBusinessOutcome).toBeNull()
+    expect(decision.responsePlan.map(({ family, outcome }) => ({ family, outcome }))).toEqual([
+      { family: 'CONTRL', outcome: 'negative' },
+    ])
+  })
+
+  it.each(['260831:1811', '240229:2359', '260831:0000'])('accepts valid clock %s independently of document and receipt dates', clock => {
+    const message = e66WithEnvelopeClock(clock)
+    expect(message.raw_payload).toContain('DTM+137:202611181811:203')
+    expect(message.message_received_at).toBe('2026-11-18T20:00:00Z')
+    expect(validateEdifactSyntax(message).ok).toBe(true)
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision.syntaxDecision).toBe('accepted')
+    expect(decision.responsePlan.map(({ family, outcome }) => ({ family, outcome }))).toEqual([
+      { family: 'CONTRL', outcome: 'positive' }, { family: 'APERAK', outcome: 'positive' },
+    ])
+  })
+})
 
 describe('ENV-09 exact original full UNSM syntax at actual consumers', () => {
   it('retains archive and nested original-directory hashes for the actual physical version', () => {
@@ -179,6 +227,8 @@ describe('ENV-09 exact original full UNSM syntax at actual consumers', () => {
     const raw = 'UNA^;.! ~UNB;UNOC^3;11111^ZZ;22222^ZZ;261001^1200;I~UNH;M;PRODAT^D^97A^UN^E2SE6A~BGM;Z03;DOC!^1;9~DTM;137^202610011200^203~LIN;1;;OBJ^^^9~UNT;5;M~UNZ;1;I~'
     expect(validateUnsmGrammar(raw).syntaxOk).toBe(true)
     expect(validateEdifactSyntax(row(raw)).ok).toBe(true)
+    expect(validateEdifactSyntax(row(raw.replace('261001^1200', '260230^1200'))).issues)
+      .toContainEqual(expect.objectContaining({ code: 'unb_date_invalid', severity: 'error' }))
     expect(validateUnsmGrammar(raw.replace('DTM;137^', 'DTM;1234^')).issues[0].segmentIndex).toBe(3)
   })
 
