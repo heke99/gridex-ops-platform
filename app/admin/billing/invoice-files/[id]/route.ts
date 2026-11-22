@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { loadInvoiceFile, parseInvoiceFileFormat, renderInvoiceFile } from '@/lib/billing/invoiceFileExport'
+import { normalizeNordfinClientId } from '@/lib/billing/providers/registry'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,26 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   const file = await loadInvoiceFile(scope.companyId, id)
   if (!file) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
 
-  const rendered = renderInvoiceFile(file, parseInvoiceFileFormat(request.nextUrl.searchParams.get('format'), file.provider))
+  const format = parseInvoiceFileFormat(request.nextUrl.searchParams.get('format'), file.provider)
+  if (format === 'nordfin_xml') {
+    if (file.provider !== 'nordfin') {
+      return new NextResponse('Nordfin XML kan bara hämtas för en Nordfinfil.', {
+        status: 400,
+        headers: { 'cache-control': 'no-store' },
+      })
+    }
+
+    // The archive contains the canonical provider configuration used at creation.
+    const clientId = Array.isArray(file.rows) ? normalizeNordfinClientId(file.rows[0]?.nordfin_client_id) : null
+    if (!clientId || file.rows.some(row => row?.nordfin_client_id !== clientId)) {
+      return new NextResponse('Nordfinfilen saknar ett giltigt och enhetligt sparat ClientId.', {
+        status: 409,
+        headers: { 'cache-control': 'no-store' },
+      })
+    }
+  }
+
+  const rendered = renderInvoiceFile(file, format)
   const body = typeof rendered.body === 'string' ? rendered.body : new Blob([rendered.body as BlobPart], { type: rendered.contentType })
   return new NextResponse(body, {
     headers: {
