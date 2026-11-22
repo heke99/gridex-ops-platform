@@ -17,7 +17,7 @@ import type { WebsiteContractCreateResult } from "./customerApplicationCommunica
 import { explicitMeteringGridAreaCode, explicitMeteringGridOwnerId, explicitMeteringPriceAreaCode, requestedAnnualConsumption, requestedSiteMoveInDate, websiteSiteCanonicalFields } from "./customerApplicationCore";
 import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import type { ApplicationInput, NormalizedStructuredPoa } from "./customerApplicationSchemas";
-import { WEBSITE_APPLICATION_CONTRACT_CHANNEL, WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE, WEBSITE_APPLICATION_READY_CONTRACT_STATUS, WebsiteApplicationError, clean, digits, isUuid, normalizedEmail, stage } from "./customerApplicationShared";
+import { WEBSITE_APPLICATION_CONTRACT_CHANNEL, WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE, WEBSITE_APPLICATION_READY_CONTRACT_STATUS, WebsiteApplicationError, clean, digits, isUuid, normalizedEmail } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
 
 export async function onboardCanonicalWebsiteCustomerGraph(input: {

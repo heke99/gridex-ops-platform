@@ -19,7 +19,7 @@ import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
 import { buildCustomerLegalAcceptanceEvidence, contractLegalMailEvidenceReady, emailDispatchStatus, emailTriggerSucceeded } from "./customerApplicationLegal";
 import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import type { ApplicationInput } from "./customerApplicationSchemas";
-import { WEBSITE_APPLICATION_CONTRACT_CHANNEL, WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WEBSITE_PORTAL_PROVIDER, WebsiteApplicationError, clean, cleanUuid, digits, errorMessage, isObject, missingSchema, normalizedEmail, schemaErrorDetail, stage } from "./customerApplicationShared";
+import { WEBSITE_APPLICATION_CONTRACT_CHANNEL, WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WEBSITE_PORTAL_PROVIDER, WebsiteApplicationError, clean, cleanUuid, digits, errorMessage, isObject, missingSchema, normalizedEmail, schemaErrorDetail } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
 
 export function fullName(customer: ApplicationInput["customer"]): string | null {
