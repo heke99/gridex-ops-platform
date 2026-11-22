@@ -51,7 +51,14 @@ check(website.components.schemas.MarketReference.properties.reference_type.const
 check(website.components.schemas.CurrentMarketPriceResponse.required.includes('contract_schema_version'), 'Current market response must expose contract_schema_version.')
 includes('app/admin/system-health/page.tsx', ['Marknadspris och tenant-API', "startsWith('spot_')"], 'System Health must surface canonical market-price readiness.')
 includes('scripts/backfill-spot-price-coverage.ts', ['validateStoredDay', "action: 'skipped' | 'promoted' | 'imported' | 'busy'", 'gridex_claim_spot_price_import_job'], 'Backfill must validate local evidence first and claim canonical import jobs.')
-includes('lib/integrations/openApiResponse.ts', ['ETag', 'if-none-match', '304', 'X-Gridex-Contract-Version'], 'OpenAPI responses must preserve ETag, 304 and contract-version headers.')
+const openApiResponse = source('lib/integrations/openApiResponse.ts')
+const conditionalHeaderRead = "headers.get('if-none-match')"
+const readsConditionalHeader = openApiResponse.includes(conditionalHeaderRead)
+  || (openApiResponse.includes("from '@/lib/http/ifNoneMatch'")
+    && openApiResponse.includes('ifNoneMatchMatches(request, etag)')
+    && source('lib/http/ifNoneMatch.ts').includes(conditionalHeaderRead))
+check(['ETag', '304', 'X-Gridex-Contract-Version'].every((needle) => openApiResponse.includes(needle))
+  && readsConditionalHeader, 'OpenAPI responses must preserve ETag, 304 and contract-version headers.')
 
 if (failures.length) {
   console.error(`Market-price API regression failed (${failures.length}/${checks}):`)
