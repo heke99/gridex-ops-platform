@@ -6,6 +6,12 @@ const encoder = new TextEncoder()
 
 function xmlEscape(value: unknown): string {
   return String(value ?? '')
+    // ST_Xstring uses _xHHHH_ for characters XML cannot carry. Protect literal
+    // escape-looking text first so spreadsheet readers decode it only once.
+    .replace(/_(?=x[0-9a-f]{4}_)/gi, '_x005F_')
+    .replace(/[\u0000-\u0008\u000b-\u001f\ufffe\uffff\ud800-\udfff]/gu, (character) =>
+      `_x${character.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}_`,
+    )
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
