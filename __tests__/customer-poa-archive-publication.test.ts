@@ -9,7 +9,8 @@ import { API_CONTRACT_PROFILE_REGISTRY } from '@/lib/integrations/apiContractCom
 import { bindAuthenticatedApiResponseProfile, withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { tenantApiAccessError, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { GET as currentDocument } from '@/app/api/v1/openapi/poa-archive-v1.json/route'
-import { GET as pinnedDocument } from '@/app/api/v1/openapi/2026-10-19.1/poa-archive-v1.json/route'
+import { GET as previousPinnedDocument } from '@/app/api/v1/openapi/2026-10-19.1/poa-archive-v1.json/route'
+import { GET as pinnedDocument } from '@/app/api/v1/openapi/2026-11-19.1/poa-archive-v1.json/route'
 
 type Operation = {
   operationId: string
@@ -30,11 +31,15 @@ type Document = {
 }
 
 const documentPath = new URL('../docs/openapi/poa-archive-v1.json', import.meta.url)
-const pinnedPath = new URL('../docs/openapi/releases/2026-10-19.1/poa-archive-v1.json', import.meta.url)
+const previousVersion = '2026-10-19.1'
+const publicationVersion = '2026-11-19.1'
+const previousPinnedPath = new URL(`../docs/openapi/releases/${previousVersion}/poa-archive-v1.json`, import.meta.url)
+const pinnedPath = new URL(`../docs/openapi/releases/${publicationVersion}/poa-archive-v1.json`, import.meta.url)
 const listPath = '/api/v1/customer/powers-of-attorney/evidence'
 const detailPath = `${listPath}/{verificationReference}`
 const currentPath = '/api/v1/openapi/poa-archive-v1.json'
-const immutablePath = '/api/v1/openapi/2026-10-19.1/poa-archive-v1.json'
+const previousImmutablePath = `/api/v1/openapi/${previousVersion}/poa-archive-v1.json`
+const immutablePath = `/api/v1/openapi/${publicationVersion}/poa-archive-v1.json`
 function document(): Document { return JSON.parse(readFileSync(documentPath, 'utf8')) }
 function dereference(proposed: Document, value: unknown): Record<string, unknown> {
   let result = value as Record<string, unknown>
@@ -68,10 +73,12 @@ describe('independent customer POA archive publication', () => {
   it('publishes an independent version with byte-identical pinned document and unchanged shared envelope version', () => {
     const proposed = document()
     const existing = JSON.parse(readFileSync(new URL('../docs/openapi/customer-portal-v1.json', import.meta.url), 'utf8'))
-    expect(proposed.info.version).toBe('2026-10-19.1')
+    expect(proposed.info.version).toBe(publicationVersion)
     expect(proposed['x-independent-contract']).toBe(true)
     expect(proposed['x-contract-schema-version']).toBe(existing['x-contract-schema-version'])
     expect(readFileSync(documentPath, 'utf8')).toBe(readFileSync(pinnedPath, 'utf8'))
+    expect(createHash('sha256').update(readFileSync(previousPinnedPath)).digest('hex'))
+      .toBe('ec70eafa96d77563771af0b20eaa71ef2134eff96f75abfd4bb1942c94295d37')
   })
 
   it('resolves every local reference in the standalone document', () => {
@@ -95,7 +102,7 @@ describe('independent customer POA archive publication', () => {
     expect(refs).toBeGreaterThan(20)
   })
 
-  it.each([listPath, detailPath, currentPath, immutablePath])('matches real registry metadata for GET %s', path => {
+  it.each([listPath, detailPath, currentPath, previousImmutablePath, immutablePath])('matches real registry metadata for GET %s', path => {
     const operation = document().paths[path].get
     const contract = publicRouteContract('GET', path.replace('{verificationReference}', 'poa_verification_synthetic-reference-12345678'))
     expect(contract).not.toBeNull()
@@ -115,15 +122,16 @@ describe('independent customer POA archive publication', () => {
   })
 
   it.each([
-    [currentPath, currentDocument, 'public, max-age=300'],
-    [immutablePath, pinnedDocument, 'public, max-age=31536000, immutable'],
-  ] as const)('serves actual GET and conditional GET for %s with digest/cache/version agreement', async (path, get, cache) => {
+    [currentPath, currentDocument, 'public, max-age=300', documentPath, publicationVersion],
+    [immutablePath, pinnedDocument, 'public, max-age=31536000, immutable', pinnedPath, publicationVersion],
+    [previousImmutablePath, previousPinnedDocument, 'public, max-age=31536000, immutable', previousPinnedPath, previousVersion],
+  ] as const)('serves actual GET and conditional GET for %s with digest/cache/version agreement', async (path, get, cache, sourcePath, version) => {
     const response = await get(new NextRequest(`https://synthetic.invalid${path}`))
     const body = await response.text()
     expect(response.status).toBe(200)
-    expect(body).toBe(readFileSync(documentPath, 'utf8'))
+    expect(body).toBe(readFileSync(sourcePath, 'utf8'))
     expect(response.headers.get('Cache-Control')).toBe(cache)
-    expect(response.headers.get('X-Gridex-Contract-Version')).toBe('2026-10-19.1')
+    expect(response.headers.get('X-Gridex-Contract-Version')).toBe(version)
     const etag = `"${createHash('sha256').update(body).digest('base64url')}"`
     expect(response.headers.get('ETag')).toBe(etag)
     const conditional = await get(new NextRequest(`https://synthetic.invalid${path}`, { headers: { 'If-None-Match': etag } }))
@@ -131,6 +139,7 @@ describe('independent customer POA archive publication', () => {
     expect(await conditional.text()).toBe('')
     expect(conditional.headers.get('ETag')).toBe(etag)
     expect(conditional.headers.get('Cache-Control')).toBe(cache)
+    expect(conditional.headers.get('X-Gridex-Contract-Version')).toBe(version)
   })
 
   it.each(API_CONTRACT_PROFILE_REGISTRY.filter(profile => profile.surface === 'customer').map(profile => profile.revision))(

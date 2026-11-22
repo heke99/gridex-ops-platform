@@ -50,7 +50,7 @@ function configureAuthenticationContract(document) {
     type: 'apiKey',
     in: 'header',
     name: 'x-api-key',
-    deprecated: true,
+    'x-deprecated': true,
     description: `Deprecated compatibility header. New integrations MUST use Authorization: Bearer <GRIDEX_API_KEY>. Sunset: ${legacyApiKeySunset}.`,
   }
   document['x-scope-aliases'] = {

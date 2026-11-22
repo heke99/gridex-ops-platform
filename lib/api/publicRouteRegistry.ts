@@ -39,6 +39,7 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/customer/consumption/metering-values', scopes: ['customer_sites.read', 'customer_metering.read'], description: 'Read linked customer consumption intervals inside confirmed meter supply windows.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/poa-archive-v1.json', scopes: [], description: 'Independent additive customer POA archive and verification contract.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-19.1/poa-archive-v1.json', scopes: [], description: 'Immutable customer POA archive OpenAPI release 2026-10-19.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-19.1/poa-archive-v1.json', scopes: [], description: 'Immutable customer POA archive OpenAPI release 2026-11-19.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/staff-onboarding-v1.json', scopes: [], description: 'Independent additive staff onboarding contract; separate from the frozen Staff API release.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/staff-onboarding/invitations/accept', scopes: ['staff_users.write'], description: 'Explicitly accept the registered client invitation with verified independent tenant Auth and a purpose-bound single-use signed assertion.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/staff-onboarding/identity/resolve', scopes: ['staff_users.read'], description: 'Resolve an existing local-to-central staff identity binding using registered independent tenant Auth and a purpose-bound signed proof.', rateLimitClass: 'read' },
@@ -50,6 +51,9 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
 
+  { method: 'GET', path: '/api/v1/openapi/2026-11-19.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-11-19.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-19.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-11-19.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-19.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-11-19.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },

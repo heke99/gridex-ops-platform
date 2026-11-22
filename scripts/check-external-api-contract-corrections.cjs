@@ -12,6 +12,7 @@ const sha256 = (relative) => crypto.createHash('sha256').update(fs.readFileSync(
 
 const website = readJson('docs/openapi/website-integration-v1.json')
 const portal = readJson('docs/openapi/customer-portal-v1.json')
+const poa = readJson('docs/openapi/poa-archive-v1.json')
 const currentVersion = website.info?.version
 
 assert.match(
@@ -21,6 +22,7 @@ assert.match(
 )
 assert.equal(website.openapi, '3.1.0')
 assert.equal(portal.openapi, '3.1.0')
+assert.equal(poa.openapi, '3.1.0')
 assert.equal(portal.info.version, currentVersion)
 
 assert.equal(
@@ -34,12 +36,19 @@ assert.equal(
   'prior customer portal OpenAPI release bytes must remain immutable',
 )
 
-for (const document of [website, portal]) {
+// OpenAPI 3.1 API key Security Scheme Objects permit these fields and x- extensions.
+const apiKeySchemeFields = new Set(['type', 'in', 'name', 'description'])
+for (const document of [website, portal, poa]) {
   const scheme = document.components?.securitySchemes?.legacyApiKeyAuth
   assert.equal(scheme?.type, 'apiKey')
-  assert.equal(scheme?.in, 'header')
-  assert.equal(scheme?.name, 'x-api-key')
-  assert.equal(scheme?.deprecated, true)
+  const unsupportedFields = Object.keys(scheme).filter((field) => !apiKeySchemeFields.has(field) && !field.startsWith('x-'))
+  assert.deepEqual(unsupportedFields, [], `${document.info.title}: unsupported legacyApiKeyAuth fields`)
+  assert.equal(scheme.in, 'header')
+  assert.equal(scheme.name, 'x-api-key')
+  assert.equal(scheme['x-deprecated'], true)
+}
+
+for (const document of [website, portal]) {
   assert.equal(document['x-scope-aliases']?.['customer_portal.read']?.status, 'deprecated_legacy_alias')
   assert.equal(document['x-scope-aliases']?.['customer_portal.write']?.status, 'deprecated_legacy_alias')
 }

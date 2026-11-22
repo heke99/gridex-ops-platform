@@ -4,7 +4,8 @@ The customer POA archive reader is published as an independent additive contract
 using the same publication pattern as the independent staff-onboarding API.
 
 - Current document: `/api/v1/openapi/poa-archive-v1.json`.
-- Pinned document: `/api/v1/openapi/2026-10-19.1/poa-archive-v1.json`.
+- Pinned document: `/api/v1/openapi/2026-11-19.1/poa-archive-v1.json`.
+- Previous pinned document: `/api/v1/openapi/2026-10-19.1/poa-archive-v1.json`.
 - Discovery: `GET /api/v1/customer/powers-of-attorney/evidence`.
 - Verification/download:
   `GET /api/v1/customer/powers-of-attorney/evidence/{verificationReference}`.
@@ -15,7 +16,9 @@ read scopes are required together. Existing Website, Customer Portal, Partner an
 Staff document bodies and release history are preserved.
 
 `info.version` and `x-gridex-release-version` identify this independent document
-as `2026-10-19.1`. `x-contract-schema-version` retains the existing common envelope
+as `2026-11-19.1`. The revision replaces the unsupported legacy API key
+`deprecated` marker with the OpenAPI extension `x-deprecated`. Use this revision
+with strict OpenAPI 3.1 tooling. `x-contract-schema-version` retains the existing common envelope
 revision. Business responses retain the normal common contract/documentation
 headers; the independent document does not claim those headers changed.
 The three supported customer representation profiles remain supported. Their

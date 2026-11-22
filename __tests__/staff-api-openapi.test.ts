@@ -13,7 +13,8 @@ import { PUBLIC_API_ROUTES, publicRouteContract } from '@/lib/api/publicRouteReg
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { GET as currentStaffDocument } from '@/app/api/v1/openapi/staff-v1.json/route'
-import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-11-10.1/staff-v1.json/route'
+import { GET as previousStaffDocument } from '@/app/api/v1/openapi/2026-11-10.1/staff-v1.json/route'
+import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-11-19.1/staff-v1.json/route'
 import { GET as firstStaffReleaseDocument } from '@/app/api/v1/openapi/2026-10-04.1/staff-v1.json/route'
 import { API_DOCUMENTATION_VERSION, STAFF_API_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
@@ -142,6 +143,11 @@ describe('Staff API public contract', () => {
     const cached = await immutableStaffDocument(new NextRequest(request.url, { headers: { 'if-none-match': immutable.headers.get('etag')! } }))
     expect(cached.status).toBe(304)
     expect(cached.headers.get('x-gridex-contract-version')).toBe(API_DOCUMENTATION_VERSION)
+    const previous = await previousStaffDocument(request)
+    const previousBytes = readFileSync('docs/openapi/releases/2026-11-10.1/staff-v1.json', 'utf8')
+    expect(previous.headers.get('x-gridex-contract-version')).toBe('2026-11-10.1')
+    expect(previous.headers.get('cache-control')).toContain('immutable')
+    expect(await previous.text()).toBe(serializeOpenApiDocument(JSON.parse(previousBytes)))
     const first = await firstStaffReleaseDocument(request)
     expect(await first.text()).toBe(serializeOpenApiDocument(JSON.parse(readFileSync('docs/openapi/releases/2026-10-04.1/staff-v1.json', 'utf8'))))
     expect(first.headers.get('cache-control')).toContain('immutable')

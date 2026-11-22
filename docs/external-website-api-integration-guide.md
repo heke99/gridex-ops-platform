@@ -1,6 +1,8 @@
 # Gridex Website Integration API
 
-Current documentation: **2026-11-10.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-11-19.1**. Default response contract: **2026-10-09.1**.
+
+For strict OpenAPI 3.1 tooling, use the current document or pin `2026-11-19.1`. Prior immutable releases may describe the legacy API key with an unsupported `deprecated` field. The new documentation uses `x-deprecated` with the same authentication requirements.
 
 Documentation revisions describe the API and never require matching version headers on business requests. A newer documentation copy does not change the supported V1 response representation. Gridex can pin an older supported representation on the credential; see [API compatibility policy](api-compatibility-policy.md).
 

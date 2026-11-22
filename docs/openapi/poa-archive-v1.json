@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex customer POA archive and verification",
-    "version": "2026-10-19.1",
+    "version": "2026-11-19.1",
     "description": "Independent additive evidence contract. Requires both existing read scopes, a linked portal account and a fresh verified customer assertion. Read operations preserve the common API envelope revision and never generate or archive a PDF. Verification reference and SHA-256 are not a cryptographic PDF signature or BankID claim. Shared envelope version markers follow the authenticated credential’s existing supported customer profile; the independent documentation revision does not force an upgrade of that profile."
   },
   "servers": [
@@ -10,7 +10,7 @@
       "url": "https://app.gridex.se"
     }
   ],
-  "x-gridex-release-version": "2026-10-19.1",
+  "x-gridex-release-version": "2026-11-19.1",
   "x-contract-schema-version": "2026-10-09.1",
   "x-independent-contract": true,
   "paths": {
@@ -394,7 +394,7 @@
               "X-Gridex-Contract-Version": {
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-19.1"
+                  "const": "2026-11-19.1"
                 }
               }
             },
@@ -448,6 +448,59 @@
                 "schema": {
                   "type": "string",
                   "const": "2026-10-19.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document with paths and reusable components."
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag matches this exact serialized document; empty response body."
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/2026-11-19.1/poa-archive-v1.json": {
+      "get": {
+        "operationId": "getApiV1Openapi202611191PoaArchiveV1Json",
+        "summary": "Pinned immutable POA archive OpenAPI document",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Independent OpenAPI contract document.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "SHA-256 of actual serialized bytes."
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-19.1"
                 }
               }
             },
@@ -1288,7 +1341,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-api-key",
-        "deprecated": true,
+        "x-deprecated": true,
         "description": "Deprecated compatibility header. New integrations MUST use Authorization: Bearer <GRIDEX_API_KEY>. Sunset: 2026-10-31T23:59:59.000Z."
       }
     }
