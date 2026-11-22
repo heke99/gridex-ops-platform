@@ -57,3 +57,60 @@ describe('OPS02 protected owner-to-read-only consumer',()=>{
     expect((await readEdielProcessNextActions(input)).get(source)).toMatchObject({cause:'business_response_pending',waitingFor:['Z06'],timeBasis:{anchor:'z09_validity_day',actualAcceptedAt:'2026-10-01T12:00:00.000Z'}})
   })
 })
+
+describe('EDIEL-BEG-07 national supply rescission watch', () => {
+  const watch = {
+    ...row,
+    expected_code: 'Z05',
+    expected_subtype: 'L',
+    due_at: null as string | null,
+    metadata: { ...row.metadata, timerKind: 'untimed_business_response' },
+  }
+
+  function useWatch(expectation: Partial<typeof watch> = {}) {
+    port.rpc.mockImplementation(async (name: string) => ({
+      error: null,
+      data: name === 'gridex_ediel_business_expectations_v1' ? [{ ...watch, ...expectation }] : [],
+    }))
+  }
+
+  beforeEach(() => {
+    port.ids.mockResolvedValue({
+      error: null,
+      data: [{ ...m, message_code: 'Z08', contrl_status: 'pending', contrl_due_at: row.due_at }],
+    })
+  })
+
+  it.each([
+    { status: 'pending', cause: 'business_response_pending', waitingFor: ['Z05L', 'CONTRL'] },
+    { status: 'fulfilled', cause: 'business_response_received', waitingFor: ['CONTRL'] },
+  ])('projects the $status native Z05L watch independently of CONTRL', async ({ status, cause, waitingFor }) => {
+    useWatch({ status })
+    const decision = (await readEdielProcessNextActions(input)).get(source)
+    expect(decision).toMatchObject({
+      cause,
+      waitingFor,
+      blockers: [],
+      allowedActions: ['read_source'],
+      summary: expect.stringContaining('Z05L'),
+      timeBasis: { timerKind: 'untimed_business_response', businessDueAt: null, remoteReceiptKnown: false },
+      authorizesProviderEntry: false,
+      automaticResendAllowed: false,
+    })
+  })
+
+  it.each([
+    { expected_subtype: 'LK' },
+    { expected_subtype: undefined },
+    { due_at: row.due_at, metadata: row.metadata },
+  ])('holds a Z08 watch whose native subtype or timing is incompatible: %j', async (expectation) => {
+    useWatch(expectation)
+    expect((await readEdielProcessNextActions(input)).get(source)).toMatchObject({
+      cause: 'source_context_held',
+      waitingFor: [],
+      blockers: ['source_owned_process_context_required'],
+      authorizesProviderEntry: false,
+      automaticResendAllowed: false,
+    })
+  })
+})
