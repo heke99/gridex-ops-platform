@@ -17,6 +17,7 @@ export const CUSTOMER_ASSERTION_HEADER = 'x-gridex-customer-assertion'
 const CLOCK_SKEW_SECONDS = 60
 const MAX_LIFETIME_SECONDS = 15 * 60
 const JWKS_CACHE_MS = 10 * 60 * 1000
+const JWKS_KID_REFRESH_COOLDOWN_MS = 30 * 1000
 const JWKS_TIMEOUT_MS = 3000
 const JWKS_MAX_BYTES = 64 * 1024
 const ALGORITHMS = {
@@ -69,17 +70,23 @@ function base64urlJson(part: string): Record<string, unknown> | null {
   }
 }
 
-const jwksCache = new Map<string, { at: number; keys: JsonWebKey[] }>()
+type PublishedJwk = JsonWebKey & { kid?: string }
+type JwksSnapshot = { at: number; keys: PublishedJwk[] }
+type JwksFailure = 'key_not_found' | null
+type JwksEntry = {
+  snapshot?: JwksSnapshot
+  pending?: Promise<JwksSnapshot | JwksFailure>
+  nextKidRefreshAt?: number
+}
+
+const jwksCache = new Map<string, JwksEntry>()
 
 /** Test seam and cache reset. */
 export function resetJwksCacheForTests() {
   jwksCache.clear()
 }
 
-async function fetchJwks(uri: string, fetchImpl: typeof fetch = fetch): Promise<JsonWebKey[] | null> {
-  const cached = jwksCache.get(uri)
-  if (cached && Date.now() - cached.at < JWKS_CACHE_MS) return cached.keys
-  if (!/^https:\/\//.test(uri)) return null
+async function downloadJwks(uri: string, fetchImpl: typeof fetch): Promise<PublishedJwk[] | JwksFailure> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), JWKS_TIMEOUT_MS)
   try {
@@ -88,14 +95,37 @@ async function fetchJwks(uri: string, fetchImpl: typeof fetch = fetch): Promise<
     const text = await response.text()
     if (text.length > JWKS_MAX_BYTES) return null
     const body = JSON.parse(text) as { keys?: unknown }
-    const keys = Array.isArray(body.keys) ? (body.keys as JsonWebKey[]).filter((key) => key && typeof key === 'object' && !('d' in key)) : []
-    jwksCache.set(uri, { at: Date.now(), keys })
-    return keys
+    // Preserve the existing refusal code without caching a response that omits the key set.
+    if (!Array.isArray(body.keys)) return 'key_not_found'
+    return (body.keys as PublishedJwk[]).filter((key) => key && typeof key === 'object' && !('d' in key))
   } catch {
     return null
   } finally {
     clearTimeout(timer)
   }
+}
+
+function loadJwks(uri: string, entry: JwksEntry, fetchImpl: typeof fetch): Promise<JwksSnapshot | JwksFailure> {
+  if (entry.pending) return entry.pending
+  entry.pending = downloadJwks(uri, fetchImpl).then((keys) => {
+    if (keys === null || keys === 'key_not_found') return keys
+    const snapshot = { at: Date.now(), keys }
+    entry.snapshot = snapshot
+    return snapshot
+  }).finally(() => {
+    entry.pending = undefined
+    if (!entry.snapshot && jwksCache.get(uri) === entry) jwksCache.delete(uri)
+  })
+  return entry.pending
+}
+
+async function refreshJwksForUnknownKid(uri: string, entry: JwksEntry, fetchImpl: typeof fetch) {
+  if (entry.pending) return entry.pending
+  const now = Date.now()
+  // Concurrent callers share a refresh. Different unknown keys cannot each start a fetch.
+  if (now < (entry.nextKidRefreshAt ?? 0)) return null
+  entry.nextKidRefreshAt = now + JWKS_KID_REFRESH_COOLDOWN_MS
+  return loadJwks(uri, entry, fetchImpl)
 }
 
 function publicKeyFor(jwk: JsonWebKey, algorithm: Algorithm): KeyObject | null {
@@ -106,6 +136,29 @@ function publicKeyFor(jwk: JsonWebKey, algorithm: Algorithm): KeyObject | null {
   } catch {
     return null
   }
+}
+
+type SignatureFailure = 'key_not_found' | 'signature_invalid'
+
+function checkSignature(
+  candidates: PublishedJwk[], kid: string | null, alg: Algorithm, signed: Buffer, signature: Buffer,
+): SignatureFailure | null {
+  const keys = candidates
+    .filter((jwk) => !kid || !jwk.kid || jwk.kid === kid)
+    .map((jwk) => publicKeyFor(jwk, alg))
+    .filter((key): key is KeyObject => key !== null)
+  if (keys.length === 0) return 'key_not_found'
+  const spec = ALGORITHMS[alg]
+  const valid = keys.some((key) => {
+    try {
+      if ('pss' in spec) return verifySignature(spec.hash, signed, { key, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }, signature)
+      if ('dsa' in spec) return verifySignature(spec.hash, signed, { key, dsaEncoding: spec.dsa }, signature)
+      return verifySignature(spec.hash, signed, key, signature)
+    } catch {
+      return false
+    }
+  })
+  return valid ? null : 'signature_invalid'
 }
 
 function claimString(payload: Record<string, unknown>, claim: string): string | null {
@@ -141,33 +194,37 @@ export async function verifyCustomerAssertion(input: {
   const alg = algorithm as Algorithm
   if (!parts[2]) return { ok: false, reason: 'signature_invalid' }
 
-  const candidates = input.provider.kind === 'tenant_key'
-    ? (input.provider.public_jwk ? [input.provider.public_jwk] : [])
-    : await fetchJwks(input.provider.jwks_uri ?? '', input.fetchImpl)
-  if (candidates === null) return { ok: false, reason: 'jwks_unavailable' }
   const kid = typeof header.kid === 'string' ? header.kid : null
-  const keys = candidates
-    .filter((jwk) => !kid || !(jwk as { kid?: string }).kid || (jwk as { kid?: string }).kid === kid)
-    .map((jwk) => publicKeyFor(jwk, alg))
-    .filter((key): key is KeyObject => key !== null)
-  if (keys.length === 0) return { ok: false, reason: 'key_not_found' }
-
   const signed = Buffer.from(`${parts[0]}.${parts[1]}`)
   const signature = Buffer.from(parts[2], 'base64url')
-  const spec = ALGORITHMS[alg]
-  const valid = keys.some((key) => {
-    try {
-      if ('pss' in spec) return verifySignature(spec.hash, signed, { key, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }, signature)
-      if ('dsa' in spec) return verifySignature(spec.hash, signed, { key, dsaEncoding: spec.dsa }, signature)
-      return verifySignature(spec.hash, signed, key, signature)
-    } catch {
-      return false
+  const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+  let signatureFailure: SignatureFailure | null
+  if (input.provider.kind === 'tenant_key') {
+    signatureFailure = checkSignature(input.provider.public_jwk ? [input.provider.public_jwk] : [], kid, alg, signed, signature)
+  } else {
+    const uri = input.provider.jwks_uri ?? ''
+    if (!/^https:\/\//.test(uri)) return { ok: false, reason: 'jwks_unavailable' }
+    const fetchImpl = input.fetchImpl ?? fetch
+    const entry = jwksCache.get(uri) ?? {}
+    jwksCache.set(uri, entry)
+    const snapshot = entry.snapshot
+    const cached = snapshot && Date.now() - snapshot.at < JWKS_CACHE_MS ? snapshot : null
+    const current = cached ?? await loadJwks(uri, entry, fetchImpl)
+    if (current === null) return { ok: false, reason: 'jwks_unavailable' }
+    if (current === 'key_not_found') return { ok: false, reason: current }
+    signatureFailure = checkSignature(current.keys, kid, alg, signed, signature)
+    // Unverified claims can only suppress a refresh, never authorize the assertion.
+    if (signatureFailure && cached && kid && !cached.keys.some((key) => key.kid === kid)
+      && payload.iss === input.provider.issuer && audiences.includes(input.provider.audience)) {
+      const refreshed = await refreshJwksForUnknownKid(uri, entry, fetchImpl)
+      if (refreshed && refreshed !== 'key_not_found') {
+        signatureFailure = checkSignature(refreshed.keys, kid, alg, signed, signature)
+      }
     }
-  })
-  if (!valid) return { ok: false, reason: 'signature_invalid' }
+  }
+  if (signatureFailure) return { ok: false, reason: signatureFailure }
 
   if (payload.iss !== input.provider.issuer) return { ok: false, reason: 'issuer_mismatch' }
-  const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
   if (!audiences.includes(input.provider.audience)) return { ok: false, reason: 'audience_mismatch' }
 
   const nowSeconds = Math.floor((input.now ?? new Date()).getTime() / 1000)
