@@ -37,6 +37,22 @@ export function parseEdifactTimezoneOffsetFromSegments(
   return null
 }
 
+const ABSOLUTE_TIMEZONE_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/i
+
+function parseAbsoluteEdifactTime(raw: string): Date | null {
+  const timestamp = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i.exec(raw)
+  if (!timestamp) return null
+
+  // Validate the stated wall time before applying its offset. Date otherwise
+  // normalizes impossible values such as February 30 or hour 24.
+  const wallMinute = `${timestamp[1]}T${timestamp[2]}`
+  const check = new Date(`${wallMinute}Z`)
+  if (!Number.isFinite(check.getTime()) || check.toISOString().slice(0, 16) !== wallMinute) return null
+
+  const instant = new Date(raw)
+  return Number.isFinite(instant.getTime()) ? instant : null
+}
+
 export function localEdifactDateTimeToUtc(
   value: string | null | undefined,
   timezone: EdifactTimezoneOffset | null | undefined,
@@ -45,10 +61,7 @@ export function localEdifactDateTimeToUtc(
   if (!raw) return null
 
   // Do not apply DTM+735 twice if a caller already supplied an absolute instant.
-  if (/Z$/i.test(raw) || /[+-]\d{2}:?\d{2}$/.test(raw)) {
-    const absolute = new Date(raw)
-    return Number.isNaN(absolute.getTime()) ? null : absolute.toISOString()
-  }
+  if (ABSOLUTE_TIMEZONE_SUFFIX.test(raw)) return parseAbsoluteEdifactTime(raw)?.toISOString() ?? null
 
   if (!timezone) return raw
 
@@ -90,10 +103,10 @@ export function edifactInstantInDeclaredOffset(
 ): string | null {
   const raw = String(value ?? '').trim()
   if (!raw) return null
-  if (!timezone || !(/Z$/i.test(raw) || /[+-]\d{2}:?\d{2}$/.test(raw))) return raw
-  const instant = Date.parse(raw)
-  if (!Number.isFinite(instant)) return raw
+  if (!timezone || !ABSOLUTE_TIMEZONE_SUFFIX.test(raw)) return raw
+  const instant = parseAbsoluteEdifactTime(raw)
+  if (!instant) return null
   const offset = timezone.offsetMinutes, abs = Math.abs(offset)
-  const wall = new Date(instant + offset * 60_000).toISOString().slice(0, -1)
+  const wall = new Date(instant.getTime() + offset * 60_000).toISOString().slice(0, -1)
   return `${wall}${offset < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`
 }
