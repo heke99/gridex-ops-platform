@@ -10,6 +10,11 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
+const genericSmimeFailure = {
+  reason: 'Kontrollera S/MIME-formatet och det privata certifikatet.',
+  checkCertificate: true,
+}
+
 function codeBlock(value: unknown) {
   if (typeof value === 'string') return value || '—'
   return JSON.stringify(value ?? {}, null, 2)
@@ -17,6 +22,66 @@ function codeBlock(value: unknown) {
 
 function reviewText(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function reviewRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+async function currentSmimeFailure(
+  inboundEmailMessageId: string,
+  message: Record<string, unknown>,
+  attachments: Array<Record<string, unknown>>,
+) {
+  if (reviewText(message.raw_edifact_payload)) return null
+
+  // The attachment read is newest first. A successful decryption supersedes
+  // older failures even if the decrypted mail did not carry EDIFACT.
+  for (const attachment of attachments) {
+    const metadata = reviewRecord(attachment.metadata)
+    if (!reviewText(metadata?.encryptedPayloadRef)?.startsWith('inbound-smime://')) continue
+    if (metadata?.securityStatus === 'decrypted') return null
+    if (metadata?.securityStatus !== 'decrypt_failed') continue
+
+    const evidence = reviewRecord(metadata.evidence)
+    if (evidence?.decryptMethod === 'node_forge_pkcs7_required') {
+      return { reason: 'Det krypterade innehållet kunde inte läsas. Kontrollera S/MIME-formatet i originalet.', checkCertificate: false }
+    }
+    if (evidence?.decryptMethod === 'node_forge_pkcs7' && evidence.privateCertificateProfiles === 0) {
+      return { reason: 'Inget läsbart privat certifikat hittades för mejlets bolag och miljö.', checkCertificate: true }
+    }
+    return genericSmimeFailure
+  }
+
+  if (message.processing_status === 'processed') return null
+  const environment = message.environment ?? 'test'
+  const companyId = message.company_id ?? null
+  if (environment !== 'test' && environment !== 'production') return null
+  if (companyId !== null && (typeof companyId !== 'string' || !companyId)) return null
+
+  // The poller stores a safe status on the linked Ediel message, even when we cannot read attachment metadata.
+  const query = supabaseService.from('ediel_messages').select('processing_status')
+    .eq('inbound_email_message_id', inboundEmailMessageId)
+    .eq('direction', 'inbound')
+    .eq('environment', environment)
+  const { data, error } = await (companyId === null ? query.is('company_id', null) : query.eq('company_id', companyId))
+    .order('created_at', { ascending: false })
+    .limit(1)
+  return !error && data?.[0]?.processing_status === 'smime_decrypt_failed' ? genericSmimeFailure : null
+}
+
+function smimeReviewJob(openReviews: Array<Record<string, unknown>>, message: Record<string, unknown>) {
+  const explicitJobs = openReviews.filter(job => [job.step, job.review_reason, job.error_message].some(
+    value => value === 'smime_decrypt_failed' || value === 'inbound_smime_decrypt_failed',
+  ))
+  if (explicitJobs.length) return explicitJobs.length === 1 ? explicitJobs[0] : null
+  if (message.match_status !== 'missing_payload') return null
+
+  // Legacy jobs record the missing input and generic worker outcome separately.
+  const missingPayloadJobs = openReviews.filter(job => job.step === 'manual_review'
+    && job.review_reason === 'manual_review' && job.error_message == null
+    && reviewRecord(job.payload)?.hasRawEdifactPayload === false)
+  return missingPayloadJobs.length === 1 ? missingPayloadJobs[0] : null
 }
 
 function reviewLabel(...values: unknown[]) {
@@ -54,19 +119,19 @@ export default async function InboundMailDetailPage({ params }: Props) {
   if (messageResult.error) throw messageResult.error
   if (parseResult.error) throw parseResult.error
   if (matchResult.error) throw matchResult.error
-  if (attachmentResult.error) throw attachmentResult.error
   if (jobResult.error) throw jobResult.error
 
   const message = messageResult.data as Record<string, unknown> | null
   const parseRows = (parseResult.data ?? []) as Array<Record<string, unknown>>
   const matchRows = (matchResult.data ?? []) as Array<Record<string, unknown>>
-  const attachments = (attachmentResult.data ?? []) as Array<Record<string, unknown>>
+  const attachments = (attachmentResult.error ? [] : attachmentResult.data ?? []) as Array<Record<string, unknown>>
   const jobs = (jobResult.data ?? []) as Array<Record<string, unknown>>
   const openReviews = jobs.filter(
     (job) => job.status === 'manual_review' && job.review_resolved_at == null,
   )
 
   if (!message) {
+    if (attachmentResult.error) throw attachmentResult.error
     return (
       <div>
         <AdminHeader title="Inbound mail saknas" userEmail={admin.email} workspaceMode="platform" />
@@ -77,6 +142,9 @@ export default async function InboundMailDetailPage({ params }: Props) {
       </div>
     )
   }
+  const smimeFailure = await currentSmimeFailure(id, message, attachments)
+  if (attachmentResult.error && !smimeFailure) throw attachmentResult.error
+  const smimeJob = smimeFailure ? smimeReviewJob(openReviews, message) : null
 
   return (
     <div>
@@ -88,6 +156,18 @@ export default async function InboundMailDetailPage({ params }: Props) {
       />
 
       <main className="space-y-6 px-6 py-6 sm:px-8">
+        {smimeFailure ? (
+          <section role="status" className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5">
+            <h2 className="text-lg font-semibold text-slate-950">S/MIME kunde inte dekrypteras</h2>
+            {reviewText(message.raw_email) ? <p className="mt-1 text-sm text-slate-700">Det krypterade originalet är sparat.</p> : null}
+            <p className="mt-1 text-sm text-slate-700">{smimeFailure.reason}</p>
+            {smimeFailure.checkCertificate ? (
+              <Link href="/admin/ediel/certificates" className="mt-2 inline-flex text-sm font-semibold text-emerald-800 underline">
+                Öppna Ediel-certifikat
+              </Link>
+            ) : null}
+          </section>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/admin/inbound-mail" className="inline-flex rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm shadow-emerald-950/5 hover:bg-emerald-50">
             Tillbaka till Inbound Mail Engine
@@ -118,7 +198,8 @@ export default async function InboundMailDetailPage({ params }: Props) {
                   reviewOwner={reviewLabel(job.review_owner)}
                   reviewPriority={reviewLabel(job.review_priority)}
                   reviewSla={reviewDate(job.review_sla_due_at)}
-                  reviewReason={reviewLabel(job.review_reason, job.error_message)}
+                  reviewReason={(job === smimeJob ? smimeFailure?.reason : null) ?? reviewLabel(job.review_reason, job.error_message)}
+                  requireNextStatusChoice={job === smimeJob}
                 />
               ))}
             </div>
@@ -134,8 +215,8 @@ export default async function InboundMailDetailPage({ params }: Props) {
           </div>
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Processing</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">{String(message.processing_status ?? 'received')}</p>
-            <p className="mt-1 text-sm text-slate-700">Match: {String(message.match_status ?? 'not_checked')}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{smimeFailure ? 'Dekryptering krävs' : String(message.processing_status ?? 'received')}</p>
+            {smimeFailure ? null : <p className="mt-1 text-sm text-slate-700">Match: {String(message.match_status ?? 'not_checked')}</p>}
           </div>
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Rader</p>
@@ -167,7 +248,8 @@ export default async function InboundMailDetailPage({ params }: Props) {
           </div>
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <h2 className="text-lg font-semibold text-slate-950">Bilagor & jobb</h2>
-            <pre className="mt-4 max-h-[420px] overflow-auto rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-700">{codeBlock({ attachments, jobs })}</pre>
+            {attachmentResult.error ? <p className="mt-2 text-sm text-slate-700">Bilagor kunde inte läsas.</p> : null}
+            <pre className="mt-4 max-h-[420px] overflow-auto rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-700">{codeBlock({ attachments: attachmentResult.error ? null : attachments, jobs })}</pre>
           </div>
         </section>
       </main>

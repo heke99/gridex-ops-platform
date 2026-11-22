@@ -14,6 +14,7 @@ type Props = {
   reviewPriority: string
   reviewSla: string
   reviewReason: string
+  requireNextStatusChoice?: boolean
 }
 
 const initialState: ManualReviewActionState = { error: null }
@@ -37,6 +38,7 @@ export default function InboundManualReviewForm({
   reviewPriority,
   reviewSla,
   reviewReason,
+  requireNextStatusChoice = false,
 }: Props) {
   const [state, formAction] = useActionState(resolveInboundManualReviewUiAction, initialState)
 
@@ -53,7 +55,7 @@ export default function InboundManualReviewForm({
           <span>Prioritet: <strong className="text-slate-900">{reviewPriority}</strong></span>
           <span>SLA: <strong className="text-slate-900">{reviewSla}</strong></span>
         </div>
-        <p className="mt-2 text-sm text-slate-700">Orsak: {reviewReason}</p>
+        <p id={`review-reason-${jobId}`} className="mt-2 text-sm text-slate-700">Orsak: {reviewReason}</p>
         <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`resolution-${jobId}`}>Lösning</label>
         <input
           id={`resolution-${jobId}`}
@@ -67,11 +69,15 @@ export default function InboundManualReviewForm({
       <div>
         <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600" htmlFor={`next-status-${jobId}`}>Nästa status</label>
         <select
+          key={requireNextStatusChoice ? 'choose-status' : 'default-status'}
           id={`next-status-${jobId}`}
           name="next_status"
-          defaultValue="queued"
+          aria-describedby={`review-reason-${jobId}`}
+          defaultValue={requireNextStatusChoice ? '' : 'queued'}
+          required={requireNextStatusChoice}
           className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950"
         >
+          {requireNextStatusChoice ? <option value="" disabled>Välj nästa status</option> : null}
           <option value="queued">Köa om</option>
           <option value="done">Markera klar</option>
           <option value="failed">Markera misslyckad</option>
