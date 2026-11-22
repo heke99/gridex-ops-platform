@@ -1175,7 +1175,8 @@ export async function generateBillingUnderlaysForMonth(input: {
         }
 
         const totalKwh = sumUtiltsDecimals(segmentRows.map(absoluteQuantity));
-        if (totalKwh === '0') {
+        // A complete consumption period can still incur contracted fixed fees at 0 kWh.
+        if (totalKwh === '0' && energyDirection !== "consumption") {
           warnings.push("Total energimängd är ogiltig eller noll.");
         }
 
