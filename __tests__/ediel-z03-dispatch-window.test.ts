@@ -177,6 +177,43 @@ describe('persisted Z03 dispatch subtype through the real scheduler', () => {
     expect(ports.schedule.mock.calls[0][0]).toMatchObject({ status: 'cancellation_requested', requestType: 'move_in', transactionSubtype: 'LK' })
   })
 
+  it.each([
+    { original: 'LK', legacyType: 'switch', open: true, latest: '2027-07-15T21:59:59.999Z' },
+    { original: 'L', legacyType: 'move_in', open: false, latest: '2027-07-11T21:59:59.999Z' },
+  ] as const)('uses persisted $original over legacy $legacyType for cancellation readiness and automation', async ({ original, legacyType, open, latest }) => {
+    const now = new Date('2027-07-13T12:00:00Z')
+    vi.setSystemTime(now)
+    ports.rows = [row(original, '2027-07-15', { status: 'cancellation_requested', request_type: legacyType })]
+    const expectedSchedule = { window: { transactionSubtype: 'C', windowOpen: open, sendWindowClosesAt: latest } }
+
+    const readiness = await checkSupplierSwitchReadiness({ ...scope, now })
+    const automation = await ensureInitialSwitchEdielAutomation({ actorUserId: 'actor', switchRequestId: 'switch', environment: 'test' })
+
+    expect(readiness.readinessSnapshot.schedule).toMatchObject(expectedSchedule)
+    expect(ports.schedule).toHaveBeenCalledTimes(3)
+    for (const [call] of ports.schedule.mock.calls) {
+      expect(call).toMatchObject({ status: 'cancellation_requested', transactionSubtype: original, requestType: legacyType })
+    }
+    for (const result of ports.schedule.mock.results) expect(await result.value).toMatchObject(expectedSchedule)
+    expect(automation.blocked).toBe(!open)
+    expect(ports.produce).toHaveBeenCalledTimes(open ? 1 : 0)
+  })
+
+  it.each([
+    { original: 'L', legacyType: 'switch', explicit: 'LK', open: true },
+    { original: 'LK', legacyType: 'move_in', explicit: 'L', open: false },
+    { original: 'Z23', legacyType: 'switch', explicit: null, open: true },
+    { original: 'C', legacyType: 'move_in', explicit: null, open: true },
+    { original: 'unknown', legacyType: 'switch', explicit: null, open: false },
+    { original: null, legacyType: 'move_in', explicit: null, open: true },
+  ])('preserves explicit source and legacy fallback for $original, $explicit and $legacyType', async ({ original, legacyType, explicit, open }) => {
+    ports.rows = [row('L', '2027-07-15', { status: 'cancellation_requested' })]
+    const schedule = await ports.schedule({ ...scope, requestedStartDate: '2027-07-15', meteringPointId: 'point',
+      status: 'cancellation_requested', transactionSubtype: original, requestType: legacyType,
+      cancellationOfSubtype: explicit, now: new Date('2027-07-13T12:00:00Z') })
+    expect(schedule).toMatchObject({ ok: open, window: { transactionSubtype: 'C', windowOpen: open } })
+  })
+
   it.each([{ prodat_variant: null, prodat_reason: 'Z23', request_type: 'switch' },
     { prodat_variant: null, prodat_reason: null, request_type: 'move_in' }])(
     'uses the persisted reason or legacy request type when no variant is stored: %j', async overrides => {

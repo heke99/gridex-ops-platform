@@ -189,6 +189,8 @@ function resolveSwitchSubtype(input: SupplierSwitchScheduleInput): 'L' | 'LK' | 
 function cancellationContext(input: SupplierSwitchScheduleInput, subtype: 'L' | 'LK' | 'C'): 'L' | 'LK' | null {
   if (subtype !== 'C') return null
   if (input.cancellationOfSubtype) return input.cancellationOfSubtype
+  const original = canonicalProdatSubtypeForMessage('Z03', input.transactionSubtype)
+  if (original === 'L' || original === 'LK') return original
   return String(input.requestType ?? '').trim().toLowerCase() === 'move_in' ? 'LK' : 'L'
 }
 
