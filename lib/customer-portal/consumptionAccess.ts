@@ -30,16 +30,20 @@ export function consumptionWindows(scope: ConsumptionScope, sites: ConsumptionRo
   for (const period of periods) {
     if (period.company_id !== scope.companyId || period.customer_id !== scope.customerId) throw new Error('Foreign supply period')
     if (!['active', 'confirmed_by_grid_owner', 'ending', 'ended'].includes(String(period.status))) continue
-    if (!period.actual_start_date || !period.market_start_at) throw new Error('Confirmed supply authority unavailable')
+    const awaitingActivation = period.status === 'confirmed_by_grid_owner' && period.actual_start_date === null
+    if (!period.market_start_at || (!awaitingActivation && !period.actual_start_date)) throw new Error('Confirmed supply authority unavailable')
     const point = pointMap.get(period.metering_point_id)
     const site = point && siteMap.get(point.customer_site_id ?? point.site_id)
     if (!point || !site || point.company_id !== scope.companyId || site.company_id !== scope.companyId || site.customer_id !== scope.customerId) throw new Error('Unverified supply ownership')
     if (period.status === 'ended' && !period.actual_end_date) throw new Error('Unverified supply end')
+    const marketStart = timestamp(period.market_start_at)
+    // A grid-owner confirmation sets the planned market instant. Activation records the actual start.
+    if (awaitingActivation) continue
     let from = midnight(period.actual_start_date)
     let to = period.actual_end_date ? midnight(period.actual_end_date, true) : null
     // A planned end may restrict visibility, but never extend actual rights.
     if (period.end_date) { const planned = midnight(period.end_date, true); if (!to || planned < to) to = planned }
-    if (period.market_start_at) { const start = timestamp(period.market_start_at); if (start > from) from = start }
+    if (marketStart > from) from = marketStart
     if (period.market_end_at) { const end = timestamp(period.market_end_at); if (!to || end < to) to = end }
     if (to && from >= to) throw new Error('Invalid confirmed supply range')
     const facilityReference = typeof site.facility_reference === 'string' && site.facility_reference ? site.facility_reference : publicReference('facility', scope.companyId, site.id)
