@@ -560,21 +560,55 @@ export async function listPortalCases(
   return (data ?? []) as CustomerPortalCaseRow[]
 }
 
-export async function listPortalInfoRequests(
-  context: CustomerPortalContext
-): Promise<CustomerPortalInfoRequestRow[]> {
-  if (context.customerIds.length === 0 || !context.companyId) return []
+const PORTAL_INFO_REQUEST_HISTORY_STATUSES = ['completed', 'closed', 'cancelled', 'rejected']
+const PORTAL_INFO_REQUEST_PAGE_SIZE = 8
+type PortalInfoRequestListRow =
+  Pick<CustomerPortalInfoRequestRow, 'id' | 'request_type' | 'status' | 'updated_at'>
+  & Partial<Pick<CustomerPortalInfoRequestRow, 'customer_id' | 'notes'>>
 
-  const { data, error } = await supabaseService
+export async function listPortalInfoRequests(
+  context: CustomerPortalContext,
+  { scope, page = 1, requestId }: { scope: 'open' | 'history'; page?: number; requestId?: string },
+): Promise<{ requests: PortalInfoRequestListRow[]; total: number | null; page: number; hasMore: boolean }> {
+  const needsCount = scope === 'open' && !requestId
+  if (context.customerIds.length === 0 || !context.companyId) {
+    return { requests: [], total: needsCount ? 0 : null, page: 1, hasMore: false }
+  }
+
+  const query = supabaseService
     .from('customer_info_requests')
-    .select('id,customer_id,site_id,metering_point_id,request_type,target_party_type,status,requested_data_categories,notes,created_at,updated_at')
+    .select(
+      scope === 'open' ? 'id,customer_id,request_type,status,updated_at,notes' : 'id,request_type,status,updated_at',
+      needsCount ? { count: 'exact' } : undefined,
+    )
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
-    .order('updated_at', { ascending: false })
-    .limit(100)
+  const scoped = scope === 'open'
+    ? query.not('status', 'in', `(${PORTAL_INFO_REQUEST_HISTORY_STATUSES.join(',')})`)
+    : query.in('status', PORTAL_INFO_REQUEST_HISTORY_STATUSES)
+  if (requestId) scoped.eq('id', requestId)
+  scoped.order('updated_at', { ascending: false }).order('id', { ascending: false })
 
-  if (error) throw error
-  return (data ?? []) as CustomerPortalInfoRequestRow[]
+  const readPage = (pageNumber: number) => {
+    const offset = (pageNumber - 1) * PORTAL_INFO_REQUEST_PAGE_SIZE
+    return scoped.range(offset, offset + PORTAL_INFO_REQUEST_PAGE_SIZE - 1)
+      .overrideTypes<PortalInfoRequestListRow[], { merge: false }>()
+  }
+
+  let result = await readPage(page)
+  if (page > 1 && (result.status === 416 || result.error?.code === 'PGRST103' || (!result.error && !result.data?.length))) {
+    page = 1
+    result = await readPage(page)
+  }
+
+  if (result.error) throw result.error
+  if (needsCount && result.count === null) throw new Error('Portal information request count unavailable')
+  return {
+    requests: result.data ?? [],
+    total: result.count,
+    page,
+    hasMore: result.count !== null && page * PORTAL_INFO_REQUEST_PAGE_SIZE < result.count,
+  }
 }
 
 export async function listPortalCompletions(
