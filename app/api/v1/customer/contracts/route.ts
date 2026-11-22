@@ -8,6 +8,7 @@ import {
 } from '@/lib/customer-portal/externalApi'
 import { listPortalContractsPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 import {
+  contractResponseOptions,
   publicPageInput,
   publicPortalContract,
 } from '@/lib/customer-portal/publicDto'
@@ -29,10 +30,11 @@ export const dynamic = 'force-dynamic'
     })
     const page = await listPortalContractsPage(portalContext, publicPageInput(request.nextUrl.searchParams))
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: page.items.length })
+    const { includeStartDates, separateVariableFee, headers } = contractResponseOptions(request)
     return customerPortalJson({
-      data: page.items.map((row) => publicPortalContract(context.client.company_id, row)),
+      data: page.items.map((row) => publicPortalContract(context.client.company_id, row, includeStartDates, separateVariableFee)),
       page: page.page,
-    })
+    }, { headers })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

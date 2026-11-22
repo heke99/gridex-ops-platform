@@ -290,6 +290,9 @@ describe('customer-authorized existing POA archive', () => {
     io.db.tables.customer_merge_events = [{ company_id: A, primary_customer_id: D, merged_customer_id: C,
       moved_counts: { powers_of_attorney: 1 }, source_snapshot: { id: C }, created_by: 'synthetic-merge-actor', created_at: '2026-10-18T12:00:00Z' }]
     io.customer = D
+    const visible = await (await list(request())).json()
+    expect(visible.data[0]).toMatchObject({ archive_status: 'archived_unverified', download_url: expect.stringContaining('?format=pdf') })
+    expect(io.downloads).toEqual([])
     expect((await read('?format=pdf')).status).toBe(200)
     const event = structuredClone(io.db.tables.customer_merge_events[0])
     for (const invalid of ['zero-moved','missing-event','wrong-actor','duplicate-event','wrong-tenant','cycle']) {
@@ -302,6 +305,9 @@ describe('customer-authorized existing POA archive', () => {
       if (invalid === 'wrong-tenant') io.db.tables.customer_merge_events[0].company_id = B
       if (invalid === 'cycle') io.db.tables.customers[1].merged_into_customer_id = C
       io.downloads.length = 0
+      const listing = await list(request())
+      expect(listing.status, invalid).toBe(200)
+      expect((await listing.json()).data[0], invalid).toMatchObject({ archive_status: 'unavailable', download_url: null, archived_sha256: null })
       expect((await read('?format=pdf')).status, invalid).toBe(409)
       expect(io.downloads, invalid).toEqual([])
     }

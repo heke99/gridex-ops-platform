@@ -20,7 +20,7 @@ import type {
 } from '@/lib/customer-portal/types'
 import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/customer-portal/status'
 import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
-import { readInvoiceFileAvailability, type InvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
+import { readInvoiceFileAvailability, readRetiredInvoiceDocuments, type InvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
 
 type PortalAccountLookupRow = {
   customer_id: string
@@ -269,17 +269,13 @@ export async function getPortalInvoiceDetail(
 
   if (linesResult.error) throw linesResult.error
   if (documentsResult.error) throw documentsResult.error
-  const documents: Array<CustomerInvoiceDocumentRow & { fileAvailability: InvoiceFileAvailability }> = []
-  for (const document of documentsResult.data ?? []) {
-    const fileAvailability = await readInvoiceFileAvailability({
-      companyId: context.companyId, retentionClass: 'customer_invoice_document_pdf_bytes', targetId: document.id,
-    })
-    documents.push({
-      ...(document as CustomerInvoiceDocumentRow),
-      ...(fileAvailability === 'retired' ? { public_url: null, file_path: null } : {}),
-      fileAvailability,
-    })
-  }
+  const rows = (documentsResult.data ?? []) as CustomerInvoiceDocumentRow[]
+  const retired = await readRetiredInvoiceDocuments(context.companyId, invoiceId, rows.map(document => document.id))
+  const documents = rows.map(document => ({
+    ...document,
+    ...(retired.has(document.id) ? { public_url: null, file_path: null, fileAvailability: 'retired' as const }
+      : { fileAvailability: 'not_retired' as const }),
+  }))
 
   return {
     invoice: (invoiceFileAvailability === 'retired' ? { ...invoice, pdf_url: null, pdf_path: null } : invoice) as CustomerInvoiceRow,

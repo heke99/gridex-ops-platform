@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
 type Receipt = { table: string; mode: string; filters: Array<[string, string, unknown]>; row?: Row }
-const io = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, queries: [] as Receipt[], rpcs: [] as Array<{ name: string; args: Row }>, scopes: [] as unknown[], serial: 500, client: {} as Row }))
+const io = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, queries: [] as Receipt[], rpcs: [] as Array<{ name: string; args: Row }>, scopes: [] as unknown[], serial: 500, client: {} as Row, failingRead: null as string | null }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/service', () => {
   class Query {
@@ -53,6 +53,9 @@ vi.mock('@/lib/supabase/service', () => {
     async run(single = false) {
       if (!(this.table in io.rows)) throw new Error(`Undeclared database transport table: ${this.table}`)
       io.queries.push({ table: this.table, mode: this.mode, filters: structuredClone(this.filters), ...(this.mode !== 'select' ? { row: structuredClone(this.pending[0] ?? this.patch) } : {}) })
+      if (this.mode === 'select' && io.failingRead === this.table) {
+        return { data: null, error: { code: '08006', message: 'Synthetic database read failure' }, count: 0 }
+      }
       let rows = io.rows[this.table].filter(row => this.match(row))
       if (this.mode === 'insert' || this.mode === 'upsert') {
         if (this.mode === 'insert' && this.table === 'integration_api_write_idempotency' && this.pending.some(candidate => io.rows[this.table].some(existing => ['company_id','api_client_id','route','idempotency_key'].every(key => candidate[key] === existing[key])))) {
@@ -227,7 +230,7 @@ function commercialSnapshot() {
 }
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(NOW)); vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', id(99)); vi.stubEnv('CUSTOMER_OPERATION_CRON_SECRET', 'synthetic-test-only');
-  io.serial = 500; io.queries = []; io.rpcs = []; io.scopes = []
+  io.serial = 500; io.queries = []; io.rpcs = []; io.scopes = []; io.failingRead = null
   io.client = { id: CLIENT, company_id: COMPANY, name: 'Synthetic Website', status: 'active', key_prefix: 'unit', secret_hash: 'synthetic-unit', scopes: [...TENANT_WEBSITE_RECOMMENDED_SCOPES, 'website_contracts.diagnostics', 'api_contracts.diagnostics'], allowed_ips: [], allowed_origins: ['https://synthetic.example.invalid'], rate_limit_per_minute: 100, expires_at: null, metadata: { api_contract_profiles: { website: '2026-10-09.1' } } }
   const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','supplier_switch_events','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances']
   io.rows = Object.fromEntries(empty.map(table => [table, []]))
@@ -318,6 +321,31 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(asRecord(body.data)).toMatchObject({ selected_area_price: { energy_price_ore_per_kwh: 125 }, settlement: { model: 'fixed_price', energy_price_locked_at_signup: true } })
     expect(asRecord(asRecord(body.data).estimate)).toMatchObject({ monthly_ex_vat: 1250, annual_ex_vat: 15000 })
   })
+  it('uses the next month price window for the requested earliest supplier switch and replays the same date', async () => {
+    vi.setSystemTime(new Date('2026-11-30T12:00:00Z'))
+    try {
+      io.rows.contract_price_options[0].earliest_start_date = '2026-12-01'
+      const path = '/api/v1/website/quote'
+      const payload = { ...quoteRequest(), start_date: '2026-11-30' }
+      const quoteRequestWithPreference = () => {
+        const req = request(path, 'POST', payload, 'synthetic-earliest-switch-quote')
+        req.headers.set('Prefer', 'earliest-switch-start')
+        return req
+      }
+      const firstResponse = await quotePOST(quoteRequestWithPreference())
+      const first = await bodyContract(firstResponse, path, 'POST', 201)
+      expect(firstResponse.headers.get('Preference-Applied')).toBe('earliest-switch-start')
+      expect(asRecord(asRecord(first.data).input).start_date).toBe('2026-12-14')
+      expect(asRecord(first.data).price_option_reference).toBe('fixed_standard')
+      const replay = await quotePOST(quoteRequestWithPreference())
+      expect(replay.headers.get('Preference-Applied')).toBe('earliest-switch-start')
+      expect(replay.headers.get('Idempotency-Replayed')).toBe('true')
+      expect(asRecord(asRecord((await replay.json()).data).input).start_date).toBe('2026-12-14')
+      expect(io.rows.website_contract_quotes).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
   it('quote validation executes the persisted hash and exact commercial selection guards', async () => {
     const created = await quotePOST(request('/api/v1/website/quote', 'POST', quoteRequest(), 'synthetic-quote-key'))
     expect(created.status).toBe(201)
@@ -380,6 +408,68 @@ describe('Website operations: mounted routes against published contracts', () =>
     assertScope(['website_switch_status.read']); assertCompanyQuery('website_customer_applications'); assertCompanyQuery('supplier_switch_events')
     expect(asRecord(asRecord(body.data).switch)).toMatchObject({ status: 'requested', switch_reference: expect.stringMatching(/^switch_/), events: [expect.objectContaining({ event_type: 'requested' })] })
   })
+  it('uses the same switch status without a history read when the receipt opts out', async () => {
+    addApplication()
+    io.rows.supplier_switch_events = Array.from({ length: 100 }, () => ({
+      company_id: COMPANY, switch_request_id: SWITCH, event_type: 'requested', event_status: 'accepted',
+      message: 'Synthetic switch history note', created_at: NOW,
+    }))
+    const path = '/api/v1/website/switch-status'
+    const url = path + '?application_number=SYNTHETIC-APPLICATION'
+    const full = await bodyContract(await switchGET(request(url)), path)
+    expect(asRecord(asRecord(full.data).switch).events).toHaveLength(100)
+    expect(io.queries.filter(query => query.table === 'supplier_switch_events')).toHaveLength(1)
+
+    io.queries = []
+    const optedOut = request(url)
+    optedOut.headers.set('Prefer', 'omit-switch-events')
+    const response = await switchGET(optedOut)
+    expect(response.headers.get('preference-applied')).toBe('omit-switch-events')
+    expect(response.headers.get('vary')).toContain('Prefer')
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    const summary = await bodyContract(response, path)
+    expect(io.queries.some(query => query.table === 'supplier_switch_events')).toBe(false)
+    const { events, ...fullStatus } = asRecord(asRecord(full.data).switch)
+    expect(summary.data).toEqual({ ...asRecord(full.data), switch: { ...fullStatus, events: [] } })
+    expect(Buffer.byteLength(JSON.stringify(full.data)) - Buffer.byteLength(JSON.stringify(summary.data)))
+      .toBe(Buffer.byteLength(JSON.stringify(events)) - 2)
+  })
+  it('links a legacy application to its unique contract and site even when another agreement is newer', async () => {
+    addApplication()
+    delete asRecord(io.rows.website_customer_applications[0].response_payload).supplier_switch_request_id
+    const ownSwitch = io.rows.supplier_switch_requests[0]
+    io.rows.supplier_switch_requests = [
+      { ...ownSwitch, id: id(101), contract_id: id(102), status: 'completed', created_at: '2026-10-13T12:00:00Z' },
+      { ...ownSwitch, company_id: FOREIGN, id: id(103), status: 'completed' },
+      { ...ownSwitch, id: id(104), site_id: id(105), customer_site_id: id(105), status: 'completed' },
+      { ...ownSwitch, contract_id: null, customer_contract_id: CONTRACT, site_id: null },
+    ]
+    const path = '/api/v1/website/switch-status'
+    const body = await bodyContract(await switchGET(request(path + '?application_number=SYNTHETIC-APPLICATION')), path)
+    expect(asRecord(asRecord(body.data).switch).status).toBe('requested')
+  })
+  it.each(['wrong-contract', 'duplicate-link', 'conflicting-alias', 'bad-direct-id', 'foreign-direct-id'])('reports unknown switch status for %s', async (scenario) => {
+    addApplication()
+    const application = io.rows.website_customer_applications[0]
+    const payload = asRecord(application.response_payload)
+    const ownSwitch = io.rows.supplier_switch_requests[0]
+    if (scenario === 'wrong-contract' || scenario === 'duplicate-link') delete payload.supplier_switch_request_id
+    if (scenario === 'wrong-contract') ownSwitch.contract_id = id(106)
+    if (scenario === 'conflicting-alias') ownSwitch.customer_contract_id = id(107)
+    if (scenario === 'duplicate-link') io.rows.supplier_switch_requests.push({ ...ownSwitch, id: id(108), status: 'completed' })
+    if (scenario === 'bad-direct-id') payload.supplier_switch_request_id = 'not-a-uuid'
+    if (scenario === 'foreign-direct-id') ownSwitch.customer_id = id(109)
+    io.rows.supplier_switch_events = [{ company_id: COMPANY, switch_request_id: SWITCH, event_type: 'completed', created_at: NOW }]
+
+    const switchPath = '/api/v1/website/switch-status'
+    const switched = await bodyContract(await switchGET(request(switchPath + '?application_number=SYNTHETIC-APPLICATION')), switchPath)
+    expect(asRecord(switched.data).switch).toBeNull()
+    expect(io.queries.some(query => query.table === 'supplier_switch_events')).toBe(false)
+
+    const applicationPath = '/api/v1/website/customer-applications/{application_number}'
+    const status = await bodyContract(await applicationStatusGET(request('/api/v1/website/customer-applications/SYNTHETIC-APPLICATION'), { params: Promise.resolve({ applicationId: 'SYNTHETIC-APPLICATION' }) }), applicationPath)
+    expect(asRecord(status.data)).toMatchObject({ supplier_switch_status: 'unknown', requested_start_date: null })
+  })
   it('application status preserves a signed agreement while queued confirmation and automation remain pending', async () => {
     addApplication(); io.rows.customer_application_workflows = [{ id: WORKFLOW, company_id: COMPANY, customer_application_id: APPLICATION, state: 'canonical_data_committed', next_action: 'automatic_processing', updated_at: NOW }]
     io.rows.customer_operation_jobs = [{ company_id: COMPANY, workflow_id: WORKFLOW, job_type: 'customer_application_continuation', status: 'queued', attempts: 0, max_attempts: 5, run_after: NOW, created_at: NOW }]
@@ -389,6 +479,33 @@ describe('Website operations: mounted routes against published contracts', () =>
     const body = await bodyContract(await applicationStatusGET(request('/api/v1/website/customer-applications/SYNTHETIC-APPLICATION'), { params: Promise.resolve({ applicationId: 'SYNTHETIC-APPLICATION' }) }), path)
     assertScope(['website_switch_status.read']); assertCompanyQuery('customer_contracts'); assertCompanyQuery('tenant_email_outbox')
     expect(asRecord(body.data)).toMatchObject({ contract_status: 'signed', contract_number: 'SYNTHETIC-CONTRACT', automation: { status: 'queued' }, communication: { pending: true, queued: [expect.objectContaining({ status: 'queued' })] } })
+  })
+  it('isolates webhook read failures from receipt status and preserves diagnostics for the standard response', async () => {
+    addApplication()
+    io.rows.domain_events = [{ company_id: COMPANY, id: id(110), aggregate_type: 'website_customer_application', aggregate_id: APPLICATION }]
+    io.rows.webhook_deliveries = [{ company_id: COMPANY, domain_event_id: id(110), status: 'sent', attempts: 1, created_at: NOW }]
+    const path = '/api/v1/website/customer-applications/{application_number}'
+    const url = '/api/v1/website/customer-applications/SYNTHETIC-APPLICATION'
+    const props = { params: Promise.resolve({ applicationId: 'SYNTHETIC-APPLICATION' }) }
+    const full = await bodyContract(await applicationStatusGET(request(url), props), path)
+    expect(asRecord(full.data).webhook).toMatchObject({ status: 'sent', sent: 1 })
+    const diagnostics = ['domain_events', 'webhook_deliveries', 'event_outbox']
+    expect(io.queries.filter(query => diagnostics.includes(query.table)).map(query => query.table)).toEqual(diagnostics)
+
+    io.failingRead = 'webhook_deliveries'
+    expect((await applicationStatusGET(request(url), props)).status).toBe(500)
+
+    io.queries = []
+    const receipt = request(url)
+    receipt.headers.set('Prefer', 'omit-webhook-diagnostics')
+    const response = await applicationStatusGET(receipt, props)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('preference-applied')).toBe('omit-webhook-diagnostics')
+    expect(response.headers.get('vary')).toContain('Prefer')
+    const body = await response.json()
+    expect(Object.hasOwn(body.data, 'webhook')).toBe(false)
+    expect({ ...body.data, webhook: asRecord(full.data).webhook }).toEqual(full.data)
+    expect(io.queries.some(query => diagnostics.includes(query.table))).toBe(false)
   })
   it('application submission validates canonical input before replaying a committed own-company result without creating another customer', async () => {
     const legal = asRecord((await (await legalGET(request('/api/v1/website/legal-bundle?offer_reference=' + OFFER_REFERENCE))).json()).data)

@@ -460,6 +460,12 @@ export function handleCustomerPortalRouteError(input: {
       message: 'Utflyttningsdatumet följer inte affärsreglerna.',
     },
     {
+      pattern: /customer_move_out_active_submission_conflict/i,
+      status: 409,
+      code: 'MOVE_OUT_ACTIVE_SUBMISSION_CONFLICT',
+      message: 'Det finns redan en flyttanmälan för anläggningen och datumet. Kontakta kundservice för att ändra den.',
+    },
+    {
       pattern: /customer_move_out_idempotency_conflict/i,
       status: 409,
       code: 'IDEMPOTENCY_CONFLICT',
