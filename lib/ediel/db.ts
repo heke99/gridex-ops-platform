@@ -5,6 +5,7 @@ import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/db.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
 import { findRulebookTestCase } from '@/lib/ediel/rulebook/testCaseMatcher'
 import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
@@ -101,6 +102,7 @@ export type CanonicalIssueKind =
   | 'ack_conflict'
   | 'version_mismatch'
   | 'invalid_code_usage'
+  | 'ack_enqueue_blocked'
 
 export type CanonicalIssueEventRow = EdielMessageEventRow & {
   issue_kind: CanonicalIssueKind
@@ -249,7 +251,13 @@ function hasInvalidCodeUsage(row: EdielMessageRow): boolean {
   return false
 }
 
-function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
+/** Fynd 025: a canonical inbound ACK guard block (e.g. failed outbox enqueue
+ * of an own ACK draft) is an operator-visible issue, not a silent note. */
+export function isAckEnqueueBlockedEvent(row: Pick<EdielMessageEventRow, 'payload'>): boolean {
+  return ensureJson(row.payload).blockedBy === 'canonical_inbound_ack_guard'
+}
+
+export function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
   const payload = ensureJson(row.payload)
 
   const duplicateBlocked = asBoolean(payload.duplicateBlocked)
@@ -270,6 +278,8 @@ function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventR
     issueKind = 'version_mismatch'
   } else if (invalidCodeUsage) {
     issueKind = 'invalid_code_usage'
+  } else if (isAckEnqueueBlockedEvent(row)) {
+    issueKind = 'ack_enqueue_blocked'
   }
 
   if (!issueKind) return null
@@ -294,7 +304,7 @@ function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventR
     dedupe_layer: dedupeLayer,
     ack_family: ackFamily,
     source_message_id: asString(payload.sourceMessageId),
-    existing_ack_message_id: asString(payload.existingAckMessageId),
+    existing_ack_message_id: asString(payload.existingAckMessageId) ?? asString(payload.ackMessageId),
     attempted_outcome: payloadOutcomeOrNull(payload.attemptedOutcome),
     existing_outcome: payloadOutcomeOrNull(payload.existingOutcome),
     reason: asString(payload.reason),
@@ -822,6 +832,25 @@ export async function listCanonicalDuplicateBlockEvents(params?: {
         (!params?.companyId || row.company_id === params.companyId)
     )
     .slice(0, params?.limit ?? 100)
+}
+
+export async function listCanonicalAckEnqueueBlockedEvents(params: {
+  limit?: number
+  companyId: string
+}): Promise<CanonicalIssueEventRow[]> {
+  // Tenant and guard filters run in SQL so other tenants' rows are never read
+  // and their newer events cannot push this tenant's blocks out of the limit.
+  const query = tenantDb(params.companyId).from('ediel_message_events').select('*') as ReturnType<ReturnType<typeof supabaseService.from>['select']>
+  const { data, error } = await query
+    .eq('event_type', 'manual_note')
+    .eq('payload->>blockedBy', 'canonical_inbound_ack_guard')
+    .order('created_at', { ascending: false })
+    .limit(params.limit ?? 100)
+  if (error) throw error
+  return ((data ?? []) as EdielMessageEventRow[])
+    .filter((row) => row.company_id === params.companyId)
+    .map(mapCanonicalIssueEvent)
+    .filter((row): row is CanonicalIssueEventRow => row !== null && row.issue_kind === 'ack_enqueue_blocked')
 }
 
 export async function listCanonicalAckConflictEvents(params?: {

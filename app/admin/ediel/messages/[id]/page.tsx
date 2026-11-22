@@ -14,6 +14,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import {
  getEdielMessageById,
+ isAckEnqueueBlockedEvent,
  listEdielMessageEvents,
 } from '@/lib/ediel/db'
 import {
@@ -169,6 +170,7 @@ function getIssueEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] 
  (event) =>
  event.payload?.duplicateBlocked === true ||
  event.payload?.ackConflict === true ||
+ isAckEnqueueBlockedEvent(event) ||
  event.event_status === 'error'
  )
 }

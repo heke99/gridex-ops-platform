@@ -4,9 +4,26 @@ import {buildAckDraftForSource,getUtiltsAckTransactionTargets} from '@/lib/ediel
 import {readExistingAckBeforeDraft} from '@/lib/ediel/core/ackDraftSource'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
+import {tenantDb} from '@/lib/supabase/tenantDb'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatDocumentState} from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatAckObjectScopes,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
+
+/** Fynd 025: a non-PRODAT own ACK that was persisted as `draft` but never got
+ * its outbox row (enqueue failed after creation) may be queued on replay.
+ * PRODAT APERAK originals (protected P27/P34 replay and document holds) never
+ * qualify and are returned before this check. Only status `draft`, same
+ * tenant/environment/source and no outbox row at all qualify; any other state
+ * (sent/queued/sending/failed/prepared) is a retained transport fact. */
+async function isUnqueuedOwnDraftAck(ack:EdielMessageRow,source:EdielMessageRow):Promise<boolean>{
+ const companyId=source.company_id
+ if(ack.status!=='draft'||!companyId||ack.company_id!==companyId||ack.environment!==source.environment
+  ||ack.direction!=='outbound'||ack.related_message_id!==source.id)return false
+ const query=tenantDb(companyId).from('ediel_outbox').select('id') as unknown as {eq:(column:string,value:string)=>{eq:(column:string,value:string)=>{limit:(n:number)=>PromiseLike<{data:unknown[]|null;error:unknown}>}}}
+ const {data,error}=await query.eq('ediel_message_id',ack.id).eq('environment',ack.environment).limit(1)
+ if(error)throw error
+ return !data?.length
+}
 
 const protectedDocumentReferenceHolds=new WeakSet<Error>()
 /** Only this exact post-replay guard error qualifies the retained hold. A copied
@@ -19,7 +36,7 @@ export function isProtectedProdatDocumentReferenceHold(error:unknown):boolean{
  * immutable source capability. The public synchronous builder remains a pure
  * observational renderer and cannot provide this original authority itself. */
 export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraftForSource>[0]&{actorUserId:string;onDocumentReferenceHold?:(hold:Error)=>void}):Promise<
- {kind:'existing';message:EdielMessageRow}|{kind:'draft';draft:CreateEdielMessageInput}
+ {kind:'existing';message:EdielMessageRow;queueRepair?:boolean}|{kind:'draft';draft:CreateEdielMessageInput}
 >{
  let references:string[],scope:'interchange'|'message'|'transaction'|'object'
  const sourceWire=input.ackFamily==='APERAK'&&input.sourceMessage.raw_payload?tokenizeEdifact(input.sourceMessage.raw_payload):null
@@ -56,7 +73,7 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
    :getUtiltsAckTransactionTargets(input.sourceMessage).map(target=>target.reference)
   scope=input.ackFamily==='CONTRL'?'interchange':references.length?'transaction':input.ackScope??'message'
   const existing=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:input.ackFamily,outcome:input.outcome,ackScope:scope,acknowledgedReferences:references})
-  if(existing)return {kind:'existing',message:existing}
+  if(existing)return {kind:'existing',message:existing,queueRepair:await isUnqueuedOwnDraftAck(existing,input.sourceMessage)}
  }
  const needsOriginal=input.ackFamily==='UTILTS_ERR'||input.ackFamily==='APERAK'&&input.sourceMessage.message_family==='UTILTS_ERR'
  const companyId=input.sourceMessage.company_id

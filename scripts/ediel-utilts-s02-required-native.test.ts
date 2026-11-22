@@ -317,7 +317,10 @@ it('native actual S02 agency89 stays guide-valid, held with syntax CONTRL only, 
   expect(technical.parsed_payload).toMatchObject({ ackFamily: 'CONTRL', ackSourceId: f.source.id, sourceTransactionReference: null })
   expect(technical.canonical_rule_pack_id).toBeNull(); expect(technical.rule_pack_snapshot).toEqual({})
   expect(first.series).toEqual([]); expect(first.values).toEqual([])
-  expect(first.contracts).toEqual([]); expect(first.outbox).toEqual([])
+  expect(first.contracts).toEqual([])
+  expect(first.outbox).toHaveLength(1)
+  expect(first.outbox).toMatchObject([{ company_id: f.ids.company, environment: 'test', source_message_id: f.source.id,
+    ediel_message_id: technical.id, message_family: 'CONTRL', ack_outcome: 'positive', status: 'queued', attempts: 0, sent_at: null }])
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })
 it('native direct S02 agency89 refuses a positive override twice with zero durable effects', async () => {
