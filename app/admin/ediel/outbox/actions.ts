@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireEdielSendActionAccess } from '@/lib/ediel/actionAccess'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 function formString(value: FormDataEntryValue | null): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
@@ -16,8 +17,15 @@ function formNumber(value: FormDataEntryValue | null, fallback: number): number 
 
 export async function processEdielOutboxAction(formData: FormData) {
   const context = await requireEdielSendActionAccess()
+  const companyId = context.companyId
+  if (!companyId) throw new Error('Välj ett bolag för att processa utkorgen.')
+
+  const companyScope = await getOperationalCompanyScope(context.userId)
+  if (companyScope.companyId !== companyId) {
+    throw new Error('Ladda om utkorgen och kontrollera valt bolag före körning.')
+  }
+
   const environment = formString(formData.get('environment'))
-  const companyId = formString(formData.get('companyId'))
   const limit = formNumber(formData.get('limit'), 10)
 
   await processEdielOutbox({
