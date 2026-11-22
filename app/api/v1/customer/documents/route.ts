@@ -2,11 +2,11 @@ import { withApiContractRepresentation } from '@/lib/integrations/apiResponsePro
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
-  handleCustomerPortalRouteError,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { listPortalDocumentsPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import { handleCustomerPortalPaginationError } from '@/lib/customer-portal/paginationReadinessError'
 import {
   publicPageInput,
   publicPortalDocument,
@@ -34,7 +34,10 @@ export const dynamic = 'force-dynamic'
       page: page.page,
     })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    return handleCustomerPortalPaginationError(
+      { request, client: context.client, startedAt: context.startedAt, error },
+      'portal_customer_documents_page_v1',
+    )
   }
 }
 
