@@ -438,7 +438,7 @@ function renderUtiltsSegments(input: {
         : 'Validated metering values')
   )
   const siteType = sanitize(getPayloadString(payload, 'siteType') || 'Consumption')
-  const resolution = inferUtiltsResolution(payload)
+  const resolutionMinutes = inferUtiltsResolution(payload)
   const readingType = inferUtiltsReadingType(payload)
   const segments: string[] = []
 
@@ -473,7 +473,10 @@ function renderUtiltsSegments(input: {
   }
 
   if (input.code === 'E66') {
-    segments.push(`DTM+354:${resolution}:802`)
+    // Daily resolution uses its own agreement-bound qualifier. The qualified
+    // data request source only supplies 15- or 60-minute measurement methods.
+    if (resolutionMinutes === '1440') throw new Error('utilts_outbound_e66_daily_resolution_requires_agreement')
+    segments.push(`DTM+354:${resolutionMinutes}:806`)
     segments.push(`STS+7++${periodicDgi ? 'E23' : 'E88'}::260`)
     segments.push(`MEA+AAZ++${unit}`)
     // D02B SG5 FTX precedes SG6/SG7 and all SG8 observations.

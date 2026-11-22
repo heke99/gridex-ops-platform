@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
+import { ifNoneMatchMatches } from '@/lib/http/ifNoneMatch'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 export type OpenApiDocumentResponseOptions = {
@@ -99,8 +100,7 @@ export function openApiDocumentResponse(
     'X-Request-ID': requestId,
   }
 
-  const ifNoneMatch = request.headers.get('if-none-match')
-  if (ifNoneMatch?.split(',').map((value) => value.trim()).includes(etag)) {
+  if (ifNoneMatchMatches(request, etag)) {
     return new Response(null, { status: 304, headers })
   }
 
