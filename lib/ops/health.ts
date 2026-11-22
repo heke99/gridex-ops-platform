@@ -1,5 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { isSchemaError } from '@/lib/http/apiError'
+import { errorCode, isSchemaError } from '@/lib/http/apiError'
 
 export type OpsHealthRow = {
   check_key: string
@@ -8,43 +8,117 @@ export type OpsHealthRow = {
   details?: Record<string, unknown>
 }
 
-function asRows(value: unknown): OpsHealthRow[] {
-  return Array.isArray(value)
-    ? value
-        .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object' && !Array.isArray(row)))
-        .map((row) => ({
-          check_key: String(row.check_key ?? 'unknown'),
-          status: row.status === 'blocking' || row.status === 'warning' ? row.status : 'ok',
-          issue_count: Number(row.issue_count ?? 0) || 0,
-          details: row.details && typeof row.details === 'object' && !Array.isArray(row.details) ? row.details as Record<string, unknown> : undefined,
-        }))
-    : []
+type OpsHealthVersion = 'v5' | 'v4' | 'v3'
+type OpsHealthSnapshot = {
+  rows: OpsHealthRow[]
+  schemaReady: boolean
+  checkVersion: OpsHealthVersion | null
 }
 
-export async function getOpsHealth(): Promise<{ rows: OpsHealthRow[]; schemaReady: boolean }> {
-  // v5 is role/scope-aware and distinguishes actionable health from review/inventory.
-  // Fall back during expand/deploy so code and migrations can roll out independently.
-  const v5 = await supabaseService.rpc('gridex_ops_health_checks_v5')
-  if (!v5.error) return { schemaReady: true, rows: asRows(v5.data) }
+// These checks are emitted by every complete RPC version. v2 emits
+// workflow:missing_atomic_commit_marker only when its provisioning relation exists.
+const coreChecks = [
+  'queue:customer_operation_active_idempotency_duplicate',
+  'queue:customer_operation_stale',
+  'queue:email_delivery_uncertain',
+  'queue:webhook_stale_processing',
+  'queue:ediel_delivery_uncertain',
+  'address_conflict:duplicate_open',
+  'customer_site:unresolved_grid_context',
+  'route:receiver_or_mailbox_missing',
+  'route:required_receiver_subaddress_missing',
+  'route:receiver_certificate_invalid_or_missing',
+  'spot_current_day_missing',
+  'spot_previous_day_missing',
+  'spot_reference_window_incomplete',
+  'spot_preview_stale',
+  'spot_policy_fallback_conflict',
+  'spot_cron_slower_than_freshness_policy',
+]
+const legacyMasterdataChecks = [
+  'masterdata:grid_area_ops_owner_mapping_missing',
+  'masterdata:grid_owner_prodat_readiness_missing',
+]
+const versionChecks: Record<OpsHealthVersion, string[]> = {
+  v3: legacyMasterdataChecks,
+  v4: [
+    ...legacyMasterdataChecks,
+    'route:candidate_receiver_or_mailbox_missing',
+    'route:candidate_receiver_certificate_invalid_or_missing',
+  ],
+  v5: [
+    'masterdata:grid_owner_prodat_action_required',
+    'masterdata:grid_owner_prodat_out_of_scope_inventory',
+    'masterdata:grid_area_ops_owner_mapping_review',
+    'route:dynamic_receiver_candidate_templates',
+    'route:dynamic_receiver_candidate_template_invalid',
+    'route:static_candidate_receiver_or_mailbox_missing',
+    'route:non_live_certificate_candidate_inventory',
+    'route:static_candidate_receiver_certificate_invalid_or_missing',
+  ],
+}
+const executionSchemaCodes = new Set(['42P01', '42702', '42703', '42883', 'PGRST202'])
 
-  if (!isSchemaError(v5.error)) throw v5.error
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
 
-  const v4 = await supabaseService.rpc('gridex_ops_health_checks_v4')
-  if (!v4.error) return { schemaReady: true, rows: asRows(v4.data) }
-
-  if (!isSchemaError(v4.error)) throw v4.error
-
-  const v3 = await supabaseService.rpc('gridex_ops_health_checks_v3')
-  if (v3.error) {
-    if (isSchemaError(v3.error)) {
-      return {
-        schemaReady: false,
-        rows: [{ check_key: 'ops_health_schema', status: 'blocking', issue_count: 1, details: { code: v3.error.code ?? null } }],
-      }
-    }
-    throw v3.error
+function blockingSnapshot(checkVersion: OpsHealthVersion | null, checkKey: string, details: Record<string, unknown>, rows: OpsHealthRow[] = []): OpsHealthSnapshot {
+  return {
+    schemaReady: false,
+    checkVersion,
+    rows: [...rows, { check_key: checkKey, status: 'blocking', issue_count: 1, details }],
   }
-  return { schemaReady: true, rows: asRows(v3.data) }
+}
+
+function validatedSnapshot(data: unknown, version: OpsHealthVersion): OpsHealthSnapshot {
+  const rows: OpsHealthRow[] = []
+  if (!Array.isArray(data)) {
+    return blockingSnapshot(version, 'ops_health_invalid_result', { reason: 'expected_check_rows' })
+  }
+  for (const row of data) {
+    if (!isRecord(row) || typeof row.check_key !== 'string' || row.check_key.trim() === ''
+      || (row.status !== 'ok' && row.status !== 'warning' && row.status !== 'blocking')
+      || typeof row.issue_count !== 'number' || !Number.isSafeInteger(row.issue_count) || row.issue_count < 0
+      || (row.details != null && !isRecord(row.details))) {
+      return blockingSnapshot(version, 'ops_health_invalid_result', { reason: 'invalid_check_row' })
+    }
+    rows.push({ check_key: row.check_key, status: row.status, issue_count: row.issue_count, details: row.details ?? undefined })
+  }
+  const checkKeys = new Set(rows.map(row => row.check_key))
+  const missing = [...coreChecks, ...versionChecks[version]].filter(key => !checkKeys.has(key))
+  if (missing.length > 0) {
+    return blockingSnapshot(version, 'ops_health_invalid_result', { reason: 'missing_core_checks', missing }, rows)
+  }
+  return { rows, schemaReady: true, checkVersion: version }
+}
+
+function readHealthResult(result: { data: unknown; error: unknown }, version: OpsHealthVersion): OpsHealthSnapshot | null {
+  if (!result.error) return validatedSnapshot(result.data, version)
+
+  const code = errorCode(result.error)
+  const message = isRecord(result.error) ? result.error.message : undefined
+  const name = `public.gridex_ops_health_checks_${version}`
+  const missingVersion = (code === 'PGRST202' && message === `Could not find the function ${name} without parameters in the schema cache`)
+    || (code === '42883' && message === `function ${name}() does not exist`)
+  if (missingVersion) return null
+
+  if (code && executionSchemaCodes.has(code)) {
+    return blockingSnapshot(version, 'ops_health_schema', { code })
+  }
+  throw result.error
+}
+
+export async function getOpsHealth(): Promise<OpsHealthSnapshot> {
+  // Only an absent RPC permits diagnostics from an older version during rollout.
+  const v5 = readHealthResult(await supabaseService.rpc('gridex_ops_health_checks_v5'), 'v5')
+  if (v5) return v5
+
+  const v4 = readHealthResult(await supabaseService.rpc('gridex_ops_health_checks_v4'), 'v4')
+  if (v4) return v4
+
+  const v3 = readHealthResult(await supabaseService.rpc('gridex_ops_health_checks_v3'), 'v3')
+  return v3 ?? blockingSnapshot(null, 'ops_health_schema', { reason: 'no_supported_check_version' })
 }
 
 export type GeodataHealthStatus =
