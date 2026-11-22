@@ -157,15 +157,17 @@ export async function listCustomerSupportCases(
   page: { limit?: number | null; cursor?: string | null },
 ) {
   const limit = portalPageLimit(page.limit)
-  const cursor = decodePortalCursor({ cursor: page.cursor, companyId: scope.companyId, customerId: scope.customerId, resource: 'support_cases' })
+  // Cursors from the former creation-time order cannot be reused here.
+  const resource = 'support_cases_updated'
+  const cursor = decodePortalCursor({ cursor: page.cursor, companyId: scope.companyId, customerId: scope.customerId, resource })
   let query = tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
     .eq('customer_id', scope.customerId)
     .eq('metadata->>support_case', 'true')
   if (cursor) {
-    query = query.or(`created_at.lt.${cursor.orderValue},and(created_at.eq.${cursor.orderValue},id.lt.${cursor.id})`)
+    query = query.or(`updated_at.lt.${cursor.orderValue},and(updated_at.eq.${cursor.orderValue},id.lt.${cursor.id})`)
   }
   const { data, error } = await query
-    .order('created_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit + 1)
   if (error) throw error
@@ -173,8 +175,8 @@ export async function listCustomerSupportCases(
     limit,
     companyId: scope.companyId,
     customerId: scope.customerId,
-    resource: 'support_cases',
-    orderColumn: 'created_at',
+    resource,
+    orderColumn: 'updated_at',
   })
   return { items: built.items.map((row) => publicSupportCase(row)), page: built.page }
 }
@@ -194,18 +196,6 @@ export async function findCustomerSupportCase(scope: CustomerScope, caseReferenc
     if (direct.error) throw direct.error
     const hit = (direct.data ?? [])[0] as unknown as SupportCaseRow | undefined
     if (hit) return hit
-
-    // Cases created before references were stored: bounded scan within this customer only.
-    const legacy = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
-      .eq('customer_id', scope.customerId)
-      .eq('metadata->>support_case', 'true')
-      .order('created_at', { ascending: false })
-      .limit(500)
-    if (legacy.error) throw legacy.error
-    const match = ((legacy.data ?? []) as unknown as SupportCaseRow[]).find(
-      (row) => supportCaseReference(scope.companyId, row.id) === reference,
-    )
-    if (match) return match
   }
   throw new SupportConversationError('support_case_not_found', 'Ärendet hittades inte.', 404)
 }

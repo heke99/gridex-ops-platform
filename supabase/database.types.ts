@@ -17618,6 +17618,27 @@ export type Database = {
           },
         ]
       }
+      customer_consumption_cache_revisions: {
+        Row: {
+          company_id: string
+          customer_id: string
+          facility_id: string
+          revision: string
+        }
+        Insert: {
+          company_id: string
+          customer_id: string
+          facility_id: string
+          revision?: string
+        }
+        Update: {
+          company_id?: string
+          customer_id?: string
+          facility_id?: string
+          revision?: string
+        }
+        Relationships: []
+      }
       customer_contacts: {
         Row: {
           company_id: string | null
@@ -100631,6 +100652,17 @@ export type Database = {
           source: string
         }[]
       }
+      gridex_portal_invoice_document_availability_v1: {
+        Args: {
+          p_company_id: string
+          p_document_ids: string[]
+          p_invoice_id: string
+        }
+        Returns: {
+          document_id: string
+          retired: boolean
+        }[]
+      }
       gridex_portal_monthly_consumption_v1: {
         Args: {
           p_company_id: string
@@ -101534,6 +101566,17 @@ export type Database = {
           p_selected_customer_id: string
         }
         Returns: Json
+      }
+      gridex_resolve_customer_notification_references_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_references: string[]
+        }
+        Returns: {
+          id: string
+          notification_reference: string
+        }[]
       }
       gridex_resolve_dashboard_alert_v1: {
         Args: { p_alert: string; p_company: string }

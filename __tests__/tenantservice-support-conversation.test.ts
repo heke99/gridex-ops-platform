@@ -30,7 +30,7 @@ function builder(table: string) {
   let pending: Row[] = []
   let patch: Row = {}
   let limit: number | null = null
-  let ascending = true
+  const ordering: Array<{ field: string; direction: number }> = []
   let head = false
   const api: Record<string, unknown> = {
     select: (_columns?: string, options?: { head?: boolean }) => { head = Boolean(options?.head); return api },
@@ -41,8 +41,22 @@ function builder(table: string) {
       filters.push((row) => Object.entries(value).every(([key, v]) => (row[field] as Row | null)?.[key] === v))
       return api
     },
-    or: () => api,
-    order: (_field: string, options?: { ascending?: boolean }) => { ascending = options?.ascending ?? true; return api },
+    or: (expression: string) => {
+      const match = /^(\w+)\.(lt|gt)\.([^,]+),and\(\1\.eq\.\3,id\.\2\.([^,)]+)\)$/.exec(expression)
+      if (!match) throw new Error('Unexpected cursor predicate')
+      const [, field, operator, value, id] = match
+      const direction = operator === 'lt' ? -1 : 1
+      filters.push(row => {
+        const column = String(readPath(row, field))
+        const comparison = column === value ? String(row.id).localeCompare(id) : column.localeCompare(value)
+        return direction * comparison > 0
+      })
+      return api
+    },
+    order: (field: string, options?: { ascending?: boolean }) => {
+      ordering.push({ field, direction: options?.ascending === false ? -1 : 1 })
+      return api
+    },
     limit: (value: number) => { limit = value; return api },
     insert: (value: Row | Row[]) => {
       mode = 'insert'
@@ -57,7 +71,13 @@ function builder(table: string) {
       if (mode === 'insert') return pending
       const matched = (db[table] ?? []).filter((row) => filters.every((filter) => filter(row)))
       if (mode === 'update') { matched.forEach((row) => Object.assign(row, patch)); return matched }
-      const sorted = [...matched].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) * (ascending ? 1 : -1))
+      const sorted = [...matched].sort((a, b) => {
+        for (const { field, direction } of ordering) {
+          const comparison = String(readPath(a, field)).localeCompare(String(readPath(b, field)))
+          if (comparison) return comparison * direction
+        }
+        return 0
+      })
       return limit === null ? sorted : sorted.slice(0, limit)
     },
     single: async () => ({ data: (api.rows as () => Row[])()[0] ?? null, error: null }),
@@ -71,13 +91,8 @@ function builder(table: string) {
 }
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => builder(table), rpc } }))
-vi.mock('@/lib/customer-portal/keysetPagination', () => ({
-  portalPageLimit: (value?: number | null) => Math.min(Math.max(Math.trunc(value ?? 50), 1), 100),
-  decodePortalCursor: () => null,
-  buildPortalDatabasePage: (rows: Row[], input: { limit: number }) => ({
-    items: rows.slice(0, input.limit),
-    page: { limit: input.limit, offset: 0, returned: Math.min(rows.length, input.limit), has_more: rows.length > input.limit, next_cursor: null },
-  }),
+vi.mock('@/lib/env/supabaseServer', () => ({
+  getSupabaseServiceEnv: () => ({ serviceRoleKey: 'synthetic-support-pagination-key' }),
 }))
 
 const TENANT_A = '0000000a-0000-4000-8000-000000000000'
@@ -135,6 +150,29 @@ beforeEach(() => {
 })
 
 const scopeA1 = { companyId: TENANT_A, customerId: CUSTOMER_A1 }
+
+it('paginates customer support by latest update with an ID tie-breaker', async () => {
+  const { listCustomerSupportCases } = await import('@/lib/customer-service/supportConversation')
+  const { encodePortalCursor } = await import('@/lib/customer-portal/keysetPagination')
+  const updated = '2026-11-22T12:00:00.000Z'
+  db.customer_cases = [
+    { id: nextId(), title: 'Older update', created_at: '2026-11-17T00:00:00.000Z', updated_at: '2026-11-21T00:00:00.000Z' },
+    { id: nextId(), title: 'Tie low', created_at: '2026-11-20T00:00:00.000Z', updated_at: updated },
+    { id: nextId(), title: 'Old case updated latest', created_at: '2026-01-01T00:00:00.000Z', updated_at: updated },
+  ].map(row => ({ ...row, company_id: TENANT_A, customer_id: CUSTOMER_A1, metadata: { support_case: true }, status: 'open' }))
+  const first = await listCustomerSupportCases(scopeA1, { limit: 1 })
+  expect(first.items.map(row => row.title)).toEqual(['Old case updated latest'])
+  const second = await listCustomerSupportCases(scopeA1, { limit: 1, cursor: first.page.next_cursor })
+  expect(second.items.map(row => row.title)).toEqual(['Tie low'])
+  const third = await listCustomerSupportCases(scopeA1, { limit: 1, cursor: second.page.next_cursor })
+  expect(third.items.map(row => row.title)).toEqual(['Older update'])
+  expect(third.page.next_cursor).toBeNull()
+  const oldCursor = encodePortalCursor({
+    ...scopeA1, resource: 'support_cases',
+    tuple: { orderValue: updated, id: String(db.customer_cases[0].id) },
+  })
+  await expect(listCustomerSupportCases(scopeA1, { cursor: oldCursor })).rejects.toMatchObject({ code: 'invalid_cursor' })
+})
 
 async function openCase(key = 'key-1') {
   const support = await import('@/lib/customer-service/supportConversation')

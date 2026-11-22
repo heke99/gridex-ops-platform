@@ -55,6 +55,7 @@ export function publicPortalCustomer(
     company_name: text(row.company_name),
     email: text(identity.email) ?? text(row.email),
     phone: text(row.phone),
+    language_code: text(row.preferred_language),
     created_at: text(row.created_at),
   }
 }
@@ -80,11 +81,28 @@ export function publicPortalIdentity(
   }
 }
 
+export const CONTRACT_START_DATES_PREFERENCE = "contract-start-dates"
+const CONTRACT_PRICING_HEADER = "X-Gridex-Contract-Pricing"
+const SEPARATE_VARIABLE_FEE = "separate-variable-fee"
+
+export function contractResponseOptions(request: Request) {
+  const includeStartDates = request.headers.get("Prefer") === CONTRACT_START_DATES_PREFERENCE
+  const separateVariableFee = request.headers.get(CONTRACT_PRICING_HEADER) === SEPARATE_VARIABLE_FEE
+  const headers = new Headers()
+  if (includeStartDates) headers.set("Preference-Applied", CONTRACT_START_DATES_PREFERENCE)
+  if (separateVariableFee) headers.set(CONTRACT_PRICING_HEADER, SEPARATE_VARIABLE_FEE)
+  return { includeStartDates, separateVariableFee, headers }
+}
+
 export function publicPortalContract(
   companyId: string,
   value: unknown,
+  includeStartDates = false,
+  separateVariableFee = false,
 ): JsonRecord {
   const row = record(value)
+  const markup = numberOrNull(row.markup_ore_per_kwh) ?? numberOrNull(row.spot_markup_ore_per_kwh)
+  const variableFee = numberOrNull(row.variable_fee_ore_per_kwh)
   return {
     contract_reference:
       text(row.customer_contract_reference) ??
@@ -93,13 +111,19 @@ export function publicPortalContract(
     offer_reference: text(row.offer_reference),
     contract_name: text(row.contract_name),
     contract_type: text(row.contract_type),
-    energy_direction: text(row.energy_direction) ?? 'consumption',
+    ...(row.energy_direction === 'production' || row.energy_direction === 'consumption'
+      ? { energy_direction: row.energy_direction } : {}),
     status: text(row.status),
     start_date:
       text(row.actual_start_date) ??
       text(row.confirmed_start_date) ??
       text(row.starts_at) ??
       text(row.requested_start_date),
+    ...(includeStartDates ? {
+      requested_start_date: text(row.requested_start_date),
+      confirmed_start_date: text(row.confirmed_start_date),
+      actual_start_date: text(row.actual_start_date),
+    } : {}),
     end_date: text(row.ends_at),
     signed_at: text(row.signed_at),
     withdrawal_deadline_at: text(row.withdrawal_deadline_at),
@@ -108,13 +132,12 @@ export function publicPortalContract(
     monthly_fee_sek: numberOrNull(row.monthly_fee_sek),
     invoice_fee_sek: numberOrNull(row.invoice_fee_sek),
     fixed_price_ore_per_kwh: numberOrNull(row.fixed_price_ore_per_kwh),
-    markup_ore_per_kwh:
-      numberOrNull(row.markup_ore_per_kwh) ??
-      numberOrNull(row.spot_markup_ore_per_kwh) ??
-      numberOrNull(row.variable_fee_ore_per_kwh),
+    markup_ore_per_kwh: separateVariableFee ? markup : markup ?? variableFee,
+    ...(separateVariableFee ? { variable_fee_ore_per_kwh: variableFee } : {}),
     binding_months: numberOrNull(row.binding_months),
     notice_months: numberOrNull(row.notice_months),
-    auto_renew_enabled: row.auto_renew_enabled === true,
+    ...(typeof row.auto_renew_enabled === 'boolean'
+      ? { auto_renew_enabled: row.auto_renew_enabled } : {}),
     created_at: text(row.created_at),
   }
 }
@@ -255,6 +278,11 @@ export function publicPortalPowerOfAttorney(
   value: unknown,
 ): JsonRecord {
   const row = record(value)
+  const scopes = text(row.signed_at) && Array.isArray(row.signed_scope_snapshot)
+    ? [...new Set(row.signed_scope_snapshot.filter(scope =>
+        scope === 'supplier_switch' || scope === 'facility_information_lookup',
+      ))]
+    : []
   return {
     power_of_attorney_reference:
       text(row.reference) ??
@@ -270,6 +298,7 @@ export function publicPortalPowerOfAttorney(
       row.customer_site_id ?? row.site_id,
     ),
     scope: text(row.scope),
+    ...(scopes.length ? { scopes } : {}),
     status: text(row.status),
     signed_at: text(row.signed_at),
     accepted_at: text(row.accepted_at),
@@ -389,9 +418,11 @@ export function publicPortalBundleRows(
     events: unknown[]
     applications: unknown[]
   },
+  includeStartDates = false,
+  separateVariableFee = false,
 ): PublicPortalBundleRows {
   return {
-    contracts: input.contracts.map((row) => publicPortalContract(companyId, row)),
+    contracts: input.contracts.map((row) => publicPortalContract(companyId, row, includeStartDates, separateVariableFee)),
     sites: input.sites.map((row) => publicPortalSite(companyId, row)),
     meteringPoints: input.meteringPoints.map((row) =>
       publicPortalMeteringPoint(companyId, row),

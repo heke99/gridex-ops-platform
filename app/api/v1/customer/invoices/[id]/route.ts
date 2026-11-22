@@ -17,7 +17,7 @@ import {
   publicPortalInvoice,
 } from '@/lib/customer-portal/publicDto'
 import { publicReference } from '@/lib/integrations/publicReferences'
-import { readInvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
+import { readRetiredInvoiceDocuments } from '@/lib/customer-portal/invoiceFileAvailability'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,6 +28,11 @@ export const dynamic = 'force-dynamic'
 
   try {
     const { id } = await contextInput.params
+    const documentReferences = request.nextUrl.searchParams.getAll('document_reference')
+    const documentReference = documentReferences[0]
+    if (documentReferences.length > 1 || (documentReference !== undefined && !/^document_[A-Za-z0-9_-]{32}$/.test(documentReference))) {
+      return customerPortalJson({ error: 'Ogiltig dokumentreferens.', code: 'invalid_document_reference' }, { status: 400 })
+    }
     const portalContext = portalContextFromResolved({
       companyId: context.client.company_id,
       customerId: context.identity.customer_id,
@@ -42,30 +47,36 @@ export const dynamic = 'force-dynamic'
     }
     const internalInvoiceId = invoice.id
 
-    const { data: lines, error: lineError } = await supabaseService
-      .from('customer_invoice_lines')
-      .select('id,description,quantity,unit_price,amount_ex_vat,vat_amount,amount_inc_vat,metadata,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('invoice_id', internalInvoiceId)
-      .order('created_at', { ascending: true })
+    const [{ data: lines, error: lineError }, { data: documents, error: documentError }] = await Promise.all([
+      documentReference ? { data: [], error: null } : supabaseService
+        .from('customer_invoice_lines')
+        .select('id,description,quantity,unit_price,amount_ex_vat,vat_amount,amount_inc_vat,metadata,created_at')
+        .eq('company_id', context.client.company_id)
+        .eq('invoice_id', internalInvoiceId)
+        .order('created_at', { ascending: true }),
+      supabaseService
+        .from('customer_invoice_documents')
+        .select('id,document_type,title,public_url,source_system,created_at')
+        .eq('company_id', context.client.company_id)
+        .eq('invoice_id', internalInvoiceId)
+        .order('created_at', { ascending: false }),
+    ])
 
     if (lineError && !isMissingSchemaError(lineError)) throw lineError
-
-    const { data: documents, error: documentError } = await supabaseService
-      .from('customer_invoice_documents')
-      .select('id,document_type,title,public_url,source_system,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('invoice_id', internalInvoiceId)
-      .order('created_at', { ascending: false })
-
     if (documentError && !isMissingSchemaError(documentError)) throw documentError
-    const safeDocuments: NonNullable<typeof documents> = []
-    for (const document of documentError ? [] : documents ?? []) {
-      const fileAvailability = await readInvoiceFileAvailability({
-        companyId: context.client.company_id, retentionClass: 'customer_invoice_document_pdf_bytes', targetId: document.id,
-      })
-      safeDocuments.push(fileAvailability === 'retired' ? { ...document, public_url: null } : document)
+    const scopedDocuments = documentError ? [] : documents ?? []
+    const matchingDocuments = documentReference
+      ? scopedDocuments.filter(document => publicReference('document', context.client.company_id, document.id) === documentReference)
+      : scopedDocuments
+    if (documentReference && matchingDocuments.length !== 1) {
+      return customerPortalJson({ error: 'Bilagan hittades inte.', code: 'invoice_document_not_found' }, { status: 404 })
     }
+
+    const retired = await readRetiredInvoiceDocuments(
+      context.client.company_id, internalInvoiceId, matchingDocuments.map(document => document.id),
+    )
+    const safeDocuments = matchingDocuments.map(document =>
+      retired.has(document.id) ? { ...document, public_url: null } : document)
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_reference: id } })
     return customerPortalJson({

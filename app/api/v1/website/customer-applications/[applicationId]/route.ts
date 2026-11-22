@@ -24,14 +24,21 @@ async function getApplication(request: NextRequest, { params }: Props) {
 
   const { applicationId: applicationNumber } = await params
   try {
+    const preference = 'omit-webhook-diagnostics'
+    const omitWebhook = request.headers.get('prefer')?.trim().toLowerCase() === preference
     const status = await loadWebsiteCustomerApplicationStatus({
       companyId: auth.context.companyId,
       applicationNumber,
+      includeWebhookDiagnostics: !omitWebhook,
     })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { application_number: applicationNumber, request_id: requestId } })
     return customerPortalJson(
       { data: status, request_id: requestId, correlation_id: requestId },
-      { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
+      { status: 200, headers: {
+        'Cache-Control': 'private, no-store',
+        Vary: 'Prefer',
+        ...(omitWebhook ? { 'Preference-Applied': preference } : {}),
+      } },
     )
   } catch (error) {
     if (error instanceof WebsiteCustomerApplicationStatusError) {

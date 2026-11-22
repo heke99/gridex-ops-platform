@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-11-01T00:29:23.971226+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41256573704-job124700896694-attempt1",
-  "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
-  "latest_migration": "20261030131500_audit19_qualify_onboard_customer_graph_core_hash.sql",
-  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of main14007 plus PR949: gridex_ack_authority.read_outbound_originals_v1 gains linear CONTRL discovery, with the remaining qualification body unchanged. The new 20261030130400 migration sorts before the already included audit19 migration, so latest_migration remains 20261030131500. Generated types are unchanged. Capture only; native/browser/upgrade parity and production installation remain unverified.",
+  "generated_at": "2026-11-22T15:30:59.284741+00:00",
+  "generated_with": "Supabase project type generation for changed public declarations, retaining the canonical baseline for other declarations",
+  "sha256": "d6c00770e9b20028fa953465e27f6bfe82520436479322e987e5b1883594ec1c",
+  "latest_migration": "20261122173000_customer_consumption_cache_revisions.sql",
+  "latest_migration_schema_effect": "Adds customer consumption cache revisions. The release also adds notification reference and invoice document availability RPCs. Trigger functions are excluded from generated API types.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",

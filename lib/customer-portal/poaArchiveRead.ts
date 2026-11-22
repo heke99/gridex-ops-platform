@@ -73,21 +73,41 @@ async function requireArchiveOwner(ownerId: string, scope: PoaArchiveCustomerSco
   if (!canonical || canonical.id !== scope.customerId) unavailable()
 }
 
-function projection(row: Row, scope: PoaArchiveCustomerScope) {
-  assertRowScope(row, scope)
-  const proof = poaMailEvidence(row), reference = isPoaVerificationReference(proof.verificationReference) ? proof.verificationReference : null
-  let status: 'missing' | 'incomplete_evidence' | 'archived_unverified' | 'unavailable' = !row.document_path ? 'missing' : !reference ? 'incomplete_evidence' : 'archived_unverified'
-  if (status === 'archived_unverified') {
-    try { archiveBinding(row, scope) } catch { status = 'unavailable' }
-  }
+function projection(row: Row, scope: PoaArchiveCustomerScope, hash: string | null) {
+  const proof = poaMailEvidence(row)
+  const reference = isPoaVerificationReference(proof.verificationReference) ? proof.verificationReference : null
+  const status = !row.document_path ? 'missing' : !reference ? 'incomplete_evidence' : hash ? 'archived_unverified' : 'unavailable'
   return {
     power_of_attorney_reference: publicReference('power_of_attorney', scope.companyId, row.id),
     verification_reference: reference,
     consent_status: clean(row.status),
     archive_status: status,
-    archived_sha256: status === 'archived_unverified' ? String(record(record(row.metadata).document_archive).sha256) : null,
+    archived_sha256: status === 'archived_unverified' ? hash : null,
     download_url: reference && status === 'archived_unverified' ? `${API_PATH}/${encodeURIComponent(reference)}?format=pdf` : null,
   }
+}
+
+async function verifiedListProjection(row: Row, scope: PoaArchiveCustomerScope, owners: Map<string, boolean>) {
+  assertRowScope(row, scope)
+  let hash: string | null = null
+  try {
+    const binding = archiveBinding(row, scope)
+    let verified = owners.get(binding.ownerCustomerId)
+    if (verified === undefined) {
+      try {
+        await requireArchiveOwner(binding.ownerCustomerId, scope)
+        verified = true
+      } catch (error) {
+        if (!(error instanceof ApiInputError) || error.code !== 'poa_archive_unavailable') throw error
+        verified = false
+      }
+      owners.set(binding.ownerCustomerId, verified)
+    }
+    if (verified) hash = binding.hash
+  } catch (error) {
+    if (!(error instanceof ApiInputError) || error.code !== 'poa_archive_unavailable') throw error
+  }
+  return projection(row, scope, hash)
 }
 
 export async function listCustomerPoaArchives(scope: PoaArchiveCustomerScope, input: { limit: number; cursor: string | null }) {
@@ -104,8 +124,11 @@ export async function listCustomerPoaArchives(scope: PoaArchiveCustomerScope, in
   const { data, error } = await query
   if (error) throw error
   const page = buildPortalDatabasePage((data ?? []) as Row[], { ...scope, resource: RESOURCE, limit: input.limit, orderColumn: 'id' })
+  const owners = new Map([[scope.customerId, true]])
+  const items = []
+  for (const row of page.items) items.push(await verifiedListProjection(row, scope, owners))
   await requirePortalRetentionAccess(scope)
-  return { data: page.items.map(row => projection(row, scope)), page: page.page }
+  return { data: items, page: page.page }
 }
 
 async function readRow(scope: PoaArchiveCustomerScope, reference: string): Promise<Row> {
@@ -141,7 +164,7 @@ export async function readCustomerPoaArchive(scope: PoaArchiveCustomerScope, ref
   const accepted = validTime(row.accepted_at), signed = validTime(row.signed_at)
   const acceptedAt = accepted ?? signed
   return { pdf, data: {
-    ...projection(row, scope), archive_integrity: 'verified' as const, sha256: hash,
+    ...projection(row, scope, binding.hash), archive_integrity: 'verified' as const, sha256: hash,
     submitted_sha256_matches: submittedSha256 ? submittedSha256 === hash : null,
     accepted_at: acceptedAt,
     accepted_at_source: accepted ? 'accepted_at' : signed ? 'signed_at' : null,

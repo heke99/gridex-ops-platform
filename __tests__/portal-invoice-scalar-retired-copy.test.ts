@@ -10,7 +10,9 @@ type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   reads: [] as string[],
+  readGates: {} as Partial<Record<string, Promise<void>>>,
   fileChecks: [] as Row[],
+  documentBatches: [] as Row[],
   retired: new Set<string>(),
   fileError: null as { code: string; message: string } | null,
   sourceErrors: {} as Record<string, { code: string; message: string }>,
@@ -63,8 +65,19 @@ vi.mock('@/lib/supabase/service', async () => {
           })
           if (url.pathname.includes('/rpc/')) {
             if (resource === 'ediel_require_portal_retention_access_v1') return reply(null)
-            if (resource !== 'ediel_require_invoice_file_copy_available_v1') throw new Error(`Unexpected RPC: ${resource}`)
             const args = JSON.parse(String(init?.body)) as Row
+            if (resource === 'gridex_portal_invoice_document_availability_v1') {
+              io.documentBatches.push(args)
+              if (io.fileError) return reply(io.fileError, 500)
+              const rows = io.tables.customer_invoice_documents.filter(row => row.company_id === args.p_company_id &&
+                row.invoice_id === args.p_invoice_id && (args.p_document_ids as string[]).includes(String(row.id)))
+              return reply([...new Set(rows.map(row => row.id))].map(documentId => {
+                const check = { p_company_id: args.p_company_id, p_retention_class: 'customer_invoice_document_pdf_bytes', p_target_id: documentId }
+                io.fileChecks.push(check)
+                return { document_id: documentId, retired: io.retired.has(JSON.stringify(Object.values(check))) }
+              }))
+            }
+            if (resource !== 'ediel_require_invoice_file_copy_available_v1') throw new Error(`Unexpected RPC: ${resource}`)
             io.fileChecks.push(args)
             if (io.fileError) return reply(io.fileError, 500)
             const key = JSON.stringify([args.p_company_id, args.p_retention_class, args.p_target_id])
@@ -78,6 +91,7 @@ vi.mock('@/lib/supabase/service', async () => {
           }
           if (init?.method && init.method !== 'GET') throw new Error(`Unexpected mutation: ${resource}`)
           io.reads.push(resource)
+          if (io.readGates[resource]) await io.readGates[resource]
           if (io.sourceErrors[resource]) return reply(io.sourceErrors[resource], 500)
           if (!Object.hasOwn(io.tables, resource)) throw new Error(`Unexpected data/Storage read: ${resource}`)
           let rows = [...io.tables[resource]]
@@ -163,7 +177,8 @@ async function api() {
 beforeEach(() => {
   vi.stubGlobal('React', React)
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
-  io.reads = []; io.fileChecks = []; io.retired = new Set(); io.fileError = null; io.sourceErrors = {}
+  io.reads = []; io.fileChecks = []; io.documentBatches = []; io.retired = new Set(); io.fileError = null; io.sourceErrors = {}
+  io.readGates = {}
   io.webSignedIn = true; io.apiAllowed = true; io.requestedScopes = []
   io.tables = {
     customer_portal_accounts: [{ user_id: user, company_id: company, customer_id: customer, is_active: true, activated_at: timestamp }],
@@ -313,6 +328,21 @@ describe('actual invoice scalar reads retain history while exact copies retire',
       .toEqual([{ p_company_id: company, p_retention_class: 'customer_invoice_document_pdf_bytes', p_target_id: documentId }])
   })
 
+  it.each([1, 40])('checks %i invoice documents in one scoped batch', async count => {
+    io.tables.customer_invoice_documents = Array.from({ length: count }, (_, index) =>
+      document(uuid(4000 + index), { public_url: retiredUrl }))
+    retire('customer_invoice_document_pdf_bytes', uuid(4000))
+    const response = await api()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.data.documents).toHaveLength(count)
+    expect(body.data.documents[0].secure_url).toBeNull()
+    expect(io.documentBatches).toEqual([{
+      p_company_id: company, p_invoice_id: invoiceId,
+      p_document_ids: Array.from({ length: count }, (_, index) => uuid(4000 + index)),
+    }])
+  })
+
   it('does not claim PDF absence when only foreign or unqualified document references exist', async () => {
     io.tables.customer_invoices[0].pdf_url = null; io.tables.customer_invoices[0].pdf_path = null
     io.tables.customer_invoice_documents = [
@@ -325,6 +355,29 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     expect(html).not.toContain('Öppna faktura-PDF')
     expect(html).not.toContain(retiredUrl)
     expect(io.fileChecks.filter(check => check.p_retention_class === 'customer_invoice_document_pdf_bytes')).toEqual([])
+  })
+
+  it('starts invoice line and document reads together after the owned invoice has resolved', async () => {
+    const invoiceRead = Promise.withResolvers<void>()
+    const lineRead = Promise.withResolvers<void>()
+    io.readGates.customer_invoices = invoiceRead.promise
+    io.readGates.customer_invoice_lines = lineRead.promise
+    const pending = api()
+    try {
+      await vi.waitFor(() => expect(io.reads).toContain('customer_invoices'))
+      expect(io.reads).not.toContain('customer_invoice_lines')
+      expect(io.reads).not.toContain('customer_invoice_documents')
+      invoiceRead.resolve()
+
+      await vi.waitFor(() => {
+        expect(io.reads).toContain('customer_invoice_lines')
+        expect(io.reads).toContain('customer_invoice_documents')
+      })
+    } finally {
+      invoiceRead.resolve()
+      lineRead.resolve()
+      expect((await pending).status).toBe(200)
+    }
   })
 
   it.each(['customer_invoice_lines', 'customer_invoice_documents'])('keeps child read failures visible for %s', async resource => {
