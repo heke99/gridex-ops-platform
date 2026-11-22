@@ -203,15 +203,15 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect(name === 'contracts' ? body.data[0] : body.data.contracts[0]).toMatchObject(dates)
   })
   it.each([
-    ['contracts', 'production', true],
-    ['contracts', 'consumption', false],
-    ['portal-bundle', 'production', true],
-    ['portal-bundle', 'consumption', false],
+    ['contracts', 'production', true, false],
+    ['contracts', 'consumption', false, false],
+    ['portal-bundle', 'production', true, false],
+    ['portal-bundle', 'consumption', false, false],
     ['contracts', 'production', true, true],
     ['portal-bundle', 'production', true, true],
-    ['contracts', undefined, undefined],
-    ['portal-bundle', undefined, undefined],
-  ] as const)('projects stored contract terms through %s (%s, %s)', async (name, direction, renewal, legacy = false) => {
+    ['contracts', undefined, undefined, false],
+    ['portal-bundle', undefined, undefined, false],
+  ] as const)('projects stored contract terms through %s (%s, %s)', async (name, direction, renewal, legacy) => {
     const row = m.tables.customer_contracts[0]
     Object.assign(row, { energy_direction: direction, auto_renew_enabled: renewal })
     m.missingContractColumns = new Set(direction === undefined
@@ -353,7 +353,7 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect((await retired.json()).data.documents[0].secure_url).toBeNull()
   })
   it('looks up a document moved beyond the first owned page by public reference', async () => {
-    const target = { ...m.tables.customer_documents[0], public_url: 'https://files.example.test/document.pdf', source_rank: 2 }
+    const target = { ...m.tables.customer_documents[0], id: RESOURCE, public_url: 'https://files.example.test/document.pdf', source_rank: 2 }
     const newer = Array.from({ length: 100 }, (_, index) => ({
       ...target, id: `00000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
     }))
