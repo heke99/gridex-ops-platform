@@ -192,9 +192,16 @@ async function buildBundleResponse(input: {
     const warnings: BundleWarning[] = []
     const { options } = input
 
-    const [rawContracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events, rawWebsiteApplications] = await Promise.all([
+    const sitesPromise = optionalSection('sites', () => listPortalSites(portalContext, route), warnings)
+    const meteringPointWarnings: BundleWarning[] = []
+    const meteringPointsPromise = sitesPromise.then((sites) => optionalSection(
+      'metering_points',
+      () => listPortalMeteringPoints(portalContext, sites, route),
+      meteringPointWarnings
+    ))
+    const [rawContracts, sites, invoices, meteringValues, documents, legalAcceptances, powersOfAttorney, notifications, events, rawWebsiteApplications, meteringPoints] = await Promise.all([
       optionalSection('contracts', () => listPortalContracts(portalContext, route), warnings),
-      optionalSection('sites', () => listPortalSites(portalContext, route), warnings),
+      sitesPromise,
       gatedSection('invoices', options.includedOptionalSections.has('invoices'), () => listPortalInvoices(portalContext, route), warnings),
       gatedSection('metering_values', options.includedOptionalSections.has('metering_values'), () => listPortalMeteringValues(portalContext, route, options.meteringValuesLimit), warnings),
       gatedSection('documents', options.includedOptionalSections.has('documents'), () => listPortalDocuments(portalContext, route, options.documentsLimit), warnings),
@@ -203,12 +210,10 @@ async function buildBundleResponse(input: {
       gatedSection('notifications', options.includedOptionalSections.has('notifications'), () => listPortalNotifications(portalContext, route), warnings),
       gatedSection('events', options.includedOptionalSections.has('events'), () => listPortalEvents(portalContext, route, options.eventsLimit), warnings),
       optionalSection('website_applications', () => listPortalWebsiteApplications(portalContext, route), warnings),
+      meteringPointsPromise,
     ])
-    const meteringPoints = await optionalSection(
-      'metering_points',
-      () => listPortalMeteringPoints(portalContext, sites, route),
-      warnings
-    )
+    // Keep metering-point warnings last in the response and request audit.
+    warnings.push(...meteringPointWarnings)
     const requiredWarnings = warnings.filter((warning) =>
       REQUIRED_BUNDLE_SECTIONS.has(warning.section)
     )
