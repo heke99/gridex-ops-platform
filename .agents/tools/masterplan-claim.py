@@ -16,6 +16,7 @@ import re
 import stat
 import subprocess
 import sys
+import time
 import unicodedata
 import uuid
 
@@ -25,6 +26,9 @@ PREFIX = "refs/tags/agent-claims/masterplan/"
 OPERATION = "Reserve source files and rule IDs"
 HEX40 = re.compile(r"[0-9a-f]{40}\Z")
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+REF_VISIBILITY_RETRY_DELAYS = (0.2, 0.5)
+REF_VISIBILITY_RETRY_TIMEOUT = 2
+_REF_NOT_VISIBLE = object()
 
 
 class ClaimError(Exception):
@@ -187,7 +191,7 @@ def prepare(plan_path, expected_hash=None):
 
 class GhTransport:
     """No tokens, private plan data or shell interpolation enter API arguments."""
-    def request(self, method, endpoint, body=None):
+    def request(self, method, endpoint, body=None, *, timeout=35):
         args = ["gh", "api", "--hostname", "github.com", "--method", method, "--include",
                 "-H", "Accept: application/vnd.github+json", "-H", "X-GitHub-Api-Version: 2022-11-28", endpoint]
         if body is not None:
@@ -195,7 +199,7 @@ class GhTransport:
         env = dict(os.environ, GH_PROMPT_DISABLED="1", GH_PAGER="cat")
         env.pop("GH_DEBUG", None)
         result = subprocess.run(args, input=None if body is None else json.dumps(body, ensure_ascii=False),
-                                capture_output=True, text=True, timeout=35, env=env)
+                                capture_output=True, text=True, timeout=timeout, env=env)
         match = re.match(r"HTTP/\S+ (\d{3})(?:[^\r\n]*)\r?\n", result.stdout)
         split = re.split(r"\r?\n\r?\n", result.stdout, maxsplit=1)
         return {"status": int(match[1]) if match else None, "body": split[1] if len(split) == 2 else "",
@@ -227,8 +231,12 @@ class Claim:
         self.fd.flush()
         os.fsync(self.fd.fileno())
 
-    def api(self, method, route, body=None, expected=200):
+    def api(self, method, route, body=None, expected=200, *, created_ref_read=False, timeout=None):
         require(method == "GET" or (method == "POST" and route in ("git/commits", "git/refs")), "mutation_out_of_scope")
+        if created_ref_read or timeout is not None:
+            require(created_ref_read and method == "GET" and expected == 200 and body is None and
+                    route.startswith("git/ref/") and "refs/" + route.removeprefix("git/ref/") in self.resources,
+                    "ref_visibility_read_out_of_scope")
         if method == "POST" and route == "git/commits":
             require(isinstance(body, dict) and set(body) == {"message", "tree", "parents"} and
                     strict_json(body["message"]) == public_receipt(self.p, self.resources) and
@@ -243,14 +251,21 @@ class Claim:
         self.data["operations"].append(op)
         self.save()  # Durable STARTED before a request can mutate GitHub.
         try:
-            result = self.transport.request(method, "repos/" + REPOSITORY + ("/" + route if route else ""), body)
+            endpoint = "repos/" + REPOSITORY + ("/" + route if route else "")
+            if timeout is None:
+                result = self.transport.request(method, endpoint, body)
+            else:
+                result = self.transport.request(method, endpoint, body, timeout=timeout)
         except Exception:
             op["state"] = "AMBIGUOUS_MUTATION" if method == "POST" else "READ_TRANSPORT_FAILED"
             self.save()
             raise ClaimError("ambiguous_mutation_no_retry" if method == "POST" else "read_transport_failed") from None
         op["state"], op["result"] = "RETURNED", result
         self.save()  # Save the raw returned outcome before interpreting status/JSON.
-        require(isinstance(result, dict) and result.get("status") == expected, "unexpected_http_status")
+        require(isinstance(result, dict), "unexpected_http_status")
+        if created_ref_read and result.get("status") == 404:
+            return _REF_NOT_VISIBLE
+        require(result.get("status") == expected, "unexpected_http_status")
         if expected == 404:
             return None
         require(result.get("returnCode") == 0, "api_process_failed")
@@ -268,6 +283,18 @@ class Claim:
 
     def absent(self, resource):
         self.api("GET", "git/ref/" + resource.removeprefix("refs/"), expected=404)
+
+    def verify_created_ref(self, resource, receipt):
+        route = "git/ref/" + resource.removeprefix("refs/")
+        actual = self.api("GET", route, created_ref_read=True)
+        # Called only after exact verification of a successful 201 response.
+        for delay in REF_VISIBILITY_RETRY_DELAYS:
+            if actual is not _REF_NOT_VISIBLE:
+                break
+            time.sleep(delay)
+            actual = self.api("GET", route, created_ref_read=True, timeout=REF_VISIBILITY_RETRY_TIMEOUT)
+        require(actual is not _REF_NOT_VISIBLE, "ref_readback_visibility_timeout")
+        self.ref_matches(actual, resource, receipt)
 
     def execute(self):
         try:
@@ -312,7 +339,7 @@ class Claim:
                 self.absent(resource)
                 made = self.api("POST", "git/refs", {"ref": resource, "sha": receipt}, expected=201)
                 self.ref_matches(made, resource, receipt)
-                self.ref_matches(self.api("GET", "git/ref/" + resource.removeprefix("refs/")), resource, receipt)
+                self.verify_created_ref(resource, receipt)
             self.main_matches()
             for resource in self.resources:
                 self.ref_matches(self.api("GET", "git/ref/" + resource.removeprefix("refs/")), resource, receipt)
