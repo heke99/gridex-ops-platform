@@ -34,4 +34,41 @@ describe('invoice delivery rollout flag (default legacy)', () => {
     process.env.GRIDEX_INVOICE_DELIVERY_RESOLVER = 'shared'
     expect(evaluateContractBillingAccountReadiness(input as never).evidence.has_postal_invoice_address).toBe(true)
   })
+
+  it('blocks legacy seller readiness when neither source has a complete postal address', () => {
+    const readiness = evaluateContractBillingAccountReadiness({
+      contract: { billing_street: 'Avtalsgatan 2', vat_rate: 25 },
+      customer: { full_name: 'Syntetisk kund', billing_postal_code: '00100', billing_city: 'Helsingfors' },
+      paymentTerms: { dueDays: 30 },
+    })
+
+    expect(readiness.evidence.has_postal_invoice_address).toBe(false)
+    expect(readiness.blockers).toContainEqual(expect.objectContaining({ code: 'invoice_distribution_missing' }))
+  })
+
+  it('takes the full Finnish profile alongside an incomplete legacy contract address', () => {
+    const customer = { full_name: 'Syntetisk kund', billing_street: 'Kundgatan 3', billing_postal_code: '00100', billing_city: 'Helsingfors', billing_country: 'FI' }
+    const contract = { billing_street: 'Avtalsgatan 2', billing_country: 'SE', vat_rate: 25 }
+
+    const readiness = evaluateContractBillingAccountReadiness({ contract, customer, paymentTerms: { dueDays: 30 } })
+    expect(readiness.evidence.has_postal_invoice_address).toBe(true)
+    expect(resolveInvoiceDeliveryFor('readiness', { contract, customer }, 'legacy')).toMatchObject({
+      postalAddress: { street: 'Kundgatan 3', postalCode: '00100', city: 'Helsingfors', country: 'FI' },
+      postalAddressSource: 'customer_billing_profile',
+    })
+    expect(resolveInvoiceDeliveryFor('document', { contract, customer }, 'legacy')).toMatchObject({
+      postalAddress: null,
+      postalAddressSource: null,
+    })
+  })
+
+  it('keeps a complete legacy contract address and its country ahead of the customer profile', () => {
+    const contract = { billing_street: 'Avtalsgatan 2', billing_postal_code: '2100', billing_city: 'Köpenhamn', billing_country: 'DK' }
+    for (const consumer of ['readiness', 'document'] as const) {
+      expect(resolveInvoiceDeliveryFor(consumer, { contract, customer }, 'legacy')).toMatchObject({
+        postalAddress: { street: 'Avtalsgatan 2', postalCode: '2100', city: 'Köpenhamn', country: 'DK' },
+        postalAddressSource: 'contract_override',
+      })
+    }
+  })
 })
