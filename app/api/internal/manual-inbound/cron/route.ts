@@ -70,11 +70,23 @@ async function run(request: NextRequest) {
       ingested: result.ingested,
       matched: result.matched,
       skipped: result.skipped,
+      error_count: result.errors.length,
     }
-    if (result.errors.length > 0) {
-      console.error('[manual-inbound-cron] Poll errors', { count: result.errors.length, errors: result.errors })
+    if (summary.error_count > 0) {
+      const traceId = randomUUID()
+      console.error('[manual-inbound-cron] Poll errors', {
+        traceId, count: summary.error_count, errors: result.errors,
+      })
+      // A claimed mailbox or a fetched message does not establish successful ingestion.
+      return NextResponse.json({
+        ok: false,
+        source: 'manual_inbound_cron',
+        outcome: result.ingested > 0 ? 'partial' : 'failed',
+        trace_id: traceId,
+        result: summary,
+      }, { status: 503 })
     }
-    return NextResponse.json({ ok: true, source: 'manual_inbound_cron', result: summary })
+    return NextResponse.json({ ok: true, source: 'manual_inbound_cron', outcome: 'completed', result: summary })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[manual-inbound-cron] Run failed', { traceId, error })
