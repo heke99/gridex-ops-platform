@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { canonicalApiError } from '@/lib/api/apiError'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
-import { ApiInputError } from '@/lib/api/strictRequest'
+import { ApiInputError, IdempotentWriteCompletionUncertainError } from '@/lib/api/strictRequest'
 import { currentIntegrationApiResponseContext, logIntegrationApiRequest } from '@/lib/integrations/apiAuth'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { requireStaffApiContext, type StaffApiContext, type StaffApiRequirements } from '@/lib/staff-api/context'
@@ -67,6 +67,7 @@ export function staffApiError(error: unknown): Response {
   return staffApiJson(canonicalApiError({
     code: known ? error.code : 'internal_error', message: known ? error.message : 'The request could not be completed.',
     requestId: currentStaffRequestId(), field: known ? error.field ?? undefined : undefined,
+    retryable: error instanceof IdempotentWriteCompletionUncertainError,
   }), { status: known ? error.status : 500 })
 }
 
