@@ -1,5 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { isTransientSupabaseError } from '@/lib/supabase/transientErrors'
 
+export class EdielTransportJournalReadError extends Error {}
 export type EdielTransportCopy = {
   attemptId: string; lane: 'generic_journal' | 'sealed_z08'; companyId: string; messageId: string;
   environment: 'test' | 'production'; mimeArchiveRef: string; mimeSha256: string; mimeLength: number;
@@ -50,10 +52,16 @@ export async function readEdielTransportCopies(input: { companyId: string; actor
   status: 'available' | 'held' | 'unavailable'; companyId: string; messageId: string; environment: 'test' | 'production';
   copies: EdielTransportCopy[]; reconciliationCases: EdielTransportReconciliationCase[]; blocker: string | null; authorizesResend: false; deliveryProven: false
 }> {
-  const { data, error } = await supabaseService.rpc('gridex_ediel_transport_copy_v1', {
+  const { data, error, status } = await supabaseService.rpc('gridex_ediel_transport_copy_v1', {
     p_company_id: input.companyId, p_actor_user_id: input.actorUserId, p_message_id: input.messageId,
   })
-  if (error) throw error
+  if (error) {
+    const denied = error.code === '42501' || status === 401 || status === 403
+    if (!denied && (status === 0 || isTransientSupabaseError({ code: error.code, status }))) {
+      throw new EdielTransportJournalReadError('ediel_transport_journal_read_failed')
+    }
+    throw error
+  }
   if (!data || !['available','held','unavailable'].includes(data.status) || !Array.isArray(data.copies) || data.companyId !== input.companyId || data.messageId !== input.messageId || data.authorizesResend !== false || data.deliveryProven !== false) throw new Error('ediel_transport_copy_invalid')
   if (!['test', 'production'].includes(data.environment)) throw new Error('ediel_transport_copy_invalid')
   return {...data, reconciliationCases: boundedCases(data.reconciliationCases, data)}

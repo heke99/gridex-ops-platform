@@ -8,7 +8,13 @@ const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), smtp: vi.fn(), uploa
   snapshots: [] as Row[], objects: new Map<string, Buffer>(), binding: null as Row | null,
   attemptId: '', observation: null as Row | null, actions: [] as string[] }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from,
-  storage: { from: () => ({ upload: io.upload, download: io.download, remove: vi.fn() }) } } }))
+  storage: { from: () => ({ upload: io.upload, download: (...args: unknown[]) => {
+    const blob = io.download(...args)
+    return Object.assign(blob, { asStream: async () => {
+      const { data, error } = await blob
+      return { data: data?.stream() ?? null, error }
+    } })
+  }, remove: vi.fn() }) } } }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: io.smtp }) } }))
 
 import { sendCorrectionFencedEmail } from '@/lib/ediel/sources/correctionOutboundDispatch'
