@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { readBillingPage } from "@/lib/pricing/adminData";
 import { calculatePricingPreviewForUnderlay } from "@/lib/pricing/engine";
 
 /**
@@ -168,6 +169,40 @@ function numberValue(value: unknown): number | null {
   return null;
 }
 
+async function readLockedIntervalEvidence(companyId: string, pricingRunId: string) {
+  const rows: Record<string, unknown>[] = [];
+  const ids = new Set<string>();
+  let total: number | null = null;
+  for (let page = 1; total === null || rows.length < total; page += 1) {
+    const result = await readBillingPage("pricing_interval_evidence", companyId, {
+      equals: { pricing_run_id: pricingRunId },
+      // This tuple is unique within a pricing run.
+      order: [
+        { column: "metering_interval_start" },
+        { column: "metering_interval_end" },
+        { column: "price_area" },
+      ],
+      page,
+      pageSize: 1000,
+    });
+    if (total !== null && total !== result.total) {
+      throw new Error("Faktureringsuppgifterna ändrades under läsningen. Försök igen.");
+    }
+    total = result.total;
+    for (const row of result.rows) {
+      if (typeof row.id !== "string" || !row.id || ids.has(row.id)) {
+        throw new Error("Faktureringsuppgifterna kunde inte läsas fullständigt.");
+      }
+      ids.add(row.id);
+      rows.push(row);
+    }
+  }
+  if (rows.length !== total) {
+    throw new Error("Faktureringsuppgifterna kunde inte läsas fullständigt.");
+  }
+  return rows;
+}
+
 export async function loadLockedUnderlayPricingWithCore(input: {
   companyId: string;
   billingUnderlayId: string;
@@ -186,7 +221,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
 
   const [
     { data: lines, error: lineError },
-    { data: evidence, error: evidenceError },
+    evidence,
     { data: underlay, error: underlayError },
   ] = await Promise.all([
     supabaseService
@@ -195,12 +230,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       .eq("company_id", input.companyId)
       .eq("pricing_run_id", run.id)
       .order("sort_order", { ascending: true }),
-    supabaseService
-      .from("pricing_interval_evidence")
-      .select("*")
-      .eq("company_id", input.companyId)
-      .eq("pricing_run_id", run.id)
-      .order("metering_interval_start", { ascending: true }),
+    readLockedIntervalEvidence(input.companyId, run.id),
     supabaseService
       .from("billing_underlays")
       .select("energy_direction,settlement_type")
@@ -209,7 +239,6 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       .single(),
   ]);
   if (lineError) throw lineError;
-  if (evidenceError) throw evidenceError;
   if (underlayError) throw underlayError;
 
   const warnings = Array.isArray(run.warnings) ? run.warnings.map(String) : [];
@@ -257,7 +286,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       underlay.settlement_type === "self_billing"
         ? underlay.settlement_type
         : "invoice",
-    intervalEvidence: ((evidence ?? []) as Record<string, unknown>[]).map(
+    intervalEvidence: evidence.map(
       (row) => ({
         id: String(row.id),
         billingUnderlayItemId: row.billing_underlay_item_id
