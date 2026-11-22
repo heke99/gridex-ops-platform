@@ -212,6 +212,7 @@ export const partnerOpenApi = {
           '403': errorResponse,
           '404': errorResponse,
           '413': errorResponse,
+          '503': { ...errorResponse, description: 'Invoice PDF Storage could not be verified (`invoice_pdf_storage_unavailable`). Retry the same request later.' },
         },
       },
     },
