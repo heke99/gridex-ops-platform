@@ -1,13 +1,19 @@
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { loadPricingEnergyResolution } from '@/lib/energy/resolutionBinding'
+import { mapWithConcurrency } from '@/lib/performance/mapWithConcurrency'
 import { loadMarketPriceSourcePolicies, policySupports } from '@/lib/pricing/marketPriceSources'
 import { supabaseService } from '@/lib/supabase/service'
+import { stockholmDateForInstant } from '@/lib/time/stockholm'
+
+const INTERVAL_RESOLUTIONS = [
+  { database: 'quarter_hour', policy: 'quarterly' },
+  { database: 'hourly', policy: 'hourly' },
+] as const
 
 /** SEK/kWh → öre/kWh without binary float artefacts (0.29 → 29, not 28.999999999999996). */
 function sekToOre(sek: number): number {
   return Math.round(sek * 100 * 1e6) / 1e6
 }
-import { stockholmDateForInstant } from '@/lib/time/stockholm'
 
 export type CurrentMarketPrice = {
   provider: string
@@ -92,17 +98,24 @@ export async function loadCurrentMarketPrice(input: {
   }
 
   const policies = (await loadMarketPriceSourcePolicies(input.client.company_id))
-    .filter((policy) => policySupports({
-      policy,
-      priceArea: resolution.priceArea,
-      resolution: 'quarterly',
-    }) || policySupports({
-      policy,
-      priceArea: resolution.priceArea,
-      resolution: 'hourly',
-    }))
     .sort((left, right) => left.priority - right.priority)
-  if (policies.length === 0) {
+  const policiesByPriority = new Map<number, typeof policies>()
+  for (const policy of policies) {
+    const group = policiesByPriority.get(policy.priority) ?? []
+    group.push(policy)
+    policiesByPriority.set(policy.priority, group)
+  }
+  const groups = [...policiesByPriority.values()].flatMap(group =>
+    INTERVAL_RESOLUTIONS.map(interval => ({
+      resolution: interval.database,
+      sources: group.filter(policy => policySupports({
+        policy,
+        priceArea: resolution.priceArea,
+        resolution: interval.policy,
+      })).map(policy => policy.sourceKey),
+    })).filter(group => group.sources.length > 0),
+  )
+  if (groups.length === 0) {
     throw new CurrentMarketPriceError({
       message: `Ingen aktiv marknadspriskälla är konfigurerad för ${resolution.priceArea}.`,
       code: 'current_market_price_unavailable',
@@ -111,38 +124,25 @@ export async function loadCurrentMarketPrice(input: {
   }
 
   const nowIso = now.toISOString()
-  const providers = policies.map((policy) => policy.sourceKey)
-  const { data: intervals, error: intervalError } = await supabaseService
-    .from('spot_price_intervals')
-    .select('source,price_area,time_start,time_end,sek_per_kwh,resolution')
-    .in('source', providers)
-    .eq('price_area', resolution.priceArea)
-    .lte('time_start', nowIso)
-    .gt('time_end', nowIso)
-    .order('time_start', { ascending: false })
-    .limit(20)
-  if (intervalError) throw intervalError
-
-  const policyBySource = new Map(policies.map((policy) => [policy.sourceKey, policy]))
-  const rows = ((intervals ?? []) as Array<Record<string, unknown>>).filter((row) => {
-    const policy = policyBySource.get(String(row.source))
-    const rowResolution = text(row.resolution) === 'quarter_hour' ? 'quarterly' : 'hourly'
-    return Boolean(policy && policySupports({
-      policy,
-      priceArea: resolution.priceArea,
-      resolution: rowResolution,
-    }))
+  // Group order is policy priority, then quarter-hour before hourly. A single
+  // newest interval per group preserves that order and resolution availability.
+  const candidates = await mapWithConcurrency(groups, 4, async group => {
+    const { data, error } = await supabaseService
+      .from('spot_price_intervals')
+      .select('source,price_area,time_start,time_end,sek_per_kwh,resolution')
+      .in('source', group.sources)
+      .eq('price_area', resolution.priceArea)
+      .eq('resolution', group.resolution)
+      .lte('time_start', nowIso)
+      .gt('time_end', nowIso)
+      .order('time_start', { ascending: false })
+      .order('source', { ascending: true })
+      .order('time_end', { ascending: false })
+      .limit(1)
+    if (error) throw error
+    return (data?.[0] ?? null) as Record<string, unknown> | null
   })
-  rows.sort((left, right) => {
-    const leftPolicy = policyBySource.get(String(left.source))
-    const rightPolicy = policyBySource.get(String(right.source))
-    const priority = (leftPolicy?.priority ?? Number.MAX_SAFE_INTEGER) -
-      (rightPolicy?.priority ?? Number.MAX_SAFE_INTEGER)
-    if (priority !== 0) return priority
-    const leftRank = text(left.resolution) === 'quarter_hour' ? 0 : 1
-    const rightRank = text(right.resolution) === 'quarter_hour' ? 0 : 1
-    return leftRank - rightRank
-  })
+  const rows = candidates.filter(row => row !== null)
   const selected = rows[0]
   if (!selected) {
     throw new CurrentMarketPriceError({
@@ -154,7 +154,7 @@ export async function loadCurrentMarketPrice(input: {
   }
 
   const provider = String(selected.source)
-  const policy = policyBySource.get(provider)
+  const policy = policies.find(policy => policy.sourceKey === provider)
   if (!policy) {
     throw new CurrentMarketPriceError({
       message: 'Det aktuella spotpriset kommer från en källa som inte är tillåten för tenant.',
