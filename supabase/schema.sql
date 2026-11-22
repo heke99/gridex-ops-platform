@@ -73821,6 +73821,25 @@ begin
 end; $$;
 
 --
+-- Name: gridex_fill_support_case_public_reference_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_fill_support_case_public_reference_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin
+  new.metadata := new.metadata || jsonb_build_object(
+    'support_public_reference',
+    'support_case_' || left(translate(encode(extensions.digest(
+      'gridex-public-reference:v1:' || new.company_id::text || ':support_case:' || new.id::text,
+      'sha256'), 'base64'), '+/', '-_'), 32)
+  );
+  return new;
+end;
+$$;
+
+--
 -- Name: gridex_finalize_admin_imported_signed_agreement_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -82208,6 +82227,47 @@ CREATE FUNCTION public.gridex_manual_supplier_terms_verified_v1(p_company_id uui
 $_$;
 
 --
+-- Name: gridex_mark_consumption_revision_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_mark_consumption_revision_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+begin
+  if tg_op = 'TRUNCATE' then
+    delete from public.customer_consumption_cache_revisions;
+    return null;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    insert into public.customer_consumption_cache_revisions (company_id, customer_id, facility_id)
+    select company_id, customer_id, facility_id from (
+      select company_id, customer_id, facility_id from previous_values
+      union
+      select company_id, customer_id, facility_id from current_values
+    ) affected
+    where customer_id is not null and facility_id is not null
+    order by company_id, customer_id, facility_id
+    on conflict (company_id, customer_id, facility_id) do update set revision = excluded.revision;
+  elsif tg_op = 'DELETE' then
+    insert into public.customer_consumption_cache_revisions (company_id, customer_id, facility_id)
+    select distinct company_id, customer_id, facility_id from previous_values
+    where customer_id is not null and facility_id is not null
+    order by company_id, customer_id, facility_id
+    on conflict (company_id, customer_id, facility_id) do update set revision = excluded.revision;
+  else
+    insert into public.customer_consumption_cache_revisions (company_id, customer_id, facility_id)
+    select distinct company_id, customer_id, facility_id from current_values
+    where customer_id is not null and facility_id is not null
+    order by company_id, customer_id, facility_id
+    on conflict (company_id, customer_id, facility_id) do update set revision = excluded.revision;
+  end if;
+  return null;
+end;
+$$;
+
+--
 -- Name: gridex_mark_customer_contract_signature_request_sent_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -87678,6 +87738,42 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) IS 'Matches one point to exactly one active SVK grid area. Confidence is boundary-distance based: >=1.5 km is the default high-confidence Papilite threshold; exact-address callers may still use lower-confidence matches for review.';
+
+--
+-- Name: gridex_portal_invoice_document_availability_v1(uuid, uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_portal_invoice_document_availability_v1(p_company_id uuid, p_invoice_id uuid, p_document_ids uuid[]) RETURNS TABLE(document_id uuid, retired boolean)
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  document uuid;
+begin
+  if p_company_id is null or p_invoice_id is null or p_document_ids is null
+      or cardinality(p_document_ids) not between 1 and 1000 then
+    raise exception 'invalid_invoice_document_batch' using errcode = '22023';
+  end if;
+
+  for document in
+    select d.id
+    from public.customer_invoice_documents d
+    where d.company_id = p_company_id and d.invoice_id = p_invoice_id and d.id = any(p_document_ids)
+  loop
+    document_id := document;
+    retired := false;
+    begin
+      perform public.ediel_require_invoice_file_copy_available_v1(
+        p_company_id, 'customer_invoice_document_pdf_bytes', document
+      );
+    exception when check_violation then
+      if sqlerrm <> 'invoice_file_copy_retention_tombstoned' then raise; end if;
+      retired := true;
+    end;
+    return next;
+  end loop;
+end;
+$$;
 
 --
 -- Name: gridex_portal_monthly_consumption_v1(uuid, uuid[], date, date); Type: FUNCTION; Schema: public; Owner: -
@@ -95982,6 +96078,27 @@ end;
 $$;
 
 --
+-- Name: gridex_resolve_customer_notification_references_v1(uuid, uuid, text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_resolve_customer_notification_references_v1(p_company_id uuid, p_customer_id uuid, p_references text[]) RETURNS TABLE(id uuid, notification_reference text)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  select n.id,
+    'notification_' || left(translate(encode(extensions.digest(
+      'gridex-public-reference:v1:' || n.company_id::text || ':notification:' || n.id::text,
+      'sha256'), 'base64'), '+/', '-_'), 32)
+  from public.customer_notifications n
+  where n.company_id = p_company_id
+    and n.customer_id = p_customer_id
+    and cardinality(p_references) between 1 and 100
+    and ('notification_' || left(translate(encode(extensions.digest(
+      'gridex-public-reference:v1:' || n.company_id::text || ':notification:' || n.id::text,
+      'sha256'), 'base64'), '+/', '-_'), 32)) = any(p_references);
+$$;
+
+--
 -- Name: gridex_resolve_dashboard_alert_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -99498,13 +99615,6 @@ begin
       errcode = '22023',
       message = 'customer_move_out_command_invalid';
   end if;
-  if v_requested_date < current_date
-     or v_requested_date > current_date + 730 then
-    raise exception using
-      errcode = '22023',
-      message = 'customer_move_out_date_invalid';
-  end if;
-
   perform pg_advisory_xact_lock(hashtextextended(
     v_company_id::text || ':' || v_api_client_id::text || ':' ||
       v_customer_id::text || ':' || v_idempotency_key,
@@ -99553,6 +99663,13 @@ begin
     );
   end if;
 
+  if v_requested_date < (statement_timestamp() at time zone 'Europe/Stockholm')::date
+     or v_requested_date > (statement_timestamp() at time zone 'Europe/Stockholm')::date + 730 then
+    raise exception using
+      errcode = '22023',
+      message = 'customer_move_out_date_invalid';
+  end if;
+
   select site.*
   into v_site
   from public.customer_sites site
@@ -99590,6 +99707,44 @@ begin
         errcode = '23514',
         message = 'customer_move_out_contract_status_invalid';
     end if;
+  end if;
+
+  -- The scoped site row is locked above, serializing submissions for this facility.
+  select completion.*
+  into v_existing
+  from public.customer_portal_completions completion
+  where completion.company_id = v_company_id
+    and completion.customer_id = v_customer_id
+    and completion.site_id = v_site.id
+    and completion.completion_type = 'move_out'
+    and completion.status in ('submitted', 'in_review', 'accepted')
+    and completion.submitted_payload->'requested_move_out_date' = to_jsonb(v_requested_date)
+  order by completion.created_at, completion.id
+  limit 1;
+
+  if found then
+    if (v_existing.submitted_payload - 'metadata') is distinct from jsonb_build_object(
+      'facility_reference', v_facility_reference,
+      'customer_contract_reference', v_contract_reference,
+      'requested_move_out_date', v_requested_date,
+      'reason', nullif(p_command->>'reason', ''),
+      'new_address', coalesce(p_command->'new_address', '{}'::jsonb),
+      'contact_details', coalesce(p_command->'contact_details', '{}'::jsonb)
+    ) then
+      raise exception using
+        errcode = '23505',
+        message = 'customer_move_out_active_submission_conflict';
+    end if;
+    return jsonb_build_object(
+      'completion_reference', v_existing.completion_reference,
+      'customer_reference', v_customer_reference,
+      'facility_reference', v_facility_reference,
+      'contract_reference', v_contract_reference,
+      'requested_move_out_date', v_requested_date,
+      'status', 'submitted',
+      'submitted_at', v_existing.created_at,
+      'replayed', true
+    );
   end if;
 
   insert into public.customer_portal_completions(
@@ -105254,7 +105409,9 @@ CREATE FUNCTION public.portal_customer_documents_page_v1(p_company_id uuid, p_cu
     LANGUAGE sql STABLE
     SET search_path TO 'public', 'pg_catalog'
     AS $$
-  with all_documents as (
+  select * from (
+    (
+
     select
       d.id,
       'customer_documents'::text as source_table,
@@ -105275,7 +105432,23 @@ CREATE FUNCTION public.portal_customer_documents_page_v1(p_company_id uuid, p_cu
     from public.customer_documents d
     where d.company_id = p_company_id
       and d.customer_id = p_customer_id
+      and (p_cursor_created_at is null or (
+        d.created_at <= p_cursor_created_at and
+        (d.created_at, 2, d.id) < (p_cursor_created_at, coalesce(p_cursor_source_rank, 0), p_cursor_id)
+      ))
+      and (d.power_of_attorney_id is null or d.id = (
+        select preferred.id from public.customer_documents preferred
+        where preferred.company_id = p_company_id
+          and preferred.customer_id = p_customer_id
+          and preferred.power_of_attorney_id = d.power_of_attorney_id
+        order by preferred.created_at desc, preferred.id desc
+        limit 1
+      ))
+    order by d.created_at desc, d.id desc
+    limit greatest(1, least(coalesce(p_limit, 51), 101))
+    )
     union all
+    (
     select
       a.id,
       'customer_authorization_documents'::text as source_table,
@@ -105297,32 +105470,31 @@ CREATE FUNCTION public.portal_customer_documents_page_v1(p_company_id uuid, p_cu
     where a.company_id = p_company_id
       and a.customer_id = p_customer_id
       and a.status <> 'archived'
-  ),
-  deduplicated as (
-    select x.*
-    from (
-      select
-        d.*,
-        row_number() over (
-          partition by coalesce(
-            d.power_of_attorney_id::text,
-            d.source_table || ':' || d.id::text
-          )
-          order by d.source_rank desc, d.created_at desc, d.id desc
-        ) as duplicate_rank
-      from all_documents d
-    ) x
-    where x.duplicate_rank = 1
-  )
-  select
-    d.id,d.source_table,d.source_rank,d.document_type,d.status,d.title,d.file_name,
-    d.mime_type,d.file_size_bytes,d.public_url,d.source_system,d.source,
-    d.power_of_attorney_id,d.document_version,d.uploaded_at,d.created_at
-  from deduplicated d
-  where p_cursor_created_at is null
-     or (d.created_at, d.source_rank, d.id)
-        < (p_cursor_created_at, coalesce(p_cursor_source_rank, 0), p_cursor_id)
-  order by d.created_at desc, d.source_rank desc, d.id desc
+      and (p_cursor_created_at is null or (
+        a.created_at <= p_cursor_created_at and
+        (a.created_at, 1, a.id) < (p_cursor_created_at, coalesce(p_cursor_source_rank, 0), p_cursor_id)
+      ))
+      and (a.power_of_attorney_id is null or a.id = (
+        select preferred.id from public.customer_authorization_documents preferred
+        where preferred.company_id = p_company_id
+          and preferred.customer_id = p_customer_id
+          and preferred.power_of_attorney_id = a.power_of_attorney_id
+          and preferred.status <> 'archived'
+        order by preferred.created_at desc, preferred.id desc
+        limit 1
+      ))
+      and (a.power_of_attorney_id is null or (
+        select preferred.id from public.customer_documents preferred
+        where preferred.company_id = p_company_id
+          and preferred.customer_id = p_customer_id
+          and preferred.power_of_attorney_id = a.power_of_attorney_id
+        limit 1
+      ) is null)
+    order by a.created_at desc, a.id desc
+    limit greatest(1, least(coalesce(p_limit, 51), 101))
+    )
+  ) page_candidates
+  order by created_at desc, source_rank desc, id desc
   limit greatest(1, least(coalesce(p_limit, 51), 101));
 $$;
 
@@ -118793,6 +118965,17 @@ CREATE TABLE public.customer_communications (
     updated_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: customer_consumption_cache_revisions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_consumption_cache_revisions (
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    facility_id text NOT NULL,
+    revision uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 --
@@ -138561,6 +138744,13 @@ ALTER TABLE ONLY public.customer_communications
     ADD CONSTRAINT customer_communications_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_consumption_cache_revisions customer_consumption_cache_revisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_consumption_cache_revisions
+    ADD CONSTRAINT customer_consumption_cache_revisions_pkey PRIMARY KEY (company_id, customer_id, facility_id);
+
+--
 -- Name: customer_contacts customer_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -143224,6 +143414,12 @@ CREATE INDEX customer_authorization_documents_contract_idx ON public.customer_au
 CREATE INDEX customer_authorization_documents_portal_keyset_idx ON public.customer_authorization_documents USING btree (company_id, customer_id, created_at DESC, id DESC) WHERE (status <> 'archived'::text);
 
 --
+-- Name: customer_authorization_documents_portal_poa_winner_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_authorization_documents_portal_poa_winner_idx ON public.customer_authorization_documents USING btree (company_id, customer_id, power_of_attorney_id, created_at DESC, id DESC) WHERE ((status <> 'archived'::text) AND (power_of_attorney_id IS NOT NULL));
+
+--
 -- Name: customer_authorization_documents_upload_idempotency_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -143572,6 +143768,12 @@ CREATE UNIQUE INDEX customer_documents_poa_snapshot_uidx ON public.customer_docu
 CREATE INDEX customer_documents_portal_keyset_idx ON public.customer_documents USING btree (company_id, customer_id, created_at DESC, id DESC);
 
 --
+-- Name: customer_documents_portal_poa_winner_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_documents_portal_poa_winner_idx ON public.customer_documents USING btree (company_id, customer_id, power_of_attorney_id, created_at DESC, id DESC) WHERE (power_of_attorney_id IS NOT NULL);
+
+--
 -- Name: customer_documents_power_of_attorney_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -143906,6 +144108,12 @@ CREATE INDEX customer_notifications_company_external_customer_id_idx ON public.c
 --
 
 CREATE INDEX customer_notifications_portal_keyset_idx ON public.customer_notifications USING btree (company_id, customer_id, created_at DESC, id DESC);
+
+--
+-- Name: customer_notifications_public_reference_lookup_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_notifications_public_reference_lookup_idx ON public.customer_notifications USING btree (company_id, customer_id, (('notification_'::text || "left"(translate(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':notification:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '+/'::text, '-_'::text), 32))));
 
 --
 -- Name: customer_notifications_unread_idx; Type: INDEX; Schema: public; Owner: -
@@ -159891,6 +160099,30 @@ CREATE TRIGGER gridex_companies_legal_profile_sync AFTER INSERT OR UPDATE OF nam
 CREATE TRIGGER gridex_consumption_forecast_customer_source BEFORE INSERT ON public.forecast_runs FOR EACH ROW EXECUTE FUNCTION private.gridex_require_consumption_forecast_customer_source();
 
 --
+-- Name: normalized_metering_values gridex_consumption_revision_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_consumption_revision_delete AFTER DELETE ON public.normalized_metering_values REFERENCING OLD TABLE AS previous_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_mark_consumption_revision_v1();
+
+--
+-- Name: normalized_metering_values gridex_consumption_revision_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_consumption_revision_insert AFTER INSERT ON public.normalized_metering_values REFERENCING NEW TABLE AS current_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_mark_consumption_revision_v1();
+
+--
+-- Name: normalized_metering_values gridex_consumption_revision_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_consumption_revision_truncate AFTER TRUNCATE ON public.normalized_metering_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_mark_consumption_revision_v1();
+
+--
+-- Name: normalized_metering_values gridex_consumption_revision_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_consumption_revision_update AFTER UPDATE ON public.normalized_metering_values REFERENCING OLD TABLE AS previous_values NEW TABLE AS current_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_mark_consumption_revision_v1();
+
+--
 -- Name: contract_price_snapshots gridex_contract_price_snapshots_immutable_tg; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -159913,6 +160145,12 @@ CREATE TRIGGER gridex_customers_hard_delete_guard BEFORE DELETE ON public.custom
 --
 
 CREATE TRIGGER gridex_ediel_route_profile_history_trg AFTER INSERT OR UPDATE ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION public.gridex_capture_ediel_route_profile_history();
+
+--
+-- Name: customer_cases gridex_fill_support_case_public_reference_v1; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_fill_support_case_public_reference_v1 BEFORE INSERT OR UPDATE OF metadata ON public.customer_cases FOR EACH ROW WHEN ((((new.metadata ->> 'support_case'::text) = 'true'::text) AND (NULLIF(btrim((new.metadata ->> 'support_public_reference'::text)), ''::text) IS NULL))) EXECUTE FUNCTION public.gridex_fill_support_case_public_reference_v1();
 
 --
 -- Name: grid_owner_contact_channels gridex_guard_grid_owner_contact_channel; Type: TRIGGER; Schema: public; Owner: -
@@ -180889,6 +181127,12 @@ CREATE POLICY customer_communications_tenant_select ON public.customer_communica
 --
 
 CREATE POLICY customer_communications_tenant_update ON public.customer_communications FOR UPDATE USING ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_read_company(company_id)))) WITH CHECK ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_write_company(company_id))));
+
+--
+-- Name: customer_consumption_cache_revisions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_consumption_cache_revisions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_contacts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -210386,6 +210630,13 @@ GRANT ALL ON FUNCTION public.gridex_fill_customer_authorization_document_file_pa
 GRANT ALL ON FUNCTION public.gridex_fill_customer_contract_price_area_v1() TO service_role;
 
 --
+-- Name: FUNCTION gridex_fill_support_case_public_reference_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_fill_support_case_public_reference_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_fill_support_case_public_reference_v1() TO service_role;
+
+--
 -- Name: FUNCTION gridex_finalize_admin_imported_signed_agreement_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -211218,6 +211469,12 @@ REVOKE ALL ON FUNCTION public.gridex_manual_supplier_terms_verified_v1(p_company
 GRANT ALL ON FUNCTION public.gridex_manual_supplier_terms_verified_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_snapshot jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_mark_consumption_revision_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_mark_consumption_revision_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION gridex_mark_customer_contract_signature_request_sent_v1(p_request_id uuid, p_company_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -211635,6 +211892,13 @@ GRANT ALL ON FUNCTION public.gridex_platform_default_legal_templates_set_updated
 
 REVOKE ALL ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) TO service_role;
+
+--
+-- Name: FUNCTION gridex_portal_invoice_document_availability_v1(p_company_id uuid, p_invoice_id uuid, p_document_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_portal_invoice_document_availability_v1(p_company_id uuid, p_invoice_id uuid, p_document_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_portal_invoice_document_availability_v1(p_company_id uuid, p_invoice_id uuid, p_document_ids uuid[]) TO service_role;
 
 --
 -- Name: FUNCTION gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date); Type: ACL; Schema: public; Owner: -
@@ -212619,6 +212883,13 @@ GRANT ALL ON FUNCTION public.gridex_resolve_contract_lifecycle_graph(p_company_i
 
 REVOKE ALL ON FUNCTION public.gridex_resolve_customer_match_review_case(p_case_id uuid, p_resolution_type text, p_selected_customer_id uuid, p_actor_user_id uuid, p_resolution_note text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_resolve_customer_match_review_case(p_case_id uuid, p_resolution_type text, p_selected_customer_id uuid, p_actor_user_id uuid, p_resolution_note text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_resolve_customer_notification_references_v1(p_company_id uuid, p_customer_id uuid, p_references text[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_resolve_customer_notification_references_v1(p_company_id uuid, p_customer_id uuid, p_references text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_resolve_customer_notification_references_v1(p_company_id uuid, p_customer_id uuid, p_references text[]) TO service_role;
 
 --
 -- Name: FUNCTION gridex_resolve_dashboard_alert_v1(p_company uuid, p_alert uuid); Type: ACL; Schema: public; Owner: -
@@ -215000,6 +215271,12 @@ GRANT ALL ON TABLE public.customer_communication_templates TO service_role;
 
 GRANT ALL ON TABLE public.customer_communications TO authenticated;
 GRANT ALL ON TABLE public.customer_communications TO service_role;
+
+--
+-- Name: TABLE customer_consumption_cache_revisions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.customer_consumption_cache_revisions TO service_role;
 
 --
 -- Name: TABLE customer_contacts; Type: ACL; Schema: public; Owner: -
