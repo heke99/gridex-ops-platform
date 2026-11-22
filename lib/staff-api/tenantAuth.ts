@@ -1,5 +1,5 @@
 import { isIP } from 'node:net'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { ApiInputError } from '@/lib/api/strictRequest'
 import type { StaffInvitationClient } from '@/lib/auth/staffInvitationRouting'
 import { SUPABASE_SERVICE_URL } from '@/lib/supabase/service'
@@ -10,6 +10,10 @@ export type StaffTenantAuthIdentity = { id: string; email?: string | null; email
 
 function invalid(): never {
   throw new ApiInputError('The independent staff Auth registration is unavailable.', 'staff_tenant_auth_registration_invalid', 403)
+}
+
+function unavailable(): never {
+  throw new ApiInputError('The registered staff Auth service is temporarily unavailable.', 'staff_tenant_auth_unavailable', 503)
 }
 
 function lifecycleTimestamp(value: unknown): number | null {
@@ -67,11 +71,18 @@ export async function getRegisteredStaffTenantAuthUser(registration: RegisteredS
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 3000)
   try {
+    let upstreamUnavailable = false
     const client = createClient(registration.url, registration.publicKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      global: { fetch: (input, init) => fetchImpl(input, { ...init, redirect: 'error', signal: controller.signal }) },
+      global: { fetch: async (input, init) => {
+        const response = await fetchImpl(input, { ...init, redirect: 'error', signal: controller.signal })
+        // Auth's SDK can omit the HTTP status when an upstream gateway returns a non-JSON body.
+        upstreamUnavailable = response.status === 429 || response.status >= 500
+        return response
+      } },
     })
-    const { data, error } = await client.auth.getUser(accessToken)
+    const { data, error } = await client.auth.getUser(accessToken).catch(unavailable)
+    if (upstreamUnavailable || isAuthRetryableFetchError(error)) return unavailable()
     const user = data.user
     // A previously issued bearer does not revive a deleted, banned or anonymous employee.
     if (error || !user || user.deleted_at != null || user.is_anonymous === true) return null
@@ -80,5 +91,5 @@ export async function getRegisteredStaffTenantAuthUser(registration: RegisteredS
       if (bannedUntil === null || bannedUntil > Date.now()) return null
     }
     return user
-  } catch { return null } finally { clearTimeout(timer) }
+  } finally { clearTimeout(timer) }
 }

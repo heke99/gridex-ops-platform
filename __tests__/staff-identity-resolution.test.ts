@@ -5,6 +5,7 @@ const env = vi.hoisted(() => ({ url: 'https://piidsfebjqjmnepdpnas.supabase.co' 
 vi.mock('@/lib/supabase/service', () => ({ get SUPABASE_SERVICE_URL() { return env.url }, supabaseService: {} }))
 vi.mock('@/lib/integrations/apiAuth', async importOriginal => ({ ...await importOriginal<Record<string, unknown>>(), requireIntegrationApiAccess: vi.fn(), logIntegrationApiRequest: vi.fn() }))
 import { createStaffIdentityResolutionHandler, type StaffIdentityResolutionPorts } from '@/lib/staff-api/identityResolution'
+import { getRegisteredStaffTenantAuthUser } from '@/lib/staff-api/tenantAuth'
 
 const company = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', local = '11111111-1111-4111-8111-111111111111', actor = '22222222-2222-4222-8222-222222222222'
 const clientId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', providerId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', bindingId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
@@ -47,6 +48,26 @@ describe('independent tenant local-to-central staff identity resolution', () => 
       verified_client: { secret_hash: createHash('sha256').update('synthetic-api-credential').digest('hex'), scopes: ['staff_users.read'], allowed_origins: [origin], staff_onboarding_origin: origin, staff_tenant_auth: { url: authUrl, public_key: publicKey }, staff_tenant_delivery: null },
       verified_provider: { kind: 'tenant_key', issuer: origin, audience: 'staff-audience', jwks_uri: null, public_jwk: jwk, subject_claim: 'sub', enforcement: 'enforce' } })
     expect(ports.logRequest.mock.calls[0][0].metadata).not.toHaveProperty('local_user_id')
+  })
+  it.each([
+    [401, 401, 'staff_identity_auth_invalid'],
+    [503, 503, 'staff_tenant_auth_unavailable'],
+  ])('fails closed after Auth HTTP %i while returning %i from the identity route', async (upstreamStatus, expectedStatus, code) => {
+    const { handler, ports } = boundary()
+    const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({ message: 'Synthetic upstream details' }, { status: upstreamStatus }))
+    ports.getAuthUser.mockImplementation((registration, bearer) => getRegisteredStaffTenantAuthUser(registration, bearer, fetchImpl))
+    const response = await handler(request())
+    expect(response.status).toBe(expectedStatus)
+    expect(await response.json()).toEqual({
+      error: { code, message: 'The independent staff identity could not be verified.' },
+      request_id: response.headers.get('x-request-id'),
+      contract_schema_version: '2026-10-05.2',
+    })
+    expect(fetchImpl).toHaveBeenCalledOnce()
+    expect(ports.loadProvider).not.toHaveBeenCalled()
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.resolveIdentity).not.toHaveBeenCalled()
+    expect(ports.logRequest).toHaveBeenCalledWith(expect.objectContaining({ statusCode: expectedStatus, errorCode: code }))
   })
   it('requires a central project attestation before all auth/rate/replay/audit work', async () => {
     const { handler, ports } = boundary()

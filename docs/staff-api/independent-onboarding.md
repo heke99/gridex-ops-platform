@@ -40,6 +40,12 @@ The tenant Auth SDK uses a registered public key, never the OPS service Auth
 client and never a caller-selected URL or tenant service key. Deleted, currently
 banned, anonymous or malformed lifecycle identities are denied.
 
+Both onboarding routes return HTTP 401 when Auth rejects the local identity.
+If remote Auth cannot verify the bearer because of a transport failure, upstream
+rate limit or server error, both return HTTP 503 with
+`staff_tenant_auth_unavailable`. In either case, processing stops before consuming
+the proof or accessing the central identity or invitation.
+
 `POST /api/v1/staff-onboarding/identity/resolve` requires explicit
 `staff_users.read`, closed body `{}`, verified local Auth bearer in
 `x-gridex-support-auth-token`, and a fresh `staff_identity_resolution` proof.
@@ -189,6 +195,13 @@ company/invitation/actor/client/channel/idempotency fields reach canonical
 receipts/audit. Memberships, roles, events and outbox have one writer. Repeated
 acceptance does not reactivate a disabled membership. Legacy OPS acceptance
 refuses both Staff API and explicitly marked external bootstrap invitations.
+
+Known invitation or binding denials keep their HTTP 403 response. An unexpected
+storage or canonical command failure returns HTTP 500 with `internal_error` and
+the request ID. If the outcome is uncertain, repeat the same acceptance command
+with the original `Idempotency-Key` and a fresh `staff_invitation_acceptance`
+proof. Reusing that key for a different command returns HTTP 409 with
+`idempotency_conflict`.
 
 Binding revocation, client/provider deactivation and canonical staff disable
 deny subsequent resolution/access. Existing native mutation guards recheck
