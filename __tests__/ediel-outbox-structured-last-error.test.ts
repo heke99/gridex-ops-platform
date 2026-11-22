@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Fynd 023: the real worker catch path must persist a readable, bounded
 // last_error for non-Error throwables (PostgREST error objects) without raw
 // details/hint that may carry payload data.
-const io = vi.hoisted(() => ({ get: vi.fn(), from: vi.fn(), rpc: vi.fn(), log: vi.fn() }))
+const io = vi.hoisted(() => ({ get: vi.fn(), from: vi.fn(), rpc: vi.fn(), log: vi.fn(), sendSmtp: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get }))
-vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: vi.fn() }))
+vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: io.sendSmtp }))
+vi.mock('@/lib/ediel/transport/acceptedProjection', () => ({ readAcceptedEdielTransportProjection: async () => null }))
+vi.mock('@/lib/tenant/operationPolicy', () => ({ getTenantOperationDecision: async () => ({ allowed: true }) }))
+vi.mock('@/lib/ediel/outbox/readinessGuard', () => ({ getEdielOutboundReadinessBlocker: async () => null }))
+vi.mock('@/lib/ediel/outbox/routeContract', () => ({ evaluateEdielRouteContract: async () => ({ fingerprint: 'fixture' }) }))
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
 
 const at = '2026-10-30T12:00:00.000Z'
@@ -18,6 +22,7 @@ beforeEach(() => {
   queued = { id: 'own-outbox', company_id: 'own-company', environment: 'test', ediel_message_id: 'own-message',
     status: 'sending', locked_by: 'own-worker', locked_at: at, current_send_attempt_id: 'own-attempt', attempts: 2 }
   io.from.mockImplementation((table: string) => {
+    if (table === 'ediel_send_locks') return { select: () => ({ eq: () => ({ limit: async () => ({ data: [], error: null }) }) }) }
     if (table !== 'ediel_outbox') throw Error(`undeclared_table:${table}`)
     const filters: Array<[string, unknown]> = []
     let patch: Record<string, unknown> | null = null
@@ -27,10 +32,44 @@ beforeEach(() => {
       return { data: structuredClone(queued), error: null }
     }
     const q = { select: () => q, eq: (key: string, value: unknown) => { filters.push([key, value]); return q },
-      update: (value: Record<string, unknown>) => { patch = value; return q }, maybeSingle: async () => result() }
+      update: (value: Record<string, unknown>) => { patch = value; return q }, maybeSingle: async () => result(),
+      then: (resolve: (value: ReturnType<typeof result>) => void) => resolve(result()) }
     return q
   })
   for (const level of ['log', 'info', 'warn', 'error'] as const) vi.spyOn(console, level).mockImplementation(io.log)
+})
+
+describe('cancelled APERAK worker disposition', () => {
+  beforeEach(() => {
+    io.get.mockResolvedValue({ id: 'own-message', company_id: 'own-company', environment: 'test',
+      direction: 'outbound', message_family: 'APERAK', status: 'queued' })
+  })
+
+  it('retires the active claim on a definite journal refusal', async () => {
+    io.sendSmtp.mockRejectedValue({ code: 'GX104', message: 'ediel_transport_aperak_cancelled' })
+    expect(await send()).toEqual({ status: 'blocked', error: 'ediel_transport_aperak_cancelled', messageId: null })
+    expect(queued).toMatchObject({ status: 'superseded', last_error: 'ediel_transport_aperak_cancelled', attempts: 2,
+      locked_at: null, locked_by: null, current_send_attempt_id: 'own-attempt' })
+  })
+
+  it('preserves a superseded row whose worker claim was still running', async () => {
+    io.sendSmtp.mockImplementation(async () => {
+      Object.assign(queued, { status: 'superseded', last_error: 'operator_superseded', locked_at: null, locked_by: null })
+      throw { code: 'GX104', message: 'ediel_transport_aperak_cancelled' }
+    })
+    expect(await send()).toEqual({ status: 'blocked', error: 'ediel_transport_aperak_cancelled', messageId: null })
+    expect(queued).toMatchObject({ status: 'superseded', last_error: 'operator_superseded', attempts: 2 })
+  })
+
+  it('preserves a replacement claim with a different attempt identity', async () => {
+    io.sendSmtp.mockImplementation(async () => {
+      Object.assign(queued, { locked_by: 'replacement-worker', current_send_attempt_id: 'replacement-attempt', last_error: null })
+      throw { code: 'GX104', message: 'ediel_transport_aperak_cancelled' }
+    })
+    expect(await send()).toEqual({ status: 'blocked', error: 'ediel_transport_aperak_cancelled', messageId: null })
+    expect(queued).toMatchObject({ status: 'sending', locked_by: 'replacement-worker',
+      current_send_attempt_id: 'replacement-attempt', last_error: null })
+  })
 })
 
 const send = () => sendOutboxItem({ actorUserId: 'own-worker', outboxItemId: 'own-outbox', workerId: 'own-worker', alreadyClaimed: true })

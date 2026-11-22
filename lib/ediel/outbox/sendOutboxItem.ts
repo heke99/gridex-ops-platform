@@ -10,6 +10,7 @@ import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { repairAcceptedEdielMessageProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
+import { CANCELLED_APERAK_TRANSPORT, isCancelledAperakTransport } from '@/lib/ediel/transport/outboundAttempt'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -335,6 +336,18 @@ export async function sendOutboxItem(params: {
     return { status: 'sent', messageId: providerMessageId }
   } catch (error) {
     const errorMessage = describeOutboxError(error)
+
+    if (!providerAccepted && isCancelledAperakTransport(error) && sendAttemptId && environment) {
+      const updatedAt = new Date().toISOString()
+      const { error: updateError } = await supabaseService.from('ediel_outbox').update({
+        status: 'superseded', last_error: CANCELLED_APERAK_TRANSPORT,
+        locked_at: null, locked_by: null, updated_by: params.actorUserId, updated_at: updatedAt,
+      }).eq('id', params.outboxItemId)
+        .eq('company_id', companyId).eq('environment', environment).eq('ediel_message_id', edielMessageId)
+        .eq('status', 'sending').eq('current_send_attempt_id', sendAttemptId).eq('locked_by', workerId)
+      if (updateError) throw updateError
+      return { status: 'blocked', messageId: null, error: CANCELLED_APERAK_TRANSPORT }
+    }
 
     if (providerAccepted || isSmtpDeliveryUncertain(error)) {
       if (error instanceof SmtpDeliveryUncertainError) providerMessageId = error.smtpMessageId ?? providerMessageId
