@@ -243,7 +243,7 @@ donor='supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sq
 digest='118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'
 pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
 post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
-schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+schema='032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f'
 sha=lambda value:hashlib.sha256(value.encode() if isinstance(value,str) else value).hexdigest()
 def fail(message):raise RuntimeError(message)
 before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre}
@@ -356,7 +356,7 @@ calls=[n for n in module.body if isinstance(n,ast.Expr) and isinstance(n.value,a
 if len(definitions)!=1 or len(calls)!=1:
  print(json.dumps({'error':'db01_current_contrl_qualifier_missing'}));sys.exit(0)
 donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql','mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
-pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e';post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa';schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e';post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa';schema='032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f'
 before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre};after={**before,'body_sha256':post}
 record={'schema':'db01_current_contrl_source_v1','status':'PASS','exit_code':0,'native_or_approval_credit':False,'source_sha':'synthetic-head','source_schema_sha256':schema,'donor':donor,'preimage_sha256':pre,'postimage_sha256':post,'expected_definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d','catalog_before':before,'catalog_after':after}
 receipt={'checkout_sha':'synthetic-head','root_source':{'blobs':{donor['path']:{k:v for k,v in donor.items() if k!='path'},'supabase/schema.sql':{'sha256':schema}}},'current_contrl_source_install':record}
@@ -383,7 +383,7 @@ it.each(['valid', 'missing', 'failed', 'wrong-exit', 'wrong-head', 'wrong-schema
     expect(result.error).toBe(change === 'valid' ? null : 'db01_current_contrl_execution_required')
   })
 
-it('admits the genuine post949 schema only with the unchanged 251-function writer closure', () => {
+it('admits the genuine T4 successor only with the unchanged 251-function writer closure', () => {
   const python = String.raw`
 import ast, hashlib, json, pathlib, re, subprocess, tempfile, textwrap
 repo=pathlib.Path.cwd();lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
@@ -411,13 +411,50 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
 `
   const result = JSON.parse(execFileSync('python3', ['-c', python], {encoding: 'utf8', timeout: 10_000}))
   expect(result).toEqual({
-    schemaPin: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+    schemaPin: '032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f',
     oldSchema: 'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b',
-    newSchema: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
-    changedObjects: [['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)']],
+    newSchema: '032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f',
+    changedObjects: [
+      ['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)'],
+      ['public', 'ACL', 'FUNCTION gridex_approve_invoice_export_item_v1(p_company_id uuid, p_export_item_id uuid, p_actor_user_id uuid, p_expected_context jsonb, p_review_hash text)'],
+      ['public', 'COMMENT', 'FUNCTION gridex_approve_invoice_export_item_v1(p_company_id uuid, p_export_item_id uuid, p_actor_user_id uuid, p_expected_context jsonb, p_review_hash text)'],
+      ['public', 'FUNCTION', 'gridex_approve_invoice_export_item_v1(uuid, uuid, uuid, jsonb, text)'],
+    ],
     writerCounts: [251, 251],
     writerDefinitionDigests: Array(2).fill('23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d'),
     definitionsIdentical: true, '949InWriter': false,
     beforeCatalogPin: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
+  })
+})
+
+const genuineT4ClosureHarness = String.raw`
+import ast,hashlib,json,pathlib,re,textwrap
+root=pathlib.Path.cwd();lines=(root/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
+start=next(i for i,line in enumerate(lines) if 'cat > "$DB01_PRIVATE/qualify-current-guards.py"' in line)+1
+end=next(i for i in range(start,len(lines)) if lines[i].strip()=='PY')
+tree=ast.parse(textwrap.dedent('\n'.join(lines[start:end])))
+nodes=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in {'blocks','functions','current_write_api_install_spec'}]
+sha=lambda s:hashlib.sha256(s.encode()).hexdigest()
+def fail(s):raise RuntimeError(s)
+ns={'re':re,'sha':sha,'fail':fail};exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-workflow>','exec'),ns)
+schema=(root/'supabase/schema.sql').read_text();catalog=ns['blocks'](schema);functions=ns['functions'](catalog)
+pending=['public.gridex_enqueue_normal_supplier_switch_v1'];names=set()
+while pending:
+ name=pending.pop()
+ if name in names or name=='auth.uid' or name not in functions:continue
+ names.add(name)
+ for key,signature,body in functions[name]:pending.extend(re.findall(r'\b((?:public|gridex_[a-z0-9_]+|auth)\.[a-z0-9_]+)\s*\(',body))
+definitions=[{'identity':key,'body_sha256':sha(body)} for name in sorted(names) for key,signature,body in functions[name]]
+print(json.dumps({'schema_sha256':sha(schema),'selected_count':len(names),'selected_definitions_sha256':sha(json.dumps(definitions,sort_keys=True,separators=(',',':'))),'approval_in_selected_closure':'public.gridex_approve_invoice_export_item_v1' in names,'approval_present_in_capture':'public.gridex_approve_invoice_export_item_v1' in functions,'spec':ns['current_write_api_install_spec']()}))
+`
+describe('DB01 genuine T4 capture applicability', () => {
+  it('pins the actual selected writer closure rather than admitting an arbitrary new schema hash', () => {
+    const result = JSON.parse(execFileSync('python3', ['-c', genuineT4ClosureHarness], { encoding: 'utf8', timeout: 10000 }))
+    expect(result).toMatchObject({ schema_sha256: '032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f',
+      selected_count: 251, selected_definitions_sha256: '23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
+      approval_present_in_capture: true, approval_in_selected_closure: false })
+    expect(result.spec).toMatchObject({ schema_sha256: result.schema_sha256, function_count: result.selected_count,
+      canonical_definitions_sha256: result.selected_definitions_sha256,
+      before_catalog_sha256: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d', preimage_artifact_id: 12655280424 })
   })
 })
