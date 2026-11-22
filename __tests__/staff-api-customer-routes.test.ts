@@ -55,6 +55,12 @@ describe('mounted staff customer API', () => {
     expect(run.mock.calls[3][1]).toEqual({ scopes: ['staff_customers.write'], permission: 'customers.write' })
   })
 
+  it('requests only the Staff list summary for the authenticated company', async () => {
+    const { GET } = await import('@/app/api/v1/staff/customers/route')
+    await GET(request())
+    expect(list).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ companyId: A, summaryOnly: true }))
+  })
+
   it('returns a masked closed response and company-binds detail reads', async () => {
     const { getStaffCustomer } = await import('@/lib/staff-api/customerHandlers')
     const response = await getStaffCustomer(request(), params)
