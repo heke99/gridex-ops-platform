@@ -232,6 +232,7 @@ async function getOrCreateTestInboundEnvelope(input: {
       actor_user_id: input.actorUserId,
       external_side_effects_allowed: false,
     },
+    received_at: now,
     created_at: now,
     updated_at: now,
   }).select('id').single()
