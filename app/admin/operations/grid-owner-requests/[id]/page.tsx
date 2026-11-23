@@ -95,6 +95,38 @@ function getString(value: unknown, key: string): string | null {
  return typeof raw === 'string' ? raw : null
 }
 
+function isMeteringReceipt(request: GridOwnerDataRequestRow): boolean {
+ return request.status === 'received' && (request.request_scope === 'meter_values' || request.request_scope === 'billing_underlay')
+}
+
+async function readMeteringImportSummary(
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ request: GridOwnerDataRequestRow,
+ companyId: string | null,
+): Promise<string | null> {
+ if (!isMeteringReceipt(request)) return null
+
+ const unverified = 'Det finns ingen verifierad importstatus för svaret.'
+ const receipt = request.response_payload
+ const inboundEmailMessageId = getString(receipt, 'inboundEmailMessageId')
+ const parseResultId = getString(receipt, 'parseResultId')
+ if (!companyId || !inboundEmailMessageId || !parseResultId || getString(receipt, 'inboundFamily') !== 'UTILTS' || getString(receipt, 'inboundCode') !== 'E66') return unverified
+
+ // The inbound worker records outbound provenance on the failed import task.
+ // Correlate both the retained email and the exact parse result for this reply.
+ const { data, error } = await supabase.from('customer_operation_tasks').select('id')
+  .eq('company_id', companyId)
+  .eq('customer_id', request.customer_id)
+  .eq('task_type', 'ediel_utilts_meter_value_review')
+  .in('status', ['open', 'in_progress', 'blocked'])
+  .contains('metadata', { inboundEmailMessageId, parseResultId, outbound: { source_type: 'grid_owner_data_request', source_id: request.id } })
+  .limit(1)
+
+ if (error) return 'Importstatusen kunde inte läsas. Försök igen.'
+ if (data?.length) return 'Ett öppet importärende behöver granskas. Mätvärdena kunde inte sparas vid ett importförsök.'
+ return unverified
+}
+
 function summarizeResponse(
  request: GridOwnerDataRequestRow,
  outbounds: OutboundRequestRow[]
@@ -120,6 +152,7 @@ function summarizeResponse(
  return bTime - aTime
  })[0] ?? null
 
+ if (isMeteringReceipt(request)) return 'Svar mottaget från nätägare'
  if (request.status === 'received') return 'Underlag mottaget från nätägare'
  if (latestOutbound?.status === 'acknowledged') return "Utskick bekräftat"
  if (latestOutbound?.status === 'sent') return 'Skickad, inväntar svar'
@@ -243,6 +276,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  gridOwners,
  outboundByCustomer,
  edielMessagesQuery,
+ importSummary,
  ] = await Promise.all([
  request.site_id
  ? supabase.from('customer_sites').select('*').eq('id', request.site_id).maybeSingle()
@@ -261,6 +295,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  .select('*')
  .eq('grid_owner_data_request_id', request.id)
  .order('created_at', { ascending: false }),
+ readMeteringImportSummary(supabase, request, requestCompanyId),
  ])
 
  if (siteQuery.error) throw siteQuery.error
@@ -325,6 +360,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
              ].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-slate-500">{label}</dt><dd className="mt-1 break-words font-medium text-slate-950">{value}</dd></div>)}
            </dl>
            <p className="mt-4 text-sm font-medium text-slate-800">{responseSummary}</p>
+           {importSummary ? <p role="status" className="mt-2 text-sm text-slate-700">{importSummary}</p> : null}
            {request.status === 'failed' ? <p role="status" className="mt-2 text-sm text-red-800">Begäran misslyckades. {request.failure_reason ?? 'Kontakta support om orsaken är oklar.'}</p> : null}
            {request.notes ? <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700">{request.notes}</p> : null}
            {request.requested_period_start || request.requested_period_end ? <p className="mt-2 text-sm text-slate-600">Period: {request.requested_period_start ?? '—'} – {request.requested_period_end ?? '—'}</p> : null}
@@ -425,6 +461,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <div className="mt-2 text-sm font-semibold text-slate-950 ">
  {responseSummary}
  </div>
+ {importSummary ? <p role="status" className="mt-2 text-sm text-slate-700">{importSummary}</p> : null}
  </div>
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
