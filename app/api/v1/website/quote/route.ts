@@ -14,6 +14,7 @@ import {
   failIntegrationWriteIdempotency,
   IntegrationWriteIdempotencyError,
 } from '@/lib/integrations/writeIdempotency'
+import { calculateEarliestSwitchStartDate } from '@/lib/operations/switchStartDate'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
 import {
   projectPublicWebsiteQuoteEnvelope,
@@ -240,12 +241,15 @@ async function createQuote(request: NextRequest) {
       site_count: numeric(body, 'site_count') ?? Number.NaN,
     }
 
+    const earliestSwitchStart = request.headers.get('prefer') === 'earliest-switch-start'
+    const preferenceHeaders: Record<string, string> = earliestSwitchStart ? { 'Preference-Applied': 'earliest-switch-start' } : {}
+
     const claim = await claimIntegrationWriteIdempotency({
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       route: QUOTE_ROUTE,
       idempotencyKey: request.headers.get('idempotency-key'),
-      payload: quoteInput,
+      payload: earliestSwitchStart ? { ...quoteInput, start_policy: "earliest-switch-start" } : quoteInput,
       required: true,
     })
 
@@ -270,6 +274,7 @@ async function createQuote(request: NextRequest) {
         headers: {
           'Cache-Control': 'no-store',
           'Idempotency-Replayed': 'true',
+          ...preferenceHeaders,
         },
       })
     }
@@ -285,7 +290,9 @@ async function createQuote(request: NextRequest) {
       sharePublicOfferRead: true,
       priceArea: null,
       annualConsumptionKwh: quoteInput.annual_consumption_kwh,
-      startDate: quoteInput.start_date,
+      startDate: earliestSwitchStart
+        ? calculateEarliestSwitchStartDate({ requestType: "switch" }).earliestValidStartDate
+        : quoteInput.start_date,
       customerType: quoteInput.customer_type,
       gridAreaCode: null,
       postalCode: null,
@@ -343,6 +350,7 @@ async function createQuote(request: NextRequest) {
       headers: {
         'Cache-Control': 'no-store',
         'Idempotency-Replayed': 'false',
+        ...preferenceHeaders,
       },
     })
   } catch (error) {

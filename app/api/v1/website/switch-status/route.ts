@@ -40,8 +40,11 @@ async function getSwitchStatus(request: NextRequest) {
   }
 
   try {
+    // Optional response preference. The published events field remains present.
+    const preference = 'omit-switch-events'
+    const omitEvents = request.headers.get('prefer')?.trim().toLowerCase() === preference
     const [status, tenant] = await Promise.all([
-      loadWebsiteSwitchStatus({ companyId: auth.context.companyId, applicationNumber }),
+      loadWebsiteSwitchStatus({ companyId: auth.context.companyId, applicationNumber, includeEvents: !omitEvents }),
       loadExternalTenantContext(auth.client),
     ])
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
@@ -49,7 +52,11 @@ async function getSwitchStatus(request: NextRequest) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId, application_number: applicationNumber } })
     return customerPortalJson(
       { data: status, meta: { organization_reference: organizationReference, api_version: 'v1', channel: 'website' }, request_id: requestId },
-      { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
+      { status: 200, headers: {
+        'Cache-Control': 'private, no-store',
+        Vary: 'Prefer',
+        ...(omitEvents ? { 'Preference-Applied': preference } : {}),
+      } },
     )
   } catch (error) {
     if (error instanceof WebsiteSwitchStatusError) {

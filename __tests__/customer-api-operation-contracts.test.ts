@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { publicReference } from '@/lib/integrations/publicReferences'
 
 type Row = Record<string, unknown>
-const m = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, mutations: [] as string[], rpc: vi.fn() }))
+const m = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, mutations: [] as string[], reads: [] as string[], rpc: vi.fn(), retiredInvoiceDocuments: new Set<string>(), missingContractColumns: null as Set<string> | null }))
 const COMPANY = '00000000-0000-4000-8000-000000000001'
 const CUSTOMER = '00000000-0000-4000-8000-000000000002'
 const RESOURCE = '00000000-0000-4000-8000-000000000003'
@@ -18,6 +18,7 @@ function field(row: Row, key: string): unknown {
   return child ? String((row[column] as Row | undefined)?.[child]) : row[key]
 }
 function query(table: string) {
+  m.reads.push(table)
   let mode = 'select'
   let pending: Row[] = []
   let patch: Row = {}
@@ -25,16 +26,29 @@ function query(table: string) {
   let first = 0
   let last = Infinity
   let error: unknown = null
+  let columns: string[] | undefined
   const predicates: Array<(row: Row) => boolean> = []
   const rows = () => {
     if (mode === 'insert') return pending
     const result = (m.tables[table] ?? []).filter((row) => predicates.every((p) => p(row))).slice(first, Math.min(last + 1, first + limit))
     if (mode === 'update') result.forEach((row) => Object.assign(row, patch))
-    return result
+    return columns ? result.map(row => Object.fromEntries(columns!.map(key => [key, row[key]]))) : result
   }
   const q = {
-    select: () => q,
+    select: (value: string) => {
+      if (table === 'powers_of_attorney') columns = value.split(',')
+      if (table === 'customer_contracts' && m.missingContractColumns) {
+        columns = value.split(',')
+        if (columns.some(key => m.missingContractColumns?.has(key))) error = { code: '42703' }
+      }
+      return q
+    },
     eq: (key: string, value: unknown) => { predicates.push((row) => field(row, key) === value); return q },
+    not: (key: string, op: string, value: unknown) => {
+      expect(op).toBe('is')
+      predicates.push(row => field(row, key) !== value)
+      return q
+    },
     neq: (key: string, value: unknown) => { predicates.push((row) => field(row, key) !== value); return q },
     is: (key: string, value: unknown) => { predicates.push((row) => field(row, key) === value); return q },
     in: (key: string, value: unknown[]) => { predicates.push((row) => value.includes(field(row, key))); return q },
@@ -73,9 +87,11 @@ vi.mock('@/lib/customer-portal/externalApi', async (original) => ({
 }))
 beforeEach(() => {
   m.mutations = []
+  m.reads = []
+  m.missingContractColumns = null
   const base = { id: RESOURCE, company_id: COMPANY, customer_id: CUSTOMER, created_at: CREATED }
   m.tables = {
-    customers: [{ id: CUSTOMER, company_id: COMPANY, customer_number: 'synthetic-number', customer_type: 'private', status: 'active', full_name: 'Synthetic customer' }],
+    customers: [{ id: CUSTOMER, company_id: COMPANY, customer_number: 'synthetic-number', customer_type: 'private', status: 'active', full_name: 'Synthetic customer', preferred_language: 'en' }],
     customer_contracts: [{ ...base, status: 'active', customer_contract_reference: ref('contract'), customer_site_id: RESOURCE, metering_point_id: RESOURCE, markup_ore_per_kwh: null, spot_markup_ore_per_kwh: 8.5, contract_name: 'Synthetic contract', price_plan_id: RESOURCE }],
     customer_sites: [{ ...base, status: 'active', facility_reference: ref('facility'), street: 'Synthetic 1', city: 'Synthetic', postal_code: '12345', facility_id: '735999000000001234' }],
     metering_points: [{ ...base, customer_site_id: RESOURCE, status: 'active', metering_point_id: '735999000000001234' }],
@@ -86,15 +102,29 @@ beforeEach(() => {
     customer_authorization_documents: [],
     customer_legal_acceptances: [{ ...base, acceptance_type: 'terms', accepted_at: CREATED }],
     powers_of_attorney: [{ ...base, status: 'signed', scope: 'supplier_switch', signed_at: CREATED }],
-    customer_notifications: [{ ...base, type: 'information', title: 'Synthetic notification', status: 'unread', message: 'Synthetic message' }],
+    customer_notifications: [{ ...base, type: 'information', title: 'Synthetic notification', status: 'unread', read_at: null, message: 'Synthetic message' }],
     customer_events: [{ ...base, event_type: 'customer.synthetic', occurred_at: CREATED, source: 'synthetic' }],
     domain_events: [], website_customer_applications: [], customer_portal_write_idempotency: [],
   }
   for (const table of ['customer_contracts', 'customer_sites', 'customer_invoices', 'customer_notifications', 'normalized_metering_values']) m.tables[table].push({ ...m.tables[table][0], company_id: OTHER_COMPANY, customer_id: 'foreign', contract_name: 'FOREIGN-MUST-NOT-APPEAR', title: 'FOREIGN-MUST-NOT-APPEAR' })
   m.rpc.mockReset()
+  m.retiredInvoiceDocuments.clear()
   m.rpc.mockImplementation(async (name: string, args: Row) => {
     expect(args.p_company_id ?? (args.p_command as Row)?.company_id).toBe(COMPANY)
+    if (name === 'gridex_portal_invoice_document_availability_v1') {
+      return {
+        data: m.tables.customer_invoice_documents
+          .filter(row => row.company_id === args.p_company_id && row.invoice_id === args.p_invoice_id && (args.p_document_ids as string[]).includes(String(row.id)))
+          .map(row => ({ document_id: row.id, retired: m.retiredInvoiceDocuments.has(String(row.id)) })),
+        error: null,
+      }
+    }
     expect(args.p_customer_id ?? (args.p_command as Row)?.customer_id).toBe(CUSTOMER)
+    if (name === 'gridex_resolve_customer_notification_references_v1') {
+      const rows = m.tables.customer_notifications.filter(row => row.company_id === args.p_company_id && row.customer_id === args.p_customer_id)
+      const data = rows.map(row => ({ id: row.id, notification_reference: publicReference('notification', COMPANY, row.id) }))
+      return { data: data.filter(row => (args.p_references as string[]).includes(row.notification_reference!)), error: null }
+    }
     if (name === 'portal_customer_documents_page_v1') return { data: m.tables.customer_documents, error: null }
     if (name === 'portal_customer_events_page_v1') return { data: m.tables.customer_events, error: null }
     if (name === 'gridex_submit_customer_move_out_v1') return { data: { completion_reference: 'completion_synthetic', customer_reference: 'tenant-customer-subject', facility_reference: ref('facility'), contract_reference: null, requested_move_out_date: '2026-10-13', status: 'submitted', submitted_at: CREATED, replayed: false }, error: null }
@@ -136,7 +166,7 @@ describe('finite synthetic mounted customer operation contract probes', () => {
       expect(body.data[0]).toMatchObject({ amount_inc_vat: 125, currency: 'SEK' })
     }
     if (name === 'legal-acceptances') expect(body.data[0]).toMatchObject({ acceptance_type: 'terms', accepted_at: CREATED })
-    if (name === 'me') expect(body.data).toMatchObject({ display_name: 'Synthetic customer', customer_number: 'synthetic-number' })
+    if (name === 'me') expect(body.data).toMatchObject({ display_name: 'Synthetic customer', customer_number: 'synthetic-number', language_code: 'en' })
     if (name === 'metering-values') expect(body.data[0].quantity_kwh).toBe(0.75)
     if (name === 'notifications') expect(body.data[0].title).toBe('Synthetic notification')
     if (name === 'powers-of-attorney') expect(body.data[0]).toMatchObject({ scope: 'supplier_switch', status: 'signed' })
@@ -153,6 +183,133 @@ describe('finite synthetic mounted customer operation contract probes', () => {
       expect(body.data.invoices[0].amount_inc_vat).toBe(125)
     }
   })
+  it.each(['contracts', 'portal-bundle'])('negotiates separate contract dates for %s', async name => {
+    const dates = { requested_start_date: '2026-12-05', confirmed_start_date: '2026-12-14', actual_start_date: null }
+    Object.assign(m.tables.customer_contracts[0], dates)
+    const path = `/api/v1/customer/${name}`
+    const load = readOperations.find(([resource]) => resource === name)![1]
+    const { GET } = await load()
+    const req = (headers?: HeadersInit) => new NextRequest(`https://synthetic.example${path}`, { headers })
+    const legacy = await GET(req())
+    expect(legacy.headers.get('Preference-Applied')).toBeNull()
+    const legacyBody = await legacy.json()
+    const legacyContract = name === 'contracts' ? legacyBody.data[0] : legacyBody.data.contracts[0]
+    expect(legacyContract.start_date).toBe('2026-12-14')
+    expect(legacyContract).not.toHaveProperty('confirmed_start_date')
+    const modern = await GET(req({ Prefer: 'contract-start-dates' }))
+    expect(modern.status).toBe(200)
+    expect(modern.headers.get('Preference-Applied')).toBe('contract-start-dates')
+    const body = await modern.json()
+    expect(name === 'contracts' ? body.data[0] : body.data.contracts[0]).toMatchObject(dates)
+  })
+  it.each([
+    ['contracts', 'production', true],
+    ['contracts', 'consumption', false],
+    ['portal-bundle', 'production', true],
+    ['portal-bundle', 'consumption', false],
+    ['contracts', 'production', true, true],
+    ['portal-bundle', 'production', true, true],
+    ['contracts', undefined, undefined],
+    ['portal-bundle', undefined, undefined],
+  ] as const)('projects stored contract terms through %s (%s, %s)', async (name, direction, renewal, legacy = false) => {
+    const row = m.tables.customer_contracts[0]
+    Object.assign(row, { energy_direction: direction, auto_renew_enabled: renewal })
+    m.missingContractColumns = new Set(direction === undefined
+      ? ['customer_contract_reference', 'energy_direction', 'auto_renew_enabled']
+      : legacy ? ['customer_contract_reference'] : [])
+    const path = `/api/v1/customer/${name}`
+    const { GET } = await readOperations.find(([resource]) => resource === name)![1]()
+    const response = await GET(new NextRequest(`https://synthetic.example${path}`))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    const contract = name === 'contracts' ? body.data[0] : body.data.contracts[0]
+    if (direction === undefined) {
+      expect(contract).not.toHaveProperty('energy_direction')
+      expect(contract).not.toHaveProperty('auto_renew_enabled')
+    } else {
+      expect(contract).toMatchObject({ energy_direction: direction, auto_renew_enabled: renewal })
+    }
+    expect(validateResponse(spec(), path, body, 'get', '200')).toEqual([])
+  })
+  it.each(['contracts', 'portal-bundle'])('negotiates separate contract prices for %s', async name => {
+    const path = `/api/v1/customer/${name}`
+    const { GET } = await readOperations.find(([resource]) => resource === name)![1]()
+    const request = (headers?: HeadersInit) => new NextRequest(`https://synthetic.example${path}`, { headers })
+    const contract = (body: { data: Row[] | { contracts: Row[] } }) => Array.isArray(body.data) ? body.data[0] : body.data.contracts[0]
+    const row = m.tables.customer_contracts[0]
+    m.missingContractColumns = new Set()
+    Object.assign(row, { markup_ore_per_kwh: 3, variable_fee_ore_per_kwh: 7, confirmed_start_date: '2026-12-14' })
+    const headers = { 'X-Gridex-Contract-Pricing': 'separate-variable-fee', Prefer: 'contract-start-dates' }
+    const modern = await GET(request(headers))
+    expect(modern.headers.get('X-Gridex-Contract-Pricing')).toBe('separate-variable-fee')
+    expect(modern.headers.get('Preference-Applied')).toBe('contract-start-dates')
+    expect(contract(await modern.json())).toMatchObject({
+      markup_ore_per_kwh: 3, variable_fee_ore_per_kwh: 7, confirmed_start_date: '2026-12-14',
+    })
+
+    Object.assign(row, { markup_ore_per_kwh: null, spot_markup_ore_per_kwh: null })
+    expect(contract(await (await GET(request(headers))).json())).toMatchObject({
+      markup_ore_per_kwh: null, variable_fee_ore_per_kwh: 7,
+    })
+    const legacy = await GET(request())
+    expect(legacy.headers.get('X-Gridex-Contract-Pricing')).toBeNull()
+    const legacyBody = await legacy.json()
+    expect(contract(legacyBody)).toMatchObject({ markup_ore_per_kwh: 7 })
+    expect(contract(legacyBody)).not.toHaveProperty('variable_fee_ore_per_kwh')
+    expect(validateResponse(spec(), path, legacyBody, 'get', '200')).toEqual([])
+  })
+  it.each(['powers-of-attorney', 'portal-bundle'])('publishes signed purposes through %s', async name => {
+    const row = m.tables.powers_of_attorney[0]
+    const scopes = ['supplier_switch', 'facility_information_lookup']
+    Object.assign(row, {
+      signed_scope_snapshot: [...scopes, 'supplier_switch', 'unrecognized'],
+      scope_summary: { scopes: ['unverified_summary'] },
+    })
+    const path = `/api/v1/customer/${name}`
+    const { GET } = await readOperations.find(([resource]) => resource === name)![1]()
+    const request = () => new NextRequest(`https://synthetic.example${path}`)
+    const getPoa = (body: { data: Row[] | { powers_of_attorney: Row[] } }) =>
+      Array.isArray(body.data) ? body.data[0] : body.data.powers_of_attorney[0]
+    const response = await GET(request())
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(getPoa(body)).toMatchObject({ scope: 'supplier_switch', scopes })
+    expect(getPoa(body)).not.toHaveProperty('signed_scope_snapshot')
+    expect(getPoa(body)).not.toHaveProperty('scope_summary')
+    expect(validateResponse(spec(), path, body, 'get', '200')).toEqual([])
+
+    Object.assign(row, { status: 'draft', signed_at: null })
+    expect(getPoa(await (await GET(request())).json())).not.toHaveProperty('scopes')
+  })
+  it('limits the contract bundle to eight events without querying optional heavy tables', async () => {
+    const meter = m.tables.normalized_metering_values[0]
+    m.tables.normalized_metering_values = Array.from({ length: 500 }, (_, index) => ({ ...meter, quantity_kwh: index }))
+    const event = m.tables.customer_events[0]
+    m.tables.customer_events = Array.from({ length: 15 }, (_, index) => ({ ...event, id: `00000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`, title: `Event ${index}` }))
+    const { POST } = await import('@/app/api/v1/customer/portal-bundle/route')
+    const path = 'https://synthetic.example/api/v1/customer/portal-bundle'
+    const request = (url: string) => new NextRequest(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ external_customer_id: 'tenant-customer-subject' }),
+    })
+    const full = await POST(request(path))
+    const fullBody = await full.text()
+    expect(JSON.parse(fullBody).data.metering_values).toHaveLength(500)
+    const fullReads = m.reads.length
+
+    m.reads = []
+    const projected = await POST(request(`${path}?include=events&events_limit=8`))
+    expect(projected.status).toBe(200)
+    const projectedBody = await projected.text()
+    const { data } = JSON.parse(projectedBody)
+    expect(data.contracts).toHaveLength(1)
+    expect(data.events).toHaveLength(8)
+    expect(data.metering_values).toEqual([])
+    expect(m.reads).not.toContain('normalized_metering_values')
+    expect(m.reads.length).toBeLessThan(fullReads)
+    expect(Buffer.byteLength(projectedBody)).toBeLessThan(Buffer.byteLength(fullBody))
+    process.stdout.write(`contract bundle measurement: ${Buffer.byteLength(fullBody)} to ${Buffer.byteLength(projectedBody)} bytes, ${fullReads} to ${m.reads.length} table calls\n`)
+  })
   it('GET invoice detail resolves the public invoice reference then projects detail fields', async () => {
     const { GET } = await import('@/app/api/v1/customer/invoices/[id]/route')
     const path = '/api/v1/customer/invoices/{id}'
@@ -161,6 +318,67 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     const body = await response.json()
     expect(body.data.invoice.amount_inc_vat).toBe(125)
     expect(validateResponse(spec(), path, body, 'get', '200')).toEqual([])
+  })
+  it('opens one invoice attachment without reading lines and still checks file retention', async () => {
+    const ownInvoice = m.tables.customer_invoices[0]
+    const ownDocument = { id: RESOURCE, invoice_id: ownInvoice.id, company_id: COMPANY, public_url: 'https://files.example.test/own.pdf' }
+    const secondDocument = { ...ownDocument, id: '00000000-0000-4000-8000-000000000005' }
+    const unrelatedDocument = { ...ownDocument, id: OTHER_COMPANY, invoice_id: OTHER_COMPANY }
+    m.tables.customer_invoice_documents = [ownDocument, secondDocument, unrelatedDocument]
+
+    const { GET } = await import('@/app/api/v1/customer/invoices/[id]/route')
+    const id = ref('invoice')!
+    const open = (reference: string) => GET(
+      new NextRequest(`https://synthetic.example/api/v1/customer/invoices/${id}?document_reference=${reference}`),
+      { params: Promise.resolve({ id }) },
+    )
+    const reference = publicReference('document', COMPANY, ownDocument.id)!
+    const response = await open(reference)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.data.lines).toEqual([])
+    expect(body.data.documents).toHaveLength(1)
+    expect(body.data.documents[0]).toMatchObject({ document_reference: reference, secure_url: ownDocument.public_url })
+    expect(m.reads).not.toContain('customer_invoice_lines')
+    expect(m.rpc).toHaveBeenCalledWith('gridex_portal_invoice_document_availability_v1', {
+      p_company_id: COMPANY, p_invoice_id: ownInvoice.id, p_document_ids: [ownDocument.id],
+    })
+    expect(validateResponse(spec(), '/api/v1/customer/invoices/{id}', body, 'get', '200')).toEqual([])
+
+    expect((await open(publicReference('document', COMPANY, unrelatedDocument.id)!)).status).toBe(404)
+    expect(m.rpc.mock.calls.filter(([name]) => name === 'gridex_portal_invoice_document_availability_v1')).toHaveLength(1)
+    m.retiredInvoiceDocuments.add(ownDocument.id)
+    const retired = await open(reference)
+    expect(retired.status).toBe(200)
+    expect((await retired.json()).data.documents[0].secure_url).toBeNull()
+  })
+  it('looks up a document moved beyond the first owned page by public reference', async () => {
+    const target = { ...m.tables.customer_documents[0], public_url: 'https://files.example.test/document.pdf', source_rank: 2 }
+    const newer = Array.from({ length: 100 }, (_, index) => ({
+      ...target, id: `00000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
+    }))
+    m.rpc.mockImplementation(async (name: string, args: Row) => {
+      expect(name).toBe('portal_customer_documents_page_v1')
+      expect(args.p_company_id).toBe(COMPANY)
+      expect(args.p_customer_id).toBe(CUSTOMER)
+      expect(args.p_limit).toBe(101)
+      if (args.p_cursor_id) {
+        expect(args.p_cursor_id).toBe(newer.at(-1)?.id)
+        return { data: [target], error: null }
+      }
+      return { data: [...newer, target], error: null }
+    })
+    const { GET } = await import('@/app/api/v1/customer/documents/route')
+    const request = (reference: string) => new NextRequest(`https://synthetic.example/api/v1/customer/documents?document_reference=${reference}`)
+    const targetReference = publicReference('document', COMPANY, target.id)!
+    const response = await GET(request(targetReference))
+    expect(response.status).toBe(200)
+    expect(m.rpc).toHaveBeenCalledTimes(2)
+    const body = await response.json()
+    expect(body.data).toHaveLength(1)
+    expect(body.data[0]).toMatchObject({ document_reference: targetReference, secure_url: target.public_url })
+    expect(validateResponse(spec(), '/api/v1/customer/documents', body, 'get', '200')).toEqual([])
+    expect((await GET(request(publicReference('document', OTHER_COMPANY, target.id)!))).status).toBe(404)
   })
   it('POST portal bundle uses a JSON identifier and returns the public combined data', async () => {
     const { POST } = await import('@/app/api/v1/customer/portal-bundle/route')
@@ -181,6 +399,40 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect(validateResponse(spec(), path, body, 'post', '200')).toEqual([])
     expect(m.tables.customer_portal_write_idempotency[0].status).toBe('completed')
   }, 20_000)
+  it('links only the exact locked legal version accepted by the verified customer', async () => {
+    const older = '00000000-0000-4000-8000-000000000021'
+    const newer = '00000000-0000-4000-8000-000000000022'
+    const foreign = '00000000-0000-4000-8000-000000000023'
+    const oldHash = 'a'.repeat(64)
+    const base = m.tables.customer_legal_acceptances[0]
+    const acceptance = (id: string, hash: string) => ({
+      ...base, legal_bundle_version_document_id: id, legal_module_key: 'general_consumer_terms',
+      legal_document_sha256: hash, legal_document_version: 'v1',
+    })
+    m.tables.customer_legal_acceptances = [acceptance(older, oldHash), acceptance(newer, oldHash), acceptance(foreign, oldHash)]
+    m.tables.companies = [{ id: COMPANY, slug: 'synthetic-company' }]
+    m.tables.legal_bundle_versions = [
+      { id: older, company_id: COMPANY, status: 'replaced', locked_at: CREATED },
+      { id: newer, company_id: COMPANY, status: 'published', locked_at: CREATED },
+      { id: foreign, company_id: OTHER_COMPANY, status: 'published', locked_at: CREATED },
+    ]
+    m.tables.legal_bundle_version_documents = [older, newer, foreign].map(id => ({
+      id, legal_bundle_version_id: id, module_key: 'general_consumer_terms', template_version: id === newer ? 'v2' : 'v1',
+      content_sha256: id === newer ? 'b'.repeat(64) : oldHash, rendered_body: 'Exact terms', unresolved_variables: [],
+    }))
+    m.tables.customer_legal_acceptances[1].id = newer
+    m.tables.customer_legal_acceptances[2].id = foreign
+    const { GET } = await import('@/app/api/v1/customer/legal-acceptances/route')
+    const response = await GET(new NextRequest('https://synthetic.example/api/v1/customer/legal-acceptances'))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.data.map((row: Row) => row.verified_document_path)).toEqual([
+      `/legal/synthetic-company/general-consumer-terms/${older}`, undefined, undefined,
+    ])
+    expect(JSON.stringify(body)).not.toContain('Exact terms')
+    expect(validateResponse(spec(), '/api/v1/customer/legal-acceptances', body, 'get', '200')).toEqual([])
+  })
+
   it('POST notification read resolves a public reference and updates only its owning customer row', async () => {
     const { POST } = await import('@/app/api/v1/customer/notifications/read/route')
     const path = '/api/v1/customer/notifications/read'

@@ -1,3 +1,4 @@
+import { loadLinkedWebsiteSwitch } from '@/lib/website/switchStatus'
 import { supabaseService } from '@/lib/supabase/service'
 import { buildTenantCheckoutResult } from '@/lib/website/publicCheckoutResult'
 
@@ -194,19 +195,6 @@ function selectCorrelatedRow(application: ApplicationRow, rows: LineageRow[], co
   return top.row
 }
 
-async function loadCorrelatedSwitch(application: ApplicationRow): Promise<LineageRow | null> {
-  if (!application.customer_id) return null
-  const result = await supabaseService
-    .from('supplier_switch_requests')
-    .select('id,company_id,customer_id,customer_site_id,site_id,metering_point_id,contract_id,customer_contract_id,status,requested_start_date,confirmed_start_date,created_at,updated_at')
-    .eq('company_id', application.company_id)
-    .eq('customer_id', application.customer_id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  const rows = assertQuery(result as QueryResult<LineageRow[]>, 'leverantörsbyte') ?? []
-  return selectCorrelatedRow(application, rows, 'Leverantörsbytet')
-}
-
 async function loadCorrelatedSupply(application: ApplicationRow): Promise<LineageRow | null> {
   if (!application.customer_id) return null
   const result = await supabaseService
@@ -322,9 +310,41 @@ function summarizeWebhook(
   }
 }
 
+async function loadWebhookSummary(companyId: string, applicationId: string) {
+  const events = await supabaseService.from('domain_events').select('id')
+    .eq('company_id', companyId).eq('aggregate_type', 'website_customer_application').eq('aggregate_id', applicationId).limit(100)
+  const domainEvents = assertQuery(events as QueryResult<Array<{ id: string }>>, 'domänhändelser') ?? []
+  const eventIds = domainEvents.map((row) => row.id)
+  const [webhookResult, fanoutResult] = eventIds.length > 0
+    ? await Promise.all([
+        supabaseService
+          .from('webhook_deliveries')
+          .select('status,attempts,max_attempts,next_attempt_at,delivered_at,failed_at,failure_reason,updated_at')
+          .eq('company_id', companyId)
+          .in('domain_event_id', eventIds)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabaseService
+          .from('event_outbox')
+          .select('status,attempts,max_attempts,available_at,sent_at,failed_at,last_error,payload,updated_at')
+          .eq('company_id', companyId)
+          .in('domain_event_id', eventIds)
+          .eq('destination_type', 'webhook')
+          .eq('destination_key', 'webhook_fanout_v1')
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }]
+  const webhookDeliveries = assertQuery(webhookResult as QueryResult<WebhookDeliveryRow[]>, 'webhookleveranser') ?? []
+  const webhookFanoutJobs = assertQuery(fanoutResult as QueryResult<EventOutboxRow[]>, 'webhook fan-out') ?? []
+
+  return summarizeWebhook(webhookDeliveries, webhookFanoutJobs, domainEvents.length > 0)
+}
+
 export async function loadWebsiteCustomerApplicationStatus(input: {
   companyId: string
   applicationNumber: string
+  includeWebhookDiagnostics?: boolean
 }) {
   const applicationResult = await supabaseService
     .from('website_customer_applications')
@@ -342,8 +362,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     .maybeSingle()
   const workflow = assertQuery(workflowResult as QueryResult<WorkflowRow>, 'ansökningsworkflow')
 
-  const [switchRow, supplyRow, contractResult, jobResult, communicationResult, eventResult] = await Promise.all([
-    loadCorrelatedSwitch(application),
+  const [switchRow, supplyRow, contractResult, jobResult, communicationResult, webhook] = await Promise.all([
+    loadLinkedWebsiteSwitch(application).catch(error => assertQuery({ data: null, error }, 'leverantörsbyte')),
     loadCorrelatedSupply(application),
     application.contract_id
       ? supabaseService.from('customer_contracts').select('status,contract_number,signed_at,withdrawal_deadline_at,signature_snapshot_sha256,updated_at').eq('company_id', input.companyId).eq('id', application.contract_id).maybeSingle()
@@ -352,13 +372,12 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
       ? supabaseService.from('customer_operation_jobs').select('status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at').eq('company_id', input.companyId).eq('workflow_id', workflow.id).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle()
       : supabaseService.from('customer_operation_jobs').select('status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at').eq('company_id', input.companyId).contains('payload', { application_id: application.id }).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabaseService.from('communication_logs').select('id,event_key,status,error_message,sent_at,delivered_at,bounced_at,failed_at,created_at').eq('company_id', input.companyId).contains('metadata', { application_id: application.id }).order('created_at', { ascending: true }).limit(50),
-    supabaseService.from('domain_events').select('id').eq('company_id', input.companyId).eq('aggregate_type', 'website_customer_application').eq('aggregate_id', application.id).limit(100),
+    input.includeWebhookDiagnostics === false ? null : loadWebhookSummary(input.companyId, application.id),
   ])
 
   const contract = assertQuery(contractResult as QueryResult<JsonRecord>, 'kundavtal') ?? {}
   const job = assertQuery(jobResult as QueryResult<JobRow>, 'fortsättningsjobb')
   const communicationLogs = assertQuery(communicationResult as QueryResult<CommunicationRow[]>, 'kommunikationslogg') ?? []
-  const domainEvents = assertQuery(eventResult as QueryResult<Array<{ id: string }>>, 'domänhändelser') ?? []
 
   const communicationLogIds = communicationLogs.map((row) => row.id)
   const outboxResult = communicationLogIds.length > 0
@@ -366,33 +385,9 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     : { data: [], error: null }
   const outbox = assertQuery(outboxResult as QueryResult<EmailOutboxRow[]>, 'e-postkö') ?? []
 
-  const eventIds = domainEvents.map((row) => row.id)
-  const [webhookResult, fanoutResult] = eventIds.length > 0
-    ? await Promise.all([
-        supabaseService
-          .from('webhook_deliveries')
-          .select('status,attempts,max_attempts,next_attempt_at,delivered_at,failed_at,failure_reason,updated_at')
-          .eq('company_id', input.companyId)
-          .in('domain_event_id', eventIds)
-          .order('created_at', { ascending: false })
-          .limit(100),
-        supabaseService
-          .from('event_outbox')
-          .select('status,attempts,max_attempts,available_at,sent_at,failed_at,last_error,payload,updated_at')
-          .eq('company_id', input.companyId)
-          .in('domain_event_id', eventIds)
-          .eq('destination_type', 'webhook')
-          .eq('destination_key', 'webhook_fanout_v1')
-          .order('created_at', { ascending: false })
-          .limit(100),
-      ])
-    : [{ data: [], error: null }, { data: [], error: null }]
-  const webhookDeliveries = assertQuery(webhookResult as QueryResult<WebhookDeliveryRow[]>, 'webhookleveranser') ?? []
-  const webhookFanoutJobs = assertQuery(fanoutResult as QueryResult<EventOutboxRow[]>, 'webhook fan-out') ?? []
-
   const response = application.response_payload ?? {}
   const workflowState = clean(workflow?.state)
-  const supplierSwitchStatus = clean(switchRow?.status) ?? 'not_started'
+  const supplierSwitchStatus = clean(switchRow?.status) ?? 'unknown'
   const supplyStatus = clean(supplyRow?.status)
   const externalStatus = mapExternalStatus({
     applicationStatus: clean(application.status),
@@ -446,7 +441,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     },
     communication,
     checkout,
-    webhook: summarizeWebhook(webhookDeliveries, webhookFanoutJobs, domainEvents.length > 0),
+    ...(webhook ? { webhook } : {}),
     updated_at: newest(
       workflow?.updated_at,
       job?.updated_at,

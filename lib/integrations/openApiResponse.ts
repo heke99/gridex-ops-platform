@@ -54,18 +54,37 @@ export function serializeOpenApiDocument(document: unknown): string {
   return `${JSON.stringify(normalizeOpenApiDocument(document), null, 2)}\n`
 }
 
-export function openApiDocumentResponse(
-  request: NextRequest,
-  document: unknown,
-  filename: string,
-  options: OpenApiDocumentResponseOptions = {},
-): Response {
+function prepareOpenApiArtifact(document: unknown) {
   const body = serializeOpenApiDocument(document)
   const documentVersion = isRecord(document) && isRecord(document.info)
     && typeof document.info.version === 'string' && document.info.version.trim()
     ? document.info.version.trim()
     : WEBSITE_INTEGRATION_CONTRACT_VERSION
   const etag = `"${createHash('sha256').update(body).digest('base64url')}"`
+  return { body, documentVersion, etag }
+}
+
+const openApiArtifacts = new WeakMap<JsonRecord, ReturnType<typeof prepareOpenApiArtifact>>()
+
+function getOpenApiArtifact(document: unknown) {
+  // The specification routes pass read-only JSON imports. The release manifest is rebuilt per request.
+  if (!isRecord(document) || typeof document.openapi !== 'string') {
+    return prepareOpenApiArtifact(document)
+  }
+  const cached = openApiArtifacts.get(document)
+  if (cached) return cached
+  const artifact = prepareOpenApiArtifact(document)
+  openApiArtifacts.set(document, artifact)
+  return artifact
+}
+
+export function openApiDocumentResponse(
+  request: NextRequest,
+  document: unknown,
+  filename: string,
+  options: OpenApiDocumentResponseOptions = {},
+): Response {
+  const { body, documentVersion, etag } = getOpenApiArtifact(document)
   const requestId = request.headers.get('x-request-id')?.trim() || randomUUID()
   const headers = {
     'Access-Control-Allow-Origin': '*',

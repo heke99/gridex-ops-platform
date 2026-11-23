@@ -113,6 +113,8 @@ const CONTRACT_SELECT = [
   'contract_number',
   'contract_name',
   'contract_type',
+  'energy_direction',
+  'auto_renew_enabled',
   'source_type',
   'starts_at',
   'expected_start_at',
@@ -180,6 +182,12 @@ const CONTRACT_LEGACY_SELECT = [
   'notice_months',
   'created_at',
 ].join(',')
+
+const CONTRACT_SELECTS = [
+  CONTRACT_SELECT,
+  `${CONTRACT_LEGACY_SELECT},energy_direction,auto_renew_enabled`,
+  CONTRACT_LEGACY_SELECT,
+]
 
 type ListResult = { data: Array<Record<string, unknown>> | null; error: unknown | null }
 type PortalListQuery = () => Promise<ListResult>
@@ -265,34 +273,13 @@ async function listWithSchemaFallback(queries: PortalListQuery[]): Promise<Array
 
 export async function listPortalContracts(context: PortalCustomerContext, route = '/api/v1/customer/contracts') {
   await logPortalAccess({ context, route, action: 'read_contracts' })
-  let result = await supabaseService
+  return listWithSchemaFallback(CONTRACT_SELECTS.map(select => async () => await supabaseService
     .from('customer_contracts')
-    .select(CONTRACT_SELECT)
+    .select(select)
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .order('created_at', { ascending: false })
-    .limit(100) as ListResult
-
-  if (result.error && isMissingSchemaError(result.error)) {
-    result = await supabaseService
-      .from('customer_contracts')
-      .select(CONTRACT_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult
-  }
-
-  if (result.error) {
-    if (isMissingSchemaError(result.error)) {
-      throw new PlatformSchemaNotReadyError(
-        'Canonical customer_contracts projection is unavailable.',
-        portalQueryErrorMetadata(result.error),
-      )
-    }
-    throw result.error
-  }
-  return result.data ?? []
+    .limit(100) as ListResult))
 }
 
 export async function listPortalContractsPage(
@@ -303,7 +290,7 @@ export async function listPortalContractsPage(
   await logPortalAccess({ context, route, action: 'read_contracts_page' })
   return portalTablePage({
     context, page, resource: 'contracts', table: 'customer_contracts',
-    selects: [CONTRACT_SELECT, CONTRACT_LEGACY_SELECT], orderColumn: 'created_at',
+    selects: CONTRACT_SELECTS, orderColumn: 'created_at',
   })
 }
 
@@ -587,34 +574,19 @@ export async function listPortalDocumentsPage(
 }
 
 const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,created_at'
+const POA_SIGNED_SELECT = `${POA_SELECT},signed_scope_snapshot`
 const POA_CURRENT_SELECT = 'id,contract_id,customer_site_id,scope,status,accepted_at,valid_until,legal_text_version_id,scope_summary,created_at'
 const POA_MINIMAL_SELECT = 'id,contract_id,customer_site_id,scope,status,created_at'
 
 export async function listPortalPowersOfAttorney(context: PortalCustomerContext, route = '/api/v1/customer/powers-of-attorney') {
   await logPortalAccess({ context, route, action: 'read_powers_of_attorney' })
-  return listWithSchemaFallback([
-    async () => await supabaseService
-      .from('powers_of_attorney')
-      .select(POA_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('powers_of_attorney')
-      .select(POA_CURRENT_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('powers_of_attorney')
-      .select(POA_MINIMAL_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-  ])
+  return listWithSchemaFallback([POA_SIGNED_SELECT, POA_SELECT, POA_CURRENT_SELECT, POA_MINIMAL_SELECT].map(select => async () => await supabaseService
+    .from('powers_of_attorney')
+    .select(select)
+    .eq('company_id', context.companyId)
+    .eq('customer_id', context.customerId)
+    .order('created_at', { ascending: false })
+    .limit(100) as ListResult))
 }
 
 export async function listPortalPowersOfAttorneyPage(
@@ -625,7 +597,7 @@ export async function listPortalPowersOfAttorneyPage(
   await logPortalAccess({ context, route, action: 'read_powers_of_attorney_page' })
   return portalTablePage({
     context, page, resource: 'powers-of-attorney', table: 'powers_of_attorney',
-    selects: [POA_SELECT, POA_CURRENT_SELECT, POA_MINIMAL_SELECT], orderColumn: 'created_at',
+    selects: [POA_SIGNED_SELECT, POA_SELECT, POA_CURRENT_SELECT, POA_MINIMAL_SELECT], orderColumn: 'created_at',
   })
 }
 

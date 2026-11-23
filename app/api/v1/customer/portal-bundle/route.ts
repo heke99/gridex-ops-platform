@@ -34,6 +34,7 @@ import {
   removeFalsePricePlanBlockers,
 } from '@/lib/customer-portal/status'
 import {
+  contractResponseOptions,
   publicPortalBundleRows,
   publicPortalCustomer,
 } from '@/lib/customer-portal/publicDto'
@@ -236,6 +237,7 @@ async function buildBundleResponse(input: {
       applications: websiteApplications,
     })
     const displayName = displayNameFromCustomer(input.identity.customer, input.identity.email ?? null)
+    const { includeStartDates, separateVariableFee, headers } = contractResponseOptions(input.request)
     const publicRows = publicPortalBundleRows(input.client.company_id, {
       contracts,
       sites,
@@ -248,7 +250,7 @@ async function buildBundleResponse(input: {
       notifications,
       events,
       applications: websiteApplications,
-    })
+    }, includeStartDates, separateVariableFee)
     const publicCustomer = publicPortalCustomer(input.identity.customer, {
       external_customer_id: input.identity.external_customer_id,
       customer_number: input.identity.customer_number,
@@ -336,7 +338,7 @@ async function buildBundleResponse(input: {
           warnings,
         },
       },
-    }, { status: responseStatus })
+    }, { status: responseStatus, headers })
   } catch (error) {
     timer.stop({ status: 500, companyId: input.client.company_id })
     return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })

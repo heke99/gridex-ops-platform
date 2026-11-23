@@ -2,17 +2,25 @@ import { writeFileSync } from 'node:fs'
 import contract from '@/docs/openapi/customer-consumption-v1.json'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
-const state = vi.hoisted(() => ({ result: [] as Array<Record<string, unknown>>, calls: [] as Array<{ table: string; filters: Array<[string, unknown]> }>, authenticated: true, customer: 'customer-a' }))
+const state = vi.hoisted(() => ({ result: [] as Array<Record<string, unknown>>, calls: [] as Array<{ table: string; filters: Array<[string, unknown]> }>, authenticated: true, customer: 'customer-a', supportsAbort: false, principal: null as string | null, revision: null as string | null, onRead: undefined as ((table: string) => void) | undefined }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
   const call = { table, filters: [] as Array<[string, unknown]> }; state.calls.push(call)
   const methods: Record<string, unknown> = {}
   for (const method of ['select', 'eq', 'in', 'or', 'gte', 'lte', 'order', 'limit']) methods[method] = (...args: unknown[]) => { call.filters.push([method, args]); return methods }
-  methods.then = (resolve: (result: unknown) => unknown) => resolve(state.result.shift() ?? { data: [], count: 0, error: null })
+  if (state.supportsAbort) methods.abortSignal = (signal: AbortSignal) => { call.filters.push(['abortSignal', signal]); return methods }
+  methods.maybeSingle = () => ({
+    ...methods,
+    then: (resolve: (result: unknown) => unknown) => resolve({ data: state.revision ? { revision: state.revision } : null, error: null }),
+  })
+  methods.then = (resolve: (result: unknown) => unknown) => {
+    state.onRead?.(table)
+    return resolve(state.result.shift() ?? { data: [], count: 0, error: null })
+  }
   return methods
 } } }))
 vi.mock('@/lib/customer-portal/externalApi', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/customer-portal/externalApi')>()
-  return { ...actual, requireCustomerPortalApiContext: vi.fn(async () => state.authenticated ? { ok: true, client: { company_id: 'company-a' }, identity: { customer_id: state.customer }, startedAt: 1 } : { ok: false, response: NextResponse.json({ error: { code: 'unauthorized' } }, { status: 401 }) }), logCustomerPortalSuccess: vi.fn(), handleCustomerPortalRouteError: ({ error }: { error: { status?: number; code?: string; message?: string } }) => NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status ?? 500 }) }
+  return { ...actual, requireCustomerPortalApiContext: vi.fn(async () => state.authenticated ? { ok: true, client: { company_id: 'company-a', id: 'integration-client' }, identity: { customer_id: state.customer, auth_user_id: state.principal }, startedAt: 1 } : { ok: false, response: NextResponse.json({ error: { code: 'unauthorized' } }, { status: 401 }) }), logCustomerPortalSuccess: vi.fn(), handleCustomerPortalRouteError: ({ error }: { error: { status?: number; code?: string; message?: string } }) => NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status ?? 500 }) }
 })
 import { customerConsumptionSites, customerConsumptionMeteringValues } from '@/lib/customer-portal/consumptionRoutes'
 import { requireCustomerPortalApiContext } from '@/lib/customer-portal/externalApi'
@@ -28,9 +36,9 @@ function assertPageContract(page: Record<string, unknown>) {
   expect(Object.keys(page).filter(key => !(key in schema.properties))).toEqual([])
   for (const key of schema.required) expect(page).toHaveProperty(key)
 }
-const request = (path: string) => new NextRequest(`https://ops.example/api/v1/customer/consumption/${path}`)
+const request = (path: string, signal?: AbortSignal) => new NextRequest(`https://ops.example/api/v1/customer/consumption/${path}`, { signal })
 const meterPath = 'metering-values?facility_id=FAC-A&from=2026-11-01T00:00:00Z&to=2026-11-08T00:00:00Z'
-beforeEach(() => { state.result = []; state.calls = []; state.authenticated = true; state.customer = 'customer-a'; vi.clearAllMocks() })
+beforeEach(() => { state.result = []; state.calls = []; state.authenticated = true; state.customer = 'customer-a'; state.supportsAbort = false; state.principal = null; state.revision = null; state.onRead = undefined; vi.clearAllMocks() })
 describe('customer consumption supplement routes', () => {
   it('returns confirmed windows and only public references, with both read scopes and strict binding', async () => {
     state.result = [ok([site]), ok([point]), ok([period])]
@@ -43,6 +51,63 @@ describe('customer consumption supplement routes', () => {
     expect(requireCustomerPortalApiContext).toHaveBeenCalledWith(expect.anything(), ['customer_sites.read', 'customer_metering.read'], { enforceBinding: true })
     for (const call of state.calls) expect(call.filters).toContainEqual(['eq', ['company_id', 'company-a']])
     expect(state.calls[2].filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
+  })
+  it.each([true, false])('stops after an aborted authority read (driver signal support: %s)', async supportsAbort => {
+    state.supportsAbort = supportsAbort
+    const controller = new AbortController()
+    const incoming = request(meterPath, controller.signal)
+    state.result = [ok([site]), ok([point]), ok([period]), ok([value])]
+    state.onRead = table => { if (table === 'metering_points') controller.abort() }
+    const response = await customerConsumptionMeteringValues(incoming)
+    expect(response.status).toBe(499)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', 'metering_points'])
+    for (const call of state.calls) {
+      expect(call.filters.filter(([method]) => method === 'abortSignal')).toEqual(supportsAbort ? [['abortSignal', incoming.signal]] : [])
+    }
+  })
+  it('does not authenticate or query an already aborted request', async () => {
+    const response = await customerConsumptionSites(request('sites', AbortSignal.abort()))
+    expect(response.status).toBe(499)
+    expect(requireCustomerPortalApiContext).not.toHaveBeenCalled()
+    expect(state.calls).toHaveLength(0)
+  })
+  it('reuses only a fresh page with the same binding, authority and metering revision', async () => {
+    let now = Date.now()
+    using clock = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    state.principal = 'auth-a'
+    state.revision = '00000000-0000-4000-8000-000000000051'
+    const read = async (supplyPeriod = period, quantity = 7.5) => {
+      state.calls = []
+      state.result = [ok([site]), ok([point]), ok([supplyPeriod]), ok([{ ...value, quantity_kwh: quantity }])]
+      const response = await customerConsumptionMeteringValues(request(meterPath))
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toBe('private, no-store')
+      const body = await response.json()
+      return { body, queried: state.calls.some(call => call.table === 'normalized_metering_values') }
+    }
+    expect((await read()).queried).toBe(true)
+    const repeat = await read()
+    expect(repeat.queried).toBe(false)
+    expect(repeat.body.data[0].quantity_kwh).toBe(7.5)
+    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', 'metering_points', 'customer_supply_periods', 'customer_consumption_cache_revisions'])
+
+    state.principal = 'auth-b'
+    expect((await read()).queried).toBe(true)
+    const narrower = { ...period, actual_start_date: '2026-11-05' }
+    const changedRights = await read(narrower)
+    expect(changedRights.queried).toBe(true)
+    expect(changedRights.body.data).toEqual([])
+
+    state.revision = '00000000-0000-4000-8000-000000000052'
+    const revised = await read(period, 8)
+    expect(revised.queried).toBe(true)
+    expect(revised.body.data[0].quantity_kwh).toBe(8)
+
+    now += 15_001
+    expect((await read(period, 8)).queried).toBe(true)
+    state.revision = null
+    expect((await read()).queried).toBe(true)
   })
   it('never treats a truncated authority query as complete', async () => {
     state.result = [ok([site]), ok([point], 1001)]

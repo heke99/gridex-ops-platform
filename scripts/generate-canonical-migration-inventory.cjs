@@ -132,22 +132,29 @@ const result = {
   migrations: inventory,
 }
 
-fs.mkdirSync(outputDirectory, { recursive: true })
-const jsonPath = path.join(outputDirectory, 'migration-inventory-2026-08-03.json')
-fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`)
+const writeToStdout = process.argv.includes('--stdout')
 
-const templatePath = path.join(
-  outputDirectory,
-  'canonical-migration-manifest-after-verification.sql',
-)
-const rows = inventory
-  .filter((item) => item.ledger_eligible)
-  .map(
-    (item) =>
-      `  ('${item.version}','${item.filename}','${item.checksum}',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')`,
+function writeInventoryArtifacts() {
+  fs.mkdirSync(outputDirectory, { recursive: true })
+  const jsonPath = path.join(outputDirectory, 'migration-inventory-2026-08-03.json')
+  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`)
+
+  const templatePath = path.join(
+    outputDirectory,
+    'canonical-migration-manifest-after-verification.sql',
   )
-const template = `-- GENERATED TEMPLATE. DO NOT RUN BEFORE CLEAN RECONSTRUCTION AND LIVE EFFECT VERIFICATION.\n-- Required psql variables: environment, verification_source, release_identifier, schema_fingerprint.\n\ninsert into public.canonical_migration_manifest(\n  version,filename,checksum,applied_environment,verified_at,verification_source,release_identifier,schema_fingerprint\n)\nvalues\n${rows.join(',\n')}\non conflict(version,filename) do update set\n  checksum=excluded.checksum,\n  applied_environment=excluded.applied_environment,\n  verified_at=excluded.verified_at,\n  verification_source=excluded.verification_source,\n  release_identifier=excluded.release_identifier,\n  schema_fingerprint=excluded.schema_fingerprint;\n`
-fs.writeFileSync(templatePath, template)
+  const rows = inventory
+    .filter((item) => item.ledger_eligible)
+    .map(
+      (item) =>
+        `  ('${item.version}','${item.filename}','${item.checksum}',:'environment',now(),:'verification_source',:'release_identifier',:'schema_fingerprint')`,
+    )
+  const template = `-- GENERATED TEMPLATE. DO NOT RUN BEFORE CLEAN RECONSTRUCTION AND LIVE EFFECT VERIFICATION.\n-- Required psql variables: environment, verification_source, release_identifier, schema_fingerprint.\n\ninsert into public.canonical_migration_manifest(\n  version,filename,checksum,applied_environment,verified_at,verification_source,release_identifier,schema_fingerprint\n)\nvalues\n${rows.join(',\n')}\non conflict(version,filename) do update set\n  checksum=excluded.checksum,\n  applied_environment=excluded.applied_environment,\n  verified_at=excluded.verified_at,\n  verification_source=excluded.verification_source,\n  release_identifier=excluded.release_identifier,\n  schema_fingerprint=excluded.schema_fingerprint;\n`
+  fs.writeFileSync(templatePath, template)
+  return [jsonPath, templatePath]
+}
+
+const writtenPaths = writeToStdout ? [] : writeInventoryArtifacts()
 
 const unregistered = inventory.filter((item) => !item.checksum_registered)
 if (unregistered.length > 0) {
@@ -159,8 +166,11 @@ if (unregistered.length > 0) {
   console.error('Register only verified forward migrations in migration-history-verified-tail.json. Never rewrite a historical baseline checksum to silence this gate.')
   process.exit(1)
 }
-console.log(
-  `Migration inventory generated: ${inventory.length} SQL files, ${result.summary.ledger_eligible_count} ledger-eligible versions.`,
-)
-console.log(path.relative(root, jsonPath))
-console.log(path.relative(root, templatePath))
+if (writeToStdout) {
+  process.stdout.write(JSON.stringify(result) + '\n')
+} else {
+  console.log(
+    `Migration inventory generated: ${inventory.length} SQL files, ${result.summary.ledger_eligible_count} ledger-eligible versions.`,
+  )
+  for (const file of writtenPaths) console.log(path.relative(root, file))
+}
