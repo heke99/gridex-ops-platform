@@ -1,4 +1,5 @@
 const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm'
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function formatter() {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -35,22 +36,23 @@ export function stockholmLocalToUtc(input: {
   minute?: number
   second?: number
 }): Date {
-  const baseUtc = Date.UTC(input.year, input.month - 1, input.day, input.hour ?? 0, input.minute ?? 0, input.second ?? 0)
-  let candidate = new Date(baseUtc)
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    candidate = new Date(baseUtc - timeZoneOffsetMs(candidate))
-  }
-  const parts = partsFor(candidate)
-  if (
-    parts.year !== input.year ||
-    parts.month !== input.month ||
-    parts.day !== input.day ||
-    parts.hour !== (input.hour ?? 0) ||
-    parts.minute !== (input.minute ?? 0)
-  ) {
+  const { year, month, day, hour = 0, minute = 0, second = 0 } = input
+  const baseUtc = Date.UTC(year, month - 1, day, hour, minute, second)
+  // Sample Stockholm's offsets on either side of the civil day so a clock
+  // change can produce both candidate instants, or no matching instant.
+  const offsets = new Set([
+    timeZoneOffsetMs(new Date(baseUtc - DAY_MS)),
+    timeZoneOffsetMs(new Date(baseUtc + DAY_MS)),
+  ])
+  const candidates = [...offsets].map(offset => new Date(baseUtc - offset)).filter(candidate => {
+    const parts = partsFor(candidate)
+    return parts.year === year && parts.month === month && parts.day === day
+      && parts.hour === hour && parts.minute === minute && parts.second === second
+  })
+  if (candidates.length !== 1) {
     throw new Error('Ogiltig eller tvetydig svensk lokal tid.')
   }
-  return candidate
+  return candidates[0]
 }
 
 export function parseBillingMonth(value: string): { year: number; month: number; value: string } {
@@ -130,7 +132,6 @@ export function stockholmHourForInstant(now = new Date()): number {
 }
 
 const WITHDRAWAL_PERIOD_DAYS = 14
-const DAY_MS = 24 * 60 * 60 * 1000
 
 function addCalendarDays(isoDate: string, days: number): string {
   const [year, month, day] = isoDate.split('-').map(Number)
