@@ -2,13 +2,42 @@
 
 The Gridex E2E suite is a release certificate for the complete OPS platform. It must validate code, database migrations, tenant isolation, public/internal API boundaries and the end-to-end electricity business chain instead of treating HTTP success alone as proof.
 
-## Modes
+## Runner modes
 
 - `smoke`: fast release guard on pull requests. Includes whole-project surface inventory, migrations, tenancy, intake, EDIEL, metering, billing, portal/API, RBAC and typecheck.
-- `full`: nightly/main release certificate. Adds database drift/readiness, contracts, legal/POA, facility workflows, EDIEL ACK/inbound/outbound guards, automation, communications, OpenAPI compatibility/runtime parity, dependency audit and production build.
+- `full` runs the smoke checks and adds database drift and readiness, contracts, legal and power of attorney, facility workflows, EDIEL ACK and message guards, automation, communications, OpenAPI compatibility and runtime parity, dependency audit and a production build.
 - `runtime`: mutating fresh-tenant staging journey. Requires explicit staging opt-ins and uses lifecycle tombstones instead of hard deleting operational history.
 - `real`: read-only persistent real-test-customer graph check using protected GitHub staging secrets. It refuses production and refuses outbound traffic.
-- `all`: local/manual orchestration of all four layers when all required secrets are available.
+- `all` on the local CLI combines the checks from `full`, `runtime` and `real`. The staging checks require their environment and fixture configuration.
+
+## GitHub Actions jobs and evidence
+
+The **Gridex full E2E** workflow chooses jobs by event and, for manual runs, by the selected mode. [Workflow definition](../.github/workflows/full-e2e.yml)
+
+| Trigger | Selected mode | Eligible jobs |
+| --- | --- | --- |
+| Manual | `smoke` | `smoke` |
+| Manual | `full` | `full` |
+| Manual | `runtime` | `runtime-staging` |
+| Manual | `real` | `real-customer-staging` |
+| Manual | `all` | `full`, `runtime-staging`, `real-customer-staging` |
+| Pull request | — | `smoke`, `coverage`, `pr-certificate` |
+| Push to `main` | — | `coverage`, `full` |
+| Schedule | — | `full`, `runtime-staging`, `real-customer-staging`, `nightly-release-certificate` |
+
+A successful manual `all` run supplies the three job outcomes for that checkout. Its `full` runner includes the smoke checks. The standalone smoke job, V8 coverage and each release certificate have their own job results and artifacts under the conditions above.
+
+| Job | Uploaded artifact |
+| --- | --- |
+| `smoke` | `gridex-e2e-smoke-<run-id>` |
+| `coverage` | `gridex-coverage-<run-id>` |
+| `pr-certificate` | `gridex-pr-release-certificate-<run-id>` |
+| `full` | `gridex-e2e-full-<run-id>` |
+| `runtime-staging` | `gridex-e2e-runtime-<run-id>` |
+| `real-customer-staging` | `gridex-e2e-real-customer-<run-id>` |
+| `nightly-release-certificate` | `gridex-nightly-release-certificate-<run-id>` |
+
+Collect the job conclusions and artifacts required for the release on the same candidate commit. For each runner artifact, match the checked-out commit and tree in `gridex-executed-evidence.json` and verify its report. Check the applicable release certificate alongside the runner evidence. Record each skipped job or missing artifact as an open evidence item.
 
 ## Whole-project coverage gate
 
