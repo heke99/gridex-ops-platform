@@ -4,10 +4,10 @@ import { useEffect } from 'react'
 
 export default function PortalError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }) {
   useEffect(() => {
     // Technical details go to the log, never to the customer.
@@ -22,7 +22,7 @@ export default function PortalError({
       </p>
       <button
         type="button"
-        onClick={reset}
+        onClick={retry}
         className="mt-4 rounded-2xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
       >
         Försök igen
