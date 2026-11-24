@@ -421,6 +421,7 @@
     "20261124041100_queue_customer_contract_signature_command.sql": "bcac6937fff8b82aa9cc19d232cb690efb63938b1ee97ff1c3d3eeb9d2d6b678",
     "20261124050700_bill_qualified_ended_supply.sql": "8d8935a5a68dc5e8a3ec0ded23c6f5b44228cc9a2b0ed41274943daf20c2efd1",
     "20261124055000_wait_for_qualified_supply_end.sql": "d5ba5256c91d5414c6636d4ea24f28b58f4d6bc04d7b5d6a9f31ba09f35a7298",
-    "20261124055100_prefer_qualified_supply_end_cutoff.sql": "11e85faa5ef33d2a0187ca66a32c3e0493aa3157f6be908696423f2376d7716b"
+    "20261124055100_prefer_qualified_supply_end_cutoff.sql": "11e85faa5ef33d2a0187ca66a32c3e0493aa3157f6be908696423f2376d7716b",
+    "20261124055200_accelerate_ediel_wire_ingest.sql": "d7bbfa968657ddd0b7aca402a9661428afc5ab9e99e58c5755c1848a0975af95"
   }
 }
