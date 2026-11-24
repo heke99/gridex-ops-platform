@@ -99743,6 +99743,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_finalize_automatic_invoice_purchase_ack_v1: {
+        Args: {
+          p_attempt_no: number
+          p_company_id: string
+          p_customer_invoice_id: string
+          p_due_date: string
+          p_environment: string
+          p_export_run_id: string
+          p_invoice_export_item_id: string
+          p_invoice_guid: string
+          p_issued_at: string
+          p_provider_key: string
+          p_purchase_ack: Json
+          p_request_payload: Json
+          p_started_at: string
+        }
+        Returns: Json
+      }
       gridex_finalize_contract_publication_v1: {
         Args: {
           p_actor_user_id?: string
@@ -101044,6 +101062,16 @@ export type Database = {
       }
       gridex_read_periodic_dgi_e66_reason_v1: {
         Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      gridex_read_portal_captured_invoice_pdf_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_document_ids: string[]
+          p_include_invoice_pdf: boolean
+          p_invoice_id: string
+        }
         Returns: Json
       }
       gridex_read_prodat_ignored_fields_v1: {

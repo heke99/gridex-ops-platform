@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
+const ts = require('typescript')
+const parsePage = (name, text) => ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -24,16 +26,48 @@ assert(/Avvisad av mottagaren/.test(labels), 'business label exists for negative
 const billingCard = read('components/admin/customers/CustomerBillingMeteringCard.tsx')
 assert(/billingAutomatic/.test(billingCard) || /Skapas automatiskt/.test(billingCard), 'billing card exposes automatic billing status')
 assert(/title="Fakturering"/.test(billingCard), 'billing card keeps the business-facing billing title')
-assert(/Detaljerad prisgranskning och utskick hanteras i Fakturor/.test(billingCard), 'billing card delegates review and sending to the canonical Billing surface')
-assert(/\/admin\/billing\?customer=/.test(billingCard), 'billing card links to customer-scoped Billing review')
+assert(/Kontrollera fakturaunderlaget i Fakturor innan nästa steg\./.test(billingCard), 'billing card directs review to the canonical Billing surface')
+
+const billingCardTree = parsePage('CustomerBillingMeteringCard.tsx', billingCard)
+const billingHref = billingCardTree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'billingHref')
+const billingTarget = billingHref?.body?.statements.find(node => ts.isReturnStatement(node))?.expression
+const customerQuery = billingHref?.body?.statements.filter(node => ts.isVariableStatement(node))
+  .flatMap(node => [...node.declarationList.declarations])
+  .find(node => ts.isIdentifier(node.name) && node.name.text === 'query')?.initializer
+const hasScopedBillingTarget = billingTarget && ts.isTemplateExpression(billingTarget)
+  && billingTarget.head.text === '/admin/billing?' && billingTarget.templateSpans.length === 1
+  && billingTarget.templateSpans[0].expression.getText(billingCardTree) === 'query'
+  && customerQuery && ts.isNewExpression(customerQuery) && customerQuery.expression.getText(billingCardTree) === 'URLSearchParams'
+  && customerQuery.arguments?.[0]?.getText(billingCardTree) === '{ customer: customerId }'
+
+function isBillingReadLink(node) {
+  if (!ts.isJsxElement(node) || node.openingElement.tagName.getText(billingCardTree) !== 'Link'
+    || !node.children.some(child => ts.isJsxText(child) && child.getText(billingCardTree).trim() === 'Öppna fakturor')) return false
+  const href = node.openingElement.attributes.properties.find(
+    prop => ts.isJsxAttribute(prop) && prop.name.getText(billingCardTree) === 'href',
+  )?.initializer
+  if (!href || !ts.isJsxExpression(href) || !href.expression || !ts.isCallExpression(href.expression)
+    || href.expression.expression.getText(billingCardTree) !== 'billingHref'
+    || href.expression.arguments[0]?.getText(billingCardTree) !== 'customerId') return false
+  for (let ancestor = node; ancestor.parent; ancestor = ancestor.parent) {
+    if (ts.isConditionalExpression(ancestor.parent) && ancestor.parent.whenTrue === ancestor
+      && ancestor.parent.condition.getText(billingCardTree) === 'canReadBilling') return true
+  }
+  return false
+}
+
+function hasBillingReviewLink(node) {
+  return isBillingReadLink(node) || ts.forEachChild(node, child => hasBillingReviewLink(child) || undefined)
+}
+
+assert(billingCardTree.parseDiagnostics.length === 0 && hasScopedBillingTarget
+  && hasBillingReviewLink(billingCardTree), 'billing card links authorized readers to customer-scoped Billing review')
 assert(!/Begär mätvärden/.test(billingCard), 'billing card has no manual metering button')
 assert(!/CustomerTimelinePanel/.test(billingCard), 'billing card does not expose the technical Ediel timeline')
 assert(!/CustomerBillingUnderlaysPanel/.test(billingCard), 'billing card does not expose raw underlay controls')
 
 const page = read('app/admin/customers/[id]/page.tsx')
-const ts = require('typescript')
 const detailPage = read('app/admin/customers/[id]/page.part-4.tsx')
-const parsePage = (name, text) => ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 const facadeTree = parsePage('page.tsx', page)
 const detailTree = parsePage('page.part-4.tsx', detailPage)
 const defaultExports = facadeTree.statements.filter(node => ts.isExportDeclaration(node)

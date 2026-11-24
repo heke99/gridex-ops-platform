@@ -3,8 +3,8 @@
   "generated_at": "2026-11-22T15:30:59.284741+00:00",
   "generated_with": "Supabase project type generation for changed public declarations, retaining the canonical baseline for other declarations",
   "sha256": "d6c00770e9b20028fa953465e27f6bfe82520436479322e987e5b1883594ec1c",
-  "latest_migration": "20261122173000_customer_consumption_cache_revisions.sql",
-  "latest_migration_schema_effect": "Adds customer consumption cache revisions. The release also adds notification reference and invoice document availability RPCs. Trigger functions are excluded from generated API types.",
+  "latest_migration": "20261122173100_classify_customer_consumption_cache_revisions.sql",
+  "latest_migration_schema_effect": "Classifies customer consumption cache revisions as tenant data. This data-only migration leaves the generated API declarations unchanged.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",

@@ -2,11 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "main": false
+      "main": false,
+      "codex/gridex-ops-schema-capture-20261124-0425": false
     }
   },
   "buildCommand": "npm run build && node scripts/verify-manual-mail-ai-deployment.cjs",
-  "regions": ["arn1"],
+  "regions": [
+    "arn1"
+  ],
   "crons": [
     {
       "path": "/api/internal/inbound-mail/cron?environment=production",

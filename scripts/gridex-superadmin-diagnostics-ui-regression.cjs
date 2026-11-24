@@ -15,7 +15,8 @@ function mustInclude(file, needle, why) {
 
 const card = 'components/admin/customers/CustomerBusinessActionsCard.tsx'
 const summary = 'lib/customer-operations/manualRequestSummary.ts'
-const page = 'app/admin/customers/[id]/page.tsx'
+const page = 'app/admin/customers/[id]/page.part-4.tsx'
+const resendMigration = 'supabase/migrations/20261123212900_reserve_customer_email_resend.sql'
 const emailActions = 'app/admin/customers/[id]/email-actions.ts'
 
 // Recipient resolution diagnostics (superadmin only).
@@ -36,8 +37,9 @@ mustInclude(card, 'isPlatformAdmin && showTechnicalDiagnostics && (workflow.canR
 mustInclude(card, 'Tekniska detaljer och felsökning', 'technical detail expansion intact')
 
 // Resend action uses explicit resend-scoped idempotency + provenance.
-mustInclude(emailActions, 'resend:${log.id}:${resendBucket}', 'resend idempotency key derived from original log')
-mustInclude(emailActions, 'resend_of_communication_log_id', 'resend provenance recorded')
+mustInclude(emailActions, "anyOf: ['customers.write']", 'resend needs customer write permission')
+mustInclude(resendMigration, "'customer-resend:' || source.id::text", 'durable resend identity derived from original log')
+mustInclude(resendMigration, "'resend_of_communication_log_id', source.id", 'resend provenance recorded')
 
 if (failures.length > 0) {
   for (const failure of failures) console.error(`FAIL: ${failure}`)

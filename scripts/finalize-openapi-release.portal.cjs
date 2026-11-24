@@ -737,7 +737,10 @@ module.exports = function finalizeCustomerPortalRelease({
     required: ['data', 'next_before', 'request_id', 'contract_schema_version'],
     properties: {
       data: { $ref: '#/components/schemas/DomainEventListData' },
-      next_before: nullableString,
+      next_before: {
+        ...nullableString,
+        description: 'Legacy timestamp for a strict older-than page. Follow Link to keep all events at the same timestamp.',
+      },
       request_id: string,
       correlation_id: nullableString,
       contract_schema_version: contractVersion,
@@ -745,7 +748,15 @@ module.exports = function finalizeCustomerPortalRelease({
   }, 'get')
   const eventsGet = portal.paths['/api/v1/events']?.get
   if (eventsGet) {
-    const queryNames = new Set(['event_type', 'external_customer_id', 'before', 'limit'])
+    const response = eventsGet.responses['200']
+    response.headers = {
+      ...response.headers,
+      Link: {
+        description: 'Present if another page exists. Follow the relative link with rel="next" to preserve equal-timestamp events. The JSON envelope and next_before remain available for older clients.',
+        schema: string,
+      },
+    }
+    const queryNames = new Set(['event_type', 'external_customer_id', 'before', 'cursor', 'limit'])
     eventsGet.parameters = [
       ...(eventsGet.parameters ?? []).filter((parameter) =>
         !(parameter?.in === 'query' && queryNames.has(parameter?.name)),
@@ -753,6 +764,11 @@ module.exports = function finalizeCustomerPortalRelease({
       { name: 'event_type', in: 'query', required: false, schema: { type: 'string', pattern: '^customer\\.[a-z0-9_]+$' } },
       { name: 'external_customer_id', in: 'query', required: false, schema: string },
       { name: 'before', in: 'query', required: false, schema: dateTime },
+      {
+        name: 'cursor', in: 'query', required: false,
+        description: 'Opaque continuation from the previous Link header. Use the same authenticated credential and filters. Cannot be combined with before.',
+        schema: { type: 'string', minLength: 1, maxLength: 2048, pattern: '^[A-Za-z0-9_-]+$' },
+      },
       { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 100 } },
     ]
   }
