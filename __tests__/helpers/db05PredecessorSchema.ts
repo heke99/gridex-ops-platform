@@ -1,9 +1,19 @@
 import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
 
 type Patch={preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const pr1266SchemaSha='e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
+
+/** Historical producer 33b3098910557fb7a03285ec563a621c9bd7abef / artifact 14769728023.
+ * The fixture is its exact generated schema, gzip -n, without capture-time metadata.
+ * Historical component tests can replay their own chronology from the authenticated bytes. */
+export function readPr1266SchemaCapture():string{
+ const schema=gunzipSync(readFileSync(new URL('../fixtures/db05-schema-pr1266-20261122.sql.gz',import.meta.url))).toString('utf8')
+ if(sha(schema)!==pr1266SchemaSha)throw Error('db05_pr1266_schema_fixture_hash_mismatch')
+ return schema
+}
 
 function reversePatch(schema:string,patch:Patch):string{
  if(sha(schema)!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+sha(schema))

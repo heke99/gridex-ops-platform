@@ -307,7 +307,18 @@ beforeEach(async () => {
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
-  await db.exec(readFileSync('supabase/migrations/20261123195200_inbound_mailbox_bytes_digest.sql', 'utf8'))
+  // The captured mailbox table includes the digest column and its CHECK.
+  // Load the matching current guard, grant boundary and trigger from that capture.
+  const digestGuard = 'gridex_ediel_transport.guard_mailbox_bytes_digest_v1()'
+  const digestAcl = `REVOKE ALL ON FUNCTION ${digestGuard} FROM PUBLIC;`
+  const digestTrigger = schema.match(/^CREATE TRIGGER gridex_mailbox_bytes_digest_guard [^\n]+;/m)?.[0]
+  if (!digestTrigger || !schema.includes(digestAcl)) throw Error('Missing actual mailbox digest guard trigger or ACL')
+  if (!definition('TABLE', 'public.inbound_email_messages (').includes('CONSTRAINT inbound_email_mailbox_bytes_sha256_format ')) {
+    throw Error('Missing actual mailbox digest constraint')
+  }
+  await db.exec(definition('FUNCTION', digestGuard))
+  await db.exec(digestAcl)
+  await db.exec(digestTrigger)
   // Install genuine empty private receipt readers used by current source guards.
   // These fixtures create no assigned negative birth or header authority.
   await db.exec('create schema gridex_ediel_header_negative_birth')

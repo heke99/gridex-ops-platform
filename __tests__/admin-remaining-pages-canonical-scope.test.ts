@@ -233,7 +233,9 @@ it.each(pages)('%s reads use the canonical tenant guard rather than another lega
 const guardedEmptyPages = new Set(['billing', 'billing quality', 'billing AI', 'billing import', 'company settings', 'contracts', 'information requests', 'customer login', 'automation', 'periods', 'market policies'])
 it.each(pages)('%s handles a missing canonical tenant before data reads', async (name, _mode, page) => {
   io.companyId = null
-  if (guardedEmptyPages.has(name)) await page()
+  if (name === 'customer imports') {
+    expect(renderToStaticMarkup(await page())).toContain('Välj bolag för att visa importgranskning.')
+  } else if (guardedEmptyPages.has(name)) await page()
   else if (name === 'invoice detail') await expect(page()).rejects.toThrow('Välj ett bolag innan fakturan granskas')
   else await expect(page()).rejects.toThrow()
   expect(io.reads).toEqual([]); expect(io.loaders).toEqual([])

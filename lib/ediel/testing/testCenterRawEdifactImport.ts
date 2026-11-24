@@ -187,10 +187,9 @@ async function findExistingTestInboundEnvelope(input: {
 }): Promise<string | null> {
   const result = await supabaseService
     .from('inbound_email_messages')
-    .select('id')
+    .select('id,raw_edifact_payload')
     .eq('company_id', input.companyId)
     .eq('environment', 'test')
-    .eq('raw_edifact_payload', input.rawEdifact)
     .contains('match_payload', {
       source: 'test_center_raw_edifact_import_v1',
       test_center_customer_id: input.customerId,
@@ -199,9 +198,20 @@ async function findExistingTestInboundEnvelope(input: {
     })
     .is('mailbox_id', null)
     .limit(2)
-    .maybeSingle()
   if (result.error) throw result.error
-  return result.data?.id ? String(result.data.id) : null
+
+  const candidates = result.data ?? []
+  if (candidates.length > 1) {
+    throw new Error('Test Center hittade flera sparade poster med samma kontrollsumma för vald testkund. Granska importerna innan du försöker igen.')
+  }
+  const candidate = candidates[0]
+  if (!candidate) return null
+  // Keep the raw bytes out of the URL. The digest selects candidates only;
+  // the stored bytes still have to match exactly before that ID is reused.
+  if (candidate.raw_edifact_payload !== input.rawEdifact) {
+    throw new Error('Den sparade Test Center-postens innehåll stämmer inte med den valda filen. Granska den tidigare importen.')
+  }
+  return candidate.id
 }
 
 function testInboundEnvelopeId(input: { companyId: string; customerId: string; sourceSha256: string }): string {

@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main commit the operator intends to deploy
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -23,7 +28,25 @@ jobs:
       VERCEL_PROJECT_ID: prj_xA3EDI1xztkkyx21e3LY4UhgYrWt
       VERCEL_REPO_ID: '1190539955'
     steps:
+      - name: Verify the requested production source
+        shell: bash
+        env:
+          EXPECTED_DEPLOY_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REPOSITORY" != "heke99/gridex-ops-platform" || "$GITHUB_REF" != "refs/heads/main" || ! "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::Production deploy requires the canonical repository, main branch and a full commit SHA.'
+            exit 1
+          fi
+          expected="${EXPECTED_DEPLOY_SHA:-$GITHUB_SHA}"
+          if [[ ! "$expected" =~ ^[0-9a-f]{40}$ || "$expected" != "$GITHUB_SHA" ]]; then
+            echo '::error::Expected commit does not match the dispatch commit.'
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Detect Vercel deployment credential
         id: credential
@@ -37,17 +60,35 @@ jobs:
             echo 'available=true' >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Require Vercel deployment credential for manual deployment
+        if: steps.credential.outputs.available != 'true'
+        shell: bash
+        run: |
+          echo '::error::VERCEL_TOKEN is required for an explicit production deployment.'
+          exit 1
+
       - name: Create production deployment from current main commit
         if: steps.credential.outputs.available == 'true'
         id: create
         shell: bash
         run: |
           set -euo pipefail
+          origin_url=$(git remote get-url origin)
+          case "$origin_url" in
+            https://github.com/heke99/gridex-ops-platform|https://github.com/heke99/gridex-ops-platform.git) ;;
+            *) echo '::error::Checkout origin does not match the production repository.'; exit 1 ;;
+          esac
+          checkout_sha=$(git rev-parse HEAD)
+          main_head=$(git ls-remote --exit-code origin refs/heads/main)
+          if [[ "$checkout_sha" != "$GITHUB_SHA" || "$main_head" != "$GITHUB_SHA"$'\t'refs/heads/main ]]; then
+            echo '::error::Checked-out commit or live main differs from the verified dispatch commit.'
+            exit 1
+          fi
           payload=$(jq -n \
             --arg name 'gridex-ops-platform' \
             --arg project "$VERCEL_PROJECT_ID" \
             --arg repoId "$VERCEL_REPO_ID" \
-            --arg ref "$GITHUB_REF_NAME" \
+            --arg ref main \
             --arg sha "$GITHUB_SHA" \
             '{name:$name,project:$project,target:"production",gitSource:{type:"github",repoId:$repoId,ref:$ref,sha:$sha}}')
 
@@ -61,7 +102,7 @@ jobs:
           deployment_id=$(jq -r '.id // empty' <<<"$response")
           deployment_url=$(jq -r '.url // empty' <<<"$response")
           if [[ -z "$deployment_id" || -z "$deployment_url" ]]; then
-            echo "$response" >&2
+            echo '::error::Vercel did not return a deployment ID and URL.' >&2
             exit 1
           fi
 
@@ -79,12 +120,23 @@ jobs:
           for attempt in $(seq 1 80); do
             response=$(curl --fail-with-body --silent --show-error \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID?teamId=$VERCEL_TEAM_ID")
+              "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID?teamId=$VERCEL_TEAM_ID&withGitRepoInfo=true")
             state=$(jq -r '.readyState // .state // empty' <<<"$response")
             echo "Vercel state: ${state:-unknown}"
             case "$state" in
-              READY) exit 0 ;;
-              ERROR|CANCELED) echo "$response" >&2; exit 1 ;;
+              READY)
+                if ! jq -e --arg id "$DEPLOYMENT_ID" --arg project "$VERCEL_PROJECT_ID" --arg sha "$GITHUB_SHA" '
+                  def only_matches($expected): map(select(. != null)) | length > 0 and all(. == $expected);
+                  .id == $id and .target == "production"
+                  and ([.projectId, (.project | objects | .id)] | only_matches($project))
+                  and ([.gitSource.sha, .meta.githubCommitSha] | only_matches($sha))
+                ' >/dev/null <<< "$response"; then
+                  echo '::error::READY Vercel deployment does not match the requested identity, project, production target and commit.'
+                  exit 1
+                fi
+                exit 0
+                ;;
+              ERROR|CANCELED) echo "::error::Vercel deployment ended in $state."; exit 1 ;;
             esac
             sleep 10
           done

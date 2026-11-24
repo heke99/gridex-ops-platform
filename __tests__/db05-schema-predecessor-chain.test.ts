@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
-import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema} from './helpers/db05PredecessorSchema'
+import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema,readPr1266SchemaCapture} from './helpers/db05PredecessorSchema'
 
 const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,patchPr1266:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
@@ -54,7 +54,7 @@ vi.mock('node:fs',async original=>{
 })
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
-const checkedInCapture=readFileSync('supabase/schema.sql','utf8')
+const checkedInCapture=readPr1266SchemaCapture()
 const pr1266Sha='e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
 const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
 const pr949Sha='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'

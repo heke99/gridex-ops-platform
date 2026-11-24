@@ -97,7 +97,10 @@ describe('Test Center raw EDIFACT import contract', () => {
   it('deduplicates identical test uploads only within the same selected test customer', () => {
     const source = read('lib/ediel/testing/testCenterRawEdifactImport.ts')
     expect(source).toContain('findExistingTestInboundEnvelope')
-    expect(source).toContain(".eq('raw_edifact_payload', input.rawEdifact)")
+    expect(source).toContain(".select('id,raw_edifact_payload')")
+    expect(source).not.toContain(".eq('raw_edifact_payload', input.rawEdifact)")
+    expect(source).toContain('candidate.raw_edifact_payload !== input.rawEdifact')
+    expect(source).toContain('candidates.length > 1')
     expect(source).toContain(".eq('environment', 'test')")
     expect(source).toContain(".contains('match_payload', {")
     expect(source).toContain('test_center_customer_id: input.customerId')

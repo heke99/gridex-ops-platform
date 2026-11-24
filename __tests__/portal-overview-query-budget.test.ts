@@ -11,6 +11,7 @@ const io = vi.hoisted(() => ({
   reads: [] as Read[],
   failures: {} as Record<string, { code: string; message: string }>,
   months: [] as Row[],
+  currentReadings: [] as Row[],
   authCalls: 0,
 }))
 
@@ -45,12 +46,15 @@ vi.mock('@/lib/supabase/service', async () => {
           }
           if (io.failures[resource]) return reply(io.failures[resource], 500)
           if (url.pathname.includes('/rpc/')) {
-            if (resource !== 'gridex_portal_monthly_consumption_v2') throw new Error(`Unexpected RPC: ${resource}`)
             read.args = JSON.parse(String(init?.body)) as Row
             if (read.args.p_company_id !== company || JSON.stringify(read.args.p_customer_ids) !== JSON.stringify([customer])) {
-              return reply({ code: '42501', message: 'Synthetic monthly scope refused' }, 403)
+              return reply({ code: '42501', message: 'Synthetic consumption scope refused' }, 403)
             }
-            return reply(io.months)
+            if (resource === 'gridex_portal_monthly_consumption_v2') return reply(io.months)
+            if (resource === 'gridex_portal_consumption_page_v1') {
+              return reply({ months: io.months, values: io.currentReadings.slice(0, 500) })
+            }
+            throw new Error(`Unexpected RPC: ${resource}`)
           }
           if (init?.method && init.method !== 'GET') throw new Error(`Unexpected write: ${resource}`)
           if (!Object.hasOwn(io.tables, resource)) throw new Error(`Unexpected table: ${resource}`)
@@ -121,6 +125,7 @@ beforeEach(() => {
   io.failures = {}
   io.user = { id: user, email: 'synthetic@example.test' }
   io.months = [{ month_key: '2026-10', total_kwh: 700, value_count: 2500, is_complete: false }]
+  io.currentReadings = []
   io.tables = {
     customer_portal_accounts: [{ user_id: user, customer_id: customer, company_id: company, is_active: true, activated_at: timestamp }],
     customers: [{ id: customer, company_id: company, customer_number: 'TEST-1', customer_type: 'private', status: 'active', full_name: 'Anna Test', email: 'synthetic@example.test', created_at: timestamp }],
@@ -224,19 +229,18 @@ describe('actual portal overview query budget and preserved detail consumers', (
   })
 
   it('preserves native totals and the 500-row cap for current consumption details', async () => {
-    const relation = 'gridex_portal_current_metering_values_v1'
     const meterPointNumber = '735999000000000001'
-    io.tables[relation] = rawRows(600).map(row => ({ ...row, meter_point_id: meterPointNumber }))
+    io.currentReadings = rawRows(600).map(row => ({ ...row, meter_point_id: meterPointNumber }))
     const html = renderToStaticMarkup(await ConsumptionPage())
     expect(html).toContain('Senaste 500 aktuella värden.')
     expect(html).toContain('700 kWh')
     expect(html).toContain(`Mätpunkt ${meterPointNumber}`)
     expect(html).not.toContain(point)
-    expect(io.reads.some(read => read.resource === 'metering_values')).toBe(false)
-    const selected = io.reads.filter(read => read.resource === relation)
+    const obsoleteReads = ['metering_values', 'gridex_portal_current_metering_values_v1', 'gridex_portal_monthly_consumption_v2']
+    expect(io.reads.some(read => obsoleteReads.includes(read.resource))).toBe(false)
+    const selected = io.reads.filter(read => read.resource === 'gridex_portal_consumption_page_v1')
     expect(selected).toHaveLength(1)
-    expect(new URLSearchParams(selected[0].query).get('limit')).toBe('500')
-    expect(io.reads.filter(read => read.resource === 'gridex_portal_monthly_consumption_v2')).toHaveLength(1)
+    expect(selected[0].args).toMatchObject({ p_company_id: company, p_customer_ids: [customer] })
   })
 
   it('uses the existing active-tenant selection without mixing a less recent foreign account', async () => {

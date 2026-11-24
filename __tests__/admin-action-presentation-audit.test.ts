@@ -453,7 +453,7 @@ it('uses an active row company for platform task controls and selects one compan
     { id: 'active-task', company_id: companyId, title: 'Aktiv uppgift', status: 'open', priority: 'normal', customer_id: 'customer-a', task_type: 'missing_poa' },
     { id: 'paused-task', company_id: 'paused-company', title: 'Pausad uppgift', status: 'open', priority: 'normal', customer_id: 'customer-b', task_type: 'missing_poa' },
   ]
-  let html = await render('operations/tasks')
+  const html = await render('operations/tasks')
   expect(html).toContain('name="task_id" value="active-task"')
   expect(html).toContain('Pausad uppgift')
   expect(html).not.toContain('name="task_id" value="paused-task"')
