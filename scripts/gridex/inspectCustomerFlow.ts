@@ -244,7 +244,40 @@ async function main() {
 
   sections.push(await readTable('supplier_switch_requests', (query) => scoped(query as never)))
   sections.push(await readTable('customer_operation_jobs', (query) => scoped(query as never)))
-  sections.push(await readTable('customer_operation_events', (query) => scoped(query as never)))
+  const operationEvents = await readTable('customer_operation_events', (query) => scoped(query as never))
+  sections.push(operationEvents)
+  if (companyId && (gridOwnerRequestIds.length || operationEvents.rows.length)) {
+    const eventIds = operationEvents.rows.map(row => text(row.id)).filter((id): id is string => Boolean(id))
+    const diagnostics = await supabase.rpc('gridex_read_facility_diagnostics_support_v1', {
+      p_company_id: companyId, p_customer_id: customerId, p_request_ids: gridOwnerRequestIds, p_event_ids: eventIds,
+    })
+    if (!diagnostics.error && diagnostics.data) {
+      const asRecord = (value: unknown): JsonRecord =>
+        value !== null && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
+      const requestsById = new Map<string, JsonRecord>((diagnostics.data.requests ?? []).map((row: JsonRecord) => [String(row.id), row]))
+      const eventsById = new Map<string, JsonRecord>((diagnostics.data.events ?? []).map((row: JsonRecord) => [String(row.id), row]))
+      for (const row of gridOwnerRequests.rows) {
+        const detail = requestsById.get(String(row.id))
+        if (!detail) continue
+        row.dispatch_error_message = detail.dispatch_error_message ?? row.dispatch_error_message
+        row.last_error_message = row.last_error_message ?? detail.last_error_message
+        const diagnostic = asRecord(detail.dispatch_payload)
+        if (Object.keys(diagnostic).length) {
+          const metadata = asRecord(row.metadata)
+          row.metadata = {
+            ...metadata,
+            facility_lookup_edifact_dispatch: { ...asRecord(metadata.facility_lookup_edifact_dispatch), ...diagnostic },
+          }
+        }
+      }
+      for (const row of operationEvents.rows) {
+        const detail = eventsById.get(String(row.id))
+        if (detail) row.payload = { ...asRecord(row.payload), ...asRecord(detail.payload) }
+      }
+    } else if (diagnostics.error && !['PGRST202', '42883'].includes(diagnostics.error.code)) {
+      gridOwnerRequests.note = 'Skyddad teknisk diagnostik kunde inte hämtas.'
+    }
+  }
   sections.push(await readTable('audit_logs', (query) => {
     const builder = query as never as { in: (column: string, values: string[]) => unknown }
     return builder.in('entity_id', [customerId, ...siteIds, ...outboundIds].slice(0, 50))

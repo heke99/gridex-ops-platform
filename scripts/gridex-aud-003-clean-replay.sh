@@ -40,7 +40,7 @@ REPLAY_PG_VERSION_PATH="$SUPABASE/.temp/postgres-version"
 REPLAY_PG_VERSION_BACKUP=""
 REPLAY_PG_VERSION_PINNED=""
 # Clean replay normally runs against the local Supabase stack. Where Docker is
-# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
+# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty local database
 # that this script provisions with the Supabase-compatible surface instead. The
 # migration ordering, checksum pinning and fingerprint below are identical in
 # both modes; only how the empty database is obtained differs.
@@ -121,6 +121,11 @@ trap cleanup EXIT
 if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
 command -v psql >/dev/null
 command -v python3 >/dev/null
+if [[ -n "$EXTERNAL_DB" ]]; then
+  # The verified URL controls both the read-only probe and all replay SQL.
+  unset PGHOST PGHOSTADDR PGPORT PGDATABASE PGSERVICE PGSERVICEFILE PGOPTIONS
+  DB_URL="$(python3 "$ROOT/scripts/gridex-clean-replay-external-preflight.py")"
+fi
 for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
   test -f "$required" || { echo "missing replay provenance input: $required" >&2; exit 1; }
 done
@@ -197,7 +202,15 @@ plan=json.loads(plan_path.read_text())
 plan_add=json.loads(plan_add_path.read_text()) if plan_add_path.exists() else {'foundation':[],'derivedBootstrap':{},'interleaved':[]}
 order=json.loads(order_path.read_text())
 noncanonical=json.loads(noncanonical_path.read_text())
-checksums={**history.get('files',{}),**history_add.get('files',{}),**history_runtime_add.get('files',{})}
+checksums={}
+checksum_sources={}
+for manifest_path,data in ((history_path,history),(history_add_path,history_add),(history_runtime_add_path,history_runtime_add)):
+    for filename,checksum in data.get('files',{}).items():
+        if filename in checksums and checksums[filename] != checksum:
+            raise SystemExit(f'conflicting migration checksum registrations: {filename} ({checksum_sources[filename]}, {manifest_path.name})')
+        if filename not in checksums:
+            checksums[filename]=checksum
+            checksum_sources[filename]=manifest_path.name
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 derived={}
 for descriptors in (plan.get('derivedBootstrap') or {},plan_add.get('derivedBootstrap') or {}):

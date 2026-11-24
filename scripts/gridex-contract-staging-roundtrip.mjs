@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-import { normalizeContractPricing } from "../lib/pricing/contractPricingVersioning.ts";
+import { register } from "node:module";
 
 const baseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const companyId = process.env.GRIDEX_CONTRACT_TEST_COMPANY_ID || "";
 const actorId = process.env.GRIDEX_CONTRACT_TEST_ACTOR_ID || "";
+const stagingProjectRef = String(process.env.GRIDEX_E2E_STAGING_PROJECT_REF || "").trim();
 
 if (!baseUrl || !serviceKey || !companyId || !actorId) {
   console.error(
@@ -13,12 +14,26 @@ if (!baseUrl || !serviceKey || !companyId || !actorId) {
   );
   process.exit(2);
 }
-if (process.env.VERCEL_ENV === "production" || process.env.GRIDEX_CONTRACT_TEST_CONFIRM_STAGING !== "YES") {
+if (process.env.VERCEL_ENV === "production" ||
+    (process.env.NODE_ENV === "production" && process.env.GRIDEX_E2E_PRODUCTION_CONTEXT === "YES") ||
+    process.env.GRIDEX_CONTRACT_TEST_CONFIRM_STAGING !== "YES") {
   console.error(
     "This create/read/delete roundtrip is staging-only. Set GRIDEX_CONTRACT_TEST_CONFIRM_STAGING=YES in an isolated staging environment.",
   );
   process.exit(2);
 }
+
+const productionProjectRef = "piidsfebjqjmnepdpnas";
+if (!/^[a-z0-9]{20}$/.test(stagingProjectRef) || stagingProjectRef === productionProjectRef ||
+    baseUrl !== `https://${stagingProjectRef}.supabase.co`) {
+  console.error("Staging roundtrip requires the approved staging project URL and GRIDEX_E2E_STAGING_PROJECT_REF.");
+  process.exit(2);
+}
+
+// Bare Node does not resolve the app's TypeScript path aliases. Resolve only
+// this dependency of the shared pricing function while importing it.
+register(new URL("./helpers/contract-staging-pricing-loader.mjs", import.meta.url));
+const { normalizeContractPricing } = await import("../lib/pricing/contractPricingVersioning.ts");
 
 const headers = {
   apikey: serviceKey,
@@ -55,7 +70,7 @@ const expected = {
   variable_fee_ore_per_kwh: 1.375,
   discount_value: 10,
   discount_unit: "percent",
-  discount_calculation_base: "monthly_fee",
+  discount_calculation_base: "monthly_fixed_amount",
   discount_months: 3,
   default_binding_months: 0,
   default_notice_months: 1,
