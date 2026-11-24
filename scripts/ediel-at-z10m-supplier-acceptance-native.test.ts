@@ -4,6 +4,10 @@
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {getEdielMessageById} from '@/lib/ediel/db'
+import {canonicalAdmissionDate} from '@/lib/ediel/core/messagePolicy'
+import {resolveAuthoritativeEdielGuide} from '@/lib/ediel/rulebook/guideRegistry'
+import {localEdifactDateTimeToUtc,parseEdifactTimezoneOffsetFromComponents} from '@/lib/ediel/utilts/timezone'
 import {supabaseService} from '@/lib/supabase/service'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -40,10 +44,10 @@ beforeEach(()=>{
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function fixture(){
+async function fixture(requestedStartDate=futureNativeSupplyDate()){
   const f=await createRequestedChangeSupplyFixture(email=>external.send.mockResolvedValue({
     accepted:[email],rejected:[],messageId:'synthetic-own-Z03',response:'250 explicitly synthetic acceptance',
-  }),{requestedStartDate:futureNativeSupplyDate()})
+  }),{requestedStartDate})
   // Public disposable route/profile inputs only, as in existing raw-scope
   // acceptance. Canonical ACK readiness/authority are actual owner outputs.
   const routeId=randomUUID(),profileId=randomUUID(),smtp=edielSmtpConfig()
@@ -356,10 +360,11 @@ function readingWire(f:Fixture,changeMinute:string,side:'old'|'new',meter:string
   const readings=registers.flatMap((register,index)=>[
     `SEQ++${index*2+1}'`,`RFF+AES:${register}'`,`RFF+MG:${meter}'`,`QTY+220:${side==='old'?10000+index:20+index}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
     `SEQ++${index*2+2}'`,`RFF+AES:${register}'`,`QTY+220:${side==='old'?10500+index:520+index}'`,`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'"])
-  const lines=["UNA:+.? '",`UNB+UNOC:3+${f.receiver}:ZZ+${f.sender}:ZZ+260831:1811+${interchange}++23-DDQ-E66-T++1++1'`,"UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
-    "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
+  const interchangeTime=`${end.slice(2,8)}:${end.slice(8)}`
+  const lines=["UNA:+.? '",`UNB+UNOC:3+${f.receiver}:ZZ+${f.sender}:ZZ+${interchangeTime}+${interchange}++23-DDQ-E66-T++1++1'`,"UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
+    `DTM+137:${end}:203'`,"DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
     `LOC+172+${f.external}::9'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:804'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
-    ...readings,`SEQ++${registers.length*2+1}'`,"QTY+136:500'"]
+    ...readings,`SEQ++${registers.length*2+1}'`,`QTY+136:${500*registers.length}'`]
   return {wire:[...lines,`UNT+${lines.length-1}+1'`,`UNZ+1+${interchange}'`].join('\n'),transaction,document,start,end}
 }
 
@@ -372,6 +377,22 @@ async function receiveUtilts(f:Fixture,wire:string){
   const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
   expect(sourceId).toMatch(/^[a-f0-9-]{36}$/)
+  const source=await getEdielMessageById(sourceId!)
+  if(!source)throw Error('native_e66_source_missing')
+  const physical=tokenizeEdifact(source.raw_payload!)
+  const header=physical.segments.slice(0,physical.segments.findIndex(segment=>segment.tag==='SEQ'))
+  const dtm=(qualifier:string)=>segmentComposite(header.find(segment=>segment.tag==='DTM'
+    &&segmentComposite(segment,1,physical.una)[0]===qualifier),1,physical.una)
+  const timezone=parseEdifactTimezoneOffsetFromComponents(dtm('735'))
+  const registration=dtm('597')
+  const registeredAt=localEdifactDateTimeToUtc(registration[1],timezone)
+  expect(registration[2]).toBe('203')
+  expect(timezone?.offsetMinutes).toBe(60)
+  expect(Date.parse(registeredAt??'')).toBeLessThanOrEqual(Date.parse(source.message_received_at!))
+  expect(source.execution_context_snapshot).toMatchObject({receivedUtiltsContext:{
+    contextOrigin:'database_insert',sourceMessageId:sourceId,payloadHash:mail.sourcePayloadHash,
+  }})
+  expect(resolveAuthoritativeEdielGuide({family:'UTILTS',referenceDate:canonicalAdmissionDate(source)}).guideRevision).toBe('25-A-5')
   seedUtiltsIssuerHistoryGround(sql,literal,sourceId!,f.reviewer.id)
   await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
   return sourceId!
@@ -407,7 +428,9 @@ const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
   'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(f.companyId)}))`)
 
 it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
-  const f=await fixture()
+  // Both reporting periods have completed before the actual mailbox receipt.
+  // The other Z10M scenarios still use the prospective supply fixture.
+  const f=await fixture(futureNativeSupplyDate(-15))
   const change=changeWire(f),z10=await receive(f,change.wire)
   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:z10.sourceId,
     reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})

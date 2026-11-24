@@ -46,10 +46,15 @@ function stampTest(raw:string,reference:string){
  const unz=t.segments.find(x=>x.tag==='UNZ')!,tail=segmentSourceSpan(unz)!,tailParts=unz.raw.split(t.una.dataElementSeparator);tailParts[2]=reference
  return raw.slice(0,span.startOffset)+parts.join(t.una.dataElementSeparator)+raw.slice(span.endOffset,tail.startOffset)+tailParts.join(t.una.dataElementSeparator)+raw.slice(tail.endOffset)
 }
-export async function createZ06fReadingNativeFixture(provider:(email:string)=>void){
- // Future supply is original declared source valid time; every source admission
- // remains its real native clock_timestamp(), never the UNB or selected date.
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()})
+export async function createZ06fReadingNativeFixture(
+ provider:(email:string)=>void,
+ options:{requestedStartDate?:string}={},
+){
+ // The selected date belongs to the new synthetic supply. Source admission has
+ // its real native clock_timestamp() for both historical and future delivery.
+ const f=await createRequestedChangeSupplyFixture(provider,{
+  requestedStartDate:options.requestedStartDate??futureNativeSupplyDate(),
+ })
  const operator=await createBilateralSourceOperator(f.companyId,['communication.read','communication.write','communication.send','customers.read','metering.read','metering.write','ediel_testing.write'])
  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.admin_users WHERE user_id IN(${literal(f.actorUserId)},${literal(operator.id)})))`)).toBe(false)
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})

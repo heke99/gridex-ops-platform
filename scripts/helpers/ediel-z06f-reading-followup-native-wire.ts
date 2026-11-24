@@ -25,6 +25,7 @@ export type Z06fNativeReadingOptions={register?:string;meter?:string;agency?:str
 export function z06fNativeReadingWire(f:Z06fNativeWireScope,options:Z06fNativeReadingOptions={}){
  // One declared offset applies to both bounds. A one-day interval remains
  // 24 hours after conversion, including month/leap and DST-calendar boundaries.
+ // The default readings 10000 and 11000 differ by 1000 at meter constant 1.
  const start=z06fNativeChangeInstant(f,options.date==='next-day'?1:0),endDate=new Date(Date.UTC(+start.slice(0,4),+start.slice(4,6)-1,+start.slice(6,8)+1))
  const end=`${endDate.toISOString().slice(0,10).replaceAll('-','')}0000`,point=options.point??f.external,quantity=options.quantity??'10000',register=options.register??'101'
  const document='DOC-'+randomUUID().replaceAll('-','').slice(0,28),transaction='READ-'+randomUUID().replaceAll('-','').slice(0,28)
@@ -32,6 +33,6 @@ export function z06fNativeReadingWire(f:Z06fNativeWireScope,options:Z06fNativeRe
   "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
   `LOC+172+${point}::${options.agency??'9'}'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:804'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
   "SEQ++1'",`RFF+AES:${register}'`,`RFF+MG:${options.meter??'METER-1'}'`,`QTY+220:${quantity}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
-  "SEQ++2'",`RFF+AES:${register}'`,"QTY+220:11000'",`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'","SEQ++3'","QTY+136:500'"]
+  "SEQ++2'",`RFF+AES:${register}'`,"QTY+220:11000'",`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'","SEQ++3'","QTY+136:1000'"]
  return [...lines,`UNT+${lines.length-1}+1'`,"UNZ+1+260831181101'"].join('\n')
 }

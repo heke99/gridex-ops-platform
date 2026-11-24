@@ -529,16 +529,19 @@ it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease
     }
     expect(expired,'release must follow actual DB-clock lease expiry').toBe(true)
     expect(smtp).not.toHaveBeenCalled()
+    const queueBeforeRelease = workerState(id)
     await lock.release('COMMIT')
-    // Entry response loss is conservatively public-uncertain; only the actual
-    // native refusal proves this race. A 57014 timeout cannot satisfy it.
-    expect(await sending).toMatchObject({status:'delivery_uncertain'})
+    const result = await sending
+    // The native fence definitively refused entry. An unknown response or a
+    // database timeout would leave the worker without that evidence.
     expect(entryCalls).toBe(1)
-    expect(entryError).toMatchObject({code:'P0001',message:expect.stringContaining('ediel_transport_worker_fence_lost')})
+    expect(entryError).toMatchObject({code:'P0001',message:'ediel_transport_worker_fence_lost'})
     expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(identity.attemptId)}`)).toEqual(prepared)
     expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)} AND entered_at IS NOT NULL`)).toBe(0)
     expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.reconciliation_cases WHERE message_id=${literal(f.originalZ03.id)}`)).toBe(0)
+    expect(workerState(id)).toEqual(queueBeforeRelease)
     expect(smtp).not.toHaveBeenCalled()
+    expect(result).toEqual({status:'blocked',messageId:null,error:'ediel_transport_worker_fence_lost'})
   } finally {
     clearTimeout(setupTimer)
     try {await lock?.dispose()}

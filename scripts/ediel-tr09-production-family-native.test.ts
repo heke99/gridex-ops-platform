@@ -698,7 +698,7 @@ for (const mode of [undefined, 'ediel-smime-enveloped']) {
     // Keep the positive oracle strict when an earlier genuine production gate
     // blocks entry. Later certificate/receipt/retry proof is then NOT_REACHED.
     expect(actual.error).toBeNull()
-    expect(actual.result).toMatchObject({accepted: [s.ack.receiver_email], rejected: [], messageId: `synthetic-production-${s.ack.id}`})
+    expect(actual.result).toMatchObject({accepted: [s.ack.receiver_email], rejected: [], messageId: `synthetic-production-${s.ack.id}`, delivery: 'new_acceptance'})
     expect(provider.send).toHaveBeenCalledTimes(1)
     expect(provider.options).toHaveBeenLastCalledWith(expect.objectContaining({requireTLS: true, tls: {rejectUnauthorized: true, minVersion: 'TLSv1.2'}}))
     expect(effects(s)).toEqual({...zeroEffects, attempts: 1, reservations: 1, entries: 1})
@@ -706,7 +706,7 @@ for (const mode of [undefined, 'ediel-smime-enveloped']) {
     expect(sent).toMatchObject({status: 'sent', was_smime_encrypted: true, expected_receiver_certificate_id: s.certificateId, cms_expected_receiver_present: true})
     const acceptedState = sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(s.ack.id)}`)
     const retry = await sendEdielMessageViaSmtp(sent!, {actorUserId: s.f.actorUserId, smtpMimeMode: mode})
-    expect(retry).toEqual(actual.result)
+    expect(retry).toEqual({...actual.result, delivery: 'repaired_projection'})
     expect(provider.send).toHaveBeenCalledTimes(1)
     expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(s.ack.id)}`)).toEqual(acceptedState)
     preserved(s, prior, false)
