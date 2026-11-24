@@ -47,8 +47,26 @@ export async function enterCompletedReadingHostedPhase(suite: Suite, input: Appl
       AND sp.metering_point_id=sw.metering_point_id AND sp.source_message_id=sw.inbound_z04_message_id
       AND sp.source_message_id=${literal(supply.source)}
     JOIN public.ediel_messages change ON change.id=${literal(structuralSourceId)} AND change.company_id=sw.company_id
-      AND change.metering_point_id=sp.metering_point_id AND change.environment='test' AND change.direction='inbound'
+      AND change.environment='test' AND change.direction='inbound'
       AND change.message_code=${literal(suite === 'fg' ? 'Z06' : 'Z10')}
+      AND (
+        (change.message_code='Z06' AND change.metering_point_id=sp.metering_point_id)
+        OR (change.message_code='Z10' AND (change.metering_point_id IS NULL OR change.metering_point_id=sp.metering_point_id)
+          -- The ordinary multi-register mailbox intake may have no top-level point.
+          -- Its immutable structural object receipt is the applied point authority.
+          AND EXISTS (
+            SELECT 1 FROM gridex_received_sources.structural_object_apply_receipts receipt
+            JOIN gridex_received_sources.sources original ON original.source_message_id=receipt.source_message_id
+              AND original.company_id=receipt.company_id AND original.environment=receipt.environment
+              AND original.payload_hash=receipt.payload_hash AND original.source_received_at=receipt.source_received_at
+            WHERE receipt.source_message_id=change.id AND receipt.company_id=change.company_id AND receipt.environment=change.environment
+              AND receipt.actor_user_id=${literal(actor.id)} AND original.origin='database_insert' AND original.message_code='Z10'
+              AND original.raw_payload=change.raw_payload AND original.source_received_at=change.message_received_at
+              AND receipt.effect->>'meteringPointId'=sp.metering_point_id::text AND receipt.effect->>'siteId'=sw.site_id::text
+              AND receipt.effect#>>'{wire,messageCode}'='Z10' AND receipt.effect#>>'{wire,businessCase}'='meter_exchange'
+              AND (receipt.effect->>'effectiveAt')::timestamptz=${literal(structureEffectiveAt)}::timestamptz
+          ))
+      )
     WHERE epoch.singleton;`)
   assert(chronology, 'completed_reading_native_supply_required')
   const registrationInstants = wires.map(readCompletedReadingRegistration)

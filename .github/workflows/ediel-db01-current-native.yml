@@ -492,7 +492,7 @@ jobs:
                   result.setdefault(m[1],[]).append((key,m[2],m[4]))
               return result
           source_functions=functions(expected)
-          def observe_current_write_api():
+          def observe_current_write_api(*, publish=True):
               # Prospective write dependencies are NOT reader forwards or native
               # authority. Observe only this producer's existing local catalog.
               entry='public.gridex_enqueue_normal_supplier_switch_v1'
@@ -539,9 +539,57 @@ jobs:
                   'observed_functions':observed,'missing_function_names':sorted(names-present),
                   'relation_tokens':sorted(relations),'unresolved_source_names':sorted(unresolved),
                   'limits':'Conservative all-overload source inventory and actual local catalog metadata only; no installation, API visibility, behavioral or native qualification'}
-              receipt['current_write_api_observation']=result
-              (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
-              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if publish:
+                  receipt['current_write_api_observation']=result
+                  (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              return result
+
+          def write_writer_preimage_fingerprint(stage):
+              evidence=receipt_path.parent
+              reader_stage='before' if stage=='baseline' else 'after'
+              reader=json.loads((evidence/('current-reader-catalog-'+reader_stage+'.json')).read_text())
+              if reader['checkout_sha']!=receipt['checkout_sha'] or reader['source_schema_sha256']!=sha(schema_source) \
+                or reader['status']!='OBSERVED_ONLY' or reader['native_or_approval_credit'] is not False:
+                  fail('db01_writer_fingerprint_reader_provenance')
+              phases=['baseline_clean','snapshot_repair_prebirth','historical','smime_forward','legacy_address_forward']
+              if stage=='post_forwards':
+                  phases+=['current_guard_preparation','current_read_forwards']
+              if any(receipt['phases'][phase]!={'status':'PASS','exit_code':0} for phase in phases):
+                  fail('db01_writer_fingerprint_phase_provenance')
+              database=json.loads(sql("""SELECT jsonb_build_object('oid',oid,'name',datname,'system_identifier',
+                  (pg_control_system()).system_identifier::text) FROM pg_database WHERE datname=current_database()"""))
+              if database!=reader['database']:
+                  fail('db01_writer_fingerprint_database_provenance')
+              def digest(value):
+                  return sha(json.dumps(value,sort_keys=True,separators=(',',':')))
+              database_digest=digest([database,reader['container']])
+              if stage=='post_forwards':
+                  baseline=json.loads((evidence/'current-write-api-baseline-fingerprint.json').read_text())
+                  if baseline['checkout_sha']!=receipt['checkout_sha'] or baseline['database_sha256']!=database_digest \
+                    or baseline['status']!='OBSERVED_ONLY' or baseline['native_or_approval_credit'] is not False:
+                      fail('db01_writer_fingerprint_same_replay_required')
+              current=observe_current_write_api(publish=False)
+              canonical_sha=digest(current['canonical_function_definitions'])
+              if canonical_sha!='6880c7a0e51874f0138f333d8d6f0a46d6c354a68e045807a8ee4e47510d7929':
+                  fail('db01_writer_fingerprint_unqualified_source_scope')
+              result={'status':'OBSERVED_ONLY','native_or_approval_credit':False,'stage':stage,
+                  'checkout_sha':receipt['checkout_sha'],'checkout_tree':receipt['checkout_tree'],
+                  'source_schema_sha256':current['source_schema_sha256'],'database_sha256':database_digest,
+                  'canonical_definitions_sha256':canonical_sha,'observed_rows_sha256':digest(current['observed_functions']),
+                  'observed_rows_count':len(current['observed_functions']),
+                  'missing_function_names_sha256':digest(current['missing_function_names']),
+                  'unresolved_source_names_sha256':digest(current['unresolved_source_names']),
+                  'expected_entry_absence_only':current['missing_function_names']==['public.gridex_enqueue_normal_supplier_switch_v1'],
+                  'unresolved_source_names_empty':current['unresolved_source_names']==[],
+                  'observed_reader_mismatches':bool(reader['mismatches']),'completed_phase_names':phases}
+              (evidence/('current-write-api-'+stage.replace('_','-')+'-fingerprint.json')).write_text(
+                  json.dumps(result,indent=2,sort_keys=True)+'\n')
+
+          if len(sys.argv)==2 and sys.argv[1] in ('writer-baseline-fingerprint','writer-post-forwards-fingerprint'):
+              write_writer_preimage_fingerprint('baseline' if sys.argv[1]=='writer-baseline-fingerprint' else 'post_forwards')
+              sys.exit(0)
+
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
@@ -1258,6 +1306,10 @@ jobs:
             if ! python3 scripts/helpers/ediel-db01-reader-catalog.py before; then
               printf '%s\n' 'DB01 supplemental reader preimage observation unavailable'
             fi
+            if ! python3 "$DB01_PRIVATE/qualify-current-guards.py" writer-baseline-fingerprint \
+                > "$DB01_PRIVATE/writer-baseline-fingerprint.log" 2>&1; then
+              printf '%s\n' 'DB01 supplemental writer baseline fingerprint unavailable'
+            fi
             for stage in before forwards after api; do
               case "$stage" in
                 before) phase=current_guard_preparation ;;
@@ -1271,6 +1323,10 @@ jobs:
               if [[ "$guard_exit" != 0 ]]; then exit "$guard_exit"; fi
               if [[ "$stage" == forwards ]] && ! python3 scripts/helpers/ediel-db01-reader-catalog.py after; then
                 printf '%s\n' 'DB01 supplemental reader postimage observation unavailable'
+              fi
+              if [[ "$stage" == forwards ]] && ! python3 "$DB01_PRIVATE/qualify-current-guards.py" writer-post-forwards-fingerprint \
+                  > "$DB01_PRIVATE/writer-post-forwards-fingerprint.log" 2>&1; then
+                printf '%s\n' 'DB01 supplemental writer post-forward fingerprint unavailable'
               fi
             done
             export GRIDEX_DB01_NATIVE_PHASE=current GRIDEX_DB01_SOURCE_ROOT="$CURRENT_ROOT"

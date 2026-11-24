@@ -109,7 +109,7 @@ const files = fs.readdirSync(artifactDir)
 const evidence = []
 const failures = []
 const vitestReceipts = []
-const checkout = files.some((name) => name.startsWith(vitestReceiptPrefix)) ? checkoutIdentity() : null
+const checkout = checkoutIdentity()
 for (const name of files) {
   const fullPath = path.join(artifactDir, name)
   const isVitestReceipt = name.startsWith(vitestReceiptPrefix)
@@ -139,7 +139,8 @@ for (const name of files) {
 const handoff = {
   schema_version: 1,
   generated_at: new Date().toISOString(),
-  commit_sha: process.env.GITHUB_SHA || null,
+  commit_sha: checkout?.commit ?? null,
+  event_commit_sha: gitHash.test(process.env.GITHUB_SHA ?? '') ? process.env.GITHUB_SHA : null,
   environment: process.env.GRIDEX_E2E_TARGET || process.env.VERCEL_ENV || process.env.NODE_ENV || null,
   ci_verdict_authority: 'deterministic-tests',
   ai_may_diagnose: true,
