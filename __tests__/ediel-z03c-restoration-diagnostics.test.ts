@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 
-// Only extract and execute these two ordinary-clock diagnostic functions.
+// Only execute the ordinary-clock diagnostics and their bounded local helpers.
 // Never execute the controller, sudo, watchdog, date setter, or a network call.
 const harness = String.raw`
 import ast, contextlib, io, json, math, pathlib, re, subprocess, sys, textwrap, types, urllib.error
@@ -10,7 +10,7 @@ source=pathlib.Path('.github/workflows/ediel-z03c-supplier-boundary-native.yml')
 lines=source.splitlines();begin=next(i for i,line in enumerate(lines) if 'cat > "$RUNNER_TEMP/z03c-owned-clock-controller.py"' in line)+1
 end=next(i for i in range(begin,len(lines)) if lines[i].strip()=='PY')
 tree=ast.parse(textwrap.dedent('\n'.join(lines[begin:end])))
-names={'qualified_normal_clock','emit_restoration_failure_summary','safe_error'}
+names={'qualified_normal_clock','emit_restoration_failure_summary','safe_error','trusted_reference_http_details'}
 definitions=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in names]
 if {node.name for node in definitions}!=names:raise RuntimeError('diagnostic_function_missing')
 clock=types.SimpleNamespace(monotonic=lambda:101.0,time=lambda:case.get('now',1001.0))
@@ -18,7 +18,9 @@ namespace={'math':math,'time':clock,'sys':sys,'json':json,'subprocess':subproces
 exec(compile(ast.Module(body=definitions,type_ignores=[]),'<extracted-diagnostics>','exec'),namespace)
 state={'original_realtime_ms':1000000.0,'original_monotonic_s':100.0}
 kind=case.get('kind','runtime');message=case.get('message','private synthetic detail')
-if kind=='http':error=urllib.error.HTTPError('https://private.invalid/?secret=synthetic',case.get('status',503),message,{},None)
+if kind=='http':
+ error=urllib.error.HTTPError('https://private.invalid/?secret=synthetic',case.get('status',503),message,{},None)
+ if 'attempts' in case:error.z03c_reference_attempts=case['attempts']
 elif kind=='process':error=subprocess.CalledProcessError(case.get('exit',1),['secret-command'],output='synthetic private output',stderr='synthetic private stderr')
 elif kind=='unknown':error=type('SyntheticPrivateProviderError',(Exception,),{})(message)
 else:error=RuntimeError(message)
@@ -77,6 +79,16 @@ describe('Z03C bounded diagnostics after an independently observed normal clock'
   })
   it.each([true, 99, 600])('does not coerce an invalid HTTP status %s', status => {
     expect(probe({ kind: 'http', status }).summary).toMatchObject({ error: { http_status: null } })
+  })
+  it.each([1, 3])('reports the bounded trusted reference attempt count %s', attempts => {
+    const result = probe({ kind: 'http', attempts })
+    expect(result.summary).toMatchObject({ error: { http_status: 503, http_attempts: attempts } })
+    expect(result.stderr).not.toMatch(/private|synthetic|secret|https/)
+  })
+  it.each([true, 0, 4, '3'])('omits an invalid trusted reference attempt count %s', attempts => {
+    const result = probe({ kind: 'http', attempts })
+    expect(result.summary).toMatchObject({ error: { http_status: 503 } })
+    expect(result.summary).not.toHaveProperty('error.http_attempts')
   })
   it.each([
     ['reference', 'TRUSTED_NORMAL_REFERENCE'],

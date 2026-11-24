@@ -27,6 +27,8 @@ import {bindReceivedProdatApplicationObjects} from '@/lib/ediel/prodat/prodatApp
 import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {approveEdielInboundCase} from '@/lib/ediel/inboundCases'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
+import {completedReadingHostedSuite,enterCompletedReadingHostedPhase} from './helpers/ediel-completed-reading-clock-native'
 import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-change-native-fixture'
 import {createBilateralSourceOperator,bilateralSourceOperatorPermissions} from './helpers/ediel-bilateral-customer-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
@@ -432,7 +434,8 @@ const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
 it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
   // Both reporting periods have completed before the actual mailbox receipt.
   // The other Z10M scenarios still use the prospective supply fixture.
-  const f=await fixture(futureNativeSupplyDate(-15))
+  const hosted=completedReadingHostedSuite('z10m')
+  const f=await fixture(hosted?undefined:futureNativeSupplyDate(-15))
   const change=changeWire(f),z10=await receive(f,change.wire)
   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:z10.sourceId,
     reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
@@ -450,6 +453,13 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // (1) Old meter: interval ending exactly at the Z10 change minute; its final
   // reading is the old meter's last stand and binds to the Z04 baseline version.
   const old=readingWire(f,change.minute,'old','METER-1',['101'])
+  const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
+  const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
+  const structureEffectiveAt=prodatMarketMinuteToUtc(change.minute)
+  if(!structureEffectiveAt)throw Error('z10m_native_exact_effective_minute_required')
+  const finishPhase=hosted?await enterCompletedReadingHostedPhase('z10m',{
+    supply:f,structuralSourceId:z10.sourceId,structureEffectiveAt,actor:f.reviewer,wires:[old.wire,fresh.wire,early.wire],
+  }):undefined
   const oldSource=await receiveUtilts(f,old.wire),oldState=readingState(f,oldSource)
   expect(bound(oldState)).toEqual([{status:'matched',codes:[],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
   expect(oldState.dispositions).toMatchObject([{source_transaction_id:old.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
@@ -459,7 +469,6 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   expect(positive(oldState)[0].wire).toContain(`RFF+ACW:${old.transaction}'`);expect(positive(oldState)[0].wire).toContain(`+${old.document}'`)
   // (2) New meter: interval starting at the change minute, both new registers;
   // its start readings bind to the Z10 version, never to the baseline.
-  const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
   const newSource=await receiveUtilts(f,fresh.wire),newState=readingState(f,newSource)
   expect(bound(newState)).toEqual([{status:'matched',codes:[],selected:[{source:z10.sourceId,meter:'NEW-METER',registers:['101','102']}]}])
   expect(newState.dispositions).toMatchObject([{source_transaction_id:fresh.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
@@ -472,7 +481,6 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // ERR/TN response after #789. No post-failure repair or second receive may
   // qualify the first receive; legitimate diagnostic binding receipts remain.
   const beforeNegative=readingSinks(f)
-  const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
   const earlySource=await receiveUtilts(f,early.wire),earlyState=readingState(f,earlySource)
   expect(bound(earlyState)).toEqual([{status:'mismatch',codes:['E61','E62'],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
   expect(earlyState.message).toMatchObject({company:f.companyId,environment:'test',code:'E66'})
@@ -526,4 +534,5 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // Earlier old-meter values and both bound readings are unchanged afterwards.
   expect(readingState(f,oldSource)).toEqual(oldState)
   expect(readingState(f,newSource)).toEqual(newState)
+  finishPhase?.([{id:oldSource,outcome:'persisted'},{id:newSource,outcome:'persisted'},{id:earlySource,outcome:'structural_err'}])
 })

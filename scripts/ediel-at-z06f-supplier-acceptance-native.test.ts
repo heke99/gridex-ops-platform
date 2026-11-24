@@ -6,6 +6,7 @@
 // Existing qualified producer alone executes the native suite.
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {completedReadingHostedSuite,enterCompletedReadingHostedPhase} from './helpers/ediel-completed-reading-clock-native'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
 import {nativeSql as sql,literal,futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -419,7 +420,8 @@ function expectCleanStagedCustomer(f:Fixture,change:Change,stored:Evidence['case
 it.each([false,true])('F first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
  // The reading branch needs a completed observed interval. Both native source
  // receipts still use the real clock and the other acceptance cases stay future.
- const f=await fixture(withUd?undefined:futureNativeSupplyDate(-15))
+ const hosted=!withUd&&completedReadingHostedSuite('fg')
+ const f=await fixture(withUd||hosted?undefined:futureNativeSupplyDate(-15))
  const change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
  const initial=evidence(f,change.message.id)
  expectNoFirstEffects(f,change.message)
@@ -469,7 +471,12 @@ it.each([false,true])('F first case approval versions only its original structur
    (SELECT count(*) FROM public.customer_invoices WHERE company_id=${literal(f.f.companyId)}),
    (SELECT count(*) FROM public.invoice_export_files WHERE company_id=${literal(f.f.companyId)}))`)
   expect(financialCounts()).toEqual([0,0,0,0])
-  const reading=await f.reading(),outboundBefore=f.snapshots().outbound
+  const phase: {finish?:Awaited<ReturnType<typeof enterCompletedReadingHostedPhase>>}={}
+  const reading=await f.reading({},hosted?async wire=>{
+   phase.finish=await enterCompletedReadingHostedPhase('fg',{
+    supply:f.f,structuralSourceId:change.message.id,structureEffectiveAt:own.effect.effectiveAt,actor:f.operator,wires:[wire],
+   })
+  }:undefined),outboundBefore=f.snapshots().outbound
   const facts=reading.qualified.runtime.facts,transaction=facts.transactions[0]
   const timezone=parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(facts))
   const registeredAt=localEdifactDateTimeToUtc(transaction.registrationTime,timezone)
@@ -496,6 +503,7 @@ it.each([false,true])('F first case approval versions only its original structur
   expect(f.snapshots().outbound).toBe(outboundBefore)
   await reading.persist();expect(sourceEffects(f,change.message.id)).toEqual(observed)
   expect(financialCounts()).toEqual([0,0,0,0])
+  phase.finish?.([{id:reading.message.id,outcome:'persisted'}])
  }
 })
 
