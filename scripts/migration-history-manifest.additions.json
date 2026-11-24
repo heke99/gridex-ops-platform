@@ -432,6 +432,7 @@
     "20261124095718_recheck_selected_provider_before_first_invoice_approval.sql": "c8b4832f30dbc8790ae60f4231f666f45d53a81f6c0b9f464fa8d7186a59e126",
     "20261124102220_require_stored_number_for_new_nordfin_file.sql": "c3fb5bc0caa7bec2ecb0f66e43884647600bbd90fef66489aaa84d0c76874f62",
     "20261124102330_record_website_withdrawal_deadline_evidence.sql": "af8cc7564f7373c6f18994de131cb8cab4dce1f6cf068245a016ad428ca50026",
-    "20261124102730_use_verified_website_withdrawal_deadline.sql": "b554645c8a681da473d6dab208fdb1fe81201cc8d54b1dd423fec86241137c55"
+    "20261124102730_use_verified_website_withdrawal_deadline.sql": "b554645c8a681da473d6dab208fdb1fe81201cc8d54b1dd423fec86241137c55",
+    "20261124121030_ediel_z15_effective_permission_end.sql": "de5ab137bcec609b97fb0fa291af76c13e12652134c242c6e773d57eb5415670"
   }
 }
