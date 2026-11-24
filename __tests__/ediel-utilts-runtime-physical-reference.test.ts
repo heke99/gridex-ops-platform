@@ -13,6 +13,7 @@ import {parseUtilts} from '@/lib/ediel/utilts/parseUtilts'
 import {parseMeteringObservations} from '@/lib/ediel/utilts/meteringObservationParser'
 import {isSingletonE30Reading} from '@/lib/ediel/utilts/profiles'
 import {energyHandoffMessage,observationHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
 import {priorE30PointWire} from './helpers/priorUtiltsStructureFixtures'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 vi.mock('@/lib/ediel/matching',()=>({matchMeteringPointIdByIdentifier:vi.fn().mockResolvedValue('point'),matchSiteAndCustomerForMeteringPoint:vi.fn().mockResolvedValue({customerId:'customer',siteId:'site',gridOwnerId:'owner'})}))
@@ -28,7 +29,7 @@ function source(reference:string,alternate=false,precisionFailure=true) {
  // Genuine own functional precision error, after a guide-valid energy series.
  if(precisionFailure)message.raw_payload=message.raw_payload!.replace('QTY+136:500','QTY+136:1.1234')
  if(alternate)alternateAlphabet(message)
- return message
+ return receivedUtiltsOwnerFixture(message)
 }
 describe('UTILTS actual runtime preserves physical own-reference scope',()=>{
  it.each([false,true])('retains source-permitted leading/embedded an spaces across the actual owner and V2 preparation, alternate=%s',async alternate=>{

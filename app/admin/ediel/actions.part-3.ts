@@ -55,7 +55,7 @@ import type { EdielMessageRow, EdielTestRoleCode, EdielTestSuite } from "@/lib/e
 
 import { collectAperakApplicationErrors, formString, isPostgresUniqueViolation, parseEdielTestRoleCode, parseEdielTestSuite, requireScopedEdielMessageForAction, resolveTgtTestDataForAckAction, revalidateEdiel, revalidateRelatedMessage } from './actions.part-1'
 import { isActiveEdielAckMessage, isOperationalAckMessage, isUtiltsErrAckMessage } from './actions.part-2'
-import { removeReplaceableAckMessagesForSource } from './actions.part-4'
+import { assertNoExistingAckForSource } from './actions.part-4'
 
 export type EdielOperationalMessageActionResult =
   | { status: "processed" }
@@ -725,12 +725,13 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     finalOutcome = backendDecision.outcome;
   }
 
-  await removeReplaceableAckMessagesForSource({
+  await assertNoExistingAckForSource({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: recommendation.action.ackFamily,
     preset: recommendation.title,
-    companyId: sourceMessage.company_id ?? null,
+    companyId: sourceMessage.company_id ?? context.companyId,
+    environment: sourceMessage.environment,
   });
 
   const finalApplicationErrors =
@@ -960,12 +961,13 @@ export async function createAndSendAckAction(formData: FormData) {
       ? (backendDecision?.applicationErrors ?? applicationErrors)
       : null;
 
-  await removeReplaceableAckMessagesForSource({
+  await assertNoExistingAckForSource({
     actorUserId: context.userId,
     sourceMessageId,
     ackFamily: ackType,
     preset: `${ackType} ${finalOutcome}`,
-    companyId: sourceMessage.company_id ?? null,
+    companyId: sourceMessage.company_id ?? context.companyId,
+    environment: sourceMessage.environment,
   });
 
   const ackMessage = await createAckDraftForMessage({
@@ -1056,11 +1058,3 @@ export async function createAndSendAckAction(formData: FormData) {
   revalidateEdiel(sourceMessageId);
   await revalidateRelatedMessage(ackMessage.id);
 }
-
-export const REPLACEABLE_TGT_ACK_STATUSES = new Set([
-  "draft",
-  "queued",
-  "prepared",
-  "failed",
-  "cancelled",
-]);

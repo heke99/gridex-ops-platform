@@ -75,7 +75,16 @@ jobs:
       - run: npm run typecheck:tests
       - run: bash quality/mechanical/verify.sh
       - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run --config quality/vitest.config.ts
-      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test
+      - name: Run ordinary unit tests with per-file evidence
+        id: ordinary-unit-tests
+        run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" node scripts/gridex-ci-ordinary-unit-receipt.cjs
+      - name: Upload ordinary unit evidence
+        if: ${{ always() && steps.ordinary-unit-tests.outcome != 'skipped' && steps.ordinary-unit-tests.outcome != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-ordinary-unit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: e2e-artifacts/ordinary-unit/*.json
+          if-no-files-found: error
       - run: npm run api:docs
       - run: npm run api:compatibility
       - run: npm run api:release:verify
@@ -83,8 +92,10 @@ jobs:
       - run: npm run quality:large-file-budget
       - run: npm run quality:performance
       - run: npm run build
+        id: quality_build
         if: ${{ !cancelled() }}
       - run: npm run quality:bundle-budget
+        if: ${{ !cancelled() && steps.quality_build.outcome == 'success' }}
 
   clean-migration-replay:
     runs-on: ubuntu-latest
@@ -149,7 +160,7 @@ jobs:
           rm -f rem002-clean-replay.log
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "202c07a7a9f0a7ead472217693e6de816e98b5c69d05e1b36da164f55e1f6ca5"
           test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.
@@ -649,7 +660,7 @@ jobs:
           rm -f rem002-upgrade-replay.log
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "202c07a7a9f0a7ead472217693e6de816e98b5c69d05e1b36da164f55e1f6ca5"
           test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.

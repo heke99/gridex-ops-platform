@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { getEdielAutomationDashboard, type EdielAutomationRow } from '@/lib/ediel/operations/automationDashboard'
+import { getEdielAutomationDashboard, type ClosedSlaBreach, type EdielAutomationRow } from '@/lib/ediel/operations/automationDashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +28,7 @@ function tone(status: unknown): string {
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function Metric({ label, value, href, severity = 'neutral' }: { label: string; value: number; href?: string; severity?: 'neutral' | 'ok' | 'warn' | 'bad' }) {
+function Metric({ label, value, href, severity = 'neutral' }: { label: string; value: number | null; href?: string; severity?: 'neutral' | 'ok' | 'warn' | 'bad' }) {
   const classes = severity === 'bad'
     ? 'border-red-200 bg-red-50 text-red-950'
     : severity === 'warn'
@@ -39,7 +39,7 @@ function Metric({ label, value, href, severity = 'neutral' }: { label: string; v
   const body = (
     <>
       <p className="text-xs font-black uppercase tracking-[0.18em] opacity-70">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+      <p className="mt-2 text-3xl font-black">{value ?? 'Okänt'}</p>
     </>
   )
   return href ? <Link href={href} className={`rounded-3xl border p-5 shadow-sm ${classes}`}>{body}</Link> : <div className={`rounded-3xl border p-5 shadow-sm ${classes}`}>{body}</div>
@@ -82,11 +82,54 @@ function QueueRow({ row }: { row: EdielAutomationRow }) {
   )
 }
 
+const breachLabels: Record<ClosedSlaBreach['evidence'], string> = {
+  late_contrl: 'CONTRL skickades efter fristen',
+  expiry_recorded: 'Förfallen innan fristen stängdes',
+  breach_recorded: 'Fristbrott registrerat',
+}
+
+function slaTimerLabel(type: string) {
+  if (type === 'contrl_due') return 'Teknisk CONTRL'
+  if (type === 'aperak_due') return 'Affärskvittens'
+  if (type === 'final_approval_deadline') return 'Slutgodkännande'
+  return 'Kvittensfrist'
+}
+
+function ClosedSlaHistory({ rows }: { rows: ClosedSlaBreach[] | null }) {
+  return (
+    <section id="avslutade-fristbrott" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-slate-950">Avslutade kvittensfrister med registrerat fristbrott</h2>
+      {rows === null ? (
+        <p role="status" className="mt-2 text-sm text-amber-950">Historiken över fristbrott kunde inte läsas.</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-2 text-sm text-slate-600">Inga registrerade fristbrott för avslutade kvittensfrister.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-slate-100">
+          {rows.map(row => (
+            <li key={row.timer_id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm text-slate-700">
+              <Pill status={row.status}>{row.status === 'resolved' ? 'Avslutad' : 'Avbruten'}</Pill>
+              <span>{slaTimerLabel(row.timer_type)}</span>
+              <span>{breachLabels[row.evidence]}</span>
+              <span>Frist {dateText(row.due_at)}</span>
+              <Link href={`/admin/ediel/messages/${row.ediel_message_id}`} className="text-emerald-700 underline">Öppna meddelande</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 export default async function EdielAutomationPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 50 })
+  const canReadHistory = isPlatformAdmin || Boolean(companyScope.companyId)
+  const dashboard = await getEdielAutomationDashboard({
+    companyId: companyScope.companyId, limit: 50, includeClosedSlaHistory: canReadHistory,
+  })
+  const unresolvedOpen = dashboard.metrics.unresolvedOpen
+  const criticalSlaCount = dashboard.metrics.slaCritical
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -99,8 +142,8 @@ export default async function EdielAutomationPage() {
       />
       <main className="space-y-6 p-8">
         {dashboard.warnings.length > 0 ? (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
-            <h2 className="font-black">Migration/åtkomst behöver kontrolleras</h2>
+          <section role="status" className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+            <h2 className="font-black">Vissa uppgifter kunde inte hämtas</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-semibold">
               {dashboard.warnings.map((warning) => <li key={warning}>{warning}</li>)}
             </ul>
@@ -112,10 +155,12 @@ export default async function EdielAutomationPage() {
           <Metric label="Manual review" value={dashboard.metrics.manualReviews} severity={dashboard.metrics.manualReviews > 0 ? 'warn' : 'ok'} />
           <Metric label="Outbox kö" value={dashboard.metrics.outboxQueued} href="/admin/ediel/outbox" severity={dashboard.metrics.outboxQueued > 0 ? 'warn' : 'ok'} />
           <Metric label="Outbox fel" value={dashboard.metrics.outboxFailed} href="/admin/ediel/outbox" severity={dashboard.metrics.outboxFailed > 0 ? 'bad' : 'ok'} />
-          <Metric label="SLA kritisk" value={dashboard.metrics.slaCritical} severity={dashboard.metrics.slaCritical > 0 ? 'bad' : 'ok'} />
+          <Metric label="SLA kritisk" value={criticalSlaCount} severity={criticalSlaCount === null ? 'neutral' : criticalSlaCount > 0 ? 'bad' : 'ok'} />
           <Metric label="Portaldiff" value={dashboard.metrics.portalMismatches} href="/admin/ediel/portal-feedback" severity={dashboard.metrics.portalMismatches > 0 ? 'warn' : 'ok'} />
-          <Metric label="Unresolved" value={dashboard.metrics.unresolvedOpen} href="/admin/ediel/unresolved" severity={dashboard.metrics.unresolvedOpen > 0 ? 'warn' : 'ok'} />
+          <Metric label="Unresolved" value={unresolvedOpen} href="/admin/ediel/unresolved" severity={unresolvedOpen === null ? 'neutral' : unresolvedOpen > 0 ? 'warn' : 'ok'} />
         </section>
+
+        {canReadHistory ? <ClosedSlaHistory rows={dashboard.closedSlaHistory} /> : null}
 
         <section className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-3">

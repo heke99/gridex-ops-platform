@@ -1,11 +1,14 @@
 'use server'
 
+import { SEND_CONTRACT_SIGNATURE_REQUIREMENT, SIGNATURE_COMPANY_NOT_OPERATIONAL } from './policy'
+import { canSendSignatureForCompany } from '@/lib/tenant/governance'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
 import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { supabaseService } from '@/lib/supabase/service'
+import { isUuid } from '@/lib/validation/uuid'
 import { getCustomerContractById } from '@/lib/customer-contracts/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import { updateContractAction } from '@/components/admin/customers/contracts/actions'
@@ -144,6 +147,8 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
   const customerId = text(formData.get('customer_id'))
   const contractId = text(formData.get('contract_id'))
   const recipientEmail = text(formData.get('recipient_email')).toLowerCase()
+  const commandId = text(formData.get('signature_command_id'))
+  const expectedRequestId = text(formData.get('expected_signature_request_id'))
   let deliveryStatus = 'queued'
 
   if (!customerId || !contractId) {
@@ -151,9 +156,15 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
   }
 
   try {
-    const guard = await requireAdminActionAccess(['contracts.write'])
+    const guard = await requireAdminActionAccess(SEND_CONTRACT_SIGNATURE_REQUIREMENT)
     const { companyId } = await loadCustomerTenantContext(customerId, guard)
     await assertContractTenant({ companyId, customerId, contractId })
+    if (!isUuid(commandId) || (expectedRequestId && !isUuid(expectedRequestId))) {
+      throw new Error('Formuläret har ändrats. Ladda om sidan innan du skickar en signeringslänk.')
+    }
+    if (!await canSendSignatureForCompany(companyId)) {
+      throw new Error(SIGNATURE_COMPANY_NOT_OPERATIONAL)
+    }
 
     const { data: contract, error: contractError } = await supabaseService
       .from('customer_contracts')
@@ -192,6 +203,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       recipientEmail: email,
       actorUserId: guard.userId,
       channel: 'internal',
+      command: { id: commandId, expectedRequestId: expectedRequestId || null },
     })
     deliveryStatus = result.deliveryStatus
 

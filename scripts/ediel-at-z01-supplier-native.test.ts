@@ -411,7 +411,7 @@ async function assertPhysicalZ02GuidanceWithSelectedReadRefusal(f: Fixture, rece
   expect(await readMatchedZ02Source(f, control.original, control.message)).toEqual(control.basis)
   const parsed = control.intake.mailbox.parsed
   const [match, pointMatch] = await Promise.all([
-    matchOutboundRequestForInbound({companyId: f.companyId, parsed, inboundEmailMessageId: control.intake.mailbox.inboundEmailMessageId,
+    matchOutboundRequestForInbound({companyId: f.companyId, environment: control.intake.mailbox.environment, parsed, inboundEmailMessageId: control.intake.mailbox.inboundEmailMessageId,
       parseResultId: control.intake.mailbox.parseResultId}),
     matchMeteringPointForInbound({companyId: f.companyId, parsed, inboundEmailMessageId: control.intake.mailbox.inboundEmailMessageId,
       parseResultId: control.intake.mailbox.parseResultId}),

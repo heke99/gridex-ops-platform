@@ -6,7 +6,7 @@
 // carry that state for the operator action. Harness copied from
 // __tests__/utilts-held-source-resumability-processor.test.ts (real parser/engine/owner, modeled IO).
 // Synthetic data only.
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, declareFixtureE66Request, declaredFixtureE73Rpc, declaredFixtureE73RequestQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { createUtiltsRepliesAfterStore, readUtiltsReplyFailedAfterStore } from '@/lib/ediel/utilts/utiltsReplyAfterStore'
@@ -26,7 +26,8 @@ vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => 
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
 vi.mock('@/lib/cis/db', () => ({ ingestBillingUnderlay: io.bill, findOpenOutboundBySource: io.findOutbound, syncGridOwnerDataRequestReceivedFromEdiel: io.complete }))
-vi.mock('@/lib/ediel/matching', () => ({
+vi.mock('@/lib/ediel/matching', async importOriginal => ({
+  findE66GridOwnerDataRequest: (await importOriginal<typeof import('@/lib/ediel/matching')>()).findE66GridOwnerDataRequest,
   matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue('point-a'),
   matchMeteringPointForEdielMessage: vi.fn().mockResolvedValue('point-a'),
   matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue({ customerId: 'customer-a', siteId: 'site-a', gridOwnerId: 'owner-a' }),
@@ -46,12 +47,28 @@ beforeEach(() => {
   io.rpc.mockImplementation((name, args) => {
     const canonical = finalValidationIo(name, args)
     if (canonical) return canonical
+    const e73 = declaredFixtureE73Rpc(name, args)
+    if (e73) return e73
+    if (name === 'gridex_sync_current_e66_request_v1') {
+      expect(args).toMatchObject({
+        p_request_id: 'request-a',
+        p_actor_id: UTILTS_FIXTURE_ACTOR,
+        p_meter_value_ids: ['meter-value'],
+        p_response_patch: {
+          edielMessageId: args.p_source_message_id,
+          ingestedMeterValueIds: ['meter-value'],
+          billingUnderlayId: 'underlay',
+        },
+      })
+      return Promise.resolve({ data: { status: 'received', outboundRequestId: null }, error: null })
+    }
     const input = name === 'gridex_persist_utilts_consumption_v1' ? { companyId: args.p_company_id, environment: args.p_environment, sourceMessageId: args.p_source_message_id, messageCode: args.p_message_code, rawPayload: args.p_raw_payload, transactions: args.p_transactions, contracts: args.p_transactions.map((t: { consumptionContract: unknown }) => t.consumptionContract) } as UtiltsBoundPersistenceInput : null
     const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
     return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
   })
   io.from.mockImplementation((table: string) => {
     const actor = currentUtiltsActorQuery(table); if (actor) return actor
+    const request=declaredFixtureE73RequestQuery(table); if(request)return request
     const q = { select: () => q, eq: () => q, is: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
       then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: table === 'ediel_ack_transaction_results' ? [{ id: 'ack-row' }] : [], count: 0, error: null }).then(resolve) }
     return q
@@ -64,6 +81,7 @@ function declaredTestSource(message: EdielMessageRow): EdielMessageRow {
     const tokens = tokenizeEdifact(message.raw_payload), unbs = tokens.segments.filter(t => t.tag === 'UNB')
     if (unbs.length === 1) { const raw = segmentUntrimmedRaw(unbs[0]); if (raw.endsWith('++1')) message.raw_payload = message.raw_payload.replace(raw, raw + '++1') }
   }
+  declareFixtureE66Request(message)
   Object.assign(message, receivedUtiltsOwnerFixture(message))
   message.id = '22222222-2222-4222-8222-' + String(++sourceOrdinal).padStart(12, '0')
   const captured = message.execution_context_snapshot as { receivedUtiltsContext: { sourceMessageId: string } }

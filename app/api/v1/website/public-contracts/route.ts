@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
+import { publicContractDiagnosticsDeprecationHeaders } from '@/lib/integrations/legacyCompatibilityStatus'
 import { NextRequest, NextResponse } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
@@ -224,10 +225,7 @@ async function getPublicContracts(request: NextRequest) {
       ? await diagnosePublicContractOffers({ client: auth.client, customerType: query.customerType })
       : null
     const diagnostics = query.diagnostics ? canonicalDiagnostics : null
-    if (query.diagnostics) {
-      headers.Deprecation = 'true'
-      headers.Sunset = 'Sat, 31 Oct 2026 23:59:59 GMT'
-    }
+    if (query.diagnostics) Object.assign(headers, publicContractDiagnosticsDeprecationHeaders())
 
     const diagnosticsPayload = diagnostics
       ? {

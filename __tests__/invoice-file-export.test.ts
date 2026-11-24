@@ -7,7 +7,6 @@ vi.mock('@/lib/billing/invoiceApprovedDispatch', () => ({
   approval: (metadata: unknown) => ((metadata as { approval?: { status?: string } } | null)?.approval ?? {}),
   assertItemStillReady: vi.fn(),
   loadItemContext: vi.fn(),
-  maybeLockCompleteMonth: vi.fn(),
   updateLegacyProjection: vi.fn(),
 }))
 
@@ -56,6 +55,37 @@ describe('invoice file export', () => {
     })
     expect(business.identity_number).toBe('556677-8899')
     expect(business.customer_name).toBe('AB Test')
+  })
+
+  it.each([
+    { type: 'variable', months: 0, expectedEnd: null, expectedRemaining: null },
+    { type: 'spot_hourly', months: null, expectedEnd: null, expectedRemaining: null },
+    { type: 'variable', months: 6, expectedEnd: '2027-01-31', expectedRemaining: 3 },
+    { type: 'fixed', months: null, expectedEnd: '2027-02-28', expectedRemaining: 4 },
+  ])('keeps delivery end separate from binding for $type with $months binding months', ({
+    type, months, expectedEnd, expectedRemaining,
+  }) => {
+    const exported = buildInvoiceFileRow({
+      item: { id: '11111111-2222-3333-4444-555555555555', amount_inc_vat: 1 },
+      invoice: {},
+      customer: {},
+      underlay: {},
+      lines: [],
+      legacyItem: null,
+      billingMonth: '2026-09',
+      now,
+      contract: {
+        contract_type: type,
+        actual_start_date: '2026-07-31',
+        binding_months: months,
+        ends_at: '2027-02-28',
+        notice_months: 1,
+      },
+    })
+    expect(exported.electricity?.contract).toMatchObject({
+      type, binding_months: months, binding_end_date: expectedEnd,
+      binding_months_remaining: expectedRemaining, notice_months: 1,
+    })
   })
 
   it('renders identical CSV for the same rows (re-download gives the same file)', () => {

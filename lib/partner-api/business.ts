@@ -10,7 +10,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 import { EnergyResolutionBindingError } from '@/lib/energy/resolutionBinding'
-import { resolveEnergyContext } from '@/lib/energy/resolver'
+import { resolveEnergyContext, resolveReusablePartnerPostalEnergyContext } from '@/lib/energy/resolver'
 import type { EnergyResolverResult } from '@/lib/energy/types'
 import { calculateOfferQuote, OfferQuoteError } from '@/lib/pricing/offerQuote'
 import {
@@ -255,8 +255,9 @@ async function resolveBusinessLocation(input: {
   location: LocationInput
   customerId?: string | null
   customerSiteId?: string | null
+  reusePostal?: boolean
 }) {
-  return resolveEnergyContext({
+  const resolverInput = {
     companyId: input.client.company_id,
     customerId: input.customerId ?? null,
     customerSiteId: input.customerSiteId ?? null,
@@ -268,7 +269,11 @@ async function resolveBusinessLocation(input: {
       source_channel: 'partner_api',
       partner_surface: 'business_v1',
     },
-  })
+  }
+  if (!input.reusePostal) return resolveEnergyContext(resolverInput)
+  return input.location.street
+    ? resolveEnergyContext(resolverInput, { freshAddressSnapshot: true, partnerClientId: input.client.id })
+    : resolveReusablePartnerPostalEnergyContext(resolverInput)
 }
 
 async function defaultOfferReference(
@@ -460,6 +465,7 @@ async function getLocation(request: NextRequest) {
     const resolved = await resolveBusinessLocation({
       client: context.client,
       location: locationInput,
+      reusePostal: true,
     })
     const location = publicLocation(locationInput, resolved)
     if (location.status === 'ambiguous') {
@@ -510,6 +516,7 @@ async function getCurrentPrice(request: NextRequest) {
     const resolved = await resolveBusinessLocation({
       client: context.client,
       location: locationInput,
+      reusePostal: true,
     })
     const location = ensurePricingReady(locationInput, resolved)
     const current = await loadCurrentMarketPrice({

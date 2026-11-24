@@ -96,7 +96,7 @@ export default function CustomerBulkImportPanel({ example, contractOffers }: Cus
  Bulkimport och PDF-intag
  </h2>
  <p className="mt-1 text-sm leading-6 text-slate-700 ">
- Ladda upp CSV, Excel eller PDF-underlag, eller klistra in tabelltext. Osäkra rader skapas inte direkt utan hamnar i granskningskön.
+ Ladda upp CSV, Excel eller PDF-underlag, eller klistra in tabelltext.
  </p>
  </div>
  <Link href="/admin/customers/imports" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 ">

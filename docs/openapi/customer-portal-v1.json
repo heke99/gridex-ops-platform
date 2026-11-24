@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal API",
-    "version": "2026-11-10.1",
+    "version": "2026-11-23.1",
     "description": "Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity."
   },
   "servers": [
@@ -847,6 +847,26 @@
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
             "description": "Signed proof of the end customer's own login, forwarded by the tenant server. Compact JWS signed with RS256, PS256 or ES256 (none and HS* are rejected). Claims: iss and aud as configured for the tenant in OPS (own-login keys use iss=gridex-tenant:<organization> and aud=gridex-customer-api:<organization>), sub = the linked portal user id, exp at most 15 minutes after iat, and a unique jti (each assertion is accepted once). Required only when the tenant has enabled \"require verified customer\"; in report mode a missing or invalid assertion is logged but the call proceeds; tenants without a configuration are unaffected."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque continuation from page.next_cursor for the same linked customer."
           }
         ],
         "responses": {
@@ -1121,7 +1141,7 @@
             }
           }
         },
-        "description": "Retrieve customer documents without exposing internal storage paths.",
+        "description": "Retrieve customer documents without exposing internal storage paths. Use page.next_cursor with the same linked customer. New traversals on the current profile paginate a linked power of attorney by its stable identity and time while its metadata comes from the visible source. Existing cursors retain their original ordering. Older pinned profiles retain their earlier representation. Use the verified power-of-attorney archive endpoints to retrieve original signed PDFs.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-cache-policy": "no-store",
@@ -6585,6 +6605,18 @@
             }
           },
           {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque continuation from the previous Link header. Use the same authenticated credential and filters. Cannot be combined with before.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -6618,7 +6650,8 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Legacy timestamp for a strict older-than page. Follow Link to keep all events at the same timestamp."
                     },
                     "request_id": {
                       "type": "string"
@@ -6655,6 +6688,12 @@
               },
               "X-Gridex-Documentation-Version": {
                 "$ref": "#/components/headers/GridexDocumentationVersion"
+              },
+              "Link": {
+                "description": "Present if another page exists. Follow the relative link with rel=\"next\" to preserve equal-timestamp events. The JSON envelope and next_before remain available for older clients.",
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -12897,6 +12936,90 @@
         "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
+    },
+    "/api/v1/openapi/2026-11-23.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-11-23.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-11-23.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-23.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-23.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202611231CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
     }
   },
   "components": {
@@ -16165,19 +16288,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -16185,7 +16308,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "released_at": {
             "type": "string",
@@ -16273,7 +16396,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-11-10.1"
+            "const": "2026-11-23.1"
           },
           "url": {
             "type": "string",
@@ -16393,7 +16516,7 @@
       "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
     }
   ],
-  "x-gridex-release-version": "2026-11-10.1",
+  "x-gridex-release-version": "2026-11-23.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",

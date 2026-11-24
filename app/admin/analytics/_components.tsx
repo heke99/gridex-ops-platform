@@ -2,7 +2,8 @@ import Link from 'next/link'
 import type { DeviationRow, ForecastSummaryRow, MetricCard, MonthlyMetricRow, ReportDefinition, SimpleChartRow } from '@/lib/analytics/types'
 import { formatMwh, formatNumber, nullableNumber } from '@/lib/analytics/utils'
 
-export function AnalyticsTabs({ active }: { active: 'overview' | 'forecast' | 'deviations' | 'reports' }) {
+export function AnalyticsTabs({ active, month }: { active: 'overview' | 'forecast' | 'deviations' | 'reports'; month?: string }) {
+  const period = month ? new URLSearchParams({ month: month.slice(0, 7) }) : null
   const tabs = [
     { key: 'overview', label: 'Översikt', href: '/admin/analytics' },
     { key: 'forecast', label: 'Prognos', href: '/admin/analytics/forecast' },
@@ -15,7 +16,7 @@ export function AnalyticsTabs({ active }: { active: 'overview' | 'forecast' | 'd
       {tabs.map((tab) => (
         <Link
           key={tab.key}
-          href={tab.href}
+          href={period ? `${tab.href}?${period}` : tab.href}
           aria-current={active === tab.key ? 'page' : undefined}
           className={`rounded-2xl px-4 py-2 text-sm font-black ${active === tab.key ? 'bg-emerald-700 text-white' : 'border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50'}`}
         >

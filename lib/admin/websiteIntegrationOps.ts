@@ -85,53 +85,40 @@ export type WebsiteApplicationAdminRow = WebsiteApplicationWorkMetadata & {
   } | null;
 };
 
-export type WebhookDeliveryAdminRow = {
+type WebhookDeliveryDiagnostics = {
   id: string;
-  company_id: string;
-  webhook_subscription_id: string;
   domain_event_id: string;
   event_type: string;
-  status: string;
   attempts: number;
   max_attempts: number;
-  next_attempt_at: string | null;
-  last_attempt_at: string | null;
-  delivered_at: string | null;
-  failed_at: string | null;
   response_status: number | null;
-  response_body: string | null;
   failure_reason: string | null;
   payload: Record<string, unknown> | null;
-  target_url?: string | null;
-  locked_at?: string | null;
-  locked_by?: string | null;
+};
+
+type WebhookDeliveryBusinessRow = {
+  id: string;
+  company_id: string;
+  event_category: string;
+  status: string;
+  customer_number: string | null;
+  endpoint_url: string | null;
   created_at: string;
-  webhook_subscriptions?: {
-    endpoint_url?: string | null;
-    name?: string | null;
-    api_client_id?: string | null;
-  } | null;
+};
+
+export type WebhookDeliveryAdminRow = WebhookDeliveryBusinessRow & {
+  diagnostics?: WebhookDeliveryDiagnostics;
 };
 
 export type WebhookSubscriptionAdminRow = {
   id: string;
   company_id: string;
-  api_client_id: string | null;
   name: string;
   endpoint_url: string;
-  event_types: string[] | null;
   status: string;
-  signing_secret_ref: string | null;
-  last_success_at: string | null;
-  last_failure_at: string | null;
-  failure_count?: number | null;
-  created_at: string;
-  updated_at: string | null;
+  event_types?: string[];
   companies?: { name?: string | null } | null;
-  integration_api_clients?: {
-    name?: string | null;
-    key_prefix?: string | null;
-  } | null;
+  integration_api_clients?: { name?: string | null } | null;
 };
 
 export type BillingPartnerCustomerSummary = {
@@ -609,50 +596,84 @@ export async function getWebsiteApplicationAdminRow(
 }
 
 export async function listWebhookSubscriptions(
-  input: { companyId?: string | null; limit?: number } = {},
+  input: { companyId?: string | null; limit?: number; includeDiagnostics?: boolean } = {},
 ): QueryResult<WebhookSubscriptionAdminRow> {
+  if (!input.companyId && !input.includeDiagnostics) return [];
+
+  const businessFields = "id, company_id, name, endpoint_url, status";
+  const fields = input.includeDiagnostics
+    ? `${businessFields}, event_types, companies(name), integration_api_clients(name)`
+    : businessFields;
   let query = supabaseService
     .from("webhook_subscriptions")
-    .select(
-      "id, company_id, api_client_id, name, endpoint_url, event_types, status, signing_secret_ref, last_success_at, last_failure_at, failure_count, created_at, updated_at, companies(name), integration_api_clients(name,key_prefix)",
-    )
+    .select(fields)
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
 
   if (input.companyId) query = query.eq("company_id", input.companyId);
 
   const { data, error } = await query;
-  if (error) {
-    if (missingSchema(error)) return [];
-    throw error;
-  }
-  return (data ?? []) as WebhookSubscriptionAdminRow[];
+  if (error) throw error;
+  return (data ?? []) as unknown as WebhookSubscriptionAdminRow[];
 }
 
-export async function listWebhookDeliveries(
-  input: {
-    companyId?: string | null;
-    status?: string | null;
-    limit?: number;
-  } = {},
-): QueryResult<WebhookDeliveryAdminRow> {
+export async function listWebhookDeliveries(input: {
+  companyId: string | null;
+  status?: string | null;
+  limit?: number;
+  includeDiagnostics?: boolean;
+}): QueryResult<WebhookDeliveryAdminRow> {
+  if (!input.companyId && !input.includeDiagnostics) return [];
+
   let query = supabaseService
-    .from("webhook_deliveries")
-    .select(
-      "id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, target_url, locked_at, locked_by, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)",
-    )
+    .from("gridex_webhook_delivery_business_v")
+    .select("id, company_id, event_category, status, customer_number, endpoint_url, created_at")
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
 
   if (input.companyId) query = query.eq("company_id", input.companyId);
-  if (input.status) query = query.eq("status", input.status);
+  if (input.status === "needs_attention") {
+    query = query.in("status", ["failed", "dead_letter"]);
+  } else if (input.status) {
+    query = query.eq("status", input.status);
+  }
 
   const { data, error } = await query;
-  if (error) {
-    if (missingSchema(error)) return [];
-    throw error;
-  }
-  return (data ?? []) as WebhookDeliveryAdminRow[];
+  if (error) throw error;
+  const rows = (data ?? []) as WebhookDeliveryBusinessRow[];
+  if (!input.includeDiagnostics || !rows.length) return rows;
+
+  let diagnosticsQuery = supabaseService
+    .from("webhook_deliveries")
+    .select("id, domain_event_id, event_type, attempts, max_attempts, response_status, failure_reason, payload")
+    .in("id", rows.map(row => row.id));
+  if (input.companyId) diagnosticsQuery = diagnosticsQuery.eq("company_id", input.companyId);
+
+  const diagnostics = await diagnosticsQuery;
+  if (diagnostics.error) throw diagnostics.error;
+  const byId = new Map((diagnostics.data ?? []).map(row => [row.id, row as WebhookDeliveryDiagnostics]));
+  return rows.map(row => ({ ...row, diagnostics: byId.get(row.id) }));
+}
+
+type WebhookCommandAvailability = {
+  id: string;
+  status: string;
+  can_resend: boolean;
+  can_ignore: boolean;
+};
+
+export async function listWebhookCommandAvailability(
+  targets: Pick<WebhookDeliveryAdminRow, "id" | "company_id">[],
+  scope: { companyId: string | null; isPlatformAdmin: boolean },
+): Promise<Map<string, WebhookCommandAvailability>> {
+  const scopedTargets = scope.isPlatformAdmin ? targets : targets.filter(row => row.company_id === scope.companyId);
+  if (scopedTargets.length === 0) return new Map();
+  const { data, error } = await supabaseService.rpc("gridex_list_webhook_admin_commands_v1", {
+    p_targets: scopedTargets.map(({ id, company_id }) => ({ id, company_id })),
+  });
+  if (error) throw error;
+  return new Map((data as WebhookCommandAvailability[]).map(row => [row.id, row]));
 }
 
 export async function listBillingPartnerCustomersForCustomer(

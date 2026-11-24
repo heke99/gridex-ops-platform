@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
-import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
+import { getSupplierSwitchActivationReadiness, verifiedMarketStartHasOccurred } from '@/lib/operations/supplierSwitchActivation'
 
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 const ORDER_KEYS = ['confirmed_start_date', 'requested_start_date', 'created_at', 'id'] as const
+const SWITCH_PROOF_BATCH = 25
+const MAX_SWITCH_PROOF_ROWS = 100
 type OrderKey = typeof ORDER_KEYS[number]
 type Tuple = Record<Exclude<OrderKey, 'id'>, string | null> & { id: string }
 
@@ -13,6 +15,14 @@ export class BulkReadySelectionError extends Error {
     super('Hela urvalet kunde inte bekräftas inom gränsen för bulk-aktivering. Använd individuell aktivering på respektive ärende.', { cause })
     this.name = 'BulkReadySelectionError'
   }
+}
+
+function databaseInstant(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const instant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,6}))?(?:Z|[+-]\d{2}:\d{2})$/.exec(value)
+  if (!instant || !Number.isFinite(Date.parse(value))) return null
+  // Keep PostgreSQL microseconds while converting the offset to UTC.
+  return `${new Date(value).toISOString().slice(0, 19)}.${(instant[1] ?? '').padEnd(6, '0')}Z`
 }
 
 function tuple(row: SupplierSwitchRequestRow): Tuple {
@@ -26,12 +36,8 @@ function tuple(row: SupplierSwitchRequestRow): Tuple {
     result[field] = value
   }
   if (row.created_at !== null) {
-    const value = row.created_at
-    if (typeof value !== 'string' || !Number.isFinite(Date.parse(value))) throw new BulkReadySelectionError()
-    const fraction = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,6}))?(?:Z|[+-]\d{2}:\d{2})$/.exec(value)
-    if (!fraction) throw new BulkReadySelectionError()
-    // Preserve PostgreSQL microsecond ordering, not Date's millisecond truncation.
-    result.created_at = `${new Date(value).toISOString().slice(0, 19)}.${(fraction[1] ?? '').padEnd(6, '0')}Z`
+    result.created_at = databaseInstant(row.created_at)
+    if (!result.created_at) throw new BulkReadySelectionError()
   }
   return result
 }
@@ -59,6 +65,62 @@ function afterFilter(after: Tuple): string {
     prefix.push(value === null ? key + '.is.null' : key + '.eq.' + value)
   }
   return alternatives.join(',')
+}
+
+export async function readConfirmedMarketStarts(
+  supabase: SupabaseClient,
+  candidates: readonly SupplierSwitchRequestRow[],
+): Promise<Map<string, string | null>> {
+  const source = 'ediel_qualified_source'
+  const process = 'supplier_switch_confirmation'
+  const status = 'confirmed_by_grid_owner'
+  const requests = candidates.filter(row => typeof row.inbound_z04_message_id === 'string' && UUID.test(row.inbound_z04_message_id))
+  const starts = new Map<string, string | null>()
+  if (requests.some(row => typeof row.company_id !== 'string' || !UUID.test(row.company_id) || !UUID.test(row.id))) {
+    throw new BulkReadySelectionError()
+  }
+
+  for (let offset = 0; offset < requests.length; offset += SWITCH_PROOF_BATCH) {
+    const batch = requests.slice(offset, offset + SWITCH_PROOF_BATCH)
+    const expected = new Map(batch.map(row => [row.id.toLowerCase(), row]))
+    const scope = batch.map(row =>
+      `and(company_id.eq.${row.company_id},source_switch_request_id.eq.${row.id},source_message_id.eq.${row.inbound_z04_message_id})`,
+    ).join(',')
+    let afterId: string | null = null
+    let read = 0
+
+    while (true) {
+      let query = supabase.from('customer_supply_periods')
+        .select('id,company_id,source_switch_request_id,source_message_id,source,source_process,status,market_start_at', { count: 'exact' })
+        .eq('source', source)
+        .eq('source_process', process)
+        .eq('status', status)
+        .or(scope)
+        .order('id', { ascending: true })
+        .limit(MAX_SWITCH_PROOF_ROWS - read)
+      if (afterId) query = query.gt('id', afterId)
+      const { data, error, count } = await query
+      if (error) throw error
+      if (!Array.isArray(data) || typeof count !== 'number' || !Number.isSafeInteger(count)
+        || count < data.length || count > MAX_SWITCH_PROOF_ROWS - read || (data.length === 0 && count !== 0)) {
+        throw new BulkReadySelectionError()
+      }
+      for (const period of data) {
+        const switchId = period?.source_switch_request_id
+        const request = expected.get(switchId)
+        if (!request || period.company_id !== request.company_id || period.source_message_id !== request.inbound_z04_message_id
+          || period.source !== source || period.source_process !== process || period.status !== status
+          || typeof period.id !== 'string' || !UUID.test(period.id) || (afterId && period.id <= afterId)) {
+          throw new BulkReadySelectionError()
+        }
+        starts.set(switchId, starts.has(switchId) ? null : databaseInstant(period.market_start_at))
+        afterId = period.id
+      }
+      if (data.length === count) break
+      read += data.length
+    }
+  }
+  return starts
 }
 
 /** Authenticated read-only discovery. Caller must qualify tenant/global scope.
@@ -102,16 +164,21 @@ export async function readCompleteBulkReadySelection(
         after = next
       }
       if (count === data.length) {
-        const ready = accepted.filter(row => getSupplierSwitchActivationReadiness(row, now).ready)
+        const candidates = accepted.filter(row => getSupplierSwitchActivationReadiness(row, now).ready)
         // Validate all effect targets before beginning any finalization. A null
         // meter remains supported by the unchanged authoritative finalizer.
-        for (const row of ready) {
+        for (const row of candidates) {
           if (typeof row.customer_id !== 'string' || !UUID.test(row.customer_id)
             || typeof row.site_id !== 'string' || !UUID.test(row.site_id)
             || (row.metering_point_id !== null && (typeof row.metering_point_id !== 'string' || !UUID.test(row.metering_point_id)))) {
             throw new BulkReadySelectionError()
           }
         }
+        const starts = await readConfirmedMarketStarts(supabase, candidates)
+        const ready = candidates.filter(row => {
+          const start = starts.get(row.id.toLowerCase())
+          return start != null && verifiedMarketStartHasOccurred(start, now)
+        })
         return { accepted, ready }
       }
     }

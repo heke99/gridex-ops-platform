@@ -26,7 +26,22 @@ function query(table: string, session = false) {
       companies: { id, name: 'Synthetic company', status: 'active' },
     })), error: null }
     if (table === 'companies') return { data: { id: filters.id, status: 'active', invoice_export_target_system: 'capway', billing_provider_environment: 'test' }, error: null }
-    if (table === 'invoice_export_items') effect(patch ? 'invoice_update' : 'invoice_read', String(filters.company_id))
+    if (table === 'invoice_export_items') {
+      effect(patch ? 'invoice_update' : 'invoice_read', String(filters.company_id))
+      return { data: {
+        id: 'synthetic-item',
+        company_id: filters.company_id,
+        export_run_id: '44444444-4444-4444-8444-444444444444',
+        provider: 'capway_aptic',
+        environment: 'test',
+        provider_invoice_guid: 'synthetic-guid',
+        status: 'sent',
+        purchase_status: null,
+        provider_purchase_confirmed_at: null,
+        response_payload: {},
+        updated_at: '2026-10-13T00:00:00Z',
+      }, error: null }
+    }
     return { data: { id: 'synthetic-item', company_id: filters.company_id, environment: 'test', provider_invoice_guid: 'synthetic-guid' }, error: null }
   }
   const chain = {
@@ -63,6 +78,9 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   rpc: async (name: string, input: { p_company_id?: string }) => {
     if (name === 'gridex_get_user_roles') return { data: state.platform ? ['platform_admin'] : ['finance'], error: null }
     effect(name, input.p_company_id ?? '')
+    if (name === 'gridex_record_invoice_purchase_request_v1') {
+      return { data: { event_id: '55555555-5555-4555-8555-555555555555' }, error: null }
+    }
     return { data: {}, error: null }
   },
 } }))

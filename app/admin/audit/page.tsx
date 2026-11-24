@@ -13,9 +13,9 @@ type AuditRow = {
  action?: string | null
  entity_type?: string | null
  entity_id?: string | null
- actor_user_id?: string | null
  created_at?: string | null
- new_values?: unknown
+ action_label?: string | null
+ entity_label?: string | null
 }
 
 type AuditSearchParams = {
@@ -42,14 +42,6 @@ function cleanParam(value: string | string[] | undefined): string {
  return String(raw ?? '').trim()
 }
 
-function businessEntity(value?: string | null) {
- const labels: Record<string, string> = { customer: 'Kund', customer_case: 'Kundärende', customer_contract: 'Kundavtal', customer_site: 'Anläggning', site: 'Anläggning', metering_point: 'Mätpunkt', powers_of_attorney: 'Fullmakt', power_of_attorney: 'Fullmakt', supplier_switch_request: 'Leveransärende', billing_underlay: 'Faktureringsunderlag', customer_invoice: 'Faktura', customer_info_request: 'Uppgiftsbegäran' }
- return labels[value ?? ''] ?? 'Verksamhetsuppgift'
-}
-function businessEvent(value?: string | null) {
- const labels: Record<string, string> = { customer_created_from_import: 'Kund registrerad från import', customer_case_registered: 'Kundärende registrerat', withdrawal_registered: 'Ånger registrerad', 'customer.created': 'Kund registrerad', 'customer.updated': 'Kunduppgifter uppdaterade', 'customer.archived': 'Kund arkiverad', 'customer_case.created': 'Kundärende registrerat', 'customer_contract.created': 'Kundavtal skapat', 'power_of_attorney.created': 'Fullmakt registrerad' }
- return labels[value ?? ''] ?? 'Händelse registrerad'
-}
 export default async function AuditPage({
  searchParams,
 }: {
@@ -68,10 +60,11 @@ export default async function AuditPage({
  let loadError: string | null = null
 
  try {
- let query = supabaseService
- .from('audit_logs')
- .select('id, company_id, actor_user_id, action, entity_type, entity_id, created_at, new_values')
+ let query = (isPlatformAdmin
+  ? supabaseService.from('audit_logs').select('id, company_id, action, entity_type, entity_id, created_at')
+  : supabaseService.from('gridex_audit_business_v').select('id, created_at, action_label, entity_label'))
  .order('created_at', { ascending: false })
+ .order('id', { ascending: false })
  .limit(200)
 
  if (!isPlatformAdmin) {
@@ -83,14 +76,14 @@ export default async function AuditPage({
  } else if (companyFilter) {
  query = query.eq('company_id', companyFilter)
  }
- if (actionFilter) query = isPlatformAdmin ? query.ilike('action', `%${actionFilter}%`) : query.eq('action', actionFilter)
- if (entityFilter) query = isPlatformAdmin ? query.ilike('entity_type', `%${entityFilter}%`) : query.eq('entity_type', entityFilter)
+ if (actionFilter) query = isPlatformAdmin ? query.ilike('action', `%${actionFilter}%`) : query.eq('action_filter', actionFilter)
+ if (entityFilter) query = isPlatformAdmin ? query.ilike('entity_type', `%${entityFilter}%`) : query.eq('entity_filter', entityFilter)
  if (textFilter && isPlatformAdmin) query = query.or(`action.ilike.%${textFilter}%,entity_type.ilike.%${textFilter}%,entity_id.ilike.%${textFilter}%`)
 
  const { data, error } = await query
  if (error) throw error
  rows = (data ?? []) as AuditRow[]
- if (textFilter && !isPlatformAdmin) rows = rows.filter(row => [businessEvent(row.action), businessEntity(row.entity_type), row.entity_id].some(value => value?.toLocaleLowerCase('sv-SE').includes(textFilter.toLocaleLowerCase('sv-SE'))))
+ if (textFilter && !isPlatformAdmin) rows = rows.filter(row => [row.action_label, row.entity_label].some(value => value?.toLocaleLowerCase('sv-SE').includes(textFilter.toLocaleLowerCase('sv-SE'))))
  } catch (error) {
  if (isMissingRelationError(error) || (error as { code?: string } | null)?.code === '42703') {
  loadError = isPlatformAdmin ? 'Audit-tabellen är inte färdigkonfigurerad i databasen ännu.' : 'Ändringshistoriken kunde inte läsas. Försök igen eller kontakta support.'
@@ -177,8 +170,8 @@ export default async function AuditPage({
  ) : rows.map((row) => (
  <tr key={row.id} className="border-b border-slate-100 transition hover:bg-slate-50">
  <td className="whitespace-nowrap px-6 py-4 text-slate-700">{formatDate(row.created_at)}</td>
- <td className="px-6 py-4 font-medium text-slate-900">{isPlatformAdmin ? row.action ?? '–' : businessEvent(row.action)}</td>
- <td className="px-6 py-4 text-slate-700">{isPlatformAdmin ? row.entity_type ?? '–' : businessEntity(row.entity_type)}</td>
+ <td className="px-6 py-4 font-medium text-slate-900">{isPlatformAdmin ? row.action ?? '–' : row.action_label ?? 'Händelse registrerad'}</td>
+ <td className="px-6 py-4 text-slate-700">{isPlatformAdmin ? row.entity_type ?? '–' : row.entity_label ?? 'Verksamhetsuppgift'}</td>
  {isPlatformAdmin ? <td className="px-6 py-4 text-slate-700">{shortId(row.entity_id)}</td> : null}
  {isPlatformAdmin ? <td className="px-6 py-4 text-slate-700">{shortId(row.company_id)}</td> : null}
  </tr>

@@ -1,6 +1,6 @@
 import { readEdielBusinessExpectations, expireEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
 import { supabaseService } from '@/lib/supabase/service'
-import { readEdielProcessNextActions, type EdielProcessNextAction } from './processNextAction'
+import { EDIEL_PROCESS_PROJECTION_LIMIT, readEdielProcessNextActions, type EdielProcessNextAction } from './processNextAction'
 import {readEdielMeteringMethodExpectations,expireEdielMeteringMethodExpectations} from '@/lib/ediel/meteringMethodExpectations'
 import type {EdielBusinessExpectation} from '@/lib/ediel/businessExpectations'
 
@@ -18,7 +18,7 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
   if (companies.length > 200) throw new Error('ediel_expectation_sweep_scope_limit')
   const result = { scopes: 0, observed: 0, manualReview: 0, fulfilled: 0, rejected: 0,
     nextActions: [] as Array<{companyId:string;environment:'test'|'production';decision:EdielProcessNextAction}>,
-    blocked: [] as Array<{ companyId: string; environment: 'test' | 'production'; operation: 'read' | 'expire' | 'project'; reason: string }> }
+    blocked: [] as Array<{ companyId: string; environment: 'test' | 'production'; operation: 'read' | 'expire' | 'project'; reason: string; sourceMessageIds?: string[] }> }
   for (const companyId of companies) {
     for (const environment of ['test', 'production'] as const) {
       const scope = { actorUserId: input.actorUserId, companyId, environment, limit }
@@ -47,17 +47,21 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
         result.manualReview += rows.filter(row => row.status === 'manual_review').length
         result.fulfilled += rows.filter(row => row.status === 'fulfilled').length
         result.rejected += rows.filter(row => row.status === 'rejected').length
-        try {
-        const sourceIds=rows.flatMap(row=>typeof row.source_message_id==='string'?[row.source_message_id]:[])
-        // Timer output is display-only. An automation actor's send grant never
-        // manufactures cases.write permission, provider entry or an auto-resend.
-        const decisions=await readEdielProcessNextActions({...scope,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
-          access:{canRead:true,canReview:false,canPrepare:false}})
-        for(const decision of decisions.values())result.nextActions.push({companyId,environment,decision})
-      } catch (error) {
-        result.blocked.push({ companyId, environment, operation: 'project',
-          reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
-      }
+        const sourceIds = [...new Set(rows.flatMap(row => typeof row.source_message_id === 'string' ? [row.source_message_id] : []))]
+        const evaluatedAt = new Date().toISOString()
+        for (let start = 0; start < sourceIds.length; start += EDIEL_PROCESS_PROJECTION_LIMIT) {
+          const messageIds = sourceIds.slice(start, start + EDIEL_PROCESS_PROJECTION_LIMIT)
+          try {
+            // Project the owner observations without granting the scheduler authority to review or send.
+            const decisions = await readEdielProcessNextActions({
+              ...scope, messageIds, evaluatedAt, access: { canRead: true, canReview: false, canPrepare: false },
+            })
+            for (const decision of decisions.values()) result.nextActions.push({ companyId, environment, decision })
+          } catch (error) {
+            result.blocked.push({ companyId, environment, operation: 'project', sourceMessageIds: messageIds,
+              reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
+          }
+        }
       }
     }
   }

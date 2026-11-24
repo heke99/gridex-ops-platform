@@ -298,7 +298,7 @@ beforeEach(async () => {
   }
   const db = new PGlite(); port.db = db
   for (const [key, value] of Object.entries({ EDIEL_EMAIL_PROVIDER: 'strato', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'configured@example.invalid', EDIEL_SMTP_HOST: 'smtp.example.invalid', EDIEL_SMTP_PORT: '465', EDIEL_SMTP_USER: 'finite-account', EDIEL_SMTP_PASS: 'synthetic-not-a-credential' })) vi.stubEnv(key, value)
-  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide; create schema gridex_ediel_inbound_receptions;
+  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_ediel_transport; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide; create schema gridex_ediel_inbound_receptions;
     -- PGlite crypto port: same PostgreSQL sha256 bytes, not an admission verdict.
     create function extensions.digest(bytea,text) returns bytea language sql immutable as 'select sha256($1)';
     -- Declared finite native permission service. Real current actor/profile/
@@ -307,6 +307,18 @@ beforeEach(async () => {
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
+  // The captured mailbox table includes the digest column and its CHECK.
+  // Load the matching current guard, grant boundary and trigger from that capture.
+  const digestGuard = 'gridex_ediel_transport.guard_mailbox_bytes_digest_v1()'
+  const digestAcl = `REVOKE ALL ON FUNCTION ${digestGuard} FROM PUBLIC;`
+  const digestTrigger = schema.match(/^CREATE TRIGGER gridex_mailbox_bytes_digest_guard [^\n]+;/m)?.[0]
+  if (!digestTrigger || !schema.includes(digestAcl)) throw Error('Missing actual mailbox digest guard trigger or ACL')
+  if (!definition('TABLE', 'public.inbound_email_messages (').includes('CONSTRAINT inbound_email_mailbox_bytes_sha256_format ')) {
+    throw Error('Missing actual mailbox digest constraint')
+  }
+  await db.exec(definition('FUNCTION', digestGuard))
+  await db.exec(digestAcl)
+  await db.exec(digestTrigger)
   // Install genuine empty private receipt readers used by current source guards.
   // These fixtures create no assigned negative birth or header authority.
   await db.exec('create schema gridex_ediel_header_negative_birth')

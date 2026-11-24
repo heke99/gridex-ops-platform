@@ -284,6 +284,7 @@ export async function createParseResult(input: {
   companyId?: string | null
   parsed: ParsedEdifactEnvelope
   tenantResolution?: InboundTenantResolution | null
+  recoveredSmime?: boolean
 }): Promise<string> {
   const { data, error } = await supabaseService
     .from('inbound_ediel_parse_results')
@@ -300,9 +301,10 @@ export async function createParseResult(input: {
       receiver_sub_address: input.parsed.receiverSubAddress,
       application_reference: input.parsed.applicationReference,
       parse_status: 'parsed',
-      parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
+      parsed_payload: input.recoveredSmime ? { retainedSmimeRecovery: true }
+        : mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
       validation_report: mergeTenantResolutionIntoPayload({ status: 'parsed_by_batch_7a1_engine' }, input.tenantResolution),
-      raw_payload: input.parsed.rawPayload,
+      raw_payload: input.recoveredSmime ? null : input.parsed.rawPayload,
     })
     .select('id')
     .single()
@@ -1048,6 +1050,10 @@ export async function applySafeInboundStatusUpdate(input: {
   })
 
   if(!inboundEdielMessageId)throw new Error('ediel_inbound_original_persistence_required')
+
+  // E66 business effects belong to the canonical processor after storage.
+  // The mail stage records the original and leaves request/outbound state intact.
+  if (input.parsed.messageFamily === 'UTILTS' && parsedMessageCode(input.parsed) === 'E66') return
 
   const responsePayload = payloadForInbound({
     parsed: input.parsed,

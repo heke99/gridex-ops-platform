@@ -2,6 +2,8 @@ import { portalInvoiceLineTypeLabel, portalInvoiceTitle } from '@/lib/customer-p
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getCustomerPortalContext, getPortalInvoiceDetail } from '@/lib/customer-portal/db'
+import { resolvePortalInvoicePdfSource } from '@/lib/customer-portal/portalInvoicePdf'
+import { readConsolidatedInvoiceDocument } from '@/lib/customer-portal/consolidatedInvoiceDocument'
 import {
   formatDate,
   formatKwh,
@@ -9,18 +11,13 @@ import {
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
+  isCancelledOrCreditedInvoice,
 } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ id: string }>
-}
-
-function documentHref(value: string | null | undefined): string | null {
-  if (!value) return null
-  if (value.startsWith('http://') || value.startsWith('https://')) return value
-  return null
 }
 
 export default async function PortalInvoiceDetailPage({ params }: PageProps) {
@@ -30,10 +27,19 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
   if (!invoice) notFound()
 
-  const pdfHref = documentHref(invoice.pdf_url)
-  const documentPdf = documents.find((document) => documentHref(document.public_url))
-    ?? documents.find((document) => document.file_path)
-  const documentPdfHref = documentHref(documentPdf?.public_url)
+  const pdfSource = await resolvePortalInvoicePdfSource(context.companyId, invoice, documents)
+  const groupedDocument = invoice.source_system === 'invoice_group_v1'
+    ? await readConsolidatedInvoiceDocument(context, invoice.id)
+    : null
+  const groupedMoney = groupedDocument && /^[A-Z]{3}$/.test(invoice.currency)
+    ? new Intl.NumberFormat('sv-SE', { style: 'currency', currency: invoice.currency })
+    : null
+  const invoiceMoney = (value: number | null) => groupedMoney && typeof value === 'number' && Number.isFinite(value)
+    ? groupedMoney.format(value)
+    : formatSek(value)
+
+  const paymentClosed = isCancelledOrCreditedInvoice(invoice.status)
+  const amountLabel = paymentClosed || invoice.status === 'paid' ? 'Fakturabelopp' : 'Att betala'
   const hasRetiredCopy = invoiceFileAvailability === 'retired'
     || documents.some((document) => document.fileAvailability === 'retired')
 
@@ -52,14 +58,18 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
               {portalInvoiceTitle(invoice)}
             </h1>
+            {invoice.invoice_reference ? (
+              <p className="mt-2 text-sm text-slate-500">Fakturareferens {invoice.invoice_reference}</p>
+            ) : null}
             <p className="mt-3 text-sm text-slate-500">
-              Period {formatPeriod(invoice.period_start, invoice.period_end)} · Förfallodatum {formatDate(invoice.due_date)}
+              Period {formatPeriod(invoice.period_start, invoice.period_end)}
+              {paymentClosed ? null : <> · Förfallodatum {formatDate(invoice.due_date)}</>}
             </p>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-right">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Att betala</p>
-            <p className="mt-2 text-3xl font-bold text-slate-950">{formatSek(invoice.amount_inc_vat)}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{amountLabel}</p>
+            <p className="mt-2 text-3xl font-bold text-slate-950">{invoiceMoney(invoice.amount_inc_vat)}</p>
             <p className="mt-1 text-sm text-slate-500">inkl. moms</p>
           </div>
         </div>
@@ -70,7 +80,32 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold text-slate-950">Fakturarader</h2>
 
           <div className="mt-5 divide-y divide-slate-100">
-            {lines.map((line) => (
+            {groupedDocument?.kind === 'ready' ? (
+              <>
+                {groupedDocument.document.sites.map(site => (
+                  <article key={site.sourceReference} className="space-y-2 py-4">
+                    <h3 className="font-semibold">Anläggning {site.facilityReference}</h3>
+                    <p className="text-sm text-slate-600">{formatPeriod(site.periodStart, site.periodEnd)} · {site.priceArea} · {site.quantityKwh} kWh</p>
+                    <ul className="text-sm text-slate-700">
+                      {site.pricing.map((price, index) => (
+                        <li key={index}>{price.description}{price.unitPriceExVat === null ? '' :
+                          ` · ${price.unitPriceExVat.replace(".", ",") + " " + groupedDocument.document.currency}${price.unit ? `/${price.unit}` : ''}`}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm font-semibold">Belopp inkl. moms {groupedMoney?.format(Number(site.amountIncVat))}</p>
+                    <p className="break-words text-xs text-slate-500">Källreferens {site.sourceReference}</p>
+                  </article>
+                ))}
+                <Link href={`/portal/fakturor/${invoice.id}/underlag`} className="mt-4 inline-flex rounded-xl border px-4 py-2 text-sm font-semibold">
+                  Ladda ner fakturaunderlag (JSON)
+                </Link>
+              </>
+            ) : groupedDocument ? (
+              <p className="py-4 text-sm text-slate-600">{groupedDocument.kind === 'retired'
+                ? 'Fakturaunderlaget är inte längre tillgängligt.'
+                : 'Samlingsfakturans underlag kan inte visas här just nu.'}</p>
+            ) : null}
+            {!groupedDocument && lines.map((line) => (
               <div key={line.id} className="grid gap-3 py-4 md:grid-cols-[1fr_140px_140px] md:items-center">
                 <div>
                   <div className="font-medium text-slate-950">{line.description}</div>
@@ -83,7 +118,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               </div>
             ))}
 
-            {lines.length === 0 ? (
+            {!groupedDocument && lines.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
                 Fakturaraderna är inte tillgängliga ännu.
               </div>
@@ -96,9 +131,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold text-slate-950">Sammanfattning</h2>
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <div className="flex justify-between gap-4"><span>Förbrukning</span><strong>{formatKwh(invoice.total_kwh)}</strong></div>
-              <div className="flex justify-between gap-4"><span>Exkl. moms</span><strong>{formatSek(invoice.amount_ex_vat)}</strong></div>
-              <div className="flex justify-between gap-4"><span>Moms</span><strong>{formatSek(invoice.vat_amount)}</strong></div>
-              <div className="flex justify-between gap-4 border-t border-slate-200 pt-3"><span>Totalt</span><strong>{formatSek(invoice.amount_inc_vat)}</strong></div>
+              <div className="flex justify-between gap-4"><span>Exkl. moms</span><strong>{invoiceMoney(invoice.amount_ex_vat)}</strong></div>
+              <div className="flex justify-between gap-4"><span>Moms</span><strong>{invoiceMoney(invoice.vat_amount)}</strong></div>
+              <div className="flex justify-between gap-4 border-t border-slate-200 pt-3"><span>Totalt</span><strong>{invoiceMoney(invoice.amount_inc_vat)}</strong></div>
               <div className="flex justify-between gap-4"><span>Utfärdad</span><strong>{formatDate(invoice.issued_at)}</strong></div>
               <div className="flex justify-between gap-4"><span>Betald</span><strong>{formatDate(invoice.paid_at)}</strong></div>
             </div>
@@ -106,9 +141,6 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Faktura-PDF</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              PDF-länken visas när en kopia har kopplats till fakturan.
-            </p>
 
             {hasRetiredCopy ? (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -116,14 +148,10 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               </div>
             ) : null}
 
-            {pdfHref || documentPdfHref ? (
-              <a href={pdfHref ?? documentPdfHref ?? '#'} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
+            {pdfSource ? (
+              <a href={`/portal/fakturor/${encodeURIComponent(invoice.id)}/pdf`} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
                 Öppna faktura-PDF
               </a>
-            ) : invoice.pdf_path || documentPdf?.file_path ? (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                PDF:en förbereds och blir tillgänglig inom kort.
-              </div>
             ) : hasRetiredCopy ? null : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 Ingen PDF-kopia kan visas här just nu. Kontakta kundservice om du behöver en kopia.

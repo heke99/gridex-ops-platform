@@ -1,3 +1,4 @@
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import type {
   BillingUnderlayRow,
   MeteringValueRow,
@@ -20,6 +21,8 @@ export type BillingReadinessIssue = {
     | 'underlay_failed'
     | 'underlay_not_received'
     | 'metering_point_missing'
+    | 'ediel_source_scope_invalid'
+    | 'ediel_qualified_month_underlay_required'
     | 'meter_values_missing'
     | 'total_kwh_missing'
     | 'amount_missing'
@@ -87,9 +90,70 @@ function exportReferenceDate(exportRow: PartnerExportRow | null | undefined): Da
   )
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function observationKey(start: unknown, end: unknown, bounds?: { start: number; end: number }) {
+  const from = typeof start === 'string' ? Date.parse(start) : NaN
+  const until = typeof end === 'string' ? Date.parse(end) : NaN
+  if (!Number.isFinite(from) || !Number.isFinite(until) || from >= until ||
+      (bounds && (from < bounds.start || until > bounds.end))) return null
+  return JSON.stringify([from, until])
+}
+
+function hasStockholmBillingProjection(underlay: BillingUnderlayRow): boolean {
+  return underlay.source_system === 'ediel_utilts' && Boolean(underlay.payload && 'billingCalendar' in underlay.payload)
+}
+
+function readStockholmBillingPeriods(underlay: BillingUnderlayRow) {
+  if (!underlay.source_request_id) return null
+  const calendar = asRecord(underlay.payload.billingCalendar)
+  const year = underlay.underlay_year
+  const month = underlay.underlay_month
+  if (year === null || !Number.isInteger(year) || year < 2000 || year > 2100 ||
+      month === null || !Number.isInteger(month) || month < 1 || month > 12 ||
+      calendar?.version !== 'stockholm-observation-month-v1' || calendar.timeZone !== 'Europe/Stockholm' ||
+      calendar.year !== year || calendar.month !== month || !Array.isArray(calendar.observationPeriods)) return null
+  const monthBounds = stockholmMonthBounds(`${year}-${String(month).padStart(2, '0')}`)
+  const bounds = { start: Date.parse(monthBounds.start), end: Date.parse(monthBounds.end) }
+  const periods = new Set<string>()
+  for (const period of calendar.observationPeriods) {
+    if (!Array.isArray(period) || period.length !== 2) return null
+    const key = observationKey(period[0], period[1], bounds)
+    if (!key) return null
+    periods.add(key)
+  }
+  return periods.size ? periods : null
+}
+
+function readScopedEdielPeriods(underlay: BillingUnderlayRow) {
+  if (hasStockholmBillingProjection(underlay)) return readStockholmBillingPeriods(underlay)
+  if (underlay.source_system !== 'ediel_utilts' || !underlay.payload || !('e73BillingScope' in underlay.payload)) return undefined
+  if (!underlay.source_request_id) return null
+  const scope = asRecord(underlay.payload.e73BillingScope)
+  const contracts = underlay.payload.consumptionContracts
+  if (!Array.isArray(scope?.contributors) || !Array.isArray(contracts)) return null
+  const observationsByTransaction = new Map(
+    contracts.map(asRecord).map(contract => [contract?.transactionId, contract?.observations] as const),
+  )
+  const periods = new Set<string>()
+  for (const item of scope.contributors) {
+    if (!Array.isArray(item) || item.length !== 2 || typeof item[0] !== 'string' ||
+      !Number.isSafeInteger(item[1]) || item[1] < 0) return null
+    const observations = observationsByTransaction.get(item[0])
+    const observation = asRecord(Array.isArray(observations) ? observations[item[1]] : null)
+    const key = observationKey(observation?.periodStart, observation?.periodEnd)
+    if (!key) return null
+    periods.add(key)
+  }
+  return periods.size ? periods : null
+}
+
 export function findMeterValuesForUnderlay(
   underlay: BillingUnderlayRow,
-  meterValues: MeteringValueRow[]
+  meterValues: MeteringValueRow[],
+  scopedPeriods = readScopedEdielPeriods(underlay),
 ): MeteringValueRow[] {
   return meterValues.filter((value) => {
     if (underlay.company_id && value.company_id && underlay.company_id !== value.company_id) {
@@ -104,6 +168,10 @@ export function findMeterValuesForUnderlay(
       return false
     }
 
+    if (scopedPeriods !== undefined) {
+      const key = observationKey(value.period_start, value.period_end)
+      return Boolean(scopedPeriods && key && value.source_request_id === underlay.source_request_id && scopedPeriods.has(key))
+    }
     return isSameUnderlayMonth(value, underlay)
   })
 }
@@ -115,7 +183,8 @@ export function evaluateBillingUnderlayReadiness(params: {
 }): BillingReadinessResult {
   const { underlay, existingExport } = params
   const issues: BillingReadinessIssue[] = []
-  const matchedMeterValues = findMeterValuesForUnderlay(underlay, params.meterValues)
+  const scopedPeriods = readScopedEdielPeriods(underlay)
+  const matchedMeterValues = findMeterValuesForUnderlay(underlay, params.meterValues, scopedPeriods)
   const exportedAt = exportReferenceDate(existingExport)
   const correctionAfterExport = exportedAt
     ? matchedMeterValues.some((value) => {
@@ -175,6 +244,22 @@ export function evaluateBillingUnderlayReadiness(params: {
       severity: 'warning',
       title: 'Mätpunkt saknas',
       description: 'Underlaget kan behöva kompletteras med mätpunkt. Raden flaggas så att den inte döljs i batchen.',
+    })
+  }
+
+  if (scopedPeriods === null) {
+    issues.push({
+      code: 'ediel_source_scope_invalid',
+      severity: 'error',
+      title: 'Verifierad Ediel-period saknas',
+      description: 'Underlagets bundna mätintervall går inte att läsa. Kontrollera originalsvaret före export.',
+    })
+  } else if (hasStockholmBillingProjection(underlay)) {
+    issues.push({
+      code: 'ediel_qualified_month_underlay_required',
+      severity: 'error',
+      title: 'Fakturan behöver ett kvalificerat månadsunderlag',
+      description: 'Underlaget visar mottagna mätvärden för månaden. Bered fakturamånaden från de verifierade normaliserade mätvärdena före partnerexport.',
     })
   }
 

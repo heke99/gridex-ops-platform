@@ -55,6 +55,7 @@ export async function createCustomerDataTask(input: {
   description: string;
   actorUserId?: string | null;
   priority?: "low" | "normal" | "high";
+  requirePersisted?: boolean;
 }): Promise<void> {
   if (await hasOpenTask({ table: "customer_data_tasks", ...input })) return
   if (await hasOpenTask({ table: "customer_operation_tasks", ...input })) return
@@ -105,11 +106,15 @@ export async function createCustomerDataTask(input: {
   const { error: fallbackError } = await supabaseService
     .from("customer_operation_tasks")
     .insert(fallback);
-  if (fallbackError)
+  if (fallbackError) {
     console.warn(
       "[customerDataTasks] Kunde inte skapa fallback customer_operation_tasks",
       fallbackError,
     );
+    if (input.requirePersisted) {
+      throw new Error("Handläggningsuppgiften kunde inte sparas.");
+    }
+  }
 }
 
 export async function createMissingCustomerDataTasks(input: {

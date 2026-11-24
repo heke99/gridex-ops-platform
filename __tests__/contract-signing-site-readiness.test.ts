@@ -1,9 +1,10 @@
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import type {CustomerContractRow} from '@/lib/customer-contracts/types'
+import {hasPermissionRequirement, type PermissionRequirement} from '@/lib/admin/accessModel'
 import { afterEach,beforeEach,describe,expect,it,vi } from 'vitest'
 type Row=Record<string,unknown>
-const io=vi.hoisted(()=>({tables:{} as Record<string,Row[]>,sent:[] as Row[],updateError:null as unknown,updateCalls:0}))
+const io=vi.hoisted(()=>({tables:{} as Record<string,Row[]>,sent:[] as Row[],updateError:null as unknown,updateCalls:0,platform:false,permissions:[] as string[]}))
 function query(table:string){
   const filters:Array<(r:Row)=>boolean>=[];let one=false
   const q={select:()=>q,eq:(k:string,v:unknown)=>{filters.push(r=>r[k]===v);return q},
@@ -17,7 +18,10 @@ function query(table:string){
 vi.mock('server-only',()=>({}))
 vi.mock('next/cache',()=>({revalidatePath:()=>undefined}))
 vi.mock('next/navigation',()=>({redirect:(url:string)=>{throw Error('REDIRECT:'+url)},unstable_rethrow:(e:unknown)=>{if(e instanceof Error&&e.message.startsWith('REDIRECT:'))throw e}}))
-vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>({userId:'staff-a'})}))
+vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async(required: string[] | PermissionRequirement)=>{
+  if (!io.platform && !hasPermissionRequirement(io.permissions, Array.isArray(required) ? {anyOf:required} : required)) throw Error('Forbidden')
+  return {userId:'staff-a'}
+}}))
 vi.mock('@/lib/tenant/entityGuards',()=>({loadCustomerTenantContext:async()=>({companyId:'company-a'}),assertContractTenant:async()=>undefined}))
 vi.mock('@/lib/customer-contracts/db',()=>({getCustomerContractById:async()=>null}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(t:string)=>query(t)}}))
@@ -29,9 +33,17 @@ import {EditContractForm} from '@/components/admin/customers/contracts/ContractF
 import {sendContractSignatureLinkAction,updateContractWithSigningFeedbackAction} from '@/app/admin/customers/[id]/contracts/[contractId]/signature/actions'
 const scope={companyId:'company-a',customerId:'customer-a',contractId:'contract-a'}
 const contract=()=>io.tables.customer_contracts[0]
+const commandId='00171173-0000-4000-8000-000000000032'
+function signatureForm() {
+  const form=new FormData()
+  form.set('customer_id','customer-a');form.set('contract_id','contract-a')
+  form.set('signature_command_id',commandId)
+  return form
+}
 beforeEach(()=>{
   vi.stubGlobal('React',React)
-  io.sent=[];io.updateError=null;io.updateCalls=0;io.tables={customer_contracts:[{id:'contract-a',company_id:'company-a',customer_id:'customer-a',customer_site_id:'site-a',site_id:'site-a',status:'pending_signature',signed_at:null}],
+  io.sent=[];io.updateError=null;io.updateCalls=0;io.platform=false;io.permissions=['contracts.write','contracts.create']
+  io.tables={companies:[{id:'company-a',is_active:true,lifecycle_status:'active',suspended_at:null}],customer_contracts:[{id:'contract-a',company_id:'company-a',customer_id:'customer-a',customer_site_id:'site-a',site_id:'site-a',status:'pending_signature',signed_at:null}],
     customer_sites:[{id:'site-a',company_id:'company-a',customer_id:'customer-a'}],customers:[{id:'customer-a',company_id:'company-a',email:'signer@example.invalid'}],customer_contract_signature_requests:[]}
 })
 afterEach(()=>{vi.unstubAllGlobals()})
@@ -61,14 +73,41 @@ describe('ordinary OPS signature sends require the contract exact site',()=>{
   })
   it('stops the manual resend before queueing or replacing any link if the contract lacks site',async()=>{
     contract().site_id=null;contract().customer_site_id=null
-    const f=new FormData();f.set('customer_id','customer-a');f.set('contract_id','contract-a')
-    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*error=/)
+    const f=signatureForm()
+    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*error=.*anl%C3%A4ggning/)
     expect(io.sent).toHaveLength(0)
   })
-  it('permits the manual send for the exact valid customer/tenant/site',async()=>{
-    const f=new FormData();f.set('customer_id','customer-a');f.set('contract_id','contract-a')
+  it.each(['contracts.write','contracts.create','contracts.read'])('rejects manually invoked signing for one actor grant %s',async permission=>{
+    io.permissions=[permission]
+    const f=signatureForm()
+    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*error=Forbidden/)
+    expect(io.sent).toHaveLength(0)
+  })
+  it.each([false,true])('holds manual signing for a suspended contract company even when platform=%s',async platform=>{
+    io.platform=platform
+    io.tables.companies[0].suspended_at='2026-11-14T00:00:00Z'
+    const f=signatureForm()
+    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*error=.*aktivt/)
+    expect(io.sent).toHaveLength(0)
+  })
+  it('keeps the platform permission exception for a valid contract in an active company',async()=>{
+    io.platform=true;io.permissions=[]
+    const f=signatureForm()
     await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*sent=1/)
     expect(io.sent).toHaveLength(1)
+  })
+  it('permits the manual send for the exact valid customer/tenant/site and preserves the command scope',async()=>{
+    const f=signatureForm()
+    const expectedRequestId='00171173-0000-4000-8000-000000000042'
+    f.set('expected_signature_request_id',expectedRequestId)
+    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*sent=1/)
+    expect(io.sent).toHaveLength(1)
+    expect(io.sent[0]).toMatchObject({command:{id:commandId,expectedRequestId}})
+  })
+  it('declines a stale form without the command identity before any signing request',async()=>{
+    const f=signatureForm();f.delete('signature_command_id')
+    await expect(sendContractSignatureLinkAction(f)).rejects.toThrow(/REDIRECT:.*error=.*Formul%C3%A4ret/)
+    expect(io.sent).toHaveLength(0)
   })
 })
 

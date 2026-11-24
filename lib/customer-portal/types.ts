@@ -29,6 +29,7 @@ export type CustomerInvoiceRow = {
   agreement_id: string | null
   billing_underlay_id: string | null
   partner_export_id: string | null
+  invoice_reference?: string | null
   partner_invoice_reference: string | null
   invoice_number: string | null
   period_start: string | null
@@ -48,6 +49,7 @@ export type CustomerInvoiceRow = {
   raw_payload: Record<string, unknown>
   created_at: string
   updated_at: string
+  metadata?: Record<string, unknown> | null
 }
 
 export type CustomerInvoiceLineRow = {
@@ -74,6 +76,8 @@ export type CustomerInvoiceDocumentRow = {
   public_url: string | null
   source_system: string | null
   created_at: string
+  metadata?: Record<string, unknown> | null
+  storage_bucket?: string | null
 }
 
 export type CustomerPortalCustomerRow = {
@@ -117,6 +121,7 @@ export type CustomerPortalMeteringValueRow = {
   customer_id: string
   site_id: string | null
   metering_point_id: string
+  meter_point_id?: string | null
   source_request_id: string | null
   grid_owner_id: string | null
   reading_type: string
@@ -148,14 +153,19 @@ export type CustomerPortalContext = {
    */
   companyId: string | null
   customerIds: string[]
+  requestResponseCustomerIds?: string[]
   customers: CustomerPortalCustomerRow[]
   branding: CustomerPortalBranding
 }
 
+export type CustomerConsumptionReviewReason = 'coverage_gap' | 'reading_overlap' | 'supply_unconfirmed'
+
 export type CustomerConsumptionMonth = {
   monthKey: string
   label: string
-  totalKwh: number
+  totalKwh: number | null
+  needsFinerIntervals?: boolean
+  reviewReasons?: CustomerConsumptionReviewReason[]
   valueCount: number
   /**
    * Full-month native aggregation only: false when intervals are missing for the month
@@ -193,15 +203,9 @@ export type CustomerPortalContractRow = {
 export type CustomerPortalCaseRow = {
   id: string
   customer_id: string
-  site_id: string | null
-  metering_point_id: string | null
-  case_type: string | null
-  status: string | null
-  priority: string | null
-  title: string | null
+  status: 'received' | 'in_progress' | 'resolved' | 'closed'
+  title: string
   description: string | null
-  reason_category: string | null
-  next_action: string | null
   created_at: string
   updated_at: string
 }
@@ -215,6 +219,7 @@ export type CustomerPortalInfoRequestRow = {
   target_party_type: string | null
   status: string | null
   requested_data_categories: unknown
+  automation_origin?: string | null
   notes: string | null
   created_at: string
   updated_at: string

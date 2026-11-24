@@ -1,3 +1,4 @@
+import { readPortalInvoiceReviewMonths } from '@/lib/billing/readInvoiceEdielReview'
 import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { getCustomerPortalContext, listPortalInvoices } from '@/lib/customer-portal/db'
@@ -8,13 +9,19 @@ import {
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
+  isCancelledOrCreditedInvoice,
 } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
 
+const reviewMonthFormat = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
 export default async function PortalInvoicesPage() {
   const context = await getCustomerPortalContext()
-  const invoices = await listPortalInvoices(context)
+  const [invoices, reviewMonths] = await Promise.all([
+    listPortalInvoices(context),
+    readPortalInvoiceReviewMonths(context.companyId, context.customerIds),
+  ])
 
   return (
     <div className="space-y-6">
@@ -22,9 +29,19 @@ export default async function PortalInvoicesPage() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-950">Mina fakturor</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
           Här visas fakturor som har skapats och bekräftats hos {context.branding.brandName}.
-          Fakturaunderlag som ännu inte blivit faktura visas inte här.
+          Fakturaunderlag som ännu inte blivit faktura visas inte i fakturalistan.
         </p>
       </section>
+
+      {reviewMonths.length > 0 ? (
+        <section aria-label="Fakturaunderlag som behöver granskas" className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-950">
+          {reviewMonths.map((month) => (
+            <p key={month.toISOString()}>
+              Fakturaunderlaget för {reviewMonthFormat.format(month)} behöver granskas.
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
@@ -48,7 +65,9 @@ export default async function PortalInvoicesPage() {
                 </div>
 
                 <div className="text-sm text-slate-600">{formatPeriod(invoice.period_start, invoice.period_end)}</div>
-                <div className="text-sm text-slate-600">Förfallodatum {formatDate(invoice.due_date)}</div>
+                <div className="text-sm text-slate-600">
+                  {isCancelledOrCreditedInvoice(invoice.status) ? null : <>Förfallodatum {formatDate(invoice.due_date)}</>}
+                </div>
                 <div className="text-sm font-semibold text-slate-950">{formatSek(invoice.amount_inc_vat)}</div>
                 <div className="flex items-center gap-3">
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${invoiceStatusTone(invoice.status)}`}>

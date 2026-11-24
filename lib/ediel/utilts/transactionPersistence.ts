@@ -1,6 +1,6 @@
 import { canonicalUtiltsDecimal } from './exactDecimal'
 import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
-import { canonicalUtiltsTransactions, utiltsPhysicalQuantityQuality, type CanonicalUtiltsObservation } from './canonicalObservationScope'
+import { canonicalUtiltsTransactions, utiltsPhysicalQuantityQuality, type CanonicalUtiltsObservation, type CanonicalUtiltsQuantity } from './canonicalObservationScope'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
@@ -10,7 +10,7 @@ import type {
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { createHash } from 'node:crypto'
-import { edifactInstantInDeclaredOffset, localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
+import { edifactInstantInDeclaredOffset, localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromComponents, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
 import { canonicalAbsoluteInstant, consumptionConflict, consumptionEqual, legacyUtiltsRetryComparison, validateUtiltsConsumptionContract, type UtiltsConsumptionContract } from './consumptionContract'
 
@@ -160,16 +160,36 @@ function transactionById(
   return transactions.find((transaction) => transaction.transactionId === transactionId) ?? null
 }
 
+function timezoneFromPhysicalHeader(wire: ReturnType<typeof tokenizeEdifact>) {
+  const start = wire.segments.findIndex(segment => segment.tag === 'UNH')
+  if (start < 0) return null
+  const end = wire.segments.findIndex((segment, index) =>
+    index > start && ['IDE', 'UNH', 'UNT', 'UNZ'].includes(segment.tag))
+  const declarations = wire.segments.slice(start + 1, end < 0 ? undefined : end)
+    .filter(segment => segment.tag === 'DTM')
+    .map(segment => segmentComposite(segment, 1, wire.una))
+    .filter(parts => parts[0] === '735')
+  const first = declarations[0] ? parseEdifactTimezoneOffsetFromComponents(declarations[0]) : null
+  if (!first || declarations.some(parts =>
+    parseEdifactTimezoneOffsetFromComponents(parts)?.offsetMinutes !== first.offsetMinutes)) return null
+  return first
+}
+
 export function buildUtiltsTransactionPersistencePayload(input: {
   messageCode: string | null | undefined
   transactions: readonly UtiltsRuntimeTransaction[]
   dispositions: readonly UtiltsTransactionDisposition[]
   matches: readonly UtiltsPersistenceMatch[]
+  rawPayload?: string | null
   rawSegments?: readonly string[]
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
-  const timezone = parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
-  const wire = input.rawSegments?.length ? tokenizeEdifact(input.rawSegments.map(segment => segment.endsWith("'") ? segment : segment + "'").join('\n')) : null
+  const original = input.rawPayload == null ? null : tokenizeEdifact(input.rawPayload)
+  const legacyWire = !original && input.rawSegments?.length
+    ? tokenizeEdifact(input.rawSegments.map(segment => segment.endsWith("'") ? segment : segment + "'").join('\n'))
+    : null
+  const wire = original ?? legacyWire
+  const timezone = original ? timezoneFromPhysicalHeader(original) : parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
   const physical = wire ? canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment => segment.tag === 'UNH')), wire.una, 0) : []
   // The source fields are local wall-clock times. Without the wire's DTM+735,
   // do not invent a UTC instant for durable series evidence.
@@ -228,7 +248,7 @@ function positionalEnergyStarts(contract: UtiltsConsumptionContract, transaction
   const starts = new Map<number, string>()
   if (contract.version === 1 || (contract.messageCode !== 'E30' && contract.messageCode !== 'E66')) return starts
   const resolution = normalizeEdifactResolution({ value: contract.interpretation.resolutionValue, format: contract.interpretation.resolutionFormat })
-  const timezone = parseEdifactTimezoneOffsetFromSegments(wire.segments.map(segment => segment.raw))
+  const timezone = timezoneFromPhysicalHeader(wire)
   const localStart = edifactInstantInDeclaredOffset(contract.interpretation.localPeriodStart, timezone)
   if (!resolution || !localStart) return starts
   const ordinals = new Map<string | null, number>()
@@ -249,7 +269,30 @@ function positionalEnergyStarts(contract: UtiltsConsumptionContract, transaction
   return consistent ? starts : new Map()
 }
 
-export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput & {actorUserId:string}): Promise<UtiltsTransactionPersistenceResult[]> {
+/** Field 530a (SG11/DTM+597) is the actual register reading time in the same SEQ/QTY scope. */
+function registerReadingAt(
+  observation: CanonicalUtiltsObservation | null,
+  quantity: CanonicalUtiltsQuantity,
+  wire: ReturnType<typeof tokenizeEdifact>,
+): string | null {
+  const timezone = timezoneFromPhysicalHeader(wire)
+  if (!observation || !timezone) return null
+
+  const nextQuantity = observation.quantities.find(candidate => candidate.segmentIndex > quantity.segmentIndex)?.segmentIndex ?? Infinity
+  const dates = observation.segments
+    .filter(segment => segment.tag === 'DTM' && segment.index > quantity.segmentIndex && segment.index < nextQuantity)
+    .map(segment => segmentComposite(segment, 1, wire.una))
+    .filter(parts => parts[0] === '597')
+  if (dates.length !== 1) return null
+
+  const [, stamp, format] = dates[0]
+  if (dates[0].length !== 3 || format !== '203' || !/^\d{12}$/.test(stamp)) return null
+
+  const local = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}T${stamp.slice(8, 10)}:${stamp.slice(10, 12)}`
+  return localEdifactDateTimeToUtc(local, timezone)
+}
+
+export function prepareUtiltsPersistenceRpcArguments(input: UtiltsBoundPersistenceInput & { actorUserId: string }) {
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.actorUserId)) consumptionConflict('execution_actor_required')
   if (!input.rawPayload || input.contracts.length !== input.transactions.length) consumptionConflict('prepared_contract_missing')
   input.contracts.forEach(validateUtiltsConsumptionContract)
@@ -257,14 +300,9 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
     const item=input.transactions[index]
     if(contract.version===3 && (item.disposition!=='guide_rejected' || item.responseType!=='negative_aperak' || !item.issueCodes.includes('UTILTS_TRANSACTION_ID_INVALID'))) consumptionConflict('rejected_diagnostic_outcome')
   })
-  // Narrow server-only boundary until the exact native-generated public types
-  // arrive. No generated file is hand-edited or global client type weakened.
-  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
-    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id:string
-  }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
   const wire = tokenizeEdifact(input.rawPayload)
   const physical = canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment=>segment.tag==='UNH')),wire.una,0)
-  const { data, error } = await rpc('gridex_persist_utilts_consumption_v1', {
+  return {
     p_company_id: input.companyId,
     p_environment: input.environment,
     p_source_message_id: input.sourceMessageId,
@@ -275,6 +313,9 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
       quantities: input.contracts[index].version !== 1 ? item.quantities.map((quantity,quantityIndex) => {
         const transaction=physical[index]
         const source=transaction?.observations.flatMap(observation=>observation.quantities)[quantityIndex]
+        const observation=source ? transaction?.observations.find(observation=>observation.quantities.includes(source)) ?? null : null
+        const isRegisterReading=input.messageCode==='E66' && source?.qualifier==='220'
+        const registerTime=isRegisterReading && item.disposition==='accepted' ? registerReadingAt(observation,source,wire) : null
         // SC-053: each stored value keeps its own source STS+8 quality, so a
         // missing (46) value and a verified zero (21) stay distinguishable.
         // PostgreSQL re-derives and compares it; the caller cannot invent it.
@@ -285,22 +326,32 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
           if(!transaction || !source || (source.value!==null && source.value!=='NULL') || source.raw!==quantity.raw || source.qualifier!==quantity.qualifier) return quantity
           // A missing energy value keeps its own declared interval, so an
           // authorized period read returns it as NULL rather than omitting it.
-          const readingAt=item.disposition==='accepted' ? positionalEnergyStarts(input.contracts[index],transaction,wire).get(quantityIndex) ?? null : null
-          return {...quantity,...quality(transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null),...(readingAt?{readingAt}:{})}
+          const readingAt=isRegisterReading ? registerTime : item.disposition==='accepted'
+            ? positionalEnergyStarts(input.contracts[index],transaction,wire).get(quantityIndex) ?? null
+            : null
+          return {...quantity,...quality(observation),...(readingAt?{readingAt}:{})}
         }
         if(!transaction || !source || source.value===null || source.raw!==quantity.raw || source.qualifier!==quantity.qualifier) consumptionConflict('physical_quantity_membership')
-        const observation=transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null
         const unit=utiltsPhysicalQuantityUnit(transaction,observation,source,wire.una)
         const consumed = input.contracts[index].observations.some(observation=>observation.sourceOrdinal===quantityIndex)
         const consumerUnit=input.messageCode==='E30' ? utiltsE30StandardEnergyUnit(transaction,source,wire.una) : unit
         if(item.disposition === 'accepted' && (unit!==item.unit || (consumed && !consumerUnit))) consumptionConflict('physical_quantity_unit')
-        // The contract's own observation interval positions the stored value
-        // (series windows are [start,end)); a quantity no observation consumes
-        // keeps no invented time.
-        const readingAt=input.contracts[index].observations.find(observation=>observation.sourceOrdinal===quantityIndex)?.periodStart ?? null
+        // Register readings keep their own time. Periodic energy is stored at
+        // its contracted interval start for [start,end) series reads.
+        const readingAt=isRegisterReading ? registerTime
+          : input.contracts[index].observations.find(observation=>observation.sourceOrdinal===quantityIndex)?.periodStart ?? null
         return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark),...quality(observation),...(readingAt?{readingAt}:{})}
       }) : item.quantities, consumptionContract: input.contracts[index] })),
-  })
+  }
+}
+
+export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput & { actorUserId: string }): Promise<UtiltsTransactionPersistenceResult[]> {
+  // Narrow server-only boundary until the exact native-generated public types
+  // arrive. No generated file is hand-edited or global client type weakened.
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
+    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id:string
+  }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+  const { data, error } = await rpc('gridex_persist_utilts_consumption_v1', prepareUtiltsPersistenceRpcArguments(input))
 
   if (error) throw new Error(`utilts_transaction_persistence_failed:${error.message}`)
   try { return validateUtiltsPersistenceResults(input, data) } catch (cause) {
@@ -317,7 +368,7 @@ export async function finalizeUtiltsTransactionAck(input: {
   responseMessageId: string
 }): Promise<void> {
   const now = new Date().toISOString()
-  const { data: updated, error } = await supabaseService
+  const { data: updated, error, status } = await supabaseService
     .from('ediel_ack_transaction_results')
     .update({
       final_response_type: input.responseType,
@@ -332,12 +383,13 @@ export async function finalizeUtiltsTransactionAck(input: {
     .is('finalized_at', null)
     .select('id')
 
-  if (error) throw new Error(`utilts_transaction_ack_finalization_failed:${error.message}`)
-  if (updated?.length === 1) return
-  if (updated?.length) throw new Error('utilts_transaction_ack_finalization_ambiguous')
+  const commitUncertain = status === 0 || (!error?.code && [502, 503, 504].includes(status))
+  if (error && !commitUncertain) throw new Error(`utilts_transaction_ack_finalization_failed:${error.message}`)
+  if (!error && updated?.length === 1) return
+  if (!error && updated?.length) throw new Error('utilts_transaction_ack_finalization_ambiguous')
 
-  // A concurrent finalizer or an identical retry can leave zero rows in the
-  // conditional update. The stored response must be the same immutable ACK.
+  // A concurrent finalizer can win the update, or its commit response can be
+  // lost. Only the exact persisted ACK satisfies this caller's operation.
   const { data: existing, error: readError } = await supabaseService
     .from('ediel_ack_transaction_results')
     .select('final_response_type,response_message_id,finalized_at')
@@ -346,8 +398,11 @@ export async function finalizeUtiltsTransactionAck(input: {
     .eq('source_message_id', input.sourceMessageId)
     .eq('source_transaction_id', input.transactionId)
     .maybeSingle()
-  if (readError) throw new Error(`utilts_transaction_ack_finalization_failed:${readError.message}`)
-  if (!existing?.finalized_at || existing.final_response_type !== input.responseType || existing.response_message_id !== input.responseMessageId) {
-    throw new Error('utilts_transaction_ack_finalization_conflict')
-  }
+  if (!readError && existing?.finalized_at
+    && existing.final_response_type === input.responseType
+    && existing.response_message_id === input.responseMessageId) return
+
+  const failure = error ?? readError
+  if (failure) throw new Error(`utilts_transaction_ack_finalization_failed:${failure.message}`)
+  throw new Error('utilts_transaction_ack_finalization_conflict')
 }

@@ -358,6 +358,13 @@ export function contractDatabaseErrorMessage(error: unknown): string | null {
   const code = typeof record.code === 'string' ? record.code : ''
   const message = typeof record.message === 'string' ? record.message : error instanceof Error ? error.message : ''
   const details = typeof record.details === 'string' ? record.details : ''
+  if (error instanceof ContractLifecycleActionError && code === 'contract_version_not_publishable') {
+    if (error.blockers.some((blocker) => blocker.code === 'tenant_go_live_not_ready')) {
+      return CONTRACT_LIFECYCLE_REASON_MESSAGES.tenant_go_live_not_ready
+    }
+    return CONTRACT_LIFECYCLE_REASON_MESSAGES.contract_version_not_publishable
+  }
+
   const combined = `${message} ${details}`
 
   for (const [reason, userMessage] of Object.entries(CONTRACT_LIFECYCLE_REASON_MESSAGES)) {

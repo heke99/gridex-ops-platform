@@ -136,10 +136,7 @@ export async function createAuthorizationRequestPackageAction(...args: Parameter
 
 export async function createCustomerDataRequestPackageAction(...args: Parameters<typeof implementation3.createCustomerDataRequestPackageAction>) {
   const [formData] = args
-  const result = await runCustomerActionWithMeterValuePreparation({
-    formData,
-    operation: () => implementation3.createCustomerDataRequestPackageAction(...args),
-  })
+  const result = await implementation3.createCustomerDataRequestPackageAction(...args)
   if (formText(formData, 'redirect_after_submit') === 'customer_data_requests') {
     const allowed = ['blocked_missing_poa', 'blocked_reference', 'blocked_scope', 'queued', 'prepared', 'needs_review']
     const status = allowed.includes(result?.status) ? result.status : 'needs_review'

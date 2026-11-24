@@ -296,6 +296,29 @@ export default function DocumentHistoryList({
  <form action={verifyCustomerAuthorizationDocumentAndRequestDataAction}>
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="document_id" value={documentRow.id} />
+ <details className="mb-2 space-y-2 rounded-xl border border-slate-200 p-2 text-xs">
+ <summary className="cursor-pointer font-semibold">Begär även mätvärden</summary>
+ <label className="flex items-center gap-2">
+ <input type="checkbox" name="include_meter_values" />
+ <span>Ta med mätvärdesbegäran</span>
+ </label>
+ <label className="grid gap-1">
+ <span>Periodens första dag</span>
+ <input type="date" name="requested_period_start" className="rounded border border-slate-300 p-1" />
+ </label>
+ <label className="grid gap-1">
+ <span>Periodens sista dag (inklusive)</span>
+ <input type="date" name="requested_period_end" className="rounded border border-slate-300 p-1" />
+ </label>
+ <label className="grid gap-1">
+ <span>Ediel-miljö</span>
+ <select name="metering_ediel_environment" defaultValue="" className="rounded border border-slate-300 p-1">
+ <option value="">Välj miljö</option>
+ <option value="test">Test</option>
+ <option value="production">Produktion</option>
+ </select>
+ </label>
+ </details>
  <SubmitButton
  idleLabel="Verifiera & begär uppgifter"
  pendingLabel="Skapar begäran..."

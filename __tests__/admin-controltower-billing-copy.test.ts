@@ -2,8 +2,8 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 
-const io = vi.hoisted(() => ({ tables: {} as Record<string, Array<Record<string, unknown>>> }))
-vi.mock('@/lib/admin/guards', () => ({ isPlatformAdminContext: () => false, requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: ['cases.read', 'cases.write'] }) }))
+const io = vi.hoisted(() => ({ tables: {} as Record<string, Array<Record<string, unknown>>>, permissions: [] as string[] }))
+vi.mock('@/lib/admin/guards', () => ({ isPlatformAdminContext: () => false, requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: io.permissions }) }))
 vi.mock('@/lib/tenant/adminScope', () => ({
   resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: false }),
   resolveAdminSelectedCompanyReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: false }),
@@ -40,7 +40,7 @@ import UnderlaysPage from '@/app/admin/billing/underlays/page'
 import UnderlayDetailPage from '@/app/admin/billing/underlays/[id]/page'
 
 function visibleText(html: string) { return html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') }
-beforeEach(() => { io.tables = {}; vi.stubGlobal('React', React) })
+beforeEach(() => { io.tables = {}; io.permissions = ['cases.read', 'cases.write']; vi.stubGlobal('React', React) })
 
 it('describes an actionable case and task with Swedish priority and status', async () => {
   io.tables.customer_cases = [{
@@ -71,4 +71,26 @@ it('translates underlay readiness and pricing-run status in the real list and de
   expect(detail).toContain('Klar')
   expect(detail).not.toContain('incomplete')
   expect(detail).not.toContain('success')
+})
+
+
+it('routes a blocked billing item to its own underlay and keeps other scoped queue actions', async () => {
+  const underlay = 'a1010000-0000-4000-8000-000000000061'
+  io.tables.gridex_batch_2c_drift_queue_v = [
+    { queue_type: 'billing_export_item', company_id: 'synthetic-company',
+      source_id: 'billing-item', title: 'Blockerad fakturarad', payload: { billing_underlay_id: underlay } },
+    { queue_type: 'customer_case', company_id: 'synthetic-company', source_id: 'case-item', title: 'Annat kundärende' },
+    { queue_type: 'billing_export_item', company_id: 'other-company',
+      source_id: 'foreign-billing-item', title: 'Främmande faktura', payload: { billing_underlay_id: underlay } },
+  ]
+  const view = async () => renderToStaticMarkup(await ControlTowerPage({ searchParams: Promise.resolve({}) }))
+  const reader = await view()
+  expect(reader).not.toContain(underlay)
+  expect(reader).toContain('Blockeringen hanteras i faktureringen.')
+  io.permissions.push('billing_underlay.read')
+  const operator = await view()
+  expect(operator).toContain(`href="/admin/billing/underlays/${underlay}"`)
+  expect(operator).not.toContain('name="queue_type" value="billing_export_item"')
+  expect(operator).toContain('name="queue_type" value="customer_case"')
+  expect(operator).not.toContain('Främmande faktura')
 })

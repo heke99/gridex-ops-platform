@@ -182,6 +182,7 @@ export function evaluateIntentValidation(
     messageType: input.messageCode,
     businessCode: input.messageCode,
     applicationReference: input.applicationReference,
+    requestedMessageCode: str(input.payload?.requestedMessageCode),
     environment: input.environment,
     sender: input.senderEdielId,
     receiver: input.receiverEdielId,
@@ -370,10 +371,24 @@ function reusableNormalSwitchIntent(input: CreateEdielMessageIntentInput, existi
   return existing
 }
 
+function reusableSupplierE73Intent(input: CreateEdielMessageIntentInput, stored: EdielMessageIntent): EdielMessageIntent {
+  const identity = ['companyId', 'environment', 'messageFamily', 'messageCode', 'businessProcess',
+    'senderEdielId', 'senderSubaddress', 'receiverEdielId', 'receiverSubaddress', 'applicationReference',
+    'routeProfileId', 'communicationRouteId', 'customerId', 'customerSiteId', 'facilityId', 'meteringPointId',
+    'operationId', 'idempotencyKey', 'transactionReference', 'messageReference'] as const
+  if (stored.market !== 'electricity' || stored.direction !== 'outbound' || !str(stored.interchangeReference)
+    || identity.some(field => str(stored[field]) !== str(input[field]))
+    || !isDeepStrictEqual(stored.payload, input.payload)) throw new Error('supplier_e73_intent_source_conflict')
+  return stored
+}
+
 export async function createEdielMessageIntent(
-  input: CreateEdielMessageIntentInput & { normalSwitchInsertOnly?: true },
+  input: CreateEdielMessageIntentInput & { normalSwitchInsertOnly?: true; supplierE73InsertOnly?: true },
 ): Promise<EdielMessageIntent> {
   if (input.normalSwitchInsertOnly) assertNormalSwitchIntentSource(input)
+  if (input.supplierE73InsertOnly && (input.messageFamily !== 'UTILTS' || input.messageCode !== 'E73'
+    || input.businessProcess !== 'metering_values' || !str(input.operationId) || !str(input.customerId) || !str(input.customerSiteId)
+    || !str(input.meteringPointId) || !str(input.payload?.grid_owner_data_request_id))) throw new Error('supplier_e73_intent_source_required')
   const validation = evaluateIntentValidation(input)
   const actorUserId = userActorUuid(input.actorUserId)
 
@@ -385,6 +400,7 @@ export async function createEdielMessageIntent(
     })
     if (existing) {
       if (input.normalSwitchInsertOnly) return reusableNormalSwitchIntent(input, existing)
+      if (input.supplierE73InsertOnly) return reusableSupplierE73Intent(input, existing)
       const alreadyRenderedOrQueued = Boolean(existing.edielMessageId) || existing.outboxStatus !== 'not_queued'
       if (!alreadyRenderedOrQueued) {
         const revalidation = evaluateIntentValidation(existing)
@@ -452,7 +468,7 @@ export async function createEdielMessageIntent(
     updated_by: actorUserId,
   }
 
-  if (input.normalSwitchInsertOnly) {
+  if (input.normalSwitchInsertOnly || input.supplierE73InsertOnly) {
     const insertOnly = tenantDb(input.companyId).from('ediel_message_intents')
       .upsert(row, { onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true }) as ReturnType<ReturnType<typeof supabaseService.from>['upsert']>
     const { data, error } = await insertOnly.select('*').maybeSingle()
@@ -460,8 +476,8 @@ export async function createEdielMessageIntent(
     const winner = data ? mapRowToIntent(data as IntentRow) : await findExistingIntent({
       companyId: input.companyId, environment: input.environment, idempotencyKey: input.idempotencyKey,
     })
-    if (!winner) throw new Error('normal_switch_intent_winner_missing')
-    return reusableNormalSwitchIntent(input, winner)
+    if (!winner) throw new Error(input.supplierE73InsertOnly ? 'supplier_e73_intent_winner_missing' : 'normal_switch_intent_winner_missing')
+    return input.supplierE73InsertOnly ? reusableSupplierE73Intent(input, winner) : reusableNormalSwitchIntent(input, winner)
   }
 
   const { data, error } = await supabaseService

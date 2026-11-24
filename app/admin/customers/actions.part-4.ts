@@ -1,12 +1,18 @@
 // Extracted from actions.ts; keep public imports on the facade module.
+import { randomUUID } from "node:crypto"
 import { revalidatePath } from "next/cache"
 
 
-import { requireAdminActionAccess } from "@/lib/admin/guards"
+import { requireAdminCustomerIntakeContext } from "@/lib/customers/adminIntakeScope"
 import { supabaseService } from "@/lib/supabase/service"
-import { requireOperationalCompanyId } from "@/lib/tenant/scope"
-import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
 import { parseCustomerImportFormData } from "@/lib/customers/importParser"
+import {
+  CUSTOMER_IMPORT_AUDIT_ACTION,
+  CUSTOMER_IMPORT_AUDIT_ENTITY,
+  isMissingCustomerImportRelation,
+  shortCustomerImportReceipt,
+  type CustomerImportReviewStore,
+} from "@/lib/customers/importHistory"
 
 
 import { matchCustomerIdentity } from "@/lib/customers/matchingService"
@@ -20,15 +26,13 @@ import type { CustomerImportActionState, CustomerImportPreviewRow, CustomerImpor
 
 
 
-import { getActorUserId, getNullableString, insertAuditLog, isEmail, isSwedishIdentityNumber, isSwedishOrgNumber, isSwedishPhone, isSwedishPostalCode, normalizeCustomerType, validateCreateCustomerParams } from './actions.part-1'
+import { getNullableString, insertAuditLog, isEmail, isSwedishIdentityNumber, isSwedishOrgNumber, isSwedishPhone, isSwedishPostalCode, normalizeCustomerType, validateCreateCustomerParams } from './actions.part-1'
 import { createCustomerGraph, databaseObjectMissing, findIntakeDuplicates, mapUnknownErrorToIntakeState } from './actions.part-2'
 import { buildAdminIntakeIdempotencyKey, buildCustomerParamsFromImportRow, insertImportRow, recordDocumentAiExtractionForImport, resolveContractOfferIdForImport } from './actions.part-3'
 
 export async function bulkCreateCustomersAction(formData: FormData) {
-  await requireAdminActionAccess({ allOf: ["customers.write"] });
-  const actorUserId = await getActorUserId();
-  const companyId = await requireOperationalCompanyId(actorUserId);
-  await requireCompanyOperationalForWrites(companyId);
+  const { actor, companyId } = await requireAdminCustomerIntakeContext();
+  const actorUserId = actor.userId;
 
   const parsedImport = await parseCustomerImportFormData(formData);
   const rows = parsedImport.rows;
@@ -49,7 +53,16 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     file && typeof file === "object" && "name" in file
       ? String((file as File).name)
       : null;
-  const importBatchResult = await supabaseService
+  const { error: importRowsError } = await supabaseService
+    .from("customer_import_rows")
+    .select("id")
+    .eq("company_id", companyId)
+    .limit(0);
+  if (importRowsError && !isMissingCustomerImportRelation(importRowsError, "customer_import_rows")) {
+    throw importRowsError;
+  }
+
+  const importBatchResult = importRowsError ? null : await supabaseService
     .from("customer_import_batches")
     .insert({
       company_id: companyId,
@@ -74,14 +87,13 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     .select("id")
     .maybeSingle();
 
-  if (
-    importBatchResult.error &&
-    !databaseObjectMissing(importBatchResult.error)
-  ) {
+  if (importBatchResult?.error && !isMissingCustomerImportRelation(importBatchResult.error, "customer_import_batches")) {
     throw importBatchResult.error;
   }
 
-  const importBatch = importBatchResult.data;
+  const importBatch = importBatchResult?.data;
+  let reviewStore: CustomerImportReviewStore = importBatch?.id ? "available"
+    : importRowsError || importBatchResult?.error ? "unavailable" : "incomplete";
 
   await recordDocumentAiExtractionForImport({
     companyId,
@@ -93,8 +105,17 @@ export async function bulkCreateCustomersAction(formData: FormData) {
 
   let created = 0;
   let review = 0;
+  let queuedReviewRows = 0;
+  let skippedRows = 0;
   let failed = 0;
   const errors: string[] = [];
+
+  async function saveLegacyRow(row: Omit<Parameters<typeof insertImportRow>[0], "importBatchId" | "companyId">) {
+    if (!importBatch?.id) return false;
+    const saved = await insertImportRow({ ...row, importBatchId: importBatch.id, companyId }).catch(() => false);
+    if (!saved) reviewStore = "incomplete";
+    return saved;
+  }
 
   for (const [index, originalRow] of rows.entries()) {
     const rowNumber = index + 2;
@@ -146,9 +167,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
 
       if (status !== "ready_to_create") {
         review += 1;
-        await insertImportRow({
-          importBatchId: importBatch?.id,
-          companyId,
+        const saved = await saveLegacyRow({
           rowNumber,
           status,
           row,
@@ -163,6 +182,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
           duplicateWarnings,
           confidence,
         });
+        if (saved) queuedReviewRows += 1;
         continue;
       }
 
@@ -188,9 +208,8 @@ export async function bulkCreateCustomersAction(formData: FormData) {
           (typeof rowIntake.customer_id === "string" ? rowIntake.customer_id : null) ??
           (typeof storedResult.customer_id === "string" ? (storedResult.customer_id as string) : null);
         review += 1;
-        await insertImportRow({
-          importBatchId: importBatch?.id,
-          companyId,
+        skippedRows += 1;
+        await saveLegacyRow({
           rowNumber,
           status: "skipped",
           row,
@@ -243,9 +262,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
         },
       }).catch(() => undefined);
 
-      await insertImportRow({
-        importBatchId: importBatch?.id,
-        companyId,
+      await saveLegacyRow({
         rowNumber,
         status: "created",
         row,
@@ -262,9 +279,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
       const message = `Rad ${rowNumber}: ${intakeError.message ?? "Okänt fel"}`;
       errors.push(message);
 
-      await insertImportRow({
-        importBatchId: importBatch?.id,
-        companyId,
+      await saveLegacyRow({
         rowNumber,
         status: "failed",
         row,
@@ -281,7 +296,7 @@ export async function bulkCreateCustomersAction(formData: FormData) {
   if (importBatch?.id) {
     const finalStatus =
       failed > 0 || review > 0 ? "partially_imported" : "completed";
-    await supabaseService
+    const finalized = await supabaseService
       .from("customer_import_batches")
       .update({
         status: finalStatus,
@@ -297,14 +312,18 @@ export async function bulkCreateCustomersAction(formData: FormData) {
           failedRows: failed,
         },
       })
-      .eq("id", importBatch.id);
+      .eq("id", importBatch.id)
+      .eq("company_id", companyId)
+      .select("id")
+      .maybeSingle();
+    if (finalized.error || !finalized.data?.id) reviewStore = "incomplete";
   }
 
-  await insertAuditLog({
+  const auditReceipt = await insertAuditLog({
     actorUserId,
-    entityType: "customer_bulk_import",
-    entityId: importBatch?.id ?? actorUserId,
-    action: "customer_bulk_import_completed",
+    entityType: CUSTOMER_IMPORT_AUDIT_ENTITY,
+    entityId: importBatch?.id ?? randomUUID(),
+    action: CUSTOMER_IMPORT_AUDIT_ACTION,
     newValues: {
       created,
       review,
@@ -314,9 +333,10 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     metadata: {
       totalRows: rows.length,
       sourceKind: parsedImport.sourceKind,
-      warnings: parsedImport.warnings,
-      firstError: errors[0] ?? null,
     },
+  }).catch(() => {
+    console.error("[customer-import] Kvitto för genomförd import kunde inte sparas.");
+    return null;
   });
 
   revalidatePath("/admin/customers");
@@ -327,6 +347,10 @@ export async function bulkCreateCustomersAction(formData: FormData) {
     totalRows: rows.length,
     createdRows: created,
     reviewRows: review,
+    queuedReviewRows,
+    skippedRows,
+    reviewStore,
+    auditReceiptId: auditReceipt?.id ?? null,
     failedRows: failed,
     warnings: parsedImport.warnings,
     firstError: errors[0] ?? null,
@@ -505,9 +529,8 @@ export async function previewCustomerImportAction(
   formData: FormData,
 ): Promise<CustomerImportActionState> {
   try {
-    await requireAdminActionAccess({ allOf: ["customers.write"] });
-    const actorUserId = await getActorUserId();
-    const companyId = await requireOperationalCompanyId(actorUserId);
+    const { actor, companyId } = await requireAdminCustomerIntakeContext();
+    const actorUserId = actor.userId;
     const parsedImport = await parseCustomerImportFormData(formData);
     const previewFile = formData.get("bulkFile");
     const previewFileName =
@@ -615,12 +638,20 @@ export async function commitCustomerImportAction(
 ): Promise<CustomerImportActionState> {
   try {
     const result = await bulkCreateCustomersAction(formData);
+    const unsavedReviewRows = result.reviewRows - result.skippedRows - result.queuedReviewRows;
+    const messages = [`Importen skapade ${result.createdRows} kunder.`];
+    if (result.queuedReviewRows) messages.push(`${result.queuedReviewRows} rader sparades för granskning.`);
+    if (unsavedReviewRows) messages.push(`${unsavedReviewRows} rader krävde granskning och sparades inte. Behåll originalunderlaget.`);
+    if (result.skippedRows) messages.push(`${result.skippedRows} rader hade redan importerats.`);
+    if (result.failedRows) messages.push(`${result.failedRows} rader misslyckades.`);
+    if (result.reviewStore === "unavailable") messages.push("Den manuella granskningskön är inte tillgänglig.");
+    if (result.reviewStore === "incomplete") messages.push("Importens granskningsspår kunde inte sparas fullständigt.");
+    messages.push(result.auditReceiptId
+      ? `Importkvitto ${shortCustomerImportReceipt(result.auditReceiptId)}.`
+      : "Importkvittot kunde inte sparas.");
     return {
-      status: result.failedRows > 0 ? "error" : "success",
-      message:
-        result.reviewRows > 0 || result.failedRows > 0
-          ? `Importen skapade ${result.createdRows} kunder. ${result.reviewRows} rader ligger i granskningskö och ${result.failedRows} rader misslyckades.`
-          : `Importen slutfördes med ${result.createdRows} skapade kunder.`,
+      status: result.failedRows > 0 || unsavedReviewRows > 0 || result.reviewStore === "incomplete" || !result.auditReceiptId ? "error" : "success",
+      message: messages.join(" "),
       totalRows: result.totalRows,
       createdRows: result.createdRows,
       failedRows: result.failedRows,

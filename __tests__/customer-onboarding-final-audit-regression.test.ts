@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import vm from 'node:vm'
 import React from 'react'
 import * as jsx from 'react/jsx-runtime'
@@ -12,6 +13,8 @@ let intakeUI: Record<string, unknown>
 let receivedNextStepAccess: unknown
 let pushedUrls: string[]
 let contract: Record<string, unknown>
+let signatureCompany: Record<string, unknown>
+let replacementTargets: Array<{ id: string }>
 const context = () => ({ userId: 'staff', companyId: 'company-a', permissions, roles: [], isPlatformAdmin: platform })
 const guard = async (requirement: string[] | PermissionRequirement) => {
   if (platform || operational && hasPermissionRequirement(permissions, Array.isArray(requirement) ? { anyOf: requirement } : requirement)) return context()
@@ -20,8 +23,13 @@ const guard = async (requirement: string[] | PermissionRequirement) => {
 const client = {
   auth: { getUser: async () => ({ data: { user: { email: 'staff@example.invalid' } } }) },
   from(table: string) {
-    const result = table === 'customers' ? { customer_number: '1001', full_name: 'Syntetisk kund', email: 'kund@example.invalid' } : table === 'customer_contracts' ? contract : []
-    const q: unknown = new Proxy({}, { get: (_, key) => key === 'then' ? (resolve: (v: unknown) => void) => Promise.resolve({ data: result, error: null }).then(resolve) : () => q })
+    const result = table === 'customers' ? { customer_number: '1001', full_name: 'Syntetisk kund', email: 'kund@example.invalid' } : table === 'customer_contracts' ? contract : table === 'companies' ? signatureCompany : []
+    let replacementLookup = false
+    const q: unknown = new Proxy({}, { get: (_, key) => {
+      if (key === 'select') return (columns: string) => { replacementLookup = table === 'customer_contract_signature_requests' && columns === 'id'; return q }
+      if (key === 'then') return (resolve: (v: unknown) => void) => Promise.resolve({ data: replacementLookup ? replacementTargets : result, error: null }).then(resolve)
+      return () => q
+    } })
     return q
   },
 }
@@ -31,13 +39,20 @@ function load(file: string) {
   const loadedModule = { exports: {} as Record<string, (...args: never[]) => unknown> }
   const requireModule = (name: string): unknown => {
     if (name === 'react/jsx-runtime') return jsx
+    if (name === 'node:crypto') return { randomUUID }
     if (name === 'react') return { useState: (initial: unknown) => [typeof initial === 'function' ? initial() : initial, () => {}], useEffect: () => {}, useRef: () => ({ current: null }), useActionState: () => [intakeUI, inertAction, false] }
     if (name === 'next/navigation') return { useRouter: () => ({ push: (url: string) => pushedUrls.push(url) }) }
     if (name === 'server-only') return {}
     if (name === '@/lib/admin/actionPresentation') return load('lib/admin/actionPresentation.ts')
     if (name === '@/lib/admin/accessModel') return { hasPermissionRequirement }
+    if (name === '@/lib/admin/masterdataPermissions') return load('lib/admin/masterdataPermissions.ts')
     if (name === '@/lib/admin/guards') return { requireAdminPageAccess: async () => context(), requireAdminActionAccess: guard, isPlatformAdminContext: () => platform }
-    if (name === '@/lib/tenant/governance') return { getCompanyById: async () => ({ status: operational ? 'active' : 'paused' }), isCompanyOperationalForWrites: (s: string) => s === 'active' }
+    if (name === '@/lib/tenant/governance') return {
+      ...load('lib/tenant/governance.ts'),
+      getCompanyById: async () => ({ status: operational ? 'active' : 'paused' }),
+      isCompanyOperationalForWrites: (s: string) => s === 'active',
+    }
+    if (name === '@/lib/performance/mapWithConcurrency') return load('lib/performance/mapWithConcurrency.ts')
     if (name === '@/lib/tenant/adminScope') return { resolveAdminTenantReadScope: async () => ({ companyId: 'company-a', companyName: 'Syntetiskt bolag', isPlatformAdmin: platform }) }
     if (name === '@/lib/supabase/server') return { createSupabaseServerClient: async () => client }
     if (name === '@/lib/supabase/service') return { supabaseService: client }
@@ -60,6 +75,7 @@ function load(file: string) {
     if (name === '@/app/admin/customers/[id]/actions') return { createCustomerDataRequestPackageAction: inertAction }
     if (name === '@/app/admin/customers/actionState') return { initialIntakeActionState: { status: 'idle', values: {}, fieldErrors: {} } }
     if (name === './actions') return { sendContractSignatureLinkAction: inertAction }
+    if (name === './policy') return load('app/admin/customers/[id]/contracts/[contractId]/signature/policy.ts')
     throw new Error(`Unexpected test dependency ${name}`)
   }
   vm.runInNewContext(code, { module: loadedModule, exports: loadedModule.exports, require: requireModule, React, Error, Date, Intl, console, URLSearchParams }, { filename: file })
@@ -73,6 +89,8 @@ async function intake(params: Record<string, string> = {}) {
 }
 beforeEach(() => {
   permissions = []; platform = false; operational = true; siteReady = true; pushedUrls = []; receivedNextStepAccess = undefined; intakeUI = { status: "success", message: "Kund skapad", createdCustomerId: "customer-a", values: {}, fieldErrors: {} }
+  signatureCompany = { is_active: true, lifecycle_status: 'active', suspended_at: null }
+  replacementTargets = []
   contract = { id: 'contract-a', status: 'draft', signed_at: null, contract_name: 'Elavtal', contract_number: 'A1' }
 })
 it('keeps intake registration and import forms out of the masterdata reader view', async () => {
@@ -95,16 +113,50 @@ it('retains signature details for a reader without offering a send command', asy
   expect(html).not.toContain('name="recipient_email"')
   expect(html).toContain('behörig')
 })
+it.each(['contracts.write', 'contracts.create'])('keeps history but hides signing for a company actor with only %s', async permission => {
+  permissions = ['contracts.read', permission]
+  const html = await signature()
+  expect(html).toContain('Signeringshistorik')
+  expect(html).not.toContain('name="recipient_email"')
+})
+it.each([
+  [false, { is_active: true, lifecycle_status: 'suspended', suspended_at: null }],
+  [false, { is_active: true, lifecycle_status: 'active', suspended_at: '2026-11-14T00:00:00Z' }],
+  [true, { is_active: false, lifecycle_status: 'active', suspended_at: null }],
+])('hides signing for a non-operational contract company, platform=%s and company=%j', async (admin, company) => {
+  platform = admin
+  permissions = admin ? [] : ['contracts.read', 'contracts.write', 'contracts.create']
+  signatureCompany = company
+  const html = await signature()
+  expect(html).toContain('Signeringshistorik')
+  expect(html).not.toContain('name="recipient_email"')
+})
 it.each([false, true])('retains allowed signing controls for writer/platform=%s', async admin => {
-  platform = admin; permissions = admin ? [] : ['contracts.write']
+  platform = admin; permissions = admin ? [] : ['contracts.write', 'contracts.create']
   expect(await signature()).toContain('name="recipient_email"')
 })
+it('binds a replaceable sign request even when the bounded history does not contain it', async () => {
+  permissions = ['contracts.write', 'contracts.create']
+  const id = '00171173-0000-4000-8000-000000000041'
+  replacementTargets = [{ id }]
+  const html = await signature()
+  expect(html).toContain('name="signature_command_id"')
+  expect(html).toContain(`name="expected_signature_request_id" value="${id}"`)
+})
+it('preserves history and withholds replacement when two open requests compete', async () => {
+  permissions = ['contracts.write', 'contracts.create']
+  replacementTargets = [{ id: '00171173-0000-4000-8000-000000000041' }, { id: '00171173-0000-4000-8000-000000000042' }]
+  const html = await signature()
+  expect(html).toContain('Signeringshistorik')
+  expect(html).toContain('fastställa vilken signeringslänk')
+  expect(html).not.toContain('name="recipient_email"')
+})
 it.each(['signed', 'cancelled', 'active'])('does not offer signing for disallowed contract status %s', async status => {
-  permissions = ['contracts.write']; contract.status = status
+  permissions = ['contracts.write', 'contracts.create']; contract.status = status
   expect(await signature()).not.toContain('name="recipient_email"')
 })
 it('preserves the required signing site boundary for a writer', async () => {
-  permissions = ['contracts.write']; siteReady = false
+  permissions = ['contracts.write', 'contracts.create']; siteReady = false
   expect(await signature()).not.toContain('name="recipient_email"')
 })
 it('does not offer company writes when the company is paused', async () => {
@@ -179,8 +231,13 @@ function facadeResult(status: string | undefined, submit = 'customer_data_reques
   const redirect = (url: string) => { expect(completed).toBe(true); throw new Error(`REDIRECT:${url}`) }
   const action = exactFunction('app/admin/customers/[id]/actions.ts', 'createCustomerDataRequestPackageAction', {
     formText: (form: FormData, key: string) => form.get(key),
-    implementation3: { createCustomerDataRequestPackageAction: async () => status ? { status } : undefined },
-    runCustomerActionWithMeterValuePreparation: async ({ operation }: { operation: () => Promise<unknown> }) => { const result = await operation(); completed = true; return result },
+    implementation3: {
+      createCustomerDataRequestPackageAction: async () => {
+        await Promise.resolve()
+        completed = true
+        return status ? { status } : undefined
+      },
+    },
     redirect,
   })
   const form = new FormData(); form.set('customer_id', 'customer-a'); form.set('redirect_after_submit', submit)

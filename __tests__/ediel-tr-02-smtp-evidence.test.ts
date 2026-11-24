@@ -72,6 +72,27 @@ for (const lane of ['generic', 'sealed_z08'] as const) {
     expect(io.providerCalls).toBe(1)
   })
 
+  if (lane === 'generic') {
+    it.each([
+      [550, '550 5.1.1 Synthetic provider refusal', 'observed', 'ediel_smtp_permanent_rejection'],
+      [450, '450 4.2.0 Synthetic provider deferral', 'observed', 'ediel_delivery_uncertain'],
+      [550, '450 4.2.0 Inconsistent provider response', 'observed', 'ediel_delivery_uncertain'],
+      [550, '550 5.1.1 Synthetic provider refusal', 'entered', 'ediel_delivery_uncertain'],
+    ])('requires consistent SMTP %i evidence and a committed journal receipt (%s, %s)', async (responseCode, response, state, code) => {
+      io.outcome = Object.assign(new Error('Provider refused'), { responseCode, response, code: 'EMESSAGE', command: 'DATA' })
+      io.rpc.mockImplementation(async (_name, { p_input }) => ({
+        error: null,
+        data: p_input.action === 'observe'
+          ? { classification: 'explicit_negative', state, observedAt: '2026-10-04T12:00:00Z' }
+          : { proceed: true },
+      }))
+      await expect(send()).rejects.toMatchObject({ code })
+      expect(observation().result).toMatchObject({ smtpCode: responseCode, error: { response, responseCode } })
+      stableAttempt()
+      expect(io.providerCalls).toBe(1)
+    })
+  }
+
   it(`TR-02 ${lane} preserves timeout as unknown and suppresses a second provider call`, async () => {
     io.outcome = Object.assign(new Error('Synthetic DATA timeout'), { code: 'ETIMEDOUT', command: 'DATA' })
     await expect(send()).rejects.toMatchObject({ code: 'ediel_delivery_uncertain' })

@@ -11,7 +11,7 @@ const CUSTOMER_B = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 const POINT_1 = '11111111-1111-4111-8111-111111111111'
 const POINT_2 = '22222222-2222-4222-8222-222222222222'
 
-const state = vi.hoisted(() => ({ db: null as unknown as { query: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> }, detailRows: [] as Record<string, unknown>[] }))
+const state = vi.hoisted(() => ({ db: null as unknown as { query: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> }, detailRows: [] as Record<string, unknown>[], detailRelations: [] as string[] }))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: vi.fn() }))
@@ -19,6 +19,12 @@ vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     // Bridges the real TypeScript caller to the real SQL function in PGlite.
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'gridex_portal_monthly_consumption_v2') {
+        return { data: null, error: {
+          code: 'PGRST202',
+          message: 'Could not find the function public.gridex_portal_monthly_consumption_v2(p_company_id, p_customer_ids, p_from_month, p_to_month) in the schema cache',
+        } }
+      }
       if (name !== 'gridex_portal_monthly_consumption_v1') throw new Error(`unexpected rpc ${name}`)
       try {
         const result = await state.db.query(
@@ -30,7 +36,8 @@ vi.mock('@/lib/supabase/service', () => ({
         return { data: null, error }
       }
     },
-    from: () => {
+    from: (relation: string) => {
+      state.detailRelations.push(relation)
       let cap = Infinity
       const builder: Record<string, unknown> = {
         select: () => builder, eq: () => builder, in: () => builder, order: () => builder,
@@ -107,6 +114,7 @@ beforeEach(async () => {
   await exec(`truncate public.metering_values; truncate public.customers;
     insert into public.customers values ('${CUSTOMER_A}','${TENANT_A}'),('${CUSTOMER_B}','${TENANT_B}');`)
   state.detailRows = []
+  state.detailRelations = []
 })
 
 describe('F15 complete-month portal consumption (native aggregation)', () => {
@@ -118,7 +126,8 @@ describe('F15 complete-month portal consumption (native aggregation)', () => {
     const ctx = { companyId: TENANT_A, customerIds: [CUSTOMER_A] } as never
 
     expect(await listPortalMeteringValues(ctx, { limit: 250 })).toHaveLength(250)
-    expect(await listPortalMeteringValues(ctx, { limit: 500 })).toHaveLength(500)
+    expect(await listPortalMeteringValues(ctx, { limit: 500, currentOnly: true })).toHaveLength(500)
+    expect(state.detailRelations).toEqual(['metering_values', 'gridex_portal_current_metering_values_v1'])
     const cards = await listPortalMonthlyConsumption(ctx, { now: new Date('2026-08-20T12:00:00Z'), months: 3 })
     expect(cards).toEqual([{ monthKey: '2026-08', label: '2026-08', totalKwh: 744, valueCount: 744, complete: true }])
   })

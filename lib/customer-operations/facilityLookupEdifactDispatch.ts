@@ -182,7 +182,7 @@ async function markDispatchBlocked(input: {
       severity: 'error',
       actionRequired: true,
       source: 'facility_lookup_edifact_dispatch',
-      payload: { request_id: input.request.id, code: input.code, technicalMessage: input.message, details: input.details ?? {} },
+      payload: { request_id: input.request.id, code: input.code },
       idempotencyKey: `facility-lookup-edifact-blocked:${input.request.id}:${input.code}`,
     })
   }

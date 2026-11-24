@@ -46,15 +46,21 @@ function stampTest(raw:string,reference:string){
  const unz=t.segments.find(x=>x.tag==='UNZ')!,tail=segmentSourceSpan(unz)!,tailParts=unz.raw.split(t.una.dataElementSeparator);tailParts[2]=reference
  return raw.slice(0,span.startOffset)+parts.join(t.una.dataElementSeparator)+raw.slice(span.endOffset,tail.startOffset)+tailParts.join(t.una.dataElementSeparator)+raw.slice(tail.endOffset)
 }
-export async function createZ06fReadingNativeFixture(provider:(email:string)=>void){
- // Future supply is original declared source valid time; every source admission
- // remains its real native clock_timestamp(), never the UNB or selected date.
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()})
+export async function createZ06fReadingNativeFixture(
+ provider:(email:string)=>void,
+ options:{requestedStartDate?:string}={},
+){
+ // The selected date belongs to the new synthetic supply. Source admission has
+ // its real native clock_timestamp() for both historical and future delivery.
+ const f=await createRequestedChangeSupplyFixture(provider,{
+  requestedStartDate:options.requestedStartDate??futureNativeSupplyDate(),
+ })
  const operator=await createBilateralSourceOperator(f.companyId,['communication.read','communication.write','communication.send','customers.read','metering.read','metering.write','ediel_testing.write'])
  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.admin_users WHERE user_id IN(${literal(f.actorUserId)},${literal(operator.id)})))`)).toBe(false)
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
- const capture=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profile:string|null,direction:'inbound'|'outbound'='inbound')=>{
+ const capture=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profile:string|null,direction:'inbound'|'outbound'='inbound',beforeAdmission?:(wire:string)=>Promise<void>)=>{
   const fresh=utiltsNativeSourceFixture(stampTest(raw,randomUUID().replaceAll('-','').slice(0,14)),randomUUID()),id=fresh.id
+  await beforeAdmission?.(fresh.raw)
   // IMP05 (20261005130401): a prescribed CONTRL/APERAK returns from the mailbox
   // the inbound PRODAT original actually reached. Birth that retained mail
   // prospectively, link both mail columns and record its first reception via
@@ -88,12 +94,12 @@ export async function createZ06fReadingNativeFixture(provider:(email:string)=>vo
   if(!options.deferFirstApply)expect(await apply()).toMatchObject({status:'applied',appliedCount:1})
   return {message,apply}
  }
- const reading=async(options:Z06fNativeReadingOptions={})=>{
+ const reading=async(options:Z06fNativeReadingOptions={},beforeAdmission?:(wire:string)=>Promise<void>)=>{
   const raw=z06fNativeReadingWire(f,options)
   // The grid-owner issuer carries its synthetic approved issuer registration
   // and a reviewed history ground bound to this admission (as in the ESCO suite).
   registerUtiltsIssuer(sql,literal,f.receiver,f.actorUserId)
-  const message=await capture(raw,'UTILTS','E66','UTILTS:E66:E5SE5A:current-r3')
+  const message=await capture(raw,'UTILTS','E66','UTILTS:E66:E5SE5A:current-r3','inbound',beforeAdmission)
   seedUtiltsIssuerHistoryGround(sql,literal,message.id,f.actorUserId)
   const initial=await initialCanonicalUtiltsDecision(message),policy=initial.policy
   const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initial,message})??undefined,periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initial,message})??undefined

@@ -22,7 +22,14 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
-import { committedPatchedBody, committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
+import {
+  committedDurableE66WrapperBody,
+  committedPatchedBody,
+  committedPersistenceBody,
+  committedS01AreaPrecisionBody,
+  committedSc046ReturnStateBody,
+  type PersistenceCatalogReceipt,
+} from './helpers/utiltsPersistenceCatalog'
 const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
@@ -827,69 +834,6 @@ it('private storage and old unbound function are unavailable to service callers'
 // The SC046 forward changes only this wrapper's prosrc. Derive its installed
 // expectation from the exact committed predecessor and immutable forward; the
 // installed catalog itself must never supply the expected body.
-function sc046ExpectedWrapperBody(baseBody: string, migrationSource: string): string {
-  const hash = (value: string) => createHash('sha256').update(value).digest('hex')
-  if (hash(migrationSource) !== '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34') {
-    throw Error('native_sc046_migration_checksum_conflict')
-  }
-  if (hash(baseBody) !== 'd1072ccfd2c9ed9d7edd8e4bf780c0809bb4d904fe61a579be5239dfa6f220b1') {
-    throw Error('native_sc046_predecessor_conflict')
-  }
-  const block = (name: 'declarations' | 'classification') => {
-    const start = `${name} text := $${name}$`, end = `$${name}$;`
-    if (migrationSource.split(start).length !== 2 || migrationSource.split(end).length !== 2) {
-      throw Error('native_sc046_block_conflict')
-    }
-    const at = migrationSource.indexOf(start) + start.length, stop = migrationSource.indexOf(end, at)
-    if (stop < at) throw Error('native_sc046_block_conflict')
-    return migrationSource.slice(at, stop)
-  }
-  const declarationAnchor = 'DECLARE source public.ediel_messages%rowtype;result jsonb;'
-  const returnAnchor = ' -- The preserved owner may wait on its source/advisory locks.'
-  const declarations = block('declarations'), classification = block('classification')
-  if (baseBody.split(declarationAnchor).length !== 2 || baseBody.split(returnAnchor).length !== 2 || baseBody.includes('sc046_')) {
-    throw Error('native_sc046_anchor_conflict')
-  }
-  // Callback replacements keep every literal $ inside the PL/pgSQL untouched.
-  const body = baseBody.replace(declarationAnchor, () => declarationAnchor + declarations)
-    .replace(returnAnchor, () => classification + returnAnchor)
-  const inverse = body.replace(declarationAnchor + declarations, () => declarationAnchor).replace(classification, () => '')
-  if (inverse !== baseBody || inverse.replace(declarationAnchor, () => declarationAnchor + declarations)
-    .replace(returnAnchor, () => classification + returnAnchor) !== body) throw Error('native_sc046_inverse_conflict')
-  return body
-}
-function committedSc046ReturnStateBody(revision: string, base: { body: string; migrationHash: string }) {
-  const migration = '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
-  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
-  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
-  const migrationHash = createHash('sha256').update(source).digest('hex')
-  expect(migrationHash, migration).toBe(manifest.files[migration])
-  return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
-}
-function s01AreaExpectedPrecisionBody(baseBody: string, source: string) {
-  const signature='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
-  const patches=[...source.matchAll(/DO \$patch\$([\s\S]*?)END \$patch\$;/g)]
-    .map(match=>match[1]).filter(block=>block.includes("pg_get_functiondef('"+signature+"'::regprocedure)"))
-  if (patches.length!==1) throw Error('native_s01_precision_patch_identity_conflict')
-  const block=patches[0],old=block.match(/old_body:=\$old\$([\s\S]*?)\$old\$/)?.[1],next=block.match(/new_body:=\$new\$([\s\S]*?)\$new\$/)?.[1]
-  if (!old||!next||old!==baseBody
-    ||createHash('sha256').update(old).digest('hex')!=='ac53c3f07f74dc8829e4b5d8d6407c7b96f57f5a8c4d44147ab660b62c06c892'
-    ||createHash('sha256').update(next).digest('hex')!=='347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'
-    ||!block.includes('EXECUTE replace(ddl,old_body,new_body);')
-    ||!block.includes("<>'"+'347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'+"'")) {
-    throw Error('native_s01_precision_source_chain_conflict')
-  }
-  return next
-}
-function committedS01AreaPrecisionBody(revision: string, base: {body: string; migrationHash: string}) {
-  const migration='20261023201053_ediel_s01_area_aggregate_identity.sql'
-  const source=execFileSync('git',['show',`${revision}:supabase/migrations/${migration}`],{encoding:'utf8'})
-  // This new forward is outside the frozen historical manifest. Bind its
-  // entire committed file explicitly; the predecessor remains manifest-bound.
-  const migrationHash=createHash('sha256').update(source).digest('hex')
-  expect(migrationHash,migration).toBe('ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d')
-  return {body:s01AreaExpectedPrecisionBody(base.body,source),migrationHash}
-}
 // Discovery omits only confirmed SQL comments; literals still carry late-bound names.
 function nativeCatalogDiscoverySource(source: string): string {
   const view = source.split(''), word = /[A-Za-z0-9_$\u0080-\uFFFF]/
@@ -965,9 +909,13 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
   const tree = execFileSync('git', ['rev-parse', `${revision}^{tree}`], { encoding: 'utf8' }).trim()
   const signatures = persistenceCatalogOwners.map(([signature]) => signature)
-  const allowed = new Set<string>(signatures)
   const publicEntry = signatures[0]
-  const privateOwners = signatures.filter(signature => signature.startsWith('gridex_utilts_binding.'))
+  const ownedPersistence = 'gridex_e66_intake.persist_owned_utilts_v1(uuid,text,uuid,text,text,jsonb,uuid)'
+  const ownedMetering = 'gridex_e66_intake.consume_owned_e66_meter_v1(uuid,uuid,text,integer,uuid,jsonb)'
+  const durableOwners = [ownedPersistence, ownedMetering]
+  const baselineOwners = new Set<string>(signatures)
+  const allowed = new Set<string>([...signatures, ...durableOwners])
+  const privateOwners = [...signatures.filter(signature => signature.startsWith('gridex_utilts_binding.')), ...durableOwners]
   const catalog = sql<PersistenceCatalogReceipt>(`WITH RECURSIVE
    app_roots AS (SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator')),
    set_roles(root_oid,role_oid,path) AS (
@@ -1034,6 +982,14 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
       : s01Precision ? '20261023201053_ediel_s01_area_aggregate_identity.sql' : patch ? patch[0] : migration, ...installed }
   })
+  // Cutover retained the old public ABI and moved its complete SC046 body into
+  // the one private writer. Keep both byte-for-byte catalog assertions.
+  const predecessorBody = expected[0]
+  const installedOwners = [
+    { signature: publicEntry, ...committedDurableE66WrapperBody(revision, predecessorBody.body) },
+    { ...predecessorBody, signature: ownedPersistence },
+    ...expected.slice(1),
+  ]
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
   const privateNames = privateOwners.map(signature => signature.slice(signature.indexOf('.') + 1, signature.indexOf('(')))
@@ -1047,10 +1003,29 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       expect(nativeCatalogDiscoverySource(prefix + input), label).toBe(prefix + input)
     }
   }
-  const namedCallsites = catalog.functions.filter(fn => {
+  const observedPrivateCalls = new Map(catalog.functions.map(fn => {
     const discoverySource = nativeCatalogDiscoverySource(fn.source)
-    return privateNames.some(name => discoverySource.includes(name))
-  })
+    return [fn.signature, privateNames.filter(name => discoverySource.includes(name))] as const
+  }).filter(([, callees]) => callees.length > 0))
+  // Keep actor checks and persistence calls explicit for every reviewed E66 caller.
+  const actorCheck = 'require_execution_actor_v1'
+  const writer = 'persist_owned_utilts_v1'
+  const meter = 'consume_owned_e66_meter_v1'
+  const reviewedE66Calls = new Map<string, string[]>([
+    [publicEntry, [actorCheck, writer]],
+    [ownedPersistence, [actorCheck, 'persist_consumption_before_actor_v1']],
+    [ownedMetering, [actorCheck]],
+    ['gridex_e66_intake.require_dispatch_scope(uuid,text,uuid,uuid)', [actorCheck]],
+    ['gridex_e66_request_retry.require_terminal_lease(uuid,text,uuid,uuid,uuid,uuid)', [actorCheck]],
+    ['public.gridex_claim_e66_terminal_handoff_v1(uuid,text,uuid,uuid)', [actorCheck]],
+    ['public.gridex_discover_e66_terminal_handoff_v1(uuid,text,uuid,uuid)', [actorCheck]],
+    ['public.gridex_sync_current_e66_request_v1(uuid,uuid,uuid,uuid,uuid[],jsonb)', [actorCheck]],
+    ['public.gridex_commit_e66_qualification_v1(uuid,text,uuid,uuid,uuid,uuid,jsonb)', [writer]],
+    ['public.gridex_commit_e66_matched_qualification_v1(uuid,text,uuid,uuid,uuid,uuid,jsonb,jsonb)', [writer]],
+    ['public.gridex_commit_e66_registration_rejection_v1(uuid,text,uuid,uuid,uuid,uuid,jsonb)', [writer]],
+    ['public.gridex_consume_dispatched_e66_metering_v1(uuid,text,uuid,uuid,uuid,uuid,integer,integer)', [meter]],
+    ['public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)', [meter]],
+  ])
   const dynamicDefinitions = catalog.functions.filter(fn => fn.language === 'plpgsql' && /\bEXECUTE\b/i.test(fn.source))
   const preupgradePath = process.env.GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
   const before = preupgradePath ? JSON.parse(readFileSync(preupgradePath, 'utf8')) as {
@@ -1068,7 +1043,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     && before.serverVersionNumber === catalog.serverVersionNumber
     && databaseIdentityKeys.every(key => before.databaseIdentity?.[key] === catalog.databaseIdentity[key])
   const receiptPath = process.env.GRIDEX_UTILTS_CATALOG_RECEIPT_PATH || `/tmp/gridex-utilts-catalog-${revision}.json`
-  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,     databasePhase: databasePhase || 'not_declared',     oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),     observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,     preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,     oidPreservationCompared: beforeMatches,     expectedOwners: expected.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),     namedCallsites: namedCallsites.map(fn => fn.signature), dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),     limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',       'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',       'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',       'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
+  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,     databasePhase: databasePhase || 'not_declared',     oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),     observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,     preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,     oidPreservationCompared: beforeMatches,     expectedOwners: installedOwners.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),     namedCallsites: [...observedPrivateCalls.keys()], dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),     limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',       'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',       'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',       'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 })
   console.info('EDIEL_UTILTS_NATIVE_CATALOG', JSON.stringify({ codeSha: revision, codeTree: tree, receiptPath,     receiptHash: createHash('sha256').update(readFileSync(receiptPath)).digest('hex'),     predecessorOid: receipt.observedPreservedOld6Oid, public7Oid: actual.get(publicEntry)?.oid,     functionCount: catalog.functions.length, effectiveRoleCount: catalog.roles.length, dependencyCount: catalog.dependencies.length,     oidPreservationCompared: receipt.oidPreservationCompared, dynamicDefinitionCount: dynamicDefinitions.length }))
   expect(catalog.roles.map(role => role.root)).toEqual(expect.arrayContaining(['anon', 'authenticated', 'service_role', 'authenticator']))
@@ -1087,8 +1062,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   }
   expect(catalog.functions.length).toBeGreaterThan(signatures.length)
   expect(receipt.oldPublic6Absent).toBe(true)
-  expect(new Set(signatures.map(signature => actual.get(signature)?.oid)).size).toBe(signatures.length)
-  for (const owner of expected) {
+  for (const signature of allowed) expect(actual.get(signature)?.oid, signature).toBeGreaterThan(0)
+  expect(new Set([...allowed].map(signature => actual.get(signature)!.oid)).size).toBe(allowed.size)
+  for (const owner of installedOwners) {
     const fn = actual.get(owner.signature)
     expect(fn, owner.signature).toBeDefined()
     expect(fn!.source, owner.signature).toBe(owner.body)
@@ -1100,6 +1076,12 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     expect(fn!.config, owner.signature).toContain(owner.signature.includes('persist_series_legacy_v1') || owner.signature.includes('persist_series_v2')
       || owner.signature.includes('persist_consumption_before_precision_v1') ? 'search_path=pg_catalog, public, extensions' : 'search_path=pg_catalog')
     expect(fn!.config!.every(setting => setting.startsWith('search_path=') || setting.toLowerCase() === 'timezone=utc'), owner.signature).toBe(true)
+  }
+  for (const signature of durableOwners) {
+    const fn = actual.get(signature)!
+    expect(fn.owner, signature).toBe(actual.get(publicEntry)!.owner)
+    expect(fn.securityDefiner, signature).toBe(true)
+    expect(fn.acl, signature).toEqual([{ grantee: fn.owner, privilege: 'EXECUTE', grantable: false }])
   }
   expect(actual.get(publicEntry)!.argumentNames).toEqual(['p_company_id', 'p_environment', 'p_source_message_id', 'p_message_code', 'p_raw_payload', 'p_transactions', 'p_actor_user_id'])
   expect(actual.get(publicEntry)!.defaultCount).toBe(1)
@@ -1114,12 +1096,25 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   for (const row of catalog.roleMatrix.filter(row => allowed.has(row.signature))) {
     const permitted = row.signature === publicEntry && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
     expect(row.execute, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(permitted)
+    if (durableOwners.includes(row.signature)) expect(row.schemaUsage, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(false)
   }
   for (const dependency of catalog.dependencies) {
     expect(dependency.functionSignature, `unreviewed tracked dependant: ${dependency.description}`).not.toBeNull()
-    expect(allowed.has(dependency.functionSignature!), `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
+    const caller = dependency.functionSignature!
+    const targetName = dependency.target.slice(dependency.target.indexOf('.') + 1, dependency.target.indexOf('('))
+    const reviewed = reviewedE66Calls.get(caller)
+    const permitted = reviewed ? reviewed.includes(targetName)
+      : baselineOwners.has(caller) && !durableOwners.includes(dependency.target)
+    expect(permitted, `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
   }
-  for (const fn of namedCallsites) expect(allowed.has(fn.signature), `unreviewed late-bound named producer: ${fn.signature}`).toBe(true)
+  for (const [signature, callees] of reviewedE66Calls) {
+    expect(observedPrivateCalls.get(signature), `reviewed E66 caller: ${signature}`).toEqual(callees)
+  }
+  for (const [signature, callees] of observedPrivateCalls) {
+    if (reviewedE66Calls.has(signature)) continue
+    expect(baselineOwners.has(signature), `unreviewed late-bound named producer: ${signature}`).toBe(true)
+    expect(callees.includes(writer) || callees.includes(meter), `unreviewed durable producer: ${signature}`).toBe(false)
+  }
   if (before) {
     expect(actual.get(signatures[2])!.oid, 'renamed predecessor must preserve the genuine pre-upgrade public6 OID').toBe(before.oldPublic6Oid)
     expect(receipt.oidPreservationCompared).toBe(true)

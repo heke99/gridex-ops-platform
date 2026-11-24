@@ -64,6 +64,7 @@ export function buildDocumentUploadIdempotencyKey(params: {
 export async function createAuditLogEntry(
   supabase: SupabaseClient,
   input: {
+    companyId: string;
     actorUserId?: string | null;
     entityType: string;
     entityId: string;
@@ -73,9 +74,11 @@ export async function createAuditLogEntry(
     metadata?: unknown;
   },
 ): Promise<void> {
+  if (!input.companyId?.trim()) throw new Error("Bolag krävs för revisionsloggen.");
   const actorId = input.actorUserId ?? (await getActorId(supabase));
 
   const { error } = await supabase.from("audit_logs").insert({
+    company_id: input.companyId,
     actor_user_id: actorId,
     entity_type: input.entityType,
     entity_id: input.entityId,

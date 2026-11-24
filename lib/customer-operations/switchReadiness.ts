@@ -15,6 +15,7 @@ import { evaluateManualSupplierReadiness } from '@/lib/customer-operations/manua
 import type { SupplierSwitchRequestRow, SwitchReadinessResult } from '@/lib/operations/types'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
+import { isUuid } from '@/lib/validation/uuid'
 
 /**
  * Unified supplier switch readiness.
@@ -96,6 +97,7 @@ const NEXT_ACTION_BY_CODE: Record<string, string> = {
   contract_cancelled: 'Avtalet är avslutat/annullerat – skapa nytt avtal innan byte.',
   contract_start_date_missing: 'Komplettera avtalets startdatum.',
   contract_missing: 'Koppla ett signerat canonical-avtal till anläggningen.',
+  contract_scope_unverified: 'Granska vilket avtal leverantörsbytesärendet hör till.',
   agreement_not_signed_with_exact_evidence: 'Slutför signering och samtliga exakta juridikaccepter.',
   signed_pdf_not_archived_or_hash_mismatch: 'Arkivera och verifiera den signerade PDF-filen.',
   valid_power_of_attorney_missing: 'Registrera en giltig signerad fullmakt för avtalet och anläggningen.',
@@ -155,11 +157,12 @@ export async function checkSupplierSwitchReadiness(
   // Qualify this exact durable scope before any authorization healing.
   let selectedSwitch: Pick<SupplierSwitchRequestRow,
     'id' | 'company_id' | 'customer_id' | 'site_id' | 'metering_point_id' |
-    'requested_start_date' | 'status' | 'request_type' | 'prodat_variant' | 'prodat_reason'> | null = null
+    'requested_start_date' | 'status' | 'request_type' | 'prodat_variant' | 'prodat_reason' |
+    'contract_id' | 'customer_contract_id'> | null = null
   if (input.switchRequestId) {
     const selected = await supabaseService
       .from('supplier_switch_requests')
-      .select('id,company_id,customer_id,site_id,metering_point_id,requested_start_date,status,request_type,prodat_variant,prodat_reason')
+      .select('id,company_id,customer_id,site_id,metering_point_id,requested_start_date,status,request_type,prodat_variant,prodat_reason,contract_id,customer_contract_id')
       .eq('id', input.switchRequestId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
@@ -185,6 +188,15 @@ export async function checkSupplierSwitchReadiness(
     }
     selectedSwitch = selected.data
   }
+
+  const requestContracts = [selectedSwitch?.contract_id, selectedSwitch?.customer_contract_id]
+    .filter((id): id is string => id != null)
+  const exactRequestContractId = requestContracts.length > 0 && requestContracts.every(isUuid)
+    && requestContracts.every(id => id.toLowerCase() === requestContracts[0].toLowerCase())
+    ? requestContracts[0].toLowerCase()
+    : null
+  const contractScopeUnverified = requestContracts.length > 0 &&
+    (!exactRequestContractId || Boolean(input.contractId && input.contractId.toLowerCase() !== exactRequestContractId))
 
   const manualSupplierReadiness = await evaluateManualSupplierReadiness({
     companyId: input.companyId,
@@ -238,7 +250,7 @@ export async function checkSupplierSwitchReadiness(
   const hasValidPoa =
     Boolean(siteReadiness.latestPowerOfAttorneyId) &&
     !siteReadiness.issues.some((issue) => poaIssueCodes.has(issue.code))
-  if (hasValidPoa) {
+  if (hasValidPoa && !contractScopeUnverified) {
     try {
       const coverage = await verifyAuthorizationScopeCoverage({
         companyId: input.companyId,
@@ -275,8 +287,16 @@ export async function checkSupplierSwitchReadiness(
   // 2. Exact agreement chain. Missing schema is fail-closed: neither service
   // role nor a direct Ediel call may turn an unverifiable contract into a send.
   let contractSnapshot: Record<string, unknown> | null = null
-  let effectiveContractId = input.contractId ?? null
-  if (!effectiveContractId) {
+  let effectiveContractId = exactRequestContractId ?? input.contractId ?? null
+  if (contractScopeUnverified) {
+    effectiveContractId = null
+    blockers.push({
+      code: 'contract_scope_unverified',
+      message: 'Leverantörsbytesärendet har motstridiga eller ogiltiga avtalsreferenser.',
+      source: 'contract',
+    })
+  }
+  if (!effectiveContractId && !contractScopeUnverified) {
     let contractQuery = supabaseService
       .from('customer_contracts')
       .select('id')
@@ -291,13 +311,13 @@ export async function checkSupplierSwitchReadiness(
   }
 
   let legalAcceptanceCount = 0
-  if (!effectiveContractId) {
+  if (!effectiveContractId && !contractScopeUnverified) {
     blockers.push({
       code: 'contract_missing',
       message: 'Inget signerat canonical-avtal är kopplat till kunden och anläggningen.',
       source: 'contract',
     })
-  } else {
+  } else if (effectiveContractId) {
     const exact = await supabaseService
       .from('customer_contract_lifecycle_readiness_v')
       .select('*')
@@ -343,11 +363,16 @@ export async function checkSupplierSwitchReadiness(
   }
 
   // 4. Lifecycle blocks ---------------------------------------------------------
+  const checkedContractId = typeof contractSnapshot?.customer_contract_id === 'string'
+    && contractSnapshot.customer_contract_id.toLowerCase() === effectiveContractId?.toLowerCase()
+    ? effectiveContractId
+    : null
   const lifecycleBlock = await findActiveSwitchLifecycleBlock(supabaseService, {
     companyId: input.companyId,
     customerId: input.customerId,
     siteId: input.siteId,
     meteringPointId: candidateMeteringPoint?.id ?? null,
+    contractId: selectedSwitch ? exactRequestContractId : checkedContractId,
   })
   if (lifecycleBlock) {
     blockers.push({

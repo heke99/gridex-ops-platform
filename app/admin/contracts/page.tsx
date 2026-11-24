@@ -1397,9 +1397,7 @@ export default async function AdminContractsPage({
                               />
                               <input type="hidden" name="id" value={offer.id} />
                               <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-                                {offer.lifecycle_status === "paused"
-                                  ? "Kontrollera och återaktivera för kundregistrering"
-                                  : "Kontrollera och aktivera för kundregistrering"}
+                                Kontrollera och publicera versionen internt
                               </button>
                             </form>
                           ) : null}

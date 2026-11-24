@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
-import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {nativeSql as sql,literal,futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {supabaseService} from '@/lib/supabase/service'
 
 // The external SMTP acceptance is explicitly synthetic. Database, registry,
@@ -16,11 +16,14 @@ beforeEach(()=>{
  external.send.mockReset()
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
-const fixture=()=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({accepted:[email],rejected:[],messageId:'synthetic-owned-original',response:'250 explicitly synthetic accepted'}))
+const fixture=(withCompletedReading=false)=>createZ06fReadingNativeFixture(
+ email=>external.send.mockResolvedValue({accepted:[email],rejected:[],messageId:'synthetic-owned-original',response:'250 explicitly synthetic accepted'}),
+ {requestedStartDate:withCompletedReading?futureNativeSupplyDate(-15):undefined},
+)
 const own=(f:Awaited<ReturnType<typeof fixture>>,source:string)=>sql<{expectations:{id:string;source_message_id:string;contract:Record<string,unknown>;contract_hash:string}[];observations:{expectation_id:string;utilts_source_message_id:string;transaction_id:string;source_payload_hash:string;receipt:Record<string,unknown>;receipt_hash:string}[]}>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(source)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${literal(f.f.companyId)} AND e.source_message_id=${literal(source)}))`)
 
 it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY220/DTM597 persist fulfills only that source without extra market request',async()=>{
- const f=await fixture(),change=await f.change(),before=own(f,change.message.id)
+ const f=await fixture(true),change=await f.change(),before=own(f,change.message.id)
  expect(before.expectations).toHaveLength(1);expect(before.observations).toEqual([])
  expect(before.expectations[0].contract).toMatchObject({mode:'meter_reading',expectedRegisterIds:['101'],measurementMethod:'Z04',deadline:null,automaticRequestAllowed:false})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.structural_object_apply_receipts WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(change.message.id)}`)).toBe(1)
@@ -42,7 +45,7 @@ it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY
 })
 
 it.each([{register:'901'},{meter:'FOREIGN-METER'},{agency:'89'},{date:'next-day' as const},{quantity:'NULL'}])('actual misaligned or missing own reading %j cannot fulfill F or borrow sibling evidence',async options=>{
- const f=await fixture(),change=await f.change(),before=own(f,change.message.id),reading=await f.reading(options)
+ const f=await fixture(true),change=await f.change(),before=own(f,change.message.id),reading=await f.reading(options)
  // The actual national/functional decision is observed rather than fabricated
  // as a caller-provided accepted flag. A valid reading at another instant can
  // be accepted and still not fulfill this precise F boundary. The actual native

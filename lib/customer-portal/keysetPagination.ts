@@ -105,6 +105,7 @@ export function buildPortalDatabasePage<T extends Record<string, unknown>>(
     resource: string
     orderColumn: string
     sourceRankColumn?: string
+    idColumn?: string
   },
 ): {
   items: T[]
@@ -120,7 +121,7 @@ export function buildPortalDatabasePage<T extends Record<string, unknown>>(
   const items = rows.slice(0, input.limit)
   const last = items.at(-1)
   const orderValue = last ? String(last[input.orderColumn] ?? '') : ''
-  const id = last ? String(last.id ?? '') : ''
+  const id = last ? String(last[input.idColumn ?? 'id'] ?? '') : ''
   return {
     items,
     page: {

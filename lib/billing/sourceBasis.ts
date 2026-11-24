@@ -28,9 +28,17 @@ export async function loadQualifiedBillingValues(companyId: string, valueIds: re
   const ids = [...new Set(valueIds)]
   const requested = new Set(ids)
   const ordered = sourceOf ? [...ids].sort((a, b) => (sourceOf.get(a) ?? '').localeCompare(sourceOf.get(b) ?? '') || a.localeCompare(b)) : ids
-  for (let offset = 0; offset < ordered.length; offset += BILLING_SOURCE_READ_CHUNK) {
-    const { data, error } = await supabaseService.rpc('gridex_read_billing_source_values_v1', { p_company_id: companyId, p_value_ids: ordered.slice(offset, offset + BILLING_SOURCE_READ_CHUNK) })
-    if (error) throw error
+  let chunkSize = BILLING_SOURCE_READ_CHUNK
+  for (let offset = 0; offset < ordered.length;) {
+    const chunk = ordered.slice(offset, offset + chunkSize)
+    const { data, error } = await supabaseService.rpc('gridex_read_billing_source_values_v1', { p_company_id: companyId, p_value_ids: chunk })
+    if (error) {
+      if (chunk.length > 1 && error.code === '57014' && /statement timeout/i.test(error.message)) {
+        chunkSize = Math.floor(chunk.length / 2)
+        continue
+      }
+      throw error
+    }
     if (!Array.isArray(data)) throw new Error('billing_source_basis_result_invalid')
     for (const row of data as Array<Record<string, unknown>>) {
       const id = row.id
@@ -38,6 +46,7 @@ export async function loadQualifiedBillingValues(companyId: string, valueIds: re
       if (typeof id !== 'string' || result.has(id) || !requested.has(id) || !basis || basis.version !== 1 || basis.normalizedValueId !== id || !isCanonicalUtiltsDecimal(basis.quantityKwh) || row.quantity_kwh !== basis.quantityKwh) throw new Error('billing_source_basis_result_invalid')
       result.set(id, row)
     }
+    offset += chunk.length
   }
   if (result.size !== ids.length) throw new Error('billing_source_basis_value_missing')
   return result

@@ -14,7 +14,7 @@ const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), governance: vi.fn(),
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: io }))
 vi.mock('@/lib/tenant/governance', () => ({ requireCompanyOperationalForWrites: io.governance }))
 vi.mock('@/lib/ediel/db', () => ({ createEdielMessageEvent: io.events, linkEdielMessage: io.link, updateEdielMessageStatus: io.status }))
-vi.mock('@/lib/cis/db', () => ({ getOutboundRequestById: io.outboundRead, updateOutboundRequestStatus: io.outboundUpdate,
+vi.mock('@/lib/cis/db', () => ({ getOutboundRequestById: io.outboundRead, applyEdielOutboundProviderStatus: io.outboundUpdate,
   updateGridOwnerDataRequestStatus: io.gridUpdate }))
 vi.mock('@/lib/operations/db', () => ({ updateSupplierSwitchRequestStatus: io.switchUpdate, createSupplierSwitchEvent: io.switchEvent }))
 vi.mock('@/lib/customer-cases/db', () => ({ syncCustomerCaseCancellationAck: io.caseAck }))
@@ -74,7 +74,7 @@ describe('all permission consumers dispatch the actual source, never caller snap
     const before = structuredClone(effects)
     io.from.mockImplementation((table: string) => { throw Error(`Unexpected domain/access table: ${table}`) })
     const outbound = { id: requestId, company_id: company, source_type: 'metering_permission', source_id: permission.id,
-      status: 'sent', sent_at: original.message_sent_at, response_payload: {} }
+      status: 'sent', sent_at: original.message_sent_at, response_payload: { admin_note: 'Admin note from stale snapshot' } }
     io.outboundRead.mockResolvedValue(outbound)
     io.outboundUpdate.mockImplementation(async (input: { status: string }) => ({ ...outbound, status: input.status }))
     io.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
@@ -94,7 +94,14 @@ describe('all permission consumers dispatch the actual source, never caller snap
     expect(io.rpc.mock.calls.map(([name]) => name)).toEqual(['gridex_read_committed_inbound_ack_v2',
       'gridex_read_inbound_ack_source_v1', 'gridex_apply_inbound_ack_source_v1'])
     expect(io.link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ edielMessageId: ackId, relatedMessageId: originalId, outboundRequestId: requestId }))
-    expect(io.outboundUpdate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ outboundRequestId: requestId, status: 'acknowledged' }))
+    expect(io.outboundUpdate).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: actor, companyId: company, outboundRequestId: requestId, status: 'acknowledged',
+      externalReference: null, failureReason: null,
+      responsePatch: {
+        inboundAckMessageId: ackId, inboundAckFamily: 'APERAK', inboundAckOutcome: 'positive', acknowledgedVia: 'inbound_ediel_ack',
+      },
+      sentAtBackfill: { sourceMessageId: originalId, ackMessageId: ackId },
+    })
     expect(classifyProductionInboundDecision({ messageFamily: 'APERAK', rawPayload: positiveAck.raw_payload }))
       .toMatchObject({ scenario: 'ack_message', businessEffect: 'register_ack' })
     expect(await applyPermissionMarketSource({ actorUserId: actor, message: positiveAck, expectedPermissionId: permission.id }))

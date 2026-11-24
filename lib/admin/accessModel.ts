@@ -587,6 +587,19 @@ export function hasPermissionRequirement(
   return true
 }
 
+export const CUSTOMER_DETAIL_LAYOUT_READ: PermissionRequirement = {
+  anyOf: ['contracts.write', 'contracts.read', 'customers.read'],
+}
+
+export const CUSTOMER_DETAIL_PAGE_READ: PermissionRequirement = {
+  anyOf: ['customers.read', 'masterdata.read'],
+}
+
+export function canOpenCustomerDetail(permissions: string[]): boolean {
+  return hasPermissionRequirement(permissions, CUSTOMER_DETAIL_LAYOUT_READ)
+    && hasPermissionRequirement(permissions, CUSTOMER_DETAIL_PAGE_READ)
+}
+
 export function getAdminPageRequirement(pageKey: AdminPageKey): PermissionRequirement {
   return ADMIN_PAGE_ACCESS[pageKey]
 }

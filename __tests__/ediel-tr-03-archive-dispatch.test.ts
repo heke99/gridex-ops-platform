@@ -126,7 +126,7 @@ for (const mode of ['raw', 'smime', 'attachment'] as const) {
     // Public repeat-send must consume the retained receipt before compilation,
     // archival, route selection or another provider/fence entry.
     expect(await sendEdielMessageViaSmtp(message(), { actorUserId })).toEqual({ accepted: [to], rejected: [],
-      messageId: '<provider-distinct@example.invalid>', dispatchObservedAt: clock })
+      messageId: '<provider-distinct@example.invalid>', dispatchObservedAt: clock, delivery: 'repaired_projection' })
     await readVerifiedEdielTransportCopy({ companyId, actorUserId, messageId, attemptId: io.attemptId })
     expect(io.snapshots).toEqual(stored); expect(io.smtp).toHaveBeenCalledTimes(1)
     expect(io.upload).toHaveBeenCalledTimes(1)

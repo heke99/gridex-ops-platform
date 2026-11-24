@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { requireAdminActionAccess } from "@/lib/admin/guards"
+import { isPlatformAdminContext, requireAdminActionAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { supabaseService } from "@/lib/supabase/service"
 import { ContactChangeTransactionError, applyCustomerContactChange } from "@/lib/customer-service/contactChangeTransaction"
@@ -18,6 +18,7 @@ import {
   planPrimaryContactSync,
 } from "@/lib/customer-service/contactChange"
 import { identityNumbersEqual } from "@/lib/customer-service/identityChange"
+import { currentStockholmCalendarDate, strictIsoDate } from "@/lib/time/stockholm"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -368,13 +369,20 @@ export async function saveCustomerProfileImpl(
 export function normalizeLifecycleMode(
   value: string | null | undefined,
 ): "move_out" | "terminate" {
-  return value === "terminate" ? "terminate" : "move_out";
+  if (!value || value === "move_out") return "move_out";
+  if (value === "terminate") return value;
+  throw new CustomerActionError("invalid_lifecycle_mode", "Välj utflytt eller avslut.");
 }
 
 export function normalizeIsoDateOrToday(value: string | null | undefined): string {
   const trimmed = value?.trim();
-  if (trimmed && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  return new Date().toISOString().slice(0, 10);
+  if (!trimmed) return currentStockholmCalendarDate();
+  try {
+    return strictIsoDate(trimmed, "Utflytts-/avslutsdatum");
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    throw new CustomerActionError("invalid_move_out_date", error.message);
+  }
 }
 
 export function buildMoveOutNote(params: {
@@ -404,15 +412,11 @@ export async function closeCustomerLifecycleAction(
 export async function closeCustomerLifecycleImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
+  const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+  const actorUserId = access.userId;
+  const platformAdmin = isPlatformAdminContext(access);
   const customerId = getString(formData, "customer_id");
   const confirmText = getString(formData, "confirm_close");
-  const mode = normalizeLifecycleMode(
-    getNullableString(formData, "lifecycle_mode"),
-  );
-  const moveOutDate = normalizeIsoDateOrToday(
-    getNullableString(formData, "move_out_date"),
-  );
   const reason = getNullableString(formData, "reason");
   const createFollowUpTask =
     getString(formData, "create_follow_up_task") === "on";
@@ -426,21 +430,29 @@ export async function closeCustomerLifecycleImpl(
       "Skriv AVSLUTA för att bekräfta mjukt avslut/flytt av kunden.",
     );
   }
+  const mode = normalizeLifecycleMode(
+    getNullableString(formData, "lifecycle_mode"),
+  );
+  const moveOutDate = normalizeIsoDateOrToday(
+    getNullableString(formData, "move_out_date"),
+  );
 
-  const { data: customerBefore, error: customerError } = await supabaseService
+  const targetQuery = supabaseService
     .from("customers")
     .select("*")
-    .eq("id", customerId)
-    .single();
+    .eq("id", customerId);
+  if (!platformAdmin) {
+    if (!access.companyId) throw new Error("Forbidden");
+    targetQuery.eq("company_id", access.companyId);
+  }
 
+  const { data: customerBefore, error: customerError } = await targetQuery.maybeSingle();
   if (customerError) throw customerError;
+  if (!customerBefore || typeof customerBefore.company_id !== "string" || !customerBefore.company_id) {
+    throw new Error("Forbidden");
+  }
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
-    typeof customerBefore.company_id === "string"
-      ? customerBefore.company_id
-      : null,
-  );
+  const companyId = await assertUserCanOperateCompany(actorUserId, customerBefore.company_id);
 
   const note = buildMoveOutNote({ moveOutDate, reason, mode });
 

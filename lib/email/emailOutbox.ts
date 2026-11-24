@@ -5,7 +5,7 @@ import {
   markCommunicationFailed,
   markCommunicationSent,
 } from "./communicationLogs";
-import { getEmailProvider } from "./providers";
+import { EmailProviderBeforeRequestError, getEmailProvider } from "./providers";
 import type { EmailAttachment } from "./providers/types";
 import { emitCommunicationSentDomainEvents } from "./emailDomainEvents";
 import { getTenantOperationDecision } from "@/lib/tenant/operationPolicy";
@@ -81,8 +81,53 @@ type ContractSignatureEmailScope = {
 
 class CancelledSignatureEmail extends Error {}
 class UncertainSignatureEmail extends Error {}
+class CustomerResendStopped extends Error {}
+class UncertainWithdrawalEmail extends Error {}
+class BlockedWithdrawalEmail extends Error {
+  constructor(message: string, public readonly verificationUnavailable = false) {
+    super(message);
+  }
+}
 
 const SIGNATURE_EMAIL_TYPE = 'contract.signature_requested';
+const WITHDRAWAL_EMAIL_TYPE = 'withdrawal_received';
+
+async function requireCurrentWithdrawalEmail(row: TenantEmailOutboxRow) {
+  const { data, error } = await supabaseService.rpc('gridex_reserve_withdrawal_email_provider_entry_v1', {
+    p_company_id: row.company_id,
+    p_outbox_id: row.id,
+    p_lock_token: row.lock_token ?? null,
+  });
+  if (error) throw new BlockedWithdrawalEmail('Mottagaruppgifterna kunde inte verifieras.', true);
+  if (data === 'current') return;
+  if (data === 'suppressed_retention') {
+    throw new BlockedWithdrawalEmail('Ångerbekräftelsen stoppades efter gallring av kunduppgifterna.');
+  }
+  if (data === 'accepted_projection_pending') {
+    throw new BlockedWithdrawalEmail('Leverantören har redan tagit emot bekräftelsen. Lokal avstämning återstår.');
+  }
+  if (data === 'not_current' || data === 'provider_entry_already_reserved') {
+    throw new BlockedWithdrawalEmail('Utskicket har inget aktuellt leveranslås.');
+  }
+  throw new BlockedWithdrawalEmail('Mottagaruppgifterna kunde inte verifieras.', true);
+}
+
+async function releaseWithdrawalVerificationClaim(row: TenantEmailOutboxRow) {
+  if (!row.lock_token) return false;
+  const now = new Date();
+  const { data, error } = await supabaseService.from('tenant_email_outbox').update({
+    status: 'queued',
+    next_attempt_at: new Date(now.getTime() + 60_000).toISOString(),
+    locked_at: null,
+    locked_by: null,
+    lock_token: null,
+    updated_at: now.toISOString(),
+  }).eq('id', row.id).eq('company_id', row.company_id)
+    .eq('email_type', WITHDRAWAL_EMAIL_TYPE).eq('status', 'processing')
+    .eq('lock_token', row.lock_token).select('id').maybeSingle();
+  if (error) return false;
+  return Boolean(data);
+}
 
 async function signatureEmailLog(row: TenantEmailOutboxRow) {
   if (!row.communication_log_id || !row.customer_id) return null;
@@ -332,7 +377,10 @@ async function markOutboxBlockedByTenantState(
   if (error) throw error;
 }
 
-async function claimRow(row: TenantEmailOutboxRow) {
+async function claimRow(
+  row: TenantEmailOutboxRow,
+  expectedStatus: 'queued' | 'failed' | 'blocked_tenant_state' = 'queued',
+) {
   const decision = await getTenantOperationDecision(row.company_id, 'email.send');
   if (!decision.allowed) {
     await markOutboxBlockedByTenantState(row, decision.reason_code, decision.company_status);
@@ -351,7 +399,7 @@ async function claimRow(row: TenantEmailOutboxRow) {
     })
     .eq("id", row.id)
     .eq("company_id", row.company_id)
-    .eq("status", "queued")
+    .eq("status", expectedStatus)
     .select("*")
     .maybeSingle();
 
@@ -363,6 +411,23 @@ async function markOutboxSent(
   row: TenantEmailOutboxRow,
   providerMessageId: string | null,
 ) {
+  if (row.email_type === WITHDRAWAL_EMAIL_TYPE) {
+    const args = {
+      p_company_id: row.company_id,
+      p_outbox_id: row.id,
+      p_lock_token: row.lock_token ?? null,
+      p_provider_message_id: providerMessageId,
+    };
+    const receipt = await supabaseService.rpc('gridex_commit_withdrawal_email_acceptance_v1', args);
+    if (!receipt.error && receipt.data === 'projected') return;
+    if (receipt.error) {
+      // Reconcile only the same already obtained provider receipt. Do not call the provider twice.
+      const readback = await supabaseService.rpc('gridex_commit_withdrawal_email_acceptance_v1', args);
+      if (!readback.error && readback.data === 'projected') return;
+    }
+    throw new Error('Leverantören har tagit emot bekräftelsen. Lokal avstämning återstår.');
+  }
+
   const now = new Date().toISOString();
   const { error } = await supabaseService
     .from("tenant_email_outbox")
@@ -409,7 +474,7 @@ async function markOutboxDeliveryUncertain(
   errorMessage: string,
 ) {
   const now = new Date().toISOString();
-  await supabaseService
+  const update = supabaseService
     .from("tenant_email_outbox")
     .update({
       status: "delivery_uncertain",
@@ -424,6 +489,28 @@ async function markOutboxDeliveryUncertain(
     })
     .eq("id", row.id)
     .eq("company_id", row.company_id);
+  if (row.branding_snapshot?.customer_card_resend === true) {
+    update.eq("status", "processing").eq("lock_token", row.lock_token ?? "");
+  }
+  await update;
+}
+
+async function markWithdrawalProviderUncertain(row: TenantEmailOutboxRow, message: string) {
+  if (!row.lock_token) return;
+  const now = new Date().toISOString();
+  const { error } = await supabaseService.from('tenant_email_outbox').update({
+    status: 'delivery_uncertain',
+    failure_reason: 'withdrawal_provider_outcome_uncertain',
+    last_error: message,
+    delivery_uncertain_at: now,
+    next_attempt_at: null,
+    locked_at: null,
+    locked_by: null,
+    lock_token: null,
+    updated_at: now,
+  }).eq('id', row.id).eq('company_id', row.company_id)
+    .eq('email_type', WITHDRAWAL_EMAIL_TYPE).eq('status', 'processing').eq('lock_token', row.lock_token);
+  if (error) throw error;
 }
 
 async function markOutboxFailed(
@@ -490,10 +577,21 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
     throw new Error("Mallinnehåll saknas för e-postutskicket.");
 
   if (row.email_type === SIGNATURE_EMAIL_TYPE) await requireCurrentSignatureEmail(row);
+  const customerResend = row.branding_snapshot?.customer_card_resend === true;
+  if (customerResend) {
+    const { data, error } = await supabaseService.rpc('gridex_check_customer_email_resend_transport_v1', {
+      p_company: row.company_id, p_outbox: row.id, p_lock_token: row.lock_token ?? null,
+    });
+    if (error) throw error;
+    if (data !== 'current') throw new CustomerResendStopped('Omskicket är inte längre aktuellt.');
+  }
+  if (row.email_type === WITHDRAWAL_EMAIL_TYPE) await requireCurrentWithdrawalEmail(row);
 
+  // Resolving the provider happens before this kind of email can enter transport.
+  const withdrawalProvider = row.email_type === WITHDRAWAL_EMAIL_TYPE ? getEmailProvider() : null;
   let result;
   try {
-    result = await getEmailProvider().sendEmail({
+    result = await (withdrawalProvider ?? getEmailProvider()).sendEmail({
     from: row.from_email!,
     to: row.to_email,
     replyTo: row.reply_to_email ?? undefined,
@@ -503,7 +601,23 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
     idempotencyKey: row.provider_idempotency_key ?? `tenant-email:${row.id}`,
     attachments: safeAttachments(row.attachments),
     });
+    if (withdrawalProvider && (result.status !== 'sent' || typeof result.providerMessageId !== 'string' || !result.providerMessageId.trim())) {
+      throw new Error('Leverantören gav inget giltigt mottagningskvitto.');
+    }
   } catch (error) {
+    if (customerResend) {
+      try { await markOutboxDeliveryUncertain(row, null, safeError(error)); } catch { /* stale processing is reconciled to uncertain */ }
+      throw new CustomerResendStopped('Omskickets leverans behöver stämmas av.');
+    }
+    if (withdrawalProvider && !(error instanceof EmailProviderBeforeRequestError)) {
+      const message = 'Leveransutfallet för ångerbekräftelsen är osäkert och behöver granskas före omsändning.';
+      try {
+        await markWithdrawalProviderUncertain(row, message);
+      } catch {
+        // A failed write leaves the current claim for the existing stale-worker review.
+      }
+      throw new UncertainWithdrawalEmail(message);
+    }
     if (row.email_type !== SIGNATURE_EMAIL_TYPE) throw error;
     // The provider may have accepted the message before the connection failed.
     // Preserve the same durable intent/key and never retry it automatically.
@@ -544,12 +658,30 @@ export async function processTenantEmailOutbox(
         result.sent += 1;
       } catch (statusError) {
         const message = safeError(statusError);
+        if (claimed.email_type === WITHDRAWAL_EMAIL_TYPE) {
+          result.errors.push({ id: claimed.id, error: message });
+          continue;
+        }
         await markOutboxDeliveryUncertain(claimed, providerMessageId, message);
         result.errors.push({ id: claimed.id, error: `delivery_uncertain_after_provider_send: ${message}` });
         continue;
       }
     } catch (error) {
-      if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail) {
+      if (error instanceof BlockedWithdrawalEmail) {
+        // The provider has not been called. Release only this known claim;
+        // a lost response may already have cancelled it in the database.
+        const released = error.verificationUnavailable && await releaseWithdrawalVerificationClaim(claimed);
+        if (released) result.retried += 1;
+        else result.skipped += 1;
+        if (error.verificationUnavailable) result.errors.push({ id: claimed.id, error: error.message });
+        continue;
+      }
+      if (error instanceof UncertainWithdrawalEmail) {
+        result.skipped += 1;
+        result.errors.push({ id: claimed.id, error: error.message });
+        continue;
+      }
+      if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail || error instanceof CustomerResendStopped) {
         result.skipped += 1;
         continue;
       }
@@ -622,7 +754,35 @@ export async function requeueUncertainTenantEmail(input: {
   outboxId: string
   companyId?: string | null
   actorUserId: string
+  reviewedWithdrawalAttemptId?: string | null
 }) {
+  let source = supabaseService.from("tenant_email_outbox")
+    .select("company_id,email_type").eq("id", input.outboxId).eq("status", "delivery_uncertain");
+  if (input.companyId) source = source.eq("company_id", input.companyId);
+  const current = await source.maybeSingle();
+  if (current.error) throw current.error;
+  if (!current.data) return { ok: false as const, error: "Utskicket är inte i osäkert leveransläge längre." };
+  if (current.data.email_type === WITHDRAWAL_EMAIL_TYPE) {
+    const reviewedAttemptId = input.reviewedWithdrawalAttemptId
+    if (!reviewedAttemptId || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(reviewedAttemptId)) {
+      return { ok: false as const, error: 'Ladda om och granska det aktuella transportförsöket före omsändning.' };
+    }
+    const { data, error } = await supabaseService.rpc('gridex_requeue_uncertain_withdrawal_email_v1', {
+      p_company_id: current.data.company_id,
+      p_outbox_id: input.outboxId,
+      p_reviewed_attempt_id: reviewedAttemptId,
+    });
+    if (error) throw error;
+    if (data === 'queued') return { ok: true as const, outboxId: input.outboxId };
+    if (data === 'accepted_projection_pending') {
+      return { ok: false as const, error: 'Leverantören har redan accepterat utskicket. Stäm av leveransstatus före vidare åtgärd.' };
+    }
+    if (data === 'suppressed_retention') {
+      return { ok: false as const, error: 'Omsändning är spärrad efter gallring. Det tidigare leveransutfallet är fortfarande osäkert.' };
+    }
+    return { ok: false as const, error: 'Transportförsöket har ändrats. Ladda om och granska det nya utfallet.' };
+  }
+
   const now = new Date().toISOString();
   let query = supabaseService
     .from("tenant_email_outbox")
@@ -638,7 +798,8 @@ export async function requeueUncertainTenantEmail(input: {
       updated_at: now,
     })
     .eq("id", input.outboxId)
-    .eq("status", "delivery_uncertain");
+    .eq("status", "delivery_uncertain")
+    .eq("email_type", current.data.email_type);
   if (input.companyId) query = query.eq("company_id", input.companyId);
 
   const { data, error } = await query.select("id").maybeSingle();
@@ -667,7 +828,8 @@ export async function sendTenantEmailNow(outboxId: string) {
   if (row.status === "delivery_uncertain")
     return { ok: false, error: "Leveransen är osäker efter ett avbrott och får inte skickas om automatiskt. Granska transportlogg och markera omsändning manuellt." };
 
-  const claimed = row.status === "queued" ? await claimRow(row) : row;
+  const needsClaim = row.status === "queued" || row.email_type === WITHDRAWAL_EMAIL_TYPE;
+  const claimed = needsClaim ? await claimRow(row, row.status) : row;
   if (!claimed) return { ok: false, error: "Utskicket behandlas redan." };
 
   try {
@@ -677,11 +839,16 @@ export async function sendTenantEmailNow(outboxId: string) {
       return { ok: true, messageId: providerMessageId };
     } catch (statusError) {
       const message = safeError(statusError);
+      if (claimed.email_type === WITHDRAWAL_EMAIL_TYPE) return { ok: false, error: message };
       await markOutboxDeliveryUncertain(claimed, providerMessageId, message);
       return { ok: false, error: `Leveransen är osäker efter lyckad provider-sändning: ${message}` };
     }
   } catch (error) {
-    if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail) {
+    if (error instanceof BlockedWithdrawalEmail) {
+      if (error.verificationUnavailable) await releaseWithdrawalVerificationClaim(claimed);
+      return { ok: false, error: error.message };
+    }
+    if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail || error instanceof CustomerResendStopped || error instanceof UncertainWithdrawalEmail) {
       return { ok: false, error: error.message };
     }
     const message = safeError(error);

@@ -8,6 +8,9 @@ import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { assignAuthorizationDocumentToGridOwnerRequest, assignAuthorizationDocumentToOutboundRequest, buildGridOwnerDataRequestAutomationKey, buildOutboundRequestAutomationKey, assignAuthorizationDocumentToSwitchRequest, createSupplierSwitchEvent, createSupplierSwitchRequest, buildSupplierSwitchRequestAutomationKey, findCustomerSiteById, findOpenGridOwnerDataRequestByDocument, findOpenOutboundRequestByDocument, findOpenSupplierSwitchRequestForSite, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, listSupplierSwitchRequestsByCustomerId, updateSupplierSwitchRequestStatus, updateSupplierSwitchValidationSnapshot } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import { prepareAndQueueUtiltsE73 } from '@/lib/ediel/flows/utiltsSupplierRequest'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import { CUSTOMER_CALENDAR_E73_ORIGIN, type customerCalendarE73Selection } from '@/lib/ediel/flows/e73CustomerCalendar'
 
 import { resolveFullmaktAutomationPolicy } from '@/lib/operations/fullmaktAutomation'
 
@@ -381,6 +384,7 @@ export async function getActor() {
 
 export async function queueGridOwnerRequestsFromDocument(params: {
   actorUserId: string
+  companyId: string
   customerId: string
   siteId: string
   document: CustomerAuthorizationDocumentRow
@@ -391,7 +395,7 @@ export async function queueGridOwnerRequestsFromDocument(params: {
   requestedPeriodEnd: string | null
   notes: string | null
   includeCustomerMasterdata: boolean
-  includeMeterValues: boolean
+  meteringSelection: ReturnType<typeof customerCalendarE73Selection> | null
   includeBillingUnderlay: boolean
 }) {
   const supabase = await createSupabaseServerClient()
@@ -399,7 +403,7 @@ export async function queueGridOwnerRequestsFromDocument(params: {
   const createdOutboundIds: string[] = []
 
   const maybeCreate = async (
-    scope: 'customer_masterdata' | 'meter_values' | 'billing_underlay',
+    scope: 'customer_masterdata' | 'billing_underlay',
     enabled: boolean
   ) => {
     if (!enabled) return
@@ -509,7 +513,59 @@ Bilaga: ${params.document.file_path}`
   }
 
   await maybeCreate('customer_masterdata', params.includeCustomerMasterdata)
-  await maybeCreate('meter_values', params.includeMeterValues)
+  if (params.meteringSelection) {
+    if (!params.meteringPointId || !params.gridOwnerId || params.document.company_id !== params.companyId
+      || params.document.customer_id !== params.customerId || (params.document.site_id && params.document.site_id !== params.siteId)) {
+      throw new Error('Fullmakten, anläggningen och mätpunkten måste höra till samma begäran.')
+    }
+    await assertEdielTenantActor({ companyId: params.companyId, actorUserId: params.actorUserId, permission: 'communication.write' })
+
+    const { fromDate, throughDate, start, end, environment } = params.meteringSelection
+    const key = [
+      CUSTOMER_CALENDAR_E73_ORIGIN, params.document.id, params.siteId,
+      params.meteringPointId, params.gridOwnerId, environment, fromDate, throughDate,
+    ].join(':')
+    // Same signed document, tenant, point, network, environment and selected days
+    // identify one operation, including after the request reaches a terminal state.
+    const name = `https://gridex.se/ediel/customer-e73/${params.companyId}/${key}`
+    const urlNamespace = Buffer.from('6ba7b8119dad11d180b400c04fd430c8', 'hex')
+    const identifier = createHash('sha1').update(urlNamespace).update(name).digest().subarray(0, 16)
+    identifier[6] = (identifier[6] & 0x0f) | 0x50
+    identifier[8] = (identifier[8] & 0x3f) | 0x80
+    const digest = identifier.toString('hex')
+    const operationId = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-${digest.slice(12, 16)}-${digest.slice(16, 20)}-${digest.slice(20)}`
+    const request = await createGridOwnerDataRequest({
+      actorUserId: params.actorUserId,
+      customerId: params.customerId,
+      siteId: params.siteId,
+      meteringPointId: params.meteringPointId,
+      gridOwnerId: params.gridOwnerId,
+      requestScope: 'meter_values',
+      requestedPeriodStart: fromDate,
+      requestedPeriodEnd: throughDate,
+      authorizationDocumentId: params.document.id,
+      automationOrigin: CUSTOMER_CALENDAR_E73_ORIGIN,
+      automationKey: key,
+      operationId,
+      externalReference: params.externalReference,
+      notes: params.notes,
+      requestPayload: { ediel_environment: environment, delivery_period_start: start, delivery_period_end: end },
+    })
+    if (request.company_id !== params.companyId || request.customer_id !== params.customerId
+      || request.site_id !== params.siteId || request.metering_point_id !== params.meteringPointId
+      || request.grid_owner_id !== params.gridOwnerId || request.authorization_document_id !== params.document.id
+      || request.operation_id !== operationId || request.request_scope !== 'meter_values'
+      || request.requested_period_start !== fromDate || request.requested_period_end !== throughDate) {
+      throw new Error('Mätvärdesbegärans tidigare operation matchar inte den valda omfattningen.')
+    }
+    const message = await prepareAndQueueUtiltsE73({
+      actorUserId: params.actorUserId,
+      gridOwnerDataRequestId: request.id,
+      environment,
+    })
+    createdGridOwnerRequestIds.push(request.id)
+    if (message.outbound_request_id) createdOutboundIds.push(message.outbound_request_id)
+  }
   await maybeCreate('billing_underlay', params.includeBillingUnderlay)
 
   return {

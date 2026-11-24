@@ -3,136 +3,56 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
-import { emitDomainEvent } from '@/lib/events/domainEvents'
-import { dispatchDueWebhookDeliveries, enqueueWebhookDeliveriesForEvent } from '@/lib/integrations/webhooks'
 import { supabaseService } from '@/lib/supabase/service'
+import {
+  WEBHOOK_IGNORED, WEBHOOK_MANAGE_REQUIREMENT, WEBHOOK_RESEND_QUEUED, WEBHOOK_TEST_QUEUED,
+} from './policy'
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
 }
 
-function redirectBack(path: string, message?: string) {
-  redirect(message ? `${path}?success=${encodeURIComponent(message)}` : path)
+async function applyWebhookCommand(
+  formData: FormData,
+  command: 'test' | 'resend' | 'ignore',
+  success: string,
+) {
+  const companyId = text(formData, 'company_id')
+  const admin = await requireCompanyScopedActionAccess(companyId, WEBHOOK_MANAGE_REQUIREMENT)
+  const targetId = text(formData, command === 'test' ? 'subscription_id' : 'delivery_id')
+  const requestId = text(formData, 'request_id')
+  const status = command === 'test' ? null : text(formData, 'delivery_status')
+  const path = '/admin/webhooks/deliveries'
+  if (!targetId || !requestId || (command !== 'test' && !status)) {
+    redirect(`${path}?error=action_unavailable`)
+  }
+
+  const { data, error } = await supabaseService.rpc('gridex_admin_webhook_command_v1', {
+    p_company_id: companyId,
+    p_actor_id: admin.userId,
+    p_target_id: targetId,
+    p_request_id: requestId,
+    p_command: command,
+    p_original_status: status,
+    p_note: command === 'ignore' ? text(formData, 'note') || 'Manuellt hanterad.' : null,
+  })
+  if (error?.code === 'P0002' || error?.code === '22P02') redirect(`${path}?error=action_unavailable`)
+  if (error) throw error
+  if (data?.applied !== true) throw new Error('Köändringen kunde inte bekräftas. Kontrollera leveransen.')
+
+  revalidatePath(path)
+  if (command === 'test') revalidatePath('/admin/platform/api-clients')
+  redirect(`${path}?success=${encodeURIComponent(success)}`)
 }
 
 export async function sendWebhookTestEventAction(formData: FormData) {
-  const companyId = text(formData, 'company_id')
-  const subscriptionId = text(formData, 'subscription_id')
-  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
-
-  const event = await emitDomainEvent({
-    companyId,
-    eventType: 'webhook.test',
-    aggregateType: 'webhook_subscription',
-    aggregateId: subscriptionId || companyId,
-    source: 'admin_webhook_test',
-    payload: {
-      test: true,
-      webhook_subscription_id: subscriptionId || null,
-      message: 'Gridex webhook test event',
-      expected_subscription_id: subscriptionId || null,
-    },
-    idempotencyKey: `webhook-test:${companyId}:${subscriptionId || 'all'}:${Date.now()}`,
-  })
-
-
-
-  if (event && subscriptionId) {
-    const queued = await enqueueWebhookDeliveriesForEvent(event, { subscriptionIds: [subscriptionId], force: true })
-    if (queued === 0) {
-      redirectBack('/admin/webhooks/deliveries', 'Testevent skapades men ingen aktiv webhook matchade vald endpoint.')
-    }
-  }
-
-  await supabaseService.from('audit_logs').insert({
-    company_id: companyId,
-    actor_user_id: admin.userId,
-    action: 'webhook.test_event_created',
-    entity_type: 'webhook_subscription',
-    entity_id: subscriptionId || null,
-    new_values: { event_id: event?.id ?? null },
-  }).then(() => null)
-
-  revalidatePath('/admin/webhooks/deliveries')
-  revalidatePath('/admin/platform/api-clients')
-  redirectBack('/admin/webhooks/deliveries', 'Testevent skapades och köades för webhook.')
+  await applyWebhookCommand(formData, 'test', WEBHOOK_TEST_QUEUED)
 }
 
 export async function resendWebhookDeliveryAction(formData: FormData) {
-  const deliveryId = text(formData, 'delivery_id')
-  const companyId = text(formData, 'company_id')
-  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
-
-  if (!deliveryId) throw new Error('Webhook delivery saknas.')
-
-  const { error } = await supabaseService
-    .from('webhook_deliveries')
-    .update({
-      status: 'queued',
-      next_attempt_at: new Date().toISOString(),
-      manual_status: 'resend_requested',
-      locked_at: null,
-      locked_by: null,
-      resent_by: admin.userId,
-      resent_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', deliveryId)
-    .eq('company_id', companyId)
-
-  if (error) throw error
-
-  await supabaseService.from('audit_logs').insert({
-    company_id: companyId,
-    actor_user_id: admin.userId,
-    action: 'webhook.delivery_resend_requested',
-    entity_type: 'webhook_delivery',
-    entity_id: deliveryId,
-  }).then(() => null)
-
-  try {
-    await dispatchDueWebhookDeliveries(10)
-  } catch (dispatchError) {
-    console.error('[webhooks] manual resend was queued but immediate dispatch failed', {
-      deliveryId,
-      companyId,
-      error: dispatchError,
-    })
-  }
-  revalidatePath('/admin/webhooks/deliveries')
-  redirectBack('/admin/webhooks/deliveries', 'Webhook delivery köades om.')
+  await applyWebhookCommand(formData, 'resend', WEBHOOK_RESEND_QUEUED)
 }
 
 export async function markWebhookDeliveryIgnoredAction(formData: FormData) {
-  const deliveryId = text(formData, 'delivery_id')
-  const companyId = text(formData, 'company_id')
-  const note = text(formData, 'note') || 'Manuellt hanterad.'
-  const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
-
-  if (!deliveryId) throw new Error('Webhook delivery saknas.')
-
-  const { error } = await supabaseService
-    .from('webhook_deliveries')
-    .update({
-      status: 'skipped',
-      manual_status: 'ignored',
-      manual_note: note,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', deliveryId)
-    .eq('company_id', companyId)
-
-  if (error) throw error
-
-  await supabaseService.from('audit_logs').insert({
-    company_id: companyId,
-    actor_user_id: admin.userId,
-    action: 'webhook.delivery_ignored',
-    entity_type: 'webhook_delivery',
-    entity_id: deliveryId,
-    new_values: { note },
-  }).then(() => null)
-
-  revalidatePath('/admin/webhooks/deliveries')
-  redirectBack('/admin/webhooks/deliveries', 'Webhook delivery markerades som hanterad.')
+  await applyWebhookCommand(formData, 'ignore', WEBHOOK_IGNORED)
 }

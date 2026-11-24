@@ -14,7 +14,11 @@ vi.mock('server-only', () => ({}))
 vi.mock('node:crypto', async () => { const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto'); return { ...actual, randomBytes: (n: number) => { io.random(n); return actual.randomBytes(n) } } })
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from, storage: { from: () => ({ upload: io.upload }) } } }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: () => { throw Error('unexpected_authenticated_transport') } }))
-vi.mock('@/lib/email/sendCompanyEmail', () => ({ sendCompanyEmail: io.email }))
+vi.mock('@/lib/email/emailOutbox', () => ({ sendContractSignatureEmailNow: io.email }))
+vi.mock('@/lib/email/companyEmailSettings', () => ({ getEffectiveSender: async () => ({ from: 'synthetic@example.invalid', senderEmail: 'synthetic@example.invalid', mode: 'platform' }) }))
+vi.mock('@/lib/email/emailTemplates', () => ({ getCompanyEmailTemplate: async () => ({
+  id: own.request, template_key: 'contract.signature_requested', subject: 'Synthetic signature', body_html: '<p><a href="{{portal_url}}">Signera</a></p>', language: 'sv',
+}) }))
 vi.mock('@/lib/website/customerApplicationCommunication', () => ({ companyEmailContext: io.company }))
 vi.mock('@/lib/auth/urls', () => ({ getBaseAppUrl: () => 'https://synthetic.invalid' }))
 vi.mock('@/lib/customer-contracts/agreementPdf', () => ({ buildAgreementPdfAttachment: () => { throw Error('unexpected_pdf_builder') } }))
@@ -89,12 +93,13 @@ function sdkTable(table: string) {
   const q = { select: () => q, eq: () => q,
     insert: (row: Row) => { if (table !== 'customer_contract_documents') throw Error('undeclared_insert'); inserted = row; return q },
     single: async () => {
+      if (table === 'customer_contracts') return { data: { contract_name: 'Synthetic contract', contract_number: 'C73' }, error: null }
       if (table === 'customers') return { data: { full_name: 'Synthetic', email: 'synthetic@example.invalid', customer_number: 'synthetic' }, error: null }
       if (inserted) { const row = { id: id(30), ...inserted }; effects.documents.push(row); return { data: row, error: null } }
       throw Error(`undeclared_single:${table}`)
     },
     maybeSingle: async () => ({ data: table === 'company_email_templates' ? { id: id(20) } : null, error: null }) }
-  if (!['customers', 'customer_contract_documents', 'company_email_templates'].includes(table)) throw Error(`undeclared_table:${table}`)
+  if (!['customers', 'customer_contracts', 'customer_contract_documents', 'company_email_templates'].includes(table)) throw Error(`undeclared_table:${table}`)
   return q
 }
 const send = (companyId = own.company, contractId = own.contract) => sendOnlineContractSignatureRequest({ companyId, contractId,
@@ -118,20 +123,22 @@ beforeEach(async () => {
   await db.query('insert into public.customer_contracts values($1,$2),($3,$4)', [own.contract, own.company, own.otherContract, own.foreign])
   io.from.mockImplementation(sdkTable)
   io.company.mockResolvedValue({ name: 'Synthetic', supportEmail: 'synthetic@example.invalid' })
-  io.email.mockImplementation(async (input: unknown) => { effects.emails.push(input); return { ok: true } })
+  io.email.mockImplementation(async (input: unknown) => { effects.emails.push(input); return { status: 'queued' } })
   io.upload.mockImplementation(async (...input: unknown[]) => { effects.uploads.push(input); return { data: {}, error: null } })
   io.rpc.mockImplementation(async (rpc: string, args: Row) => {
     if (rpc === 'ediel_require_contract_records_available_v1') return invoke(args.p_company_id as string, args.p_contract_id as string)
-    // Existing canonical signing authority is an external successful port, not
-    // authority created by the availability guard. Its actual caller stays real.
-    if (rpc === 'gridex_prepare_customer_contract_signature_request_v1') {
+    // The independent native OPS-1711-73 fixture exercises the real durable
+    // command; here it is a port behind the actual retention guard and caller.
+    if (rpc === 'gridex_queue_customer_contract_signature_command_v1') {
+      if (!args.p_mail) return { data: null, error: null }
       effects.preparations.push(structuredClone(args))
-      return { data: { ok: true, request_id: own.request, company_id: args.p_company_id, customer_id: args.p_customer_id,
+      effects.marks.push({ p_request_id: own.request, p_company_id: args.p_company_id })
+      return { data: { request: { ok: true, request_id: own.request, company_id: args.p_company_id, customer_id: args.p_customer_id,
         contract_id: args.p_contract_id, contract_name: 'Synthetic contract', status: 'pending_signature', recipient_email: args.p_recipient_email,
-        expires_at: args.p_expires_at, channel: args.p_channel, offer_reference: 'synthetic', contract_publication_version_id: id(11),
-        price_plan_version_id: id(12), legal_bundle_version_id: id(13), contract_price_snapshot_id: id(14) }, error: null }
+        expires_at: '2035-01-01T00:00:00Z', channel: args.p_channel, offer_reference: 'synthetic', contract_publication_version_id: id(11),
+        price_plan_version_id: id(12), legal_bundle_version_id: id(13), contract_price_snapshot_id: id(14) },
+        communication_log_id: id(31), replayed: false, delivery_status: 'queued' }, error: null }
     }
-    if (rpc === 'gridex_mark_customer_contract_signature_request_sent_v1') { effects.marks.push(args); return { data: {}, error: null } }
     throw Error(`undeclared_rpc:${rpc}`)
   })
 })

@@ -21,7 +21,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
   const unavailable=(reason:string):StructuralComparison=>({transactionId,status:'unavailable',reason,codes:[],selected:[]})
   const notApplicable=():StructuralComparison=>({transactionId,status:'not_applicable',reason:null,codes:[],selected:[]})
   try{
-    const ast=singleMessage(input.raw,'UTILTS')
+    const ast=singleMessage(input.raw,'UTILTS', true)
     if(!ast)return unavailable('structural_utilts_envelope_unknown')
     if(!['E30','E66','S07'].includes(ast.messages[0].messageCode??''))return notApplicable()
     const transactions=ast.messages[0].utiltsTransactions??[],transaction=transactions[input.transactionIndex]

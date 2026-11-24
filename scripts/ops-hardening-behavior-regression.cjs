@@ -77,79 +77,67 @@ assert(invalidUuidRejected, 'Invalid UUIDs must be rejected with a field-specifi
 assert(requireUuid(sampleUuid, 'customer_id') === sampleUuid, 'Required UUIDs should pass when valid')
 console.log('OPS behavior regression passed (UUID normalization).')
 
-function makeThenableBuilder(result, recorder) {
-  const builder = {
-    update(payload) { recorder.updates.push(payload); return builder },
-    select() { return builder },
-    in() { return builder },
-    order() { return builder },
-    limit() { return builder },
-    eq() { return builder },
-    lt() { return builder },
-    maybeSingle() { return builder },
-    then(resolve, reject) { return Promise.resolve(result).then(resolve, reject) },
-  }
-  return builder
-}
-
-// Outbox claiming is atomic and DB-owned: claim_ediel_outbox_items both moves
-// stale `sending` rows to delivery_uncertain and claims candidates in one
-// statement (supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql).
-// The application must fail closed when the RPC is missing — there is no
-// app-level fallback claim path that could race and double-send.
-const edielRecorder = { updates: [], selects: 0, rpcCalls: [] }
-const edielMocks = {
-  '@/lib/tenant/operationPolicy': {
-    getTenantOperationDecision: async () => ({ allowed: true, reasonCode: 'allowed', companyStatus: 'active', capabilityStatus: 'ready', productionStatus: 'live', stateVersion: 1 }),
+// Both configured RPCs use the same atomic SQL claim owner. A missing RPC
+// must propagate its database error without any direct table access or retry.
+const outboxClaimCases = [
+  {
+    rpc: 'gridex_claim_ediel_outbox_progress_v1',
+    params: { workerId: 'regression-worker', limit: 1, companyId: sampleUuid, environment: 'test' },
+    args: { p_worker_id: 'regression-worker', p_limit: 1, p_company_id: sampleUuid, p_environment: 'test' },
   },
-  '@/lib/supabase/service': {
-    supabaseService: {
-      rpc: async (name, args) => {
-        edielRecorder.rpcCalls.push({ name, args })
-        return { data: null, error: { message: 'Could not find the function claim_ediel_outbox_items' } }
-      },
-      from: () => ({
-        update: (payload) => makeThenableBuilder({ data: null, error: null }, edielRecorder).update(payload),
-        select: () => {
-          edielRecorder.selects += 1
-          return makeThenableBuilder({ data: [], error: null }, edielRecorder)
+  {
+    rpc: 'gridex_claim_ediel_outbox_batch_v1',
+    params: { workerId: 'regression-worker', batchRunId: sampleUuid },
+    args: { p_worker_id: 'regression-worker', p_run_id: sampleUuid },
+  },
+]
+
+async function assertAtomicOutboxClaim(claimCase) {
+  const calls = []
+  let tableAccesses = 0
+  const rpcError = { code: 'PGRST202', message: `Could not find the function ${claimCase.rpc}` }
+  const mocks = {
+    '@/lib/tenant/operationPolicy': { getTenantOperationDecision: async () => ({ allowed: true }) },
+    '@/lib/supabase/service': {
+      supabaseService: {
+        rpc: async (name, args) => {
+          calls.push({ name, args })
+          return { data: null, error: rpcError }
         },
-      }),
+        from: () => {
+          tableAccesses += 1
+          throw new Error('Direct table access during claim')
+        },
+      },
     },
-  },
+  }
+  mocks['@/lib/supabase/tenantDb'] = loadTypeScriptModule('lib/supabase/tenantDb.ts', {
+    '@/lib/supabase/service': mocks['@/lib/supabase/service'],
+  })
+  const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', mocks)
+  let observedError
+  try {
+    await claimEdielOutboxItems(claimCase.params)
+  } catch (error) {
+    observedError = error
+  }
+  assert(observedError === rpcError, `${claimCase.rpc}: missing RPC must surface the original database error`)
+  assert(calls.length === 1 && calls[0].name === claimCase.rpc, `Claiming must use exactly one ${claimCase.rpc} RPC`)
+  const actualArgs = calls[0].args
+  assert(
+    actualArgs && Object.keys(actualArgs).length === Object.keys(claimCase.args).length &&
+      Object.entries(claimCase.args).every(([key, value]) => actualArgs[key] === value),
+    `${claimCase.rpc}: claim RPC must carry the exact worker and claim scope`,
+  )
+  assert(tableAccesses === 0, `${claimCase.rpc}: missing claim RPC must never fall back to direct table access`)
+  console.log(`OPS behavior regression passed (${claimCase.rpc} is RPC-only and fails closed).`)
 }
-// Keep the real tenant wrapper bound to the same finite database transport.
-edielMocks['@/lib/supabase/tenantDb'] = loadTypeScriptModule('lib/supabase/tenantDb.ts', {
-  '@/lib/supabase/service': edielMocks['@/lib/supabase/service'],
-})
-const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', edielMocks)
 
-claimEdielOutboxItems({ workerId: 'regression-worker', limit: 1 })
-  .then(() => {
-    console.error('claimEdielOutboxItems must fail closed when the claim RPC is missing (no silent fallback claim).')
-    process.exit(1)
-  })
-  .catch((error) => {
-    try {
-      assert(
-        /claim_ediel_outbox_items/.test(String(error && error.message)),
-        'Missing claim RPC must surface the original database error, not a rewritten one',
-      )
-      assert(
-        edielRecorder.rpcCalls.length === 1 && edielRecorder.rpcCalls[0].name === 'claim_ediel_outbox_items',
-        'Claiming must go through the atomic claim_ediel_outbox_items RPC',
-      )
-      assert(
-        edielRecorder.rpcCalls[0].args && edielRecorder.rpcCalls[0].args.p_worker_id === 'regression-worker',
-        'Claim RPC must carry the worker id for lock attribution',
-      )
-      assert(
-        edielRecorder.updates.length === 0,
-        'No direct table updates may happen when the atomic claim RPC is unavailable (fail closed)',
-      )
-      console.log('OPS behavior regression passed (Ediel outbox claim is RPC-only and fail-closed).')
-    } catch (assertionError) {
-      console.error(assertionError)
-      process.exit(1)
-    }
-  })
+async function assertAtomicOutboxClaims() {
+  for (const claimCase of outboxClaimCases) await assertAtomicOutboxClaim(claimCase)
+}
+
+assertAtomicOutboxClaims().catch(error => {
+  console.error(error)
+  process.exitCode = 1
+})

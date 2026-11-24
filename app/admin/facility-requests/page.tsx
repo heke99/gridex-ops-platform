@@ -14,6 +14,7 @@ import {
   type FacilityWorkQueueRow,
   type FacilityWorkQueueStatus,
 } from '@/lib/facility/workQueue'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 type FacilityLookupRequestRow = {
@@ -273,7 +274,6 @@ export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await resolveAdminTenantReadScope(context)
   const { companyId, isPlatformAdmin } = companyScope
-  const canWrite = await canPresentAdminAction(['customers.write'])
   const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
   const canReadCustomers = canPresentAdminLink(context, { anyOf: ['customers.read'] })
   const canCreateCustomer = await canPresentOperationalAction(['customers.write'], isPlatformAdmin ? context.companyId : companyId)
@@ -315,6 +315,19 @@ export default async function FacilityRequestsPage() {
   }
 
   const facilityRequests = (facilityRequestsData ?? []) as unknown as FacilityLookupRequestRow[]
+  const writableCompanies = new Set<string>()
+  const requestCompanyIds = [...new Set(facilityRequests.map((request) => request.company_id).filter(Boolean))]
+  if (requestCompanyIds.length > 0 && await canPresentAdminAction(['customers.write'])) {
+    const { data: companies, error: companyError } = await supabase
+      .from('companies')
+      .select('id,status')
+      .in('id', requestCompanyIds)
+    if (companyError) throw companyError
+
+    for (const company of companies ?? []) {
+      if (isCompanyWritableInTenantWorkspace(company.status)) writableCompanies.add(company.id)
+    }
+  }
   // Multiple customer/site foreign keys need explicit relationship hints above.
   // grid_owner_id has no PostgREST relationship, so load its display data in bulk.
   const gridOwnerIds = [...new Set(facilityRequests.flatMap((request) => request.grid_owner_id ? [request.grid_owner_id] : []))]
@@ -370,7 +383,7 @@ export default async function FacilityRequestsPage() {
               <p className="mt-1 text-sm text-slate-600">Registrera manuellt skickade begäranden och nätägarens svar.</p>
             </div>
             <div className="grid gap-4">
-              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} canWrite={canWrite} canReadCustomer={canReadCustomer} />)}
+              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} canWrite={writableCompanies.has(request.company_id)} canReadCustomer={canReadCustomer} />)}
             </div>
           </section>
         ) : null}

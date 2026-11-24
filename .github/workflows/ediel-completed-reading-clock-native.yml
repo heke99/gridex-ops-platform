@@ -1,0 +1,114 @@
+name: Ediel completed readings on a disposable VM
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: Full Git SHA of the source reviewed for this isolated test run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-completed-reading-${{ github.event.pull_request.head.sha || inputs.reviewed_sha }}
+  cancel-in-progress: false
+
+jobs:
+  completed-reading-native:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' && github.actor == 'heke99' &&
+      github.triggering_actor == 'heke99' && github.run_attempt == 1 &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+      github.ref == 'refs/pull/1269/merge' && github.event.pull_request.number == 1269 &&
+      github.event.pull_request.draft && github.event.pull_request.state == 'open' && github.event.sender.login == 'heke99' &&
+      github.event.pull_request.user.login == 'heke99' && github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.base.repo.full_name == 'heke99/gridex-ops-platform' &&
+      github.event.pull_request.head.repo.full_name == 'heke99/gridex-ops-platform' &&
+      github.event.pull_request.head.ref == 'codex/gridex-ops-integrated-verification-20261124-0640' &&
+      github.event.label.name == format('e66-clock-{0}', github.event.pull_request.head.sha)))
+    name: Ediel completed reading / ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [fg, z10m]
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_COMPLETED_READING_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || inputs.reviewed_sha }}
+    steps:
+      - name: Require the explicitly reviewed immutable commit
+        shell: bash
+        run: |
+          [[ "$GRIDEX_COMPLETED_READING_EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]]
+      - name: Check out the trusted main or expressly reviewed same-repo composer
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: clock-driver
+          persist-credentials: false
+      - name: Check out the exact already verified Z03C controller source
+        uses: actions/checkout@v4
+        with:
+          ref: 70dd4508a79d9745c8d5a1c876acac4a3f2cc2b8
+          path: verified-z03c
+          persist-credentials: false
+      - name: Check out the reviewed product candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.reviewed_sha }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Prepare the exact controller and candidate at ordinary time
+        shell: bash
+        working-directory: candidate
+        env:
+          GRIDEX_COMPLETED_READING_SUITE: ${{ matrix.suite }}
+        run: |
+          set -euo pipefail
+          [[ $(git rev-parse HEAD) == "$GRIDEX_COMPLETED_READING_EXPECTED_HEAD" ]]
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            [[ $(git -C "$GITHUB_WORKSPACE/clock-driver" rev-parse HEAD) == "$GRIDEX_COMPLETED_READING_EXPECTED_HEAD" ]]
+          fi
+          python3 "$GITHUB_WORKSPACE/clock-driver/scripts/helpers/compose-ediel-completed-reading-clock.py" \
+            --template "$GITHUB_WORKSPACE/verified-z03c/.github/workflows/ediel-z03c-supplier-boundary-native.yml" \
+            --suite "$GRIDEX_COMPLETED_READING_SUITE" --output "$RUNNER_TEMP/completed-reading-owned-clock.py"
+          npm ci
+      - name: Exercise and restore this exact disposable VM before product testing
+        id: preflight
+        shell: bash
+        working-directory: candidate
+        env:
+          GRIDEX_COMPLETED_READING_MODE: preflight
+        run: python3 "$RUNNER_TEMP/completed-reading-owned-clock.py"
+      - name: Run one original completed-reading chain and restore the VM
+        id: native
+        shell: bash
+        working-directory: candidate
+        env:
+          GRIDEX_COMPLETED_READING_MODE: native
+        run: python3 "$RUNNER_TEMP/completed-reading-owned-clock.py"
+      - name: Upload redacted or preflight evidence after verified restoration
+        if: always() && (steps.native.outputs.restored_evidence_ready == 'true' || (steps.native.outcome == 'skipped' && steps.preflight.outputs.restored_evidence_ready == 'true'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-completed-reading-${{ matrix.suite }}-${{ github.run_id }}
+          path: |
+            candidate/completed_reading-clock-preflight-evidence
+            candidate/completed_reading-native-evidence
+          if-no-files-found: error
+          retention-days: 14

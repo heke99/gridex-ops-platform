@@ -1,5 +1,6 @@
 'use server'
 
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { revalidatePath } from 'next/cache'
 import { requireEdielSendActionAccess } from '@/lib/ediel/actionAccess'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
@@ -17,7 +18,7 @@ function formNumber(value: FormDataEntryValue | null, fallback: number): number 
 export async function processEdielOutboxAction(formData: FormData) {
   const context = await requireEdielSendActionAccess()
   const environment = formString(formData.get('environment'))
-  const companyId = formString(formData.get('companyId'))
+  const { companyId } = await getOperationalCompanyScope(context.userId)
   const limit = formNumber(formData.get('limit'), 10)
 
   await processEdielOutbox({
@@ -30,6 +31,26 @@ export async function processEdielOutboxAction(formData: FormData) {
   revalidatePath('/admin/ediel/outbox')
   revalidatePath('/admin/ediel/automation')
   revalidatePath('/admin/ediel/messages')
+}
+
+export async function processEdielOutboxWithResultAction(
+  _previous: { processed: number; sent: number; failed: number; blocked: number; deliveryUncertain: number; stoppedBy: string | null } | null,
+  formData: FormData,
+) {
+  const context = await requireEdielSendActionAccess()
+  const scope = await getOperationalCompanyScope(context.userId)
+  const environment = formString(formData.get('environment'))
+  const run = await processEdielOutbox({
+    actorUserId: context.userId,
+    companyId: scope.companyId,
+    environment: environment === 'test' || environment === 'production' ? environment : null,
+    limit: formNumber(formData.get('limit'), 10),
+  })
+  revalidatePath('/admin/ediel/outbox')
+  revalidatePath('/admin/ediel/automation')
+  revalidatePath('/admin/ediel/messages')
+  return { processed: run.processed, sent: run.sent, failed: run.failed, blocked: run.blocked,
+    deliveryUncertain: run.deliveryUncertain, stoppedBy: run.stoppedBy }
 }
 
 export async function sendSingleEdielOutboxItemAction(formData: FormData) {

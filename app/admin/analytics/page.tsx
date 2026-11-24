@@ -50,7 +50,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
         workspaceName={scope.companyName}
       />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
-        <AnalyticsTabs active="overview" />
+        <AnalyticsTabs active="overview" month={month} />
         <AnalyticsFilters
           monthOnly
           month={month}
@@ -101,6 +101,7 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
   const number = (key: string) => nullableNumber(metric[key])
   const previousNumber = (key: string) => nullableNumber(previous?.[key])
   const missing = number('metering_values_missing')
+  const deviationsHref = `/admin/analytics/deviations?${new URLSearchParams({ month: String(metric.month).slice(0, 7) })}`
   const failed = number('failed_metering_requests')
   const deviations = missing === null || failed === null ? null : missing + failed
   return [
@@ -109,11 +110,11 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
     { key: 'sites', label: 'Aktiva anläggningar', value: formatNumber(number('active_sites')), hint: `${formatNumber(number('total_sites'))} anläggningar totalt`, status: 'info' },
     { key: 'metering_points', label: 'Aktiva mätpunkter', value: formatNumber(number('active_metering_points')), hint: `${formatNumber(number('total_metering_points'))} mätpunkter totalt`, status: 'info', href: '/admin/metering' },
     { key: 'received', label: 'Mottagna mätvärden', value: formatNumber(number('metering_values_received')), hint: 'Inkomna värden för vald period', status: 'info', href: '/admin/metering' },
-    { key: 'missing', label: 'Saknade mätvärden', value: formatNumber(missing), hint: missing === null ? 'Månadsunderlag saknas' : missing ? 'Kräver uppföljning' : 'Inga saknade mätvärden i månadsunderlaget', status: missing === null ? 'info' : missing ? 'critical' : 'ok', href: '/admin/analytics/deviations' },
+    { key: 'missing', label: 'Saknade mätvärden', value: formatNumber(missing), hint: missing === null ? 'Månadsunderlag saknas' : missing ? 'Kräver uppföljning' : 'Inga saknade mätvärden i månadsunderlaget', status: missing === null ? 'info' : missing ? 'critical' : 'ok', href: deviationsHref },
     { key: 'forecast_current', label: 'Prognos vald månad', value: formatMwh(number('forecast_kwh')), hint: 'Sparad prognosvolym', status: 'info', href: `/admin/analytics/forecast?month=${String(metric.month).slice(0, 7)}` },
     { key: 'forecast_next', label: 'Prognos nästa månad', value: 'Visa prognos', hint: 'Månaden efter vald period', status: 'info', href: `/admin/analytics/forecast?month=${addMonths(String(metric.month), 1).slice(0, 7)}` },
-    { key: 'deviations', label: 'Mätvärdesavvikelser', value: formatNumber(deviations), hint: 'Saknade värden och misslyckade begäranden i månadsunderlaget', status: deviations === null ? 'info' : deviations ? 'warning' : 'ok', href: '/admin/analytics/deviations' },
-    { key: 'quality', label: 'Mätvärdestäckning', value: missing === null ? 'Underlag saknas' : missing ? 'Följ upp' : 'Inga saknade mätvärden', hint: 'Avser enbart saknade mätvärden i månadsunderlaget', status: missing === null ? 'info' : missing ? 'warning' : 'ok', href: '/admin/analytics/deviations' },
+    { key: 'deviations', label: 'Mätvärdesavvikelser', value: formatNumber(deviations), hint: 'Saknade värden och misslyckade begäranden i månadsunderlaget', status: deviations === null ? 'info' : deviations ? 'warning' : 'ok', href: deviationsHref },
+    { key: 'quality', label: 'Mätvärdestäckning', value: missing === null ? 'Underlag saknas' : missing ? 'Följ upp' : 'Inga saknade mätvärden', hint: 'Avser enbart saknade mätvärden i månadsunderlaget', status: missing === null ? 'info' : missing ? 'warning' : 'ok', href: deviationsHref },
   ]
 }
 

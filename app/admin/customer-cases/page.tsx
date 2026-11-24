@@ -5,6 +5,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
+import { isTenantSupportCase } from '@/lib/customer-cases/supportScope'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
 import { formatStatusLabel, formatAdminDateTime } from '@/lib/ui/format'
@@ -12,14 +13,11 @@ import AdminDisclosurePanel from '@/components/admin/ui/AdminDisclosurePanel'
 
 export const dynamic = 'force-dynamic'
 
-function isSupportCase(row: { source?: string | null; metadata?: Record<string, unknown> | null }) {
-  return row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')
-}
-
 function supportChannel(source: string | null) {
   const labels: Record<string, string> = {
     tenant_support_phone: 'Telefon',
     tenant_support_customer_portal: 'Mina sidor',
+    customer_portal: 'Mina sidor',
     tenant_support_admin: 'Handläggare',
     tenant_support_api: 'Ansluten tjänst',
     tenant_support_staff_api: 'Handläggare via ansluten tjänst',
@@ -37,7 +35,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
     listCustomerCases({ companyId: scope.companyId, limit: 200 }),
     canWrite && scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
   ])
-  const cases = allCases.filter(isSupportCase)
+  const cases = allCases.filter(isTenantSupportCase)
   const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
   const closed = cases.filter((row) => ['resolved', 'closed', 'cancelled'].includes(row.status))
   const urgent = open.filter((row) => ['urgent', 'high'].includes(row.priority))
@@ -50,7 +48,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
             {scope.companyId ? <Link href={`/admin/customer-cases/${row.id}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">{row.title}</Link> : <span className="font-semibold text-slate-950" title="Välj bolaget för att öppna ärendet">{row.title}</span>}
             <p className="mt-1 text-sm text-slate-600">{row.customer_name || row.customer_number || 'Kunduppgifter saknas'}</p>
             {row.description ? <details className="mt-2 text-sm text-slate-700"><summary className="cursor-pointer font-medium">Beskrivning</summary><p className="mt-2 max-w-3xl whitespace-pre-wrap">{row.description}</p></details> : null}
-            <p className="mt-2 text-xs text-slate-500">{row.reason_category && row.reason_category !== 'support' ? `${row.reason_category} · ` : ''}{supportChannel(row.source)} · {formatAdminDateTime(row.created_at)}</p>
+            <p className="mt-2 text-xs text-slate-500">{row.reason_category && !['support', 'portal_completion'].includes(row.reason_category) ? `${row.reason_category} · ` : ''}{supportChannel(row.source)} · {formatAdminDateTime(row.created_at)}</p>
           </div>
           <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority, 'Okänd prioritet', 'Okänd prioritet')} · {formatStatusLabel(row.status, 'Status behöver granskas', 'Status behöver granskas')}</span>
         </div>

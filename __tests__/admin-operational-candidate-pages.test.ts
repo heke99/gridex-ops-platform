@@ -2,6 +2,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { confirmedSwitchMarketStart } from './fixtures/supplier-switch-market-start'
 
 type Row = Record<string, unknown>
 const port = vi.hoisted(() => ({
@@ -94,6 +95,10 @@ function sdk() {
   })
 }
 
+vi.mock('@/lib/operations/switchActivationAuthority', () => ({
+  readSwitchActivationCompanyIds: async (_client: unknown, _actor: string, companies: string[]) =>
+    new Set(companies.filter(id => port.tables.companies?.some(row => row.id === id && row.status === 'active'))),
+}))
 vi.mock('@/lib/admin/guards', () => ({
   requireAdminPageKeyAccess: async () => ({ userId: 'operator', email: 'operator@example.test', roles: [], permissions: port.permissions, companyId: port.company, isPlatformAdmin: port.platform }),
   isPlatformAdminContext: () => port.platform,
@@ -116,13 +121,17 @@ const id = (n: number) => `00000000-0000-4000-8000-${n.toString(16).padStart(12,
 const customerId = id(10001)
 const siteId = id(10002)
 function request(n: number, overrides: Row = {}): Row {
-  return {
+  const row = {
     id: id(n), company_id: COMPANY, customer_id: customerId, site_id: siteId, metering_point_id: id(10003),
     status: 'accepted', request_type: 'switch_in', inbound_z04_message_id: id(10004),
     requested_start_date: '2026-10-01', confirmed_start_date: '2026-10-01',
     created_at: new Date(Date.UTC(2026, 9, 1, 0, 0, n)).toISOString(), submitted_at: null,
     failure_reason: null, ...overrides,
   }
+  if (row.status === 'accepted' && row.inbound_z04_message_id) {
+    port.tables.customer_supply_periods.push(confirmedSwitchMarketStart(row))
+  }
+  return row
 }
 async function html(cursor?: string): Promise<string> {
   const page = ReadyPage as (props?: { searchParams?: Promise<Record<string, string>> }) => Promise<React.ReactElement>
@@ -144,11 +153,30 @@ beforeEach(() => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-14T10:00:00Z'))
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
   port.company = COMPANY; port.platform = false; port.failures = {}; port.queries = []; port.cap = Infinity; port.serverClients = 0
-  port.tables = { supplier_switch_requests: [], outbound_requests: [], customer_sites: [{ id: siteId, company_id: COMPANY, site_name: 'Anläggning A' }] }
+  port.tables = { companies: [{ id: COMPANY, status: 'active' }, { id: FOREIGN, status: 'active' }], supplier_switch_requests: [], customer_supply_periods: [], outbound_requests: [], customer_sites: [{ id: siteId, company_id: COMPANY, site_name: 'Anläggning A' }] }
 })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
 describe('actual ready page and SDK candidate transport', () => {
+  it('leaves qualified ready history readable when the selected company is paused', async () => {
+    port.tables.supplier_switch_requests = [request(1)]
+    port.tables.companies[0].status = 'paused'
+    const markup = await html()
+    expect(markup).toContain('/admin/operations/switches/' + id(1))
+    expect(markup).not.toContain('Starta aktivering')
+    expect(visibleRequestIds(markup)).toEqual([])
+  })
+
+  it('only presents individual activation for an operational target in the platform list', async () => {
+    port.platform = true
+    port.tables.supplier_switch_requests = [request(1, { company_id: FOREIGN, site_id: id(10005) }), request(2)]
+    port.tables.companies[1].status = 'paused'
+    const markup = await html()
+    expect(markup).toContain('/admin/operations/switches/' + id(1))
+    expect(markup).toContain('Starta aktivering')
+    expect(visibleRequestIds(markup)).toEqual([id(2)])
+  })
+
   it('finds the older ready request behind200 newer completed rows', async () => {
     port.tables.supplier_switch_requests = [request(1), ...Array.from({ length: 200 }, (_, n) => request(n + 2, { status: 'completed' }))]
     expect(visibleRequestIds(await html())).toEqual([id(1)])
@@ -160,6 +188,17 @@ describe('actual ready page and SDK candidate transport', () => {
   it('retains the actual Z04, accepted status and reached-date activation requirements', async () => {
     port.tables.supplier_switch_requests = [request(1), request(2, { inbound_z04_message_id: null }), request(3, { confirmed_start_date: '2099-01-01' }), request(4, { status: 'submitted' })]
     expect(visibleRequestIds(await html())).toEqual([id(1)])
+  })
+  it('requires a unique, reached start for the same tenant and inbound Z04', async () => {
+    port.tables.supplier_switch_requests = [1, 2, 3, 4, 5, 6].map(n => request(n))
+    const [owned, missing, foreign, wrongMessage, future, ambiguous] = port.tables.customer_supply_periods
+    foreign.company_id = FOREIGN
+    wrongMessage.source_message_id = id(9901)
+    future.market_start_at = '2026-10-14T10:00:00.000001Z'
+    port.tables.customer_supply_periods = [owned, foreign, wrongMessage, future, ambiguous, { ...ambiguous, id: id(9902) }]
+    expect(visibleRequestIds(await html())).toEqual([id(1)])
+    expect(port.queries.filter(query => query.table === 'customer_supply_periods')).toHaveLength(1)
+    expect(port.tables.customer_supply_periods).not.toContain(missing)
   })
   it('reaches more than200 ready rows without duplicate or skipped equal-date IDs', async () => {
     port.tables.supplier_switch_requests = Array.from({ length: 205 }, (_, n) => request(n + 1, { created_at: '2026-10-01T00:00:00Z' }))
@@ -279,7 +318,8 @@ describe('actual ready page and SDK candidate transport', () => {
     expect(port.queries).toEqual([])
   })
   it('keeps canonical tenant scope and permits authorized global platform candidates', async () => {
-    port.tables.supplier_switch_requests = [request(1), request(2, { company_id: FOREIGN })]
+    port.tables.supplier_switch_requests = [request(1), request(2, { company_id: FOREIGN, site_id: id(10005) })]
+    port.tables.customer_sites.push({ id: id(10005), company_id: FOREIGN, site_name: 'Anläggning B' })
     expect(visibleRequestIds(await html())).toEqual([id(1)])
     port.platform = true; port.queries = []
     expect(visibleRequestIds(await html())).toEqual([id(2), id(1)])

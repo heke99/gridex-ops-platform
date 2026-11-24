@@ -2,6 +2,7 @@ import { withApiContractRepresentation } from '@/lib/integrations/apiResponsePro
 import { NextRequest } from 'next/server'
 import {
   ApiInputError,
+  IdempotentWriteCompletionUncertainError,
   executeIdempotentPortalWrite,
   readJsonObject,
   requireIdempotencyKey,
@@ -111,14 +112,21 @@ function record(value: unknown): JsonRecord {
       },
     })
 
+    const receipt = record(result.body.data)
+    const replayed = result.replayed || receipt.replayed === true
+    if (replayed && !clean(receipt.completion_reference)) {
+      throw new IdempotentWriteCompletionUncertainError()
+    }
+    const body = replayed ? { ...result.body, data: { ...receipt, replayed: true } } : result.body
+
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
       resultCount: 1,
-      metadata: { idempotency_replay: result.replayed },
+      metadata: { idempotency_replay: replayed },
     })
-    return customerPortalJson(result.body, { status: result.statusCode })
+    return customerPortalJson(body, { status: replayed ? 200 : result.statusCode })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }

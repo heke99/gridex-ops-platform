@@ -132,11 +132,13 @@ function BulkActionButton({
  action,
  hiddenFields,
  label,
+ chooseEdielEnvironment = false,
  variant = 'dark',
 }: {
  action: (formData: FormData) => Promise<void>
  hiddenFields?: Array<{ name: string; value: string }>
  label: string
+ chooseEdielEnvironment?: boolean
  variant?: 'dark' | 'warning' | 'success' | 'neutral'
 }) {
  const className =
@@ -150,6 +152,16 @@ function BulkActionButton({
 
  return (
  <form action={action}>
+ {chooseEdielEnvironment && (
+ <label>
+ Ediel-miljö
+ <select name="ediel_environment" required defaultValue="">
+ <option value="" disabled>Välj miljö</option>
+ <option value="test">Test</option>
+ <option value="production">Produktion</option>
+ </select>
+ </label>
+ )}
  {hiddenFields?.map((field) => (
  <input
  key={`${field.name}:${field.value}`}
@@ -401,6 +413,7 @@ function ActionStrip({
  <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
  <BulkActionButton
  action={runBulkQueueMissingMeterValuesFromIntegrityAction}
+ chooseEdielEnvironment
  hiddenFields={[{ name: 'period_month', value: period.label }]}
  label={`Köa saknade mätvärden ${period.label}`}
  variant="warning"
@@ -1128,6 +1141,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  form: (
  <BulkActionButton
  action={runBulkQueueMissingMeterValuesFromIntegrityAction}
+ chooseEdielEnvironment
  hiddenFields={[{ name: 'period_month', value: period.label }]}
  label={`Köa mätvärden ${period.label}`}
  variant="warning"

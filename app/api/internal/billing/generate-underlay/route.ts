@@ -1,14 +1,35 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { internalApiError } from '@/lib/http/apiError'
+import { errorCode, internalApiError, isSchemaError } from '@/lib/http/apiError'
 import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
+import { isValidIdempotencyKey } from '@/lib/api/idempotencyKey'
+import { readUnderlayGenerationReceipt, type UnderlayGenerationIntent } from '@/lib/billing/underlayGenerationReceipt'
+import { parseBillingMonth } from '@/lib/time/stockholm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function isBillingPeriodLockError(message: string): boolean {
   return /Fakturaperioden .* (är locked|är exported|är closed|är låst|låst för)/i.test(message)
+}
+
+function isReceiptScopeConflict(error: unknown): boolean {
+  return errorCode(error) === '22023' && (error as { message?: unknown } | null)?.message === 'billing_underlay_intent_scope_conflict'
+}
+
+async function readReceiptResponse(intent: UnderlayGenerationIntent) {
+  let previous
+  try {
+    previous = await readUnderlayGenerationReceipt(intent)
+  } catch (error) {
+    if (errorCode(error) !== '23514' || (error as { message?: unknown } | null)?.message !== 'finance_copy_retention_tombstoned') throw error
+    return internalApiError({
+      context: 'billing-underlay-generate', error, code: 'billing_underlay_receipt_retained',
+      message: 'Underlagskvittot kan inte längre visas efter gallring.', status: 410,
+    })
+  }
+  return previous === null ? null : NextResponse.json({ data: previous })
 }
 
 type EngineState = 'not_entered' | 'pending' | 'fulfilled' | 'rejected'
@@ -72,25 +93,63 @@ async function generate(request: Request, observation: ReturnType<typeof observe
   const access = await requireAdminApiAccess(['billing_underlay.export'])
   if (access.response) return access.response
 
+  const intentKey = request.headers.has('Idempotency-Key') ? request.headers.get('Idempotency-Key') : null
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input: unknown = await request.json().catch(() => null)
+    const body = input && typeof input === 'object' ? input as Record<string, unknown> : {}
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     if (!/^\d{4}-\d{2}$/.test(billingMonth)) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
+    if (intentKey !== null && !isValidIdempotencyKey(intentKey)) {
+      return NextResponse.json({ error: 'Idempotency-Key har ogiltigt format.' }, { status: 400 })
+    }
+    try {
+      parseBillingMonth(billingMonth)
+    } catch {
+      return NextResponse.json({ error: 'Fakturamånad är ogiltig.' }, { status: 400 })
+    }
+    let intent: UnderlayGenerationIntent | null = null
+    if (intentKey !== null) {
+      intent = { key: intentKey, companyId, actorUserId: access.guard.userId, billingMonth, scope: { customerId: null, meteringPointId: null } }
+      const previous = await readReceiptResponse(intent)
+      if (previous) return previous
+    }
 
     observation?.enter()
     let result
     try {
-      result = await generateBillingUnderlaysForMonth({ companyId, billingMonth, createdBy: access.guard.userId })
+      result = await generateBillingUnderlaysForMonth({ companyId, billingMonth, createdBy: access.guard.userId, ...(intentKey === null ? {} : { intentKey }) })
       observation?.settled('fulfilled')
     } catch (error) {
       observation?.settled('rejected')
+      if (intent) {
+        // A concurrent request or a lost database reply may have committed the same intent.
+        let previous
+        try {
+          previous = await readReceiptResponse(intent)
+        } catch (lookupError) {
+          if (isReceiptScopeConflict(lookupError)) throw lookupError
+        }
+        if (previous) return previous
+      }
       throw error
     } finally {
       observation?.cleanup()
     }
     return NextResponse.json({ data: result })
   } catch (error) {
+    if (intentKey !== null) {
+      const detail = String((error as { message?: unknown } | null)?.message ?? '')
+      if (isReceiptScopeConflict(error)) {
+        return internalApiError({ context: 'billing-underlay-generate', error, code: detail, message: 'Begäran gäller en annan fakturaperiod.', status: 409 })
+      }
+      if (detail === 'billing_underlay_intent_history_authority_required') {
+        return internalApiError({ context: 'billing-underlay-generate', error, code: detail, message: 'Körningen kräver granskning av historikbegäran.', status: 409 })
+      }
+      if (isSchemaError(error)) {
+        return internalApiError({ context: 'billing-underlay-generate', error, code: 'billing_underlay_receipt_unavailable', message: 'Underlagskvittot är inte tillgängligt just nu.', status: 503 })
+      }
+    }
     const internalMessage = error instanceof Error ? error.message : ''
     return internalApiError({ context: 'billing-underlay-generate', error, code: 'billing_underlay_generate_failed', message: 'Fakturaunderlaget kunde inte skapas.', status: isBillingPeriodLockError(internalMessage) ? 409 : 500 })
   }

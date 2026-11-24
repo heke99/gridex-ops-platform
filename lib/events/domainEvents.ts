@@ -253,7 +253,20 @@ export async function processDomainEventWebhookFanout(input: {
         .eq('id', candidate.domain_event_id)
         .single()
       if (eventResult.error) throw eventResult.error
-      const deliveryCount = await enqueueWebhookDeliveriesForEvent(eventResult.data as DomainEventRow, { strict: true })
+      const event = eventResult.data as DomainEventRow
+      let deliveryCount: number
+      if (event.source === 'admin_webhook_test' && event.event_type === 'webhook.test') {
+        const target = event.payload?.expected_subscription_id
+        if (!event.company_id || event.aggregate_type !== 'webhook_subscription' || typeof target !== 'string'
+          || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(target)
+          || event.aggregate_id !== target || event.payload?.webhook_subscription_id !== target) {
+          throw new Error('webhook_test_subscription_required')
+        }
+        deliveryCount = await enqueueWebhookDeliveriesForEvent(event, { subscriptionIds: [target], force: true, strict: true })
+        if (deliveryCount === 0) throw new Error('webhook_test_subscription_not_available')
+      } else {
+        deliveryCount = await enqueueWebhookDeliveriesForEvent(event, { strict: true })
+      }
       const committed = await finalizeWebhookFanoutJob(receipt, {
         status: 'sent',
         attempts,
@@ -282,20 +295,33 @@ export async function processDomainEventWebhookFanout(input: {
 export async function listDomainEventsForCompany(input: {
   companyId: string
   eventType?: string | null
+  allowedEventTypes?: readonly string[]
   customerId?: string | null
   limit?: number
   cursorOccurredBefore?: string | null
+  cursorPosition?: { occurredAt: string; id: string } | null
+  includeLookahead?: boolean
 }): Promise<DomainEventRow[]> {
+  const { allowedEventTypes, eventType } = input
+  if (allowedEventTypes && (allowedEventTypes.length === 0 || (eventType && !allowedEventTypes.includes(eventType)))) return []
+
   let query = supabaseService
     .from('domain_events')
     .select('*')
     .eq('company_id', input.companyId)
     .order('occurred_at', { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 100))
+    .order('id', { ascending: false })
+    .limit(Math.min(Math.max(input.limit ?? 100, 1), 100) + (input.includeLookahead ? 1 : 0))
 
-  if (input.eventType) query = query.eq('event_type', input.eventType)
+  if (eventType) query = query.eq('event_type', eventType)
+  else if (allowedEventTypes) query = query.in('event_type', allowedEventTypes)
   if (input.customerId) query = query.eq('subject_customer_id', input.customerId)
-  if (input.cursorOccurredBefore) query = query.lt('occurred_at', input.cursorOccurredBefore)
+  if (input.cursorPosition) {
+    const { occurredAt, id } = input.cursorPosition
+    query = query.lte('occurred_at', occurredAt).or(`occurred_at.lt.${occurredAt},and(occurred_at.eq.${occurredAt},id.lt.${id})`)
+  } else if (input.cursorOccurredBefore) {
+    query = query.lt('occurred_at', input.cursorOccurredBefore)
+  }
 
   const { data, error } = await query
   if (error) {

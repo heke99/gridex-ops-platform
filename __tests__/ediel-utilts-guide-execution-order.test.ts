@@ -8,6 +8,8 @@ import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOve
 import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 import { decideUtiltsResponse } from '@/lib/ediel/decisionEngine'
 import { buildAckDraftForSource } from '@/lib/ediel/ack'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
+import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 
 const probe = vi.hoisted(() => ({ count: 0 }))
 vi.mock('@/lib/ediel/utilts/resolution', async (importOriginal) => {
@@ -161,4 +163,79 @@ it('does not borrow a misplaced transaction timezone as the message header', () 
   const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
   expect(result.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([{ fieldCode: '206', ercCode: '41' }])
   expect(probe.count).toBe(0)
+})
+
+function messageWithHeaderOffsets(offsets: readonly string[]) {
+  const message = energyHandoffMessage('2026-10-01')
+  message.sender_ediel_id = '91100'
+  message.receiver_ediel_id = '21660'
+  const declarations = offsets.map(offset => `DTM+735:${offset}'`).join('\n')
+  message.raw_payload = recountEdifactUnt(message.raw_payload!.replace("DTM+735:?+0200:406'", declarations))
+  return message
+}
+
+const matchedScope = { customerId: 'customer', siteId: 'site', meteringPointId: 'point', gridOwnerId: 'owner' }
+const billingContext = {
+  fallback: matchedScope, allowConsumption: true,
+  dataRequest: { id: 'billing-request', request_scope: 'billing_underlay' } as GridOwnerDataRequestRow,
+  matches: [{ ...matchedScope, transactionReference: 'GRIDEX2607E66001',
+    externalMeteringPointId: '735999260731000007', externalGridAreaId: 'TES', matchStatus: 'matched' as const }],
+}
+
+it.each([
+  { offsets: ['?+0100:406', '?+0200:406'], invalidValue: '+0200' },
+  { offsets: ['?+0200:406', '?+0100:406'], invalidValue: '+0100' },
+  { offsets: ['?+0100:406', '?+0100:405'], invalidValue: '405' },
+  { offsets: ['?+0100:406', '?+0200:406', '?+0100:405'], invalidValue: '+0200' },
+])('rejects the first invalid field 206 occurrence in $offsets before any consumption', async ({ offsets, invalidValue }) => {
+  const message = messageWithHeaderOffsets(offsets)
+  // DTM+137 at 18:11 falls on opposite sides of receipt under the two offsets.
+  // A rejected offset must not also create an order-dependent field 205 error.
+  message.message_received_at = '2026-10-01T16:40:00Z'
+  const canonicalPolicy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
+    referenceDate: '2026-10-01', applicationReference: message.application_reference, mode: 'parse' })!
+  const runtime = runUtiltsRuntimeForMessage(message, { canonicalPolicy })
+  expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(runtime.validation.issues.map(issue => issue.aperakFieldCode)).toEqual(['206'])
+  expect(runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([
+    { fieldCode: '206', ercCode: '42', text: `INCORRECT DATA ${invalidValue}` },
+  ])
+  expect(runtime.ackPlan).toMatchObject({ shouldSendAperak: true, aperakOutcome: 'negative', shouldSendUtiltsErr: false })
+  expect(probe.count).toBe(0)
+
+  const contracts = await prepareUtiltsConsumptionContracts({ message, runtime, policy: canonicalPolicy, ...billingContext })
+  expect(contracts).toMatchObject([{ observations: [], metering: { capability: 'skip' },
+    billing: { capability: 'skip' }, billingContributionOrdinals: [] }])
+  const decision = decideUtiltsResponse({ message, testCaseCode: 'UE1' })
+  expect(decision).toMatchObject({ kind: 'ack', ackFamily: 'APERAK', outcome: 'negative', utiltsHeaderRejected: true })
+  const draft = buildAckDraftForSource({ sourceMessage: message, ackFamily: 'APERAK', outcome: 'negative',
+    applicationErrors: decision.applicationErrors, utiltsHeaderRejected: decision.utiltsHeaderRejected })
+  expect(draft.rawPayload).toContain('206')
+  expect(draft.rawPayload).not.toContain('RFF+ACW:')
+})
+
+it.each([
+  { offsets: ['?+0100:406'], start: '2026-06-30T23:00:00.000Z' },
+  { offsets: ['?+0200:406'], start: '2026-06-30T22:00:00.000Z' },
+  { offsets: ['?+0100:406', '?+0100:406'], start: '2026-06-30T23:00:00.000Z' },
+])('keeps the unambiguous physical basis of $offsets', async ({ offsets, start }) => {
+  const message = messageWithHeaderOffsets(offsets)
+  const canonicalPolicy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
+    referenceDate: '2026-10-01', applicationReference: message.application_reference, mode: 'parse' })!
+  const runtime = runUtiltsRuntimeForMessage(message, { canonicalPolicy })
+  expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
+  expect(runtime.normalizedPayload.periodStart).toBe(start)
+  expect(runtime.validation.issues).toEqual([])
+  const contracts = await prepareUtiltsConsumptionContracts({ message, runtime, policy: canonicalPolicy, ...billingContext })
+  expect(contracts).toMatchObject([{ observations: [{ periodStart: start }], metering: { capability: 'write' },
+    billing: { capability: 'write' }, billingContributionOrdinals: [0] }])
+})
+
+it('keeps physical syntax rejection first when header offsets disagree', () => {
+  const message = messageWithHeaderOffsets(['?+0100:406', '?+0200:406'])
+  message.raw_payload = message.raw_payload!.replace(/UNT\+\d+\+/, 'UNT+999+')
+  const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+  expect(runtime.validation.classification).toBe('syntax_rejected')
+  expect(runtime.validation.issues.every(issue => issue.kind === 'syntax')).toBe(true)
+  expect(runtime.ackPlan).toMatchObject({ contrlOutcome: 'negative', shouldSendAperak: false, shouldSendUtiltsErr: false })
 })

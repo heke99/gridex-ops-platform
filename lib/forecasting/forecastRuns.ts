@@ -10,16 +10,20 @@ type ForecastPoint = {
   site_id: string | null
   grid_owner_id: string | null
   bidding_zone_code: string | null
+  lifecycle_supply_fraction: number | null
   source_customer: SourceCustomer | SourceCustomer[] | null
 }
 
 /** A single SQL statement supplies both the bounded JSON snapshot and its
  * complete count. Refuse incomplete evidence before producing any items. */
-async function forecastPointInventory(companyId: string): Promise<ForecastPoint[]> {
+async function forecastPointInventory(companyId: string, periodStart: string, periodEnd: string): Promise<ForecastPoint[]> {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (
-    name: 'gridex_forecast_point_inventory_v1', args: { p_company_id: string },
+    name: 'gridex_forecast_point_inventory_v2',
+    args: { p_company_id: string; p_period_start: string; p_period_end: string },
   ) => PromiseLike<{ data: unknown; error: unknown }>
-  const { data, error } = await rpc('gridex_forecast_point_inventory_v1', { p_company_id: companyId })
+  const { data, error } = await rpc('gridex_forecast_point_inventory_v2', {
+    p_company_id: companyId, p_period_start: periodStart, p_period_end: periodEnd,
+  })
   if (error) throw error
   const invalid = () => new Error('forecast_point_inventory_result_invalid')
   const row = Array.isArray(data) && data.length === 1 ? data[0] : null
@@ -38,6 +42,8 @@ async function forecastPointInventory(companyId: string): Promise<ForecastPoint[
   for (const value of points) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid()
     const point = value as Record<string, unknown>
+    const fraction = point.lifecycle_supply_fraction
+    if (fraction !== null && (typeof fraction !== 'number' || !Number.isFinite(fraction) || fraction <= 0 || fraction > 1)) throw invalid()
     if (typeof point.id !== 'string' || !point.id || previousId !== null && point.id <= previousId
       || !['customer_id', 'site_id', 'grid_owner_id', 'bidding_zone_code'].every(key => nullableString(point[key]))
       || !(point.source_customer === null || (Array.isArray(point.source_customer)
@@ -91,7 +97,7 @@ export async function generateForecastRunItems(input: {
 }): Promise<{ items: number; missing: number }> {
   const periodStart = monthStart(input.periodStart)
   const periodEnd = input.periodEnd ?? monthEndExclusive(periodStart)
-  const meteringPoints = await forecastPointInventory(input.companyId)
+  const meteringPoints = await forecastPointInventory(input.companyId, periodStart, periodEnd)
 
   let items = 0
   let missing = 0
@@ -106,6 +112,7 @@ export async function generateForecastRunItems(input: {
       meteringPointId: mp.id,
       periodStart,
       periodEnd,
+      ...(mp.lifecycle_supply_fraction === null ? {} : { lifecycleSupplyFraction: mp.lifecycle_supply_fraction }),
     })
     if (forecast.method === 'missing_basis') missing += 1
 

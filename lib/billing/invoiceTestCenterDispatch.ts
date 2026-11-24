@@ -192,7 +192,7 @@ export async function approveAndSendInvoiceTestItem(input: {
     approval_source: 'invoice_test_center',
   }
   // Export item and invoice mirror are approved together or not at all.
-  const { error: approvalError } = await supabaseService.rpc('gridex_approve_invoice_test_item_v1', {
+  const { data: receipt, error: approvalError } = await supabaseService.rpc('gridex_approve_invoice_test_item_v1', {
     p_company_id: input.companyId,
     p_invoice_export_item_id: input.itemId,
     p_approval: approval,
@@ -200,7 +200,18 @@ export async function approveAndSendInvoiceTestItem(input: {
   if (approvalError) {
     if (approvalError.message === 'invoice_test_approval_item_not_pending') throw new Error('Fakturatest kunde inte godkänna exportposten atomärt.')
     if (approvalError.message === 'invoice_test_approval_invoice_not_draft') throw new Error('Fakturatest kunde inte godkänna fakturaspegeln.')
+    if (approvalError.message === 'invoice_test_approval_conflict') throw new Error('Testfakturans tidigare godkännande behöver granskas.')
+    if (approvalError.message === 'invoice_test_approval_scope_changed') throw new Error('Testkund, körning eller fakturamiljö ändrades. Ladda om och försök igen.')
     throw approvalError
+  }
+  const resultApproval = receipt?.approval as Row | undefined
+  if (receipt?.invoice_export_item_id !== input.itemId || receipt?.invoice_id !== invoice.id ||
+      typeof receipt.approved_now !== 'boolean' || resultApproval?.status !== 'approved' ||
+      resultApproval.approval_source !== 'invoice_test_center' || resultApproval.review_hash !== reviewHash ||
+      resultApproval.calculation_snapshot_sha256 !== calculationHash || !text(resultApproval.approved_by) ||
+      !Number.isFinite(Date.parse(text(resultApproval.approved_at) ?? '')) ||
+      (receipt.approved_now && (resultApproval.approved_by !== input.actorUserId || !text(resultApproval.audit_event_id)))) {
+    throw new Error('Fakturatest kunde inte verifiera det sparade godkännandet.')
   }
 
   const sent = await sendApprovedInvoiceExportRun({

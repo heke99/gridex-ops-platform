@@ -11,7 +11,7 @@ import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/ru
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport/index.part-2'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
-import { receivedUtiltsOwnerFixture, resetUtiltsCanonicalOwnerIo } from './helpers/utiltsCanonicalOwnerIo'
+import { receivedUtiltsOwnerFixture, resetUtiltsCanonicalOwnerIo, utiltsOwnerCompany } from './helpers/utiltsCanonicalOwnerIo'
 import { createUtiltsFinalValidationIo, currentUtiltsActorQuery, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { createUtiltsFinalValidationIo as createDiagnosticValidationIo } from './helpers/utiltsFinalValidationFixture'
 import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
@@ -26,11 +26,52 @@ vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: io.provider }))
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
 vi.mock('@/lib/cis/db', () => ({ ingestBillingUnderlay: io.bill, findOpenOutboundBySource: vi.fn().mockResolvedValue(null), syncGridOwnerDataRequestReceivedFromEdiel: io.complete }))
-vi.mock('@/lib/ediel/matching', () => ({
+vi.mock('@/lib/ediel/matching', async (importOriginal) => ({
+  findE66GridOwnerDataRequest: (await importOriginal<typeof import('@/lib/ediel/matching')>()).findE66GridOwnerDataRequest,
   matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue('point-a'), matchMeteringPointForEdielMessage: vi.fn().mockResolvedValue('point-a'),
   matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue({ customerId: 'customer-a', siteId: 'site-a', gridOwnerId: 'owner-a' }),
   findMatchingGridOwnerDataRequest: vi.fn().mockResolvedValue({ id: 'request-a', request_scope: 'billing_underlay', response_payload: {}, customer_id: 'customer-a', metering_point_id: 'point-a' }),
 }))
+
+function declaredNoOpenE73(companyId: string) {
+  const filters: Array<[string, unknown]> = []
+  const q = {
+    select: () => q,
+    eq: (key: string, value: unknown) => { filters.push([key, value]); return q },
+    in: (key: string, value: readonly string[]) => { filters.push([key, value]); return q },
+    limit: async (limit: number) => {
+      expect(limit).toBe(1)
+      expect(filters).toEqual([
+        ['company_id', companyId],
+        ['request_scope', ['meter_values', 'billing_underlay']],
+        ['metering_point_id', 'point-a'],
+        ['status', ['pending', 'sent']],
+      ])
+      return { data: [], error: null }
+    },
+  }
+  return q
+}
+
+function declaredNoActivePermission(table: string, companyId: string) {
+  const filters: Array<[string, unknown]> = []
+  const authoritySite = table === 'metering_permission_sites'
+  const q = {
+    select: () => q,
+    eq: (key: string, value: unknown) => { filters.push([key, value]); return q },
+    in: (key: string, value: readonly string[]) => { filters.push([key, value]); return q },
+    order: () => q,
+    limit: (limit: number) => { expect(limit).toBe(authoritySite ? 10 : 50); return q },
+    then: (resolve: (result: { data: never[]; error: null }) => unknown) => {
+      expect(filters[0]).toEqual(['company_id', companyId])
+      expect(filters).toContainEqual(['status', authoritySite
+        ? ['approved', 'active'] : ['active', 'approved', 'z14_received', 'partially_approved']])
+      if (authoritySite) expect(filters).toContainEqual(['facility_id', '735999260731000007'])
+      return Promise.resolve({ data: [], error: null }).then(resolve)
+    },
+  }
+  return q
+}
 
 // Public SMTP and inbound consumers/opaque owners are real. Current identity,
 // registry/original birth and accepted journal are explicit finite DB ports.
@@ -44,6 +85,8 @@ beforeEach(() => {
     : canonical(name, args) ?? Promise.resolve({ data: null, error: { message: `undeclared_sc068_port:${name}` } }))
   io.from.mockImplementation((table: string) => {
     const actor = currentUtiltsActorQuery(table); if (actor) return actor
+    if (table === 'grid_owner_data_requests') return declaredNoOpenE73(utiltsOwnerCompany)
+    if (['metering_permission_sites', 'metering_permissions'].includes(table)) return declaredNoActivePermission(table, utiltsOwnerCompany)
     if (table !== 'ediel_counterparties') throw new Error(`undeclared_sc068_table:${table}`)
     const q = { select: () => q, eq: () => q, or: async () => ({ error: null, data: [] }) }
     return q
@@ -217,6 +260,8 @@ it('SC-068 unchanged TEST original is held by actual production admission and cu
     io.bill.mockImplementation(() => { businessSinks.billing.push('forbidden'); throw Error('production billing sink reached') })
     io.complete.mockImplementation(() => { businessSinks.customers.push('forbidden'); throw Error('production request/customer sink reached') })
     io.from.mockImplementation((table: string) => {
+      if (table === 'grid_owner_data_requests') return declaredNoOpenE73(companyId)
+      if (['metering_permission_sites', 'metering_permissions'].includes(table)) return declaredNoActivePermission(table, companyId)
       if (!['company_memberships', 'user_profiles', 'ediel_counterparties'].includes(table)) throw Error(`sc068_unprovided_customer_permission_supply_port:${table}`)
       const filters = new Map<string, unknown>()
       const query = { select: () => query, eq: (key: string, value: unknown) => { filters.set(key, value); return query }, not: () => query,
@@ -255,7 +300,7 @@ it('SC-068 unchanged TEST original is held by actual production admission and cu
     expect(io.rpc.mock.calls.map(([name]) => name)).toContain('ediel_probe_source_rule_pack_capture_v1')
     expect(probeErrors).toEqual(['ediel_inbound_legal_context_required'])
     expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
-    expect(io.from.mock.calls.map(([table]) => table).every(table => ['company_memberships', 'user_profiles', 'ediel_counterparties'].includes(table))).toBe(true)
+    expect(io.from.mock.calls.map(([table]) => table).every(table => ['company_memberships', 'user_profiles', 'ediel_counterparties', 'grid_owner_data_requests', 'metering_permission_sites', 'metering_permissions'].includes(table))).toBe(true)
     expect(io.event).toHaveBeenCalledWith(expect.objectContaining({ payload: { reason: 'ediel_inbound_legal_context_required', manualReviewRequired: true } }))
     expectNoProductionEffect(); expect(businessSinks).toEqual(sinksBefore)
     expect(message).toEqual({ ...reference, ...original })

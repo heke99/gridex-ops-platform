@@ -315,6 +315,7 @@ export default function UnresolvedRequestsList({
  <form action={updateOutboundRequestStatusAction}>
  <input type="hidden" name="outbound_request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={request.status} />
  <input type="hidden" name="status" value="cancelled" />
  <input
  type="hidden"

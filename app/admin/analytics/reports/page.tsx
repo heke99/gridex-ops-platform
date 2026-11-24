@@ -25,7 +25,7 @@ export default async function AnalyticsReportsPage({ searchParams }: PageProps) 
     <div className="min-h-screen">
       <AdminHeader title="Rapporter" subtitle="Enkla CSV-exporter för statistik, prognos, saknade mätvärden och datakvalitet." userEmail={admin.email} workspaceName={scope.companyName} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
-        <AnalyticsTabs active="reports" />
+        <AnalyticsTabs active="reports" month={month} />
         <AnalyticsFilters
           monthOnly month={month} biddingZones={filterOptions.biddingZones} gridOwners={filterOptions.gridOwners} />
         <ReportsList reports={ANALYTICS_REPORTS} month={month} />

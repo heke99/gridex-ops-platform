@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+
 const io = vi.hoisted(() => ({
   platform: false, writer: false, attachmentError: false,
   cases: [] as Array<Record<string, unknown>>, events: [] as Array<Record<string, unknown>>,
@@ -14,7 +16,13 @@ vi.mock('@/lib/admin/guards', () => ({
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: vi.fn() }))
 vi.mock('@/lib/customer-cases/db', () => ({ listCustomerCases: io.list, getCustomerCaseById: io.detail, listCustomerCaseEvents: io.eventRead }))
 vi.mock('@/lib/customer-cases/support', () => ({ listTenantSupportCustomerOptions: io.options }))
-vi.mock('@/lib/customer-service/supportAttachments', () => ({ listSupportAttachments: async () => { if (io.attachmentError) throw new Error('read_failed'); return [] } }))
+vi.mock('@/lib/customer-service/supportAttachments', () => ({
+  SUPPORT_ATTACHMENT_LIST_PAGE_SIZE: 100,
+  listSupportAttachmentsPage: async () => {
+    if (io.attachmentError) throw new Error('read_failed')
+    return { items: [], page: { next_cursor: null, has_more: false } }
+  },
+}))
 vi.mock('@/app/admin/customer-cases/actions', () => ({ createCustomerCaseFromFormAction: async () => {}, updateCustomerCaseStatusAction: async () => {}, addInternalNoteAction: async () => {}, recordPhoneInteractionAction: async () => {}, replyToCustomerAction: async () => {}, uploadSupportAttachmentAction: async () => {} }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => { throw new Error('No unscoped fallback lookup allowed') } } }))
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('not_found') } }))
@@ -25,7 +33,8 @@ import DetailPage from '@/app/admin/customer-cases/[caseId]/page'
 import BillingCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import type { BillingUnderlayRow } from '@/lib/cis/types'
 
-const caseRow = (id: string, status = 'open') => ({ id, company_id: 'company-a', customer_id: 'customer', customer_name: 'Syntetisk kund', title: `Ärende ${id}`, status, priority: 'normal', source: 'tenant_support_phone', reason_category: 'support', created_at: '2026-11-15T10:00:00Z' })
+const activeCaseId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const caseRow = (id: string, status = 'open') => ({ id: id === 'open' ? activeCaseId : id, company_id: 'company-a', customer_id: 'customer', customer_name: 'Syntetisk kund', title: `Ärende ${id}`, status, priority: 'normal', source: 'tenant_support_phone', reason_category: 'support', created_at: '2026-11-15T10:00:00Z' })
 beforeEach(() => {
   vi.stubGlobal('React', React)
   io.platform = false; io.writer = false; io.attachmentError = false
@@ -37,7 +46,7 @@ beforeEach(() => {
   io.eventRead.mockReset().mockImplementation(async () => io.events)
 })
 const list = async () => renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({}) }))
-const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ caseId: 'open' }) }))
+const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ caseId: activeCaseId }) }))
 
 it('keeps active cases visible and closed history collapsed without technical source names', async () => {
   const html = await list()
@@ -84,8 +93,8 @@ it('keeps technical channel available only in collapsed platform details', async
 })
 it('keeps the latest conversation visible and earlier entries available without reordering', async () => {
   const html = await detail()
-  expect(io.detail).toHaveBeenCalledWith('open', 'company-a')
-  expect(io.eventRead).toHaveBeenCalledWith('open', 'company-a')
+  expect(io.detail).toHaveBeenCalledWith(activeCaseId, 'company-a')
+  expect(io.eventRead).toHaveBeenCalledWith(activeCaseId, 'company-a')
   expect(html).toContain('Tidigare händelser (4)')
   expect(html).toMatch(/<details[^>]*id="earlier-support-history"[^>]*>/)
   const before = html.indexOf('Historik 0'), split = html.indexOf('</details>'), after = html.indexOf('Historik 13')
@@ -108,19 +117,35 @@ it('provides keyboard accessible bounded lists for a long support queue', async 
   expect(html).toContain('Ärende long-39')
   if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/support-long-company.html`, html)
 })
+const blockedUnderlay = {
+  id: 'underlay', customer_id: 'customer', underlay_year: 2026, underlay_month: 10,
+  readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER',
+} as unknown as BillingUnderlayRow
+const foreignUnderlay: BillingUnderlayRow = {
+  ...blockedUnderlay, id: 'foreign-underlay', customer_id: 'other-customer', underlay_month: 11,
+}
+
 it('calculates billing summary on the server and keeps raw blocker evidence out of company HTML', () => {
   const source = fs.readFileSync('components/admin/customers/CustomerBillingMeteringCard.tsx', 'utf8')
   expect(source).not.toMatch(/['"]use client['"]/)
-  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', canReadBilling: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
+  const props = { customerId: 'customer', sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [blockedUnderlay, foreignUnderlay] }
+  const html = renderToStaticMarkup(React.createElement(BillingCard, { ...props, canReadBilling: true }))
   expect(html).toContain('Kräver åtgärd')
+  expect(html).toContain('2026-10')
+  expect(html).not.toContain('2026-11')
   expect(html).not.toContain('RAW_TECHNICAL_BLOCKER')
-  expect(html).toContain('href="/admin/billing?customer=customer"')
+  expect(html).toContain('href="/admin/billing?customer=customer&amp;month=2026-10"')
+  const restricted = renderToStaticMarkup(React.createElement(BillingCard, { ...props, canReadBilling: false }))
+  expect(restricted).toContain('Kräver åtgärd')
+  expect(restricted).not.toContain('/admin/billing?')
   if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/billing-summary-company.html`, `<main>${html}</main>`)
 })
 
 it('retains platform blocker evidence inside a closed disclosure', () => {
-  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', isPlatformAdmin: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
+  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', isPlatformAdmin: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [blockedUnderlay, foreignUnderlay] }))
   expect(html).toContain('RAW_TECHNICAL_BLOCKER')
+  expect(html).toContain('2026-10')
+  expect(html).not.toContain('2026-11')
   expect(html).toContain('<details')
   expect(html).not.toContain('<details open')
 })

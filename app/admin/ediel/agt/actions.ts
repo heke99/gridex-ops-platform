@@ -809,6 +809,8 @@ export async function pollAgtMailboxForCaseAction(formData: FormData) {
     environment: "test",
     force: true,
     markSeen: false,
+    continueUnreadRun: true,
+    unreadProgressScope: JSON.stringify(["agt",companyId,testRun.id,routeId??null]),
     sharedOnly: true,
     createDiagnosticMessagesForUnresolved: true,
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,

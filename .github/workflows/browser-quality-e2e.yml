@@ -89,6 +89,8 @@ jobs:
       GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
       GRIDEX_E2E_BROWSER_EMAIL: ${{ secrets.GRIDEX_E2E_BROWSER_EMAIL }}
       GRIDEX_E2E_BROWSER_PASSWORD: ${{ secrets.GRIDEX_E2E_BROWSER_PASSWORD }}
+    outputs:
+      preview_binding: ${{ steps.staging-preview.outputs.preview_binding }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,6 +107,13 @@ jobs:
           for name in GRIDEX_E2E_BROWSER_BASE_URL GRIDEX_E2E_BROWSER_EMAIL GRIDEX_E2E_BROWSER_PASSWORD; do
             [[ -n "${!name:-}" ]] || { echo "Missing required staging browser secret: $name" >&2; exit 1; }
           done
+      - name: Verify the immutable staging preview serves this revision
+        id: staging-preview
+        env:
+          GRIDEX_E2E_EXPECTED_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+          GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT: ${{ vars.GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT }}
+        run: node scripts/gridex-staging-preview-identity.cjs
       - name: Verify P0 executor contract
         run: node scripts/gridex-p0-executor.cjs
       - name: Verify open-source E2E wiring
@@ -143,6 +152,8 @@ jobs:
       GRIDEX_E2E_K6_READ_ROUTES: ${{ vars.GRIDEX_E2E_K6_READ_ROUTES }}
       GRIDEX_E2E_K6_BEARER_TOKEN: ${{ secrets.GRIDEX_E2E_K6_BEARER_TOKEN }}
       GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE: ${{ vars.GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE }}
+    outputs:
+      preview_binding: ${{ steps.staging-preview.outputs.preview_binding }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -153,6 +164,16 @@ jobs:
           set -euo pipefail
           [[ -n "$GRIDEX_E2E_BASE_URL" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for staging performance certification.' >&2; exit 1; }
           [[ -n "$GRIDEX_E2E_K6_BEARER_TOKEN" ]] || { echo 'GRIDEX_E2E_K6_BEARER_TOKEN is required for authenticated staging performance certification.' >&2; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the immutable staging preview serves this revision
+        id: staging-preview
+        env:
+          GRIDEX_E2E_EXPECTED_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+          GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT: ${{ vars.GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT }}
+        run: node scripts/gridex-staging-preview-identity.cjs
       - name: Run pinned k6 smoke load and spike thresholds
         shell: bash
         run: |
@@ -236,6 +257,8 @@ jobs:
     timeout-minutes: 20
     env:
       GRIDEX_E2E_ZAP_TARGET: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+    outputs:
+      preview_binding: ${{ steps.staging-preview.outputs.preview_binding }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -245,6 +268,16 @@ jobs:
         run: |
           set -euo pipefail
           [[ -n "$GRIDEX_E2E_ZAP_TARGET" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for ZAP staging certification.' >&2; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the immutable staging preview serves this revision
+        id: staging-preview
+        env:
+          GRIDEX_E2E_EXPECTED_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
+          GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT: ${{ vars.GRIDEX_E2E_BROWSER_PREVIEW_RECEIPT }}
+        run: node scripts/gridex-staging-preview-identity.cjs
       - name: Run blocking OWASP ZAP passive baseline
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0 (tag)
         with:
@@ -272,15 +305,37 @@ jobs:
           BROWSER_RESULT: ${{ needs.browser-staging.result }}
           K6_RESULT: ${{ needs.k6-staging-load.result }}
           ZAP_RESULT: ${{ needs.zap-staging-baseline.result }}
+          GRIDEX_E2E_EXPECTED_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BROWSER_PREVIEW: ${{ needs.browser-staging.outputs.preview_binding }}
+          K6_PREVIEW: ${{ needs.k6-staging-load.outputs.preview_binding }}
+          ZAP_PREVIEW: ${{ needs.zap-staging-baseline.outputs.preview_binding }}
         run: |
           set -euo pipefail
           mkdir -p e2e-artifacts
+          revision=null
+          deployment=null
+          workflow_run=null
+          workflow_attempt=null
+          verdict=RED
+          if [[ "$BROWSER_PREVIEW" == "$K6_PREVIEW" && "$BROWSER_PREVIEW" == "$ZAP_PREVIEW" &&
+                "$BROWSER_PREVIEW" =~ ^([0-9a-f]{40}):(dpl_[A-Za-z0-9]+):([1-9][0-9]*):([1-9][0-9]*)$ &&
+                "${BASH_REMATCH[1]}" == "$GRIDEX_E2E_EXPECTED_CHECKOUT_SHA" &&
+                "${BASH_REMATCH[3]}" == "$GITHUB_RUN_ID" && "${BASH_REMATCH[4]}" == "$GITHUB_RUN_ATTEMPT" ]]; then
+            revision="\"${BASH_REMATCH[1]}\""
+            deployment="\"${BASH_REMATCH[2]}\""
+            workflow_run="\"${BASH_REMATCH[3]}\""
+            workflow_attempt="\"${BASH_REMATCH[4]}\""
+            if [[ "$BROWSER_RESULT" == success && "$K6_RESULT" == success && "$ZAP_RESULT" == success ]]; then
+              verdict=GREEN
+            fi
+          fi
           cat > e2e-artifacts/staging-quality-certificate.json <<JSON
-          {"schema_version":1,"browser":"$BROWSER_RESULT","performance":"$K6_RESULT","dast":"$ZAP_RESULT","verdict":"$([[ "$BROWSER_RESULT" == success && "$K6_RESULT" == success && "$ZAP_RESULT" == success ]] && echo GREEN || echo RED)"}
+          {"schema_version":1,"browser":"$BROWSER_RESULT","performance":"$K6_RESULT","dast":"$ZAP_RESULT","verdict":"$verdict","serving_commit":$revision,"preview_deployment":$deployment,"workflow_run_id":$workflow_run,"workflow_run_attempt":$workflow_attempt}
           JSON
           [[ "$BROWSER_RESULT" == success ]] || { echo "browser-staging did not pass: $BROWSER_RESULT" >&2; exit 1; }
           [[ "$K6_RESULT" == success ]] || { echo "k6-staging-load did not pass: $K6_RESULT" >&2; exit 1; }
           [[ "$ZAP_RESULT" == success ]] || { echo "zap-staging-baseline did not pass: $ZAP_RESULT" >&2; exit 1; }
+          [[ "$verdict" == GREEN ]] || { echo 'Staging producers did not verify the same preview and workflow attempt.' >&2; exit 1; }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

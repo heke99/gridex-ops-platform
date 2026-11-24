@@ -25,8 +25,10 @@ than the selected one. There is no default provider.
 On **Fakturor**, approve the invoices for the month and press **Skapa fakturafil**.
 
 - Every invoice passes the same checks as an API send (underlay, locked pricing, amounts, price area).
-- An invoice can be in exactly one file. The invoices are marked sent in the same transaction that
-  creates the file; if any invoice changed in the meantime, no file is created.
+- An invoice can be in exactly one file. File creation stores an archive receipt. If an invoice
+  changed in the meantime, no file is created.
+- A newly created file waits for verified handoff before it can count as delivered. The file receipt
+  and its bytes stay available for replay. Existing archive bytes and historical receipts are preserved.
 - A file is immutable. Every download of the same file returns the same content.
 - Formats: CSV (semicolon separated, UTF-8 with BOM), Excel (.xlsx) and JSON.
 - Payment term: 20 days from the invoice date (Europe/Stockholm).
@@ -35,7 +37,7 @@ On **Fakturor**, approve the invoices for the month and press **Skapa fakturafil
 
 | Column | Content |
 |---|---|
-| Fakturanummer | Invoice number (`GX-YYYYMM-xxxxxxxx` when none is assigned) |
+| Fakturanummer | Assigned legal invoice number. Blank for a neutral file when no number has been assigned. |
 | Kundnummer, Kundnamn, Kundtyp | From the customer card (`private` / `business`) |
 | Person-/organisationsnummer | Personal number for private customers, organization number for business customers |
 | Fakturamottagare, Faktura-e-post, Referens, Gatuadress, Postnummer, Ort, Land | Invoice delivery as resolved when the invoice was prepared |
@@ -43,7 +45,8 @@ On **Fakturor**, approve the invoices for the month and press **Skapa fakturafil
 | Förbrukning kWh | Consumption |
 | Belopp exkl moms, Moms, Belopp inkl moms, Valuta | Amounts in SEK, two decimals |
 | Fakturadatum, Förfallodatum | `YYYY-MM-DD` |
-| Gridex-ID | Stable identifier of the invoice in Gridex |
+| Gridex-ID | Stable identifier of the invoice export item in Gridex |
+| Fakturareferens | Canonical invoice reference in new neutral files, distinct from the recipient’s Referens |
 
 Text that starts with `=`, `+`, `-` or `@` is prefixed with `'` so spreadsheet programs never run it
 as a formula.
@@ -52,4 +55,6 @@ as a formula.
 
 `{ "format": "gridex_invoice_file_v1", "file_id", "billing_month", "created_at", "rows_sha256", "invoices": [...] }`.
 Each invoice has the fields above plus `lines` (description, quantity, unit, unit price excl. VAT,
-amount excl. VAT). `rows_sha256` identifies the exact content of the file.
+amount excl. VAT). `rows_sha256` identifies the exact content of the file. New neutral files include
+`renderer_version: "gridex_neutral_invoice_file_bytes_v2"` and `invoice_reference`. An unassigned
+`invoice_number` is `null`. Archived files retain the version and bytes saved when they were created.

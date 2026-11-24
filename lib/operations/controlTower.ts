@@ -8,7 +8,7 @@ import type {
   SwitchReadinessResult,
   SupplierSwitchRequestRow,
 } from '@/lib/operations/types'
-import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
+import { getSupplierSwitchActivationReadiness, type SupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 
 export function isCancelledSupplierSwitchStatus(status: string): boolean {
   return status === 'cancelled_before_start' || status === 'cancelled'
@@ -40,6 +40,7 @@ export function getSwitchLifecycle(params: {
   request: SupplierSwitchRequestRow
   readiness?: SwitchReadinessResult | null
   outboundRequest?: OutboundRequestRow | null
+  activation?: SupplierSwitchActivationReadiness | null
 }): {
   stage: SwitchLifecycleStage
   label: string
@@ -64,7 +65,7 @@ export function getSwitchLifecycle(params: {
   }
 
   if (request.status === 'accepted') {
-    const activation = getSupplierSwitchActivationReadiness(request)
+    const activation = params.activation ?? getSupplierSwitchActivationReadiness(request)
     if (activation.ready) {
       return { stage: 'ready_to_execute', label: 'Redo för leveransstart', reason: activation.reason }
     }
@@ -113,6 +114,7 @@ export function explainWhySwitchIsStuck(params: {
   request: SupplierSwitchRequestRow
   readiness?: SwitchReadinessResult | null
   outboundRequest?: OutboundRequestRow | null
+  activation?: SupplierSwitchActivationReadiness | null
 }): string {
   const { request, readiness, outboundRequest } = params
 
@@ -121,7 +123,7 @@ export function explainWhySwitchIsStuck(params: {
   }
 
   if (request.status === 'accepted') {
-    return getSupplierSwitchActivationReadiness(request).reason
+    return (params.activation ?? getSupplierSwitchActivationReadiness(request)).reason
   }
 
   if (readiness && !readiness.isReady) {

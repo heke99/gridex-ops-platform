@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { LEGACY_COMPATIBILITY } from '@/lib/integrations/legacyCompatibilityStatus'
 import staffOpenApi from '@/docs/openapi/staff-v1.json'
 import customerPortalOpenApi from '@/docs/openapi/customer-portal-v1.json'
 import websiteIntegrationOpenApi from '@/docs/openapi/website-integration-v1.json'
@@ -17,7 +18,7 @@ import {
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
 // Deterministic release preparation instant; publication is verified separately after deployment.
-export const OPENAPI_RELEASED_AT = '2026-11-10T21:00:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-11-23T22:52:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -41,28 +42,11 @@ export function buildOpenApiReleaseManifest() {
       process.env.GIT_COMMIT_SHA ??
       'unknown',
     compatibility_classification: API_COMPATIBILITY_CLASSIFICATION.release,
-    deprecated_features: [
-      {
-        feature: 'public contract id and contract_offer_id compatibility aliases',
-        replacement: 'offer_reference',
-        sunset_at: '2026-10-31T23:59:59.000Z',
-      },
-      {
-        feature: 'legal evidence UUID compatibility fields',
-        replacement: 'legal_bundle_reference and document_reference',
-        sunset_at: '2026-10-31T23:59:59.000Z',
-      },
-      {
-        feature: 'diagnostics=true on public-contracts',
-        replacement: '/api/v1/website/public-contracts/diagnostics',
-        sunset_at: '2026-10-31T23:59:59.000Z',
-      },
-      {
-        feature: 'x-api-key request header',
-        replacement: 'Authorization: Bearer <GRIDEX_API_KEY>',
-        sunset_at: '2026-10-31T23:59:59.000Z',
-      },
-    ],
+    deprecated_features: Object.values(LEGACY_COMPATIBILITY).map((entry) => ({
+      feature: entry.feature,
+      replacement: entry.replacement,
+      sunset_at: entry.previously_announced_sunset_at,
+    })),
     minimum_tenant_integration_version: MINIMUM_TENANT_INTEGRATION_VERSION,
     specifications: {
       staff: {

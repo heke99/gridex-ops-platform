@@ -5,22 +5,24 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
 import { approveAndSendReadyInvoicesForMonth } from '@/lib/billing/invoiceApprovedDispatch'
 import { parseBillingMonth } from '@/lib/time/stockholm'
+import { approveConsolidatedInvoiceDraftForAdmin, issueConsolidatedInvoiceForAdmin } from '@/lib/billing/consolidatedInvoiceAdmin'
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? '').trim()
 }
 
 export async function approveAndSendReadyInvoicesAction(formData: FormData) {
-  await requireAdminActionAccess(['billing_underlay.export'])
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Du måste vara inloggad.')
-  const companyId = await requireOperationalCompanyId(user.id)
+  const actor = await requireAdminActionAccess(['billing_underlay.export'])
+  const { companyId } = await resolveAdminSelectedCompanyReadScope(actor, { allowMissing: true })
+  if (!companyId) throw new Error('Välj ett bolag innan du godkänner fakturor.')
   const billingMonth = parseBillingMonth(value(formData, 'billing_month')).value
+  await requireCompanyOperationalForWrites(companyId)
+  const supabase = await createSupabaseServerClient()
 
   const company = await supabase
     .from('companies')
@@ -39,13 +41,13 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     billingMonth,
     environment,
     provider,
-    actorUserId: user.id,
+    actorUserId: actor.userId,
   })
 
   const result = await approveAndSendReadyInvoicesForMonth({
     companyId,
     billingMonth,
-    actorUserId: user.id,
+    actorUserId: actor.userId,
   })
   revalidatePath('/admin/billing')
   revalidatePath('/admin/customers')
@@ -55,6 +57,24 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     failed: String(result.failed),
     approved: String(result.approved),
   })
-  if (result.approveOnly) query.set('mode', 'file')
+  if (result.approveOnly) {
+    query.set('mode', 'file')
+    if (result.approvalBusy > 0) query.set('approval_busy', String(result.approvalBusy))
+  }
   redirect(`/admin/billing?${query.toString()}`)
+}
+
+export async function approveConsolidatedInvoiceDraftAction(formData: FormData) {
+  const receipt = await approveConsolidatedInvoiceDraftForAdmin({
+    invoiceId: value(formData, 'invoice_id'), reviewHash: value(formData, 'review_hash'),
+  })
+  revalidatePath('/admin/billing')
+  return receipt
+}
+
+export async function issueConsolidatedInvoiceAction(formData: FormData): Promise<void> {
+  await issueConsolidatedInvoiceForAdmin({
+    invoiceId: value(formData, 'invoice_id'), reviewHash: value(formData, 'review_hash'),
+  })
+  revalidatePath('/admin/billing')
 }

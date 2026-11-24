@@ -631,7 +631,7 @@ async function sc031Supplier(subtype:'L'|'LK',extra:boolean,count:1|2){
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${lit(base.actorUserId)},${lit(base.companyId)},p.id,p.key,'allow','active',true FROM public.permissions p WHERE p.key IN('communication.write','customers.write');`)
  const masterBefore=sc031Master(base.companyId)
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId:base.companyId,environment:'test',raw,smtpFrom:edielSmtpConfig().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:base.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:base.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:base.companyId,parsed:mail.parsed})
  const sourceId=await createInboundEdielMessage({companyId:base.companyId,actorUserId:base.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
  expect(sourceId).toMatch(/^[a-f0-9-]{36}$/)
@@ -951,7 +951,7 @@ async function sc031PublicReceive(companyId:string,actorUserId:string,raw:string
  expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true)
  const receivedAt=new Date().toISOString()
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId,environment:'test',raw,receivedAt,smtpFrom:edielSmtpConfig().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId,parsed:mail.parsed})
  const input={companyId,actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}
  const id=await createInboundEdielMessage(input)

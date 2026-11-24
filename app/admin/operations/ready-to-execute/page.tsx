@@ -15,6 +15,7 @@ import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import { supplierSwitchEffectiveStartDate } from '@/lib/operations/supplierSwitchActivation'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { readSwitchActivationCompanyIds } from '@/lib/operations/switchActivationAuthority'
 import { InvalidReadModelResponseError, readResult } from '@/lib/read-models/readResult'
 
 export const dynamic = 'force-dynamic'
@@ -56,6 +57,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  const companyId = tenantScope.companyId
  const canActivate = await canPresentAdminAction(['masterdata.write'])
  const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
+   && canPresentAdminLink(context, { anyOf: ['customers.read', 'contracts.read', 'contracts.write'] })
 
  const supabase = await createSupabaseServerClient()
  const params = await searchParams
@@ -77,6 +79,11 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  }
 
  const { items: requests, page } = candidates.data
+ const writableCompanies = canActivate
+   ? await readSwitchActivationCompanyIds(supabase, context.userId, companyId ? [companyId] : requests.map(request => request.company_id))
+   : new Set<string>()
+ const mayHaveReadyWork = requests.length > 0 || Boolean(params?.cursor) || page.hasMore || page.coverage === 'partial'
+ const canActivateBulk = mayHaveReadyWork && writableCompanies.size > 0
  const details = await readResult(async () => {
  if (!requests.length) return { sites: [] as CustomerSiteRow[], outboundRequests: [] as OutboundRequestRow[] }
  const siteIds = [...new Set(requests.map(request => request.site_id))]
@@ -121,6 +128,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
 
  const lifecycle = getSwitchLifecycle({
  request,
+ activation: request.activation,
  readiness: null,
  outboundRequest: outbound,
  })
@@ -129,6 +137,9 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  request,
  outbound,
  lifecycle,
+ customerHref: canReadCustomer && sites.some(site =>
+  site.id === request.site_id && site.company_id === request.company_id && site.customer_id === request.customer_id
+ ) ? `/admin/customers/${request.customer_id}` : null,
  }
  })
  const acknowledgedOutboundCount = details.kind === 'unavailable' ? '—' : readyRows.filter(row => row.outbound?.status === 'acknowledged').length
@@ -137,7 +148,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  <div className="min-h-screen">
  <AdminHeader
  title="Redo för leveransstart"
- subtitle="Kö för nätägarbekräftade leverantörsbyten där bekräftat startdatum har uppnåtts."
+ subtitle="Kö för leverantörsbyten där nätägarens bekräftade marknadsstart har uppnåtts."
  userEmail={context.email}
  />
 
@@ -169,7 +180,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  {page.notReady}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Väntar normalt på bekräftat startdatum eller behöver granskas.
+ Väntar på bekräftad marknadsstart eller behöver granskas.
  </div>
  </div>
 
@@ -206,7 +217,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Öppna byteslistan
  </Link>
 
- {canActivate ? <form action={bulkFinalizeReadySupplierSwitchesAction}>
+ {canActivateBulk ? <form action={bulkFinalizeReadySupplierSwitchesAction}>
  <button className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
  Starta aktivering
  </button>
@@ -221,7 +232,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Klara leverantörsbyten
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Endast byten där nätägaren har bekräftat bytet och leveransens startdatum är uppnått. Senast skapade visas först.
+ Endast byten där nätägarens bekräftade marknadsstart har uppnåtts. Senast skapade visas först.
  </p>
  </div>
 
@@ -237,7 +248,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Inga byten är redo för leveransstart{params?.cursor ? ' i återstående urval' : ''}.
  </div>
  ) : (
- readyRows.map(({ request, outbound, lifecycle }) => (
+ readyRows.map(({ request, outbound, lifecycle, customerHref }) => (
  <article
  key={request.id}
  className="rounded-3xl border border-slate-200 p-5 "
@@ -308,7 +319,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Aktiveringsvillkor
  </div>
  <div className="mt-2 text-slate-700 ">
- {tenantScope.isPlatformAdmin ? lifecycle.reason : 'Nätägaren har bekräftat bytet och leveransens startdatum är uppnått.'}
+ {lifecycle.reason}
  </div>
  </div>
 
@@ -340,12 +351,12 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  </h4>
 
  <div className="mt-4 space-y-3">
- {canActivate ? <form action={finalizeSupplierSwitchExecutionAction}>
+ {writableCompanies.has(request.company_id ?? '') ? <form action={finalizeSupplierSwitchExecutionAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="w-full rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
  Aktivera leverans nu
  </button>
- </form> : null}
+ </form> : canActivate ? <p className="text-sm text-slate-600">Aktivering är inte tillgänglig för ditt konto i detta bolag.</p> : null}
 
  <Link
  href={`/admin/operations/switches/${request.id}`}
@@ -354,8 +365,8 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Öppna bytesärendet
  </Link>
 
- {canReadCustomer ? <Link
- href={`/admin/customers/${request.customer_id}`}
+ {customerHref ? <Link
+ href={customerHref}
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
  Öppna kundkort

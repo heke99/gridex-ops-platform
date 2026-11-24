@@ -62,7 +62,7 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
     <div className="min-h-screen">
       <AdminHeader title="Prognos" subtitle="Förbruknings- och inköpsprognos per SE-område med synlig säkerhet." userEmail={admin.email} workspaceName={scope.companyName} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
-        <AnalyticsTabs active="forecast" />
+        <AnalyticsTabs active="forecast" month={month} />
         <AnalyticsFilters
           month={month}
           biddingZones={filterOptions.biddingZones}

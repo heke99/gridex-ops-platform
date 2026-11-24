@@ -132,7 +132,7 @@ export function stockholmHourForInstant(now = new Date()): number {
 const WITHDRAWAL_PERIOD_DAYS = 14
 const DAY_MS = 24 * 60 * 60 * 1000
 
-function addCalendarDays(isoDate: string, days: number): string {
+export function addCalendarDays(isoDate: string, days: number): string {
   const [year, month, day] = isoDate.split('-').map(Number)
   const next = new Date(Date.UTC(year, month - 1, day + days))
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`

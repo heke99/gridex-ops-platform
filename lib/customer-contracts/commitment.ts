@@ -44,6 +44,10 @@ export type ContractCommitment = {
 const COMMITTING_STATUSES = new Set(['pending_signature', 'signed', 'active'])
 const VARIABLE_TYPES = /^(variable|spot)/
 
+export function isVariableOrSpotContractType(value: string | null | undefined): boolean {
+  return VARIABLE_TYPES.test(String(value ?? '').toLowerCase())
+}
+
 function isoDay(value: string | null | undefined): string | null {
   if (!value) return null
   const match = /^(\d{4}-\d{2}-\d{2})/.exec(value)
@@ -73,7 +77,7 @@ export function contractCommitment(contract: CommitmentContract, today = todayIn
 
   let bindingEndsOn: string | null = null
   if (bindingMonths > 0) bindingEndsOn = start ? addMonthsIso(start, bindingMonths) : null
-  const fixedTerm = !VARIABLE_TYPES.test(String(contract.contract_type ?? '').toLowerCase()) && endsOn !== null
+  const fixedTerm = !isVariableOrSpotContractType(contract.contract_type) && endsOn !== null
   if (fixedTerm && (bindingEndsOn === null || endsOn! > bindingEndsOn)) bindingEndsOn = endsOn
 
   const binding = committing && (

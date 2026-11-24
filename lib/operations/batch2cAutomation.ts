@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { updatePartnerExportStatus } from '@/lib/cis/db-data'
 
 type MaybeDbError = { code?: string; message?: string }
 
@@ -579,17 +580,21 @@ export async function resolveBatch2CQueueItem(input: {
       .eq('company_id', input.companyId)
       .eq('id', input.sourceId)
   } else if (input.queueType === 'billing_export_item') {
-    await supabaseService
-      .from('billing_export_run_items')
-      .update({ status: 'ready', export_status: 'not_queued', blocker_reasons: [], updated_at: now })
-      .eq('company_id', input.companyId)
-      .eq('id', input.sourceId)
+    throw new Error('Öppna fakturaunderlaget för att hantera blockeringen. Exportens status följer fakturaflödet.')
   } else if (input.queueType === 'partner_export') {
-    await supabaseService
+    const { data, error } = await supabaseService
       .from('partner_exports')
-      .update({ status: 'queued', failure_reason: null, failed_at: null, updated_at: now, updated_by: input.actorUserId })
+      .select('customer_id,status')
       .eq('company_id', input.companyId)
       .eq('id', input.sourceId)
+      .maybeSingle()
+    if (error) throw error
+    if (!data?.customer_id) throw new Error('Partnerexporten hittades inte för valt bolag.')
+    if (data.status === 'queued') throw new Error('Partnerexporten är redan köad.')
+    await updatePartnerExportStatus({
+      actorUserId: input.actorUserId, companyId: input.companyId, customerId: data.customer_id,
+      exportId: input.sourceId, originalStatus: data.status, changes: { status: 'queued', failure_reason: null },
+    })
   } else if (input.queueType === 'external_contract_intake') {
     await supabaseService
       .from('external_contract_intakes')

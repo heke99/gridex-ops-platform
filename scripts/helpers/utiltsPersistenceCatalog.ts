@@ -43,6 +43,86 @@ export function committedPatchedBody(revision: string, base: { body: string; mig
   return { body, migrationHash: createHash('sha256').update(source).digest('hex') }
 }
 
+function sc046ExpectedWrapperBody(baseBody: string, migrationSource: string): string {
+  const hash = (value: string) => createHash('sha256').update(value).digest('hex')
+  if (hash(migrationSource) !== '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34') {
+    throw Error('native_sc046_migration_checksum_conflict')
+  }
+  if (hash(baseBody) !== 'd1072ccfd2c9ed9d7edd8e4bf780c0809bb4d904fe61a579be5239dfa6f220b1') {
+    throw Error('native_sc046_predecessor_conflict')
+  }
+  const block = (name: 'declarations' | 'classification') => {
+    const start = `${name} text := $${name}$`, end = `$${name}$;`
+    if (migrationSource.split(start).length !== 2 || migrationSource.split(end).length !== 2) {
+      throw Error('native_sc046_block_conflict')
+    }
+    const at = migrationSource.indexOf(start) + start.length, stop = migrationSource.indexOf(end, at)
+    if (stop < at) throw Error('native_sc046_block_conflict')
+    return migrationSource.slice(at, stop)
+  }
+  const declarationAnchor = 'DECLARE source public.ediel_messages%rowtype;result jsonb;'
+  const returnAnchor = ' -- The preserved owner may wait on its source/advisory locks.'
+  const declarations = block('declarations'), classification = block('classification')
+  if (baseBody.split(declarationAnchor).length !== 2 || baseBody.split(returnAnchor).length !== 2 || baseBody.includes('sc046_')) {
+    throw Error('native_sc046_anchor_conflict')
+  }
+  // Callback replacements keep every literal $ inside the PL/pgSQL untouched.
+  const body = baseBody.replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor)
+  const inverse = body.replace(declarationAnchor + declarations, () => declarationAnchor).replace(classification, () => '')
+  if (inverse !== baseBody || inverse.replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor) !== body) throw Error('native_sc046_inverse_conflict')
+  return body
+}
+export function committedSc046ReturnStateBody(revision: string, base: { body: string; migrationHash: string }) {
+  const migration = '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const migrationHash = createHash('sha256').update(source).digest('hex')
+  expect(migrationHash, migration).toBe(manifest.files[migration])
+  return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
+}
+export function committedDurableE66WrapperBody(revision: string, predecessorBody: string) {
+  const migration = '20261123203100_install_durable_e66_work_and_cutover.sql'
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.additions.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const migrationHash = createHash('sha256').update(source).digest('hex')
+  expect(migrationHash, migration).toBe(manifest.files[migration])
+  const owners = [...source.matchAll(/DO \$migration\$([\s\S]*?)END\n\$migration\$;/g)]
+    .map(match => match[1])
+    .filter(block => block.includes("owned_signature constant text := 'FUNCTION gridex_e66_intake.persist_owned_utilts_v1('"))
+  expect(owners, migration).toHaveLength(1)
+  const predecessorHash = owners[0].match(/md5\(original\.prosrc\) IS DISTINCT FROM '([0-9a-f]{32})'/)?.[1]
+  expect(createHash('md5').update(predecessorBody).digest('hex'), 'durable cutover predecessor').toBe(predecessorHash)
+  const bodies = [...owners[0].matchAll(/public_body constant text := \$body\$([\s\S]*?)\$body\$;/g)]
+  expect(bodies, migration).toHaveLength(1)
+  return { migration, migrationHash, body: bodies[0][1] }
+}
+function s01AreaExpectedPrecisionBody(baseBody: string, source: string) {
+  const signature='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
+  const patches=[...source.matchAll(/DO \$patch\$([\s\S]*?)END \$patch\$;/g)]
+    .map(match=>match[1]).filter(block=>block.includes("pg_get_functiondef('"+signature+"'::regprocedure)"))
+  if (patches.length!==1) throw Error('native_s01_precision_patch_identity_conflict')
+  const block=patches[0],old=block.match(/old_body:=\$old\$([\s\S]*?)\$old\$/)?.[1],next=block.match(/new_body:=\$new\$([\s\S]*?)\$new\$/)?.[1]
+  if (!old||!next||old!==baseBody
+    ||createHash('sha256').update(old).digest('hex')!=='ac53c3f07f74dc8829e4b5d8d6407c7b96f57f5a8c4d44147ab660b62c06c892'
+    ||createHash('sha256').update(next).digest('hex')!=='347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'
+    ||!block.includes('EXECUTE replace(ddl,old_body,new_body);')
+    ||!block.includes("<>'"+'347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'+"'")) {
+    throw Error('native_s01_precision_source_chain_conflict')
+  }
+  return next
+}
+export function committedS01AreaPrecisionBody(revision: string, base: {body: string; migrationHash: string}) {
+  const migration='20261023201053_ediel_s01_area_aggregate_identity.sql'
+  const source=execFileSync('git',['show',`${revision}:supabase/migrations/${migration}`],{encoding:'utf8'})
+  // This new forward is outside the frozen historical manifest. Bind its
+  // entire committed file explicitly; the predecessor remains manifest-bound.
+  const migrationHash=createHash('sha256').update(source).digest('hex')
+  expect(migrationHash,migration).toBe('ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d')
+  return {body:s01AreaExpectedPrecisionBody(base.body,source),migrationHash}
+}
+
 export type PersistenceCatalogFunction = {
   oid: number; signature: string; name: string; schema: string; owner: string; language: string;
   securityDefiner: boolean; kind: string; config: string[] | null; argumentNames: string[] | null;

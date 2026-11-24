@@ -1,4 +1,5 @@
-import SupplierSwitchBusinessView from '@/components/admin/customers/SupplierSwitchBusinessView'
+import SupplierSwitchBusinessView, { SupplierSwitchRetryFields, supplierSwitchRequestTypeLabel } from '@/components/admin/customers/SupplierSwitchBusinessView'
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
@@ -7,6 +8,12 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { readResult } from '@/lib/read-models/readResult'
+import { readConfirmedMarketStarts } from '@/lib/operations/readyBulkCandidates'
+import { readWritableSwitchCompanyIds } from '@/lib/operations/switchCompanyWriteScope'
+import { readSwitchActivationCompanyIds } from '@/lib/operations/switchActivationAuthority'
+import { canEditManualSwitchStatus, canRetrySwitchOutboundStatus, manualSwitchStatusOptions } from '@/lib/operations/manualSwitchStatus'
+import { getVerifiedSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 import { listMeteringPointsBySiteIds, listGridOwners } from '@/lib/masterdata/db'
 import {
  listPowersOfAttorneyByCustomerId,
@@ -19,10 +26,8 @@ import {
  summarizeDispatchAttempt,
  summarizeReadinessIssues,
 } from '@/lib/operations/controlTower'
-import {
- listOutboundDispatchEventsByRequestIds,
- listOutboundRequests,
-} from '@/lib/cis/db'
+import { ManualOutboundDeliveryForm } from '@/components/admin/outbound/ManualOutboundDeliveryForm'
+import { listOutboundDispatchEventsByRequestIds } from '@/lib/cis/db'
 import {
  queueSupplierSwitchOutboundAction,
  updateOutboundRequestStatusAction,
@@ -259,7 +264,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  .maybeSingle()
 
  if (requestQuery.error) throw requestQuery.error
- const request = (requestQuery.data as SupplierSwitchRequestRow | null) ?? null
+ const request = (requestQuery.data as (SupplierSwitchRequestRow & { outbound_z03_message_id?: string | null }) | null) ?? null
 
  if (!request) {
  notFound()
@@ -273,7 +278,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  const [
  siteQuery,
  gridOwners,
- outboundRequests,
+ outboundQuery,
  switchEvents,
  powersOfAttorney,
  edielMessagesQuery,
@@ -284,27 +289,38 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  .eq('id', request.site_id)
  .maybeSingle(),
  listGridOwners(supabase),
- listOutboundRequests({
- status: 'all',
- requestType: 'supplier_switch',
- channelType: 'all',
- query: '',
- companyId: tenantScope.isPlatformAdmin ? null : requestCompanyId,
- }),
- listSupplierSwitchEventsByRequestIds(supabase, [request.id]),
+ requestCompanyId ? supabase
+ .from('outbound_requests')
+ .select('*')
+ .eq('company_id', requestCompanyId)
+ .eq('customer_id', request.customer_id)
+ .eq('site_id', request.site_id)
+ .eq('request_type', 'supplier_switch')
+ .eq('source_type', 'supplier_switch_request')
+ .eq('source_id', request.id)
+ .order('created_at', { ascending: false })
+ .order('id', { ascending: false })
+ .limit(1)
+ .maybeSingle() : null,
+ tenantScope.isPlatformAdmin ? listSupplierSwitchEventsByRequestIds(supabase, [request.id]) : [],
  listPowersOfAttorneyByCustomerId(supabase, request.customer_id),
- supabase
+ tenantScope.isPlatformAdmin ? supabase
  .from('ediel_messages')
  .select('*')
  .eq('switch_request_id', request.id)
- .order('created_at', { ascending: false }),
+ .order('created_at', { ascending: false }) : null,
  ])
 
  if (siteQuery.error) throw siteQuery.error
- if (edielMessagesQuery.error) throw edielMessagesQuery.error
+ if (outboundQuery?.error) throw outboundQuery.error
 
- const site = (siteQuery.data as CustomerSiteRow | null) ?? null
- const edielMessages = (edielMessagesQuery.data as EdielMessageRow[] | null) ?? []
+ const siteRow = siteQuery.data as CustomerSiteRow | null
+ const site = siteRow?.company_id === requestCompanyId && siteRow?.customer_id === request.customer_id ? siteRow : null
+ const customerHref = site
+   && canPresentAdminLink(access, { anyOf: ['customers.read', 'masterdata.read'] })
+   && canPresentAdminLink(access, { anyOf: ['customers.read', 'contracts.read', 'contracts.write'] })
+   ? `/admin/customers/${request.customer_id}`
+   : null
 
  const meteringPoints = await listMeteringPointsBySiteIds(
  supabase,
@@ -326,24 +342,87 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  })
  : null
 
- const outboundRequest =
- outboundRequests.find(
- (row) =>
- row.source_type === 'supplier_switch_request' &&
- row.source_id === request.id
- ) ?? null
+ const outboundRequest = (outboundQuery?.data as OutboundRequestRow | null) ?? null
 
- const outboundDispatchEvents = outboundRequest
- ? await listOutboundDispatchEventsByRequestIds([outboundRequest.id])
- : []
-
+ const now = new Date()
+ const marketStarts = request.status === 'accepted' ? await readResult(
+ () => readConfirmedMarketStarts(supabase, [request]),
+ { definitionVersion: 'supplier_switch_confirmed_market_start_v1', errorCode: 'SWITCH_MARKET_START_UNAVAILABLE' },
+ ) : null
+ const activation = marketStarts ? getVerifiedSupplierSwitchActivationReadiness(
+ request, marketStarts.kind === 'unavailable' ? undefined : marketStarts.data.get(request.id.toLowerCase()) ?? null, now,
+ ) : null
  const lifecycle = getSwitchLifecycle({
+ activation,
  request,
  readiness,
  outboundRequest,
  })
 
+ const canActivate = Boolean(requestCompanyId && site && activation?.ready
+   && lifecycle.stage === 'ready_to_execute'
+   && await canPresentAdminAction([MASTERDATA_PERMISSIONS.WRITE])
+   && (await readSwitchActivationCompanyIds(supabase, access.userId, [requestCompanyId])).has(requestCompanyId))
+
+ const canUpdateManualStatus = requestCompanyId !== null
+   && canEditManualSwitchStatus(request.status)
+   && (tenantScope.isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE))
+   && await canPresentAdminAction([MASTERDATA_PERMISSIONS.WRITE])
+   && (await readWritableSwitchCompanyIds(supabase, [requestCompanyId])).has(requestCompanyId)
+
+ if (edielMessagesQuery?.error) throw edielMessagesQuery.error
+ const edielMessages = (edielMessagesQuery?.data as EdielMessageRow[] | null) ?? []
+ const retrySelection = canUpdateManualStatus
+   && requestCompanyId && !request.lifecycle_blocked && !request.paused_at && request.updated_at
+   && !request.inbound_z04_message_id && !request.outbound_z03_message_id
+   && outboundRequest && outboundRequest.updated_at && canRetrySwitchOutboundStatus(outboundRequest.status)
+   && !outboundRequest.sent_at && !outboundRequest.acknowledged_at && outboundRequest.attempts_count === 0
+   && !outboundRequest.response_payload?.edielMessageId
+   && !edielMessages.some(message => message.direction === 'outbound'
+      && (message.outbound_request_id === outboundRequest.id
+        || (message.message_family === 'PRODAT' && message.message_code === 'Z03')))
+   ? {
+      companyId: requestCompanyId, customerId: request.customer_id,
+      switchId: request.id, switchStatus: request.status, switchUpdatedAt: request.updated_at,
+      outboundId: outboundRequest.id, outboundStatus: outboundRequest.status, outboundUpdatedAt: outboundRequest.updated_at,
+     }
+   : null
+
+ if (!tenantScope.isPlatformAdmin) {
+   return <SupplierSwitchBusinessView
+     request={{
+       id: request.id,
+       customer_id: request.customer_id,
+       request_type: request.request_type,
+       status: request.status,
+       current_supplier_name: request.current_supplier_name,
+       incoming_supplier_name: request.incoming_supplier_name,
+       requested_start_date: request.requested_start_date,
+       confirmed_start_date: request.confirmed_start_date,
+       power_of_attorney_id: request.power_of_attorney_id,
+       authorization_document_id: request.authorization_document_id,
+       completed_at: request.completed_at,
+       paused_at: request.paused_at,
+       lifecycle_blocked: request.lifecycle_blocked,
+     }}
+     site={site}
+     customerHref={customerHref}
+     gridOwner={gridOwner}
+     readiness={readiness}
+     outboundRequest={outboundRequest ? { id: outboundRequest.id, status: outboundRequest.status, sent_at: outboundRequest.sent_at } : null}
+     retrySelection={retrySelection}
+     stage={lifecycle.stage}
+     activation={activation}
+     canActivate={canActivate}
+     canManage={access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)}
+     canQueue={access.permissions.includes('switching.write')}
+   />
+ }
+
+ const outboundDispatchEvents = outboundRequest ? await listOutboundDispatchEventsByRequestIds([outboundRequest.id]) : []
+
  const stuckReason = explainWhySwitchIsStuck({
+ activation,
  request,
  readiness,
  outboundRequest,
@@ -359,10 +438,6 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
 
  const validationSummary = readValidationSnapshot(request.validation_snapshot)
 
- if (!tenantScope.isPlatformAdmin) {
-   return <SupplierSwitchBusinessView request={request} site={site} gridOwner={gridOwner} readiness={readiness} outboundRequest={outboundRequest} stage={lifecycle.stage} canManage={access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)} canQueue={access.permissions.includes('switching.write')} />
- }
-
  const z03Messages = edielMessages.filter((row) => row.message_code === 'Z03')
  const z05Messages = edielMessages.filter((row) => row.message_code === 'Z05')
  const z09Messages = edielMessages.filter((row) => row.message_code === 'Z09')
@@ -370,8 +445,8 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Leverantörsbyte"
- subtitle="Detail-vy för ett enskilt leverantörsbytesärende med tidslinje, utskick, validering och intern slutföring."
+ title={supplierSwitchRequestTypeLabel(request.request_type)}
+ subtitle="Tidslinje, utskick, validering och slutföring för ärendet."
  userEmail={user?.email ?? null}
  />
 
@@ -408,12 +483,12 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  >
  Tillbaka till leverantörsbyten
  </Link>
- <Link
- href={`/admin/customers/${request.customer_id}`}
+ {customerHref ? <Link
+ href={customerHref}
  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
  >
  Öppna kundkort
- </Link>
+ </Link> : null}
  </div>
  </div>
  </section>
@@ -542,6 +617,11 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  {request.failure_reason}
  </div>
  ) : null}
+ {request.pause_reason ? (
+ <div className="mt-5 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+ <strong>Pausorsak</strong> {request.pause_reason}
+ </div>
+ ) : null}
  </div>
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
@@ -649,7 +729,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </p>
  </div>
 
- {lifecycle.stage === 'ready_to_execute' ? (
+ {canActivate ? (
  <form action={finalizeSupplierSwitchExecutionAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
@@ -658,7 +738,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </form>
  ) : (
  <span className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
- Väntar på accepterat svar och kvitterat utskick
+ {lifecycle.stage === 'ready_to_execute' ? 'Aktivering är inte tillgänglig för ditt konto i detta bolag.' : 'Väntar på kvalificerad bekräftelse och uppnådd leveransstart'}
  </span>
  )}
  </div>
@@ -757,43 +837,26 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <form action={updateOutboundRequestStatusAction}>
  <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={outboundRequest.status} />
  <input type="hidden" name="status" value="prepared" />
- <input type="hidden" name="utskick_step" value="prepare" />
+ <input type="hidden" name="dispatch_step" value="prepare" />
  <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
  Förbered
  </button>
  </form>
  ) : null}
 
- {['queued', 'prepared'].includes(outboundRequest.status) ? (
- <form action={updateOutboundRequestStatusAction}>
- <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
- <input type="hidden" name="customer_id" value={request.customer_id} />
- <input type="hidden" name="status" value="sent" />
- <input type="hidden" name="utskick_step" value="send" />
- <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
- Markera som skickad
- </button>
- </form>
- ) : null}
+ <ManualOutboundDeliveryForm
+   request={outboundRequest}
+   action={updateOutboundRequestStatusAction}
+   linkedOriginal={edielMessages.some(message => message.direction === 'outbound'
+     && (message.outbound_request_id === outboundRequest.id
+       || (message.message_family === 'PRODAT' && message.message_code === 'Z03')))}
+ />
 
- {outboundRequest.status === 'sent' ? (
- <form action={updateOutboundRequestStatusAction}>
- <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
- <input type="hidden" name="customer_id" value={request.customer_id} />
- <input type="hidden" name="status" value="acknowledged" />
- <input type="hidden" name="utskick_step" value="ack" />
- <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
- Markera som kvitterad
- </button>
- </form>
- ) : null}
-
- {['failed', 'cancelled'].includes(outboundRequest.status) ? (
+ {retrySelection ? (
  <form action={retryOutboundFromSwitchDetailAction}>
- <input type="hidden" name="switch_request_id" value={request.id} />
- <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
- <input type="hidden" name="customer_id" value={request.customer_id} />
+ <SupplierSwitchRetryFields selection={retrySelection} />
  <button className="w-full rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 ">
  Försök skicka igen
  </button>
@@ -980,6 +1043,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </div>
 
  <div className="space-y-6">
+ {canUpdateManualStatus ? (
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Uppdatera switchstatus
@@ -990,19 +1054,16 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  className="mt-5 space-y-3"
  >
  <input type="hidden" name="request_id" value={request.id} />
+ <input type="hidden" name="expected_status" value={request.status} />
+ <input type="hidden" name="expected_updated_at" value={request.updated_at} />
 
  <select
  name="status"
+ aria-label="Status"
  defaultValue={request.status}
  className="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm "
  >
- <option value="draft">Draft</option>
- <option value="queued">Queued</option>
- <option value="submitted">Submitted</option>
- <option value="accepted">Accepted</option>
- <option value="rejected">Rejected</option>
- <option value="completed">Completed</option>
- <option value="failed">Failed</option>
+ {manualSwitchStatusOptions.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
  </select>
 
  <input
@@ -1025,6 +1086,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </button>
  </form>
  </div>
+ ) : null}
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">

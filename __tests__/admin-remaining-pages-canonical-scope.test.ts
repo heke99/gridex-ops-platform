@@ -4,10 +4,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { NextRequest } from 'next/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 const io = vi.hoisted(() => ({
   platform: false, companyId: 'guard-A' as string | null,
   reads: [] as Array<{ table: string; filters: Array<[string, unknown]> }>,
   loaders: [] as Array<{ name: string; companyId: unknown }>,
+  reviewActors: [] as string[],
   tables: {} as Record<string, Array<Record<string, unknown>>>,
 }))
 const guard = () => ({
@@ -67,7 +70,21 @@ function from(table: string) {
   }
   return query
 }
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from } }))
+vi.mock('@/lib/supabase/service', () => ({
+  supabaseService: {
+    from,
+    rpc: async (name: string, input: { p_company_id?: string; p_actor_user_id?: string }) => {
+      if (name === 'gridex_read_system_health_tenant_email_review_v1') {
+        if (!input.p_actor_user_id) throw new Error('Missing system health actor')
+        io.reviewActors.push(input.p_actor_user_id)
+        return { data: [], error: null }
+      }
+      if (name !== 'gridex_read_invoice_file_artifact_v2') throw new Error(`Unexpected scope RPC ${name}`)
+      load('downloadInvoiceFileArtifact', input.p_company_id)
+      return { data: { kind: 'legacy' }, error: null }
+    },
+  },
+}))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({
   from, auth: { getUser: async () => ({ data: { user: { id: 'operator', email: 'operator@example.invalid' } } }) },
 }) }))
@@ -96,7 +113,9 @@ vi.mock('@/app/admin/operations/automation/actions', () => ({
   runBatch2BAutomationAction: vi.fn(), createBillingBlockerCasesAction: vi.fn(), createBatch2CQueueCasesAction: vi.fn(), runBatch2CPeriodMotorAction: vi.fn(),
 }))
 vi.mock('@/app/admin/pricing/market-sources/actions', () => ({ saveMarketSourcePolicyAction: vi.fn(), testMarketSourceConnectionAction: vi.fn() }))
-vi.mock('@/app/admin/system-health/actions', () => ({ requeueUncertainEmailAction: vi.fn() }))
+vi.mock('@/app/admin/system-health/actions', () => ({
+  reconcileWithdrawalEmailAcceptanceAction: vi.fn(), requeueUncertainEmailAction: vi.fn(),
+}))
 vi.mock('@/components/admin/customer-login/CustomerLoginSetup', () => ({ default: () => null }))
 vi.mock('@/components/admin/companies/CompanyUserInviteForm', () => ({ default: () => null }))
 vi.mock('@/components/admin/contracts/ContractOfferAdminForm', () => ({ default: () => null }))
@@ -104,20 +123,21 @@ vi.mock('@/components/admin/contracts/ContractDeleteControl', () => ({ default: 
 vi.mock('@/components/admin/contracts/ContractChannelControl', () => ({ default: () => null }))
 vi.mock('@/app/admin/metering/_components', () => ({ MeteringFilterBar: () => null, MeteringIngestForm: () => null, MeteringOperationalSummary: () => null, MeteringRequestsSection: () => null, MeteringValuesTable: () => null }))
 
-vi.mock('@/lib/billing/invoiceReviewData', () => ({
+vi.mock('@/lib/billing/invoiceReviewData', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/billing/invoiceReviewData')>()),
   listInvoiceReviewRows: async (input: unknown) => { load('invoiceReview', input); return [] },
   getInvoiceReviewDetail: async (input: unknown) => {
     load('invoiceDetail', input)
     return { invoice: {}, approval: {}, item: {}, underlay: {}, contract: {}, customer: {}, pricingRun: {}, pricingLines: [], priceSnapshot: null, exportStatus: { label: 'Överföringsstatus behöver kontrolleras', needsAction: false }, lifecycleStage: 'awaiting_invoice_projection' }
   },
 }))
-vi.mock('@/lib/billing/providers/registry', () => ({
+vi.mock('@/lib/billing/providers/registry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/billing/providers/registry')>()),
   isFileProvider: () => false,
   listInvoiceProviderCatalog: async (company: string) => { load('providerCatalog', company); return [] },
   loadTenantInvoiceProviderSelection: async (company: string) => { load('providerSelection', company); return null },
 }))
 vi.mock('@/lib/billing/invoiceFileExport', () => ({
-  listInvoiceFileCandidates: async (company: string) => { load('fileCandidates', company); return [] },
   listInvoiceFiles: async (company: string) => { load('invoiceFiles', company); return [] },
   loadInvoiceFile: async (company: string) => { load('downloadInvoiceFile', company); return { provider: 'file_export' } },
   parseInvoiceFileFormat: () => 'csv', renderInvoiceFile: () => ({ body: 'invoice', contentType: 'text/csv', fileName: 'invoice.csv' }),
@@ -188,6 +208,7 @@ const pages = [
 ] as const
 
 beforeEach(() => {
+  io.reviewActors = []
   io.platform = false; io.companyId = 'guard-A'; io.reads = []; io.loaders = []; io.tables = {}
   vi.stubGlobal('React', React)
 })
@@ -207,19 +228,23 @@ function expectCompany(companyId: string | null) {
 it.each(pages)('%s reads use the canonical tenant guard rather than another legacy membership', async (_name, _mode, page) => {
   await page()
   expectCompany('guard-A')
+  expect(io.reviewActors).toEqual([])
 })
 const guardedEmptyPages = new Set(['billing', 'billing quality', 'billing AI', 'billing import', 'company settings', 'contracts', 'information requests', 'customer login', 'automation', 'periods', 'market policies'])
 it.each(pages)('%s handles a missing canonical tenant before data reads', async (name, _mode, page) => {
   io.companyId = null
-  if (guardedEmptyPages.has(name)) await page()
+  if (name === 'customer imports') {
+    expect(renderToStaticMarkup(await page())).toContain('Välj bolag för att visa importgranskning.')
+  } else if (guardedEmptyPages.has(name)) await page()
   else if (name === 'invoice detail') await expect(page()).rejects.toThrow('Välj ett bolag innan fakturan granskas')
   else await expect(page()).rejects.toThrow()
   expect(io.reads).toEqual([]); expect(io.loaders).toEqual([])
 })
-it.each(pages)('%s preserves the selected/global platform read mode', async (_name, mode, page) => {
+it.each(pages)('%s preserves the selected/global platform read mode', async (name, mode, page) => {
   io.platform = true
   await page()
   expectCompany(mode === 'selected' ? 'guard-A' : null)
+  expect(io.reviewActors).toEqual(name === 'system health' ? ['operator'] : [])
 })
 
 it('renders only the authorized company underlays despite a different legacy selection', async () => {

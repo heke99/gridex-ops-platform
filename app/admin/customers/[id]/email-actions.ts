@@ -4,54 +4,26 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
-import { sendCompanyEmail } from '@/lib/email/sendCompanyEmail'
-import { supabaseService } from '@/lib/supabase/service'
+import { resendCustomerEmail } from '@/lib/email/resendCustomerEmail'
 
-function text(value: FormDataEntryValue | null) {
-  return String(value ?? '').trim()
-}
+const uuid = /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i
 
 export async function resendCustomerEmailAction(formData: FormData) {
-  const customerId = text(formData.get('customer_id'))
-  const logId = text(formData.get('log_id'))
+  const customerId = formData.get('customer_id')
+  const logId = formData.get('log_id')
+  if (typeof customerId !== 'string' || !uuid.test(customerId)) redirect('/admin/customers')
 
-  try {
-    if (!customerId || !logId) throw new Error('Utskicket saknas.')
-    const guard = await requireAdminActionAccess({ anyOf: ['customers.write', 'customers.read'] })
-    const tenant = await loadCustomerTenantContext(customerId, guard)
-
-    const { data: log, error } = await supabaseService
-      .from('communication_logs')
-      .select('*')
-      .eq('id', logId)
-      .eq('company_id', tenant.companyId)
-      .eq('customer_id', customerId)
-      .maybeSingle()
-
-    if (error) throw error
-    if (!log?.template_key || !log.recipient_email) throw new Error('Loggen saknar mall eller mottagare.')
-
-    const resendBucket = new Date().toISOString().slice(0, 16)
-    await sendCompanyEmail({
-      companyId: tenant.companyId,
-      customerId,
-      eventKey: log.event_key ?? 'manual_resend',
-      templateKey: log.template_key,
-      to: log.recipient_email,
-      variables: {},
-      idempotencyKey: `resend:${log.id}:${resendBucket}`,
-      metadata: {
-        resend_of_communication_log_id: log.id,
-        resend_requested_by: guard.userId,
-        source: 'resend_customer_email_action',
-      },
-    })
-
-    revalidatePath(`/admin/customers/${customerId}`)
-  } catch (error) {
-    console.warn('[email] resendCustomerEmailAction failed', error)
-    redirect(`/admin/customers/${customerId || ''}?tab=communication&error=${encodeURIComponent('E-postmeddelandet kunde inte skickas om.')}`)
+  let status: Awaited<ReturnType<typeof resendCustomerEmail>> = 'failed'
+  if (typeof logId === 'string' && uuid.test(logId)) {
+    try {
+      const guard = await requireAdminActionAccess({ anyOf: ['customers.write'] })
+      const tenant = await loadCustomerTenantContext(customerId, guard)
+      status = await resendCustomerEmail({ companyId: tenant.companyId, customerId, logId, actorId: guard.userId })
+    } catch {
+      console.warn('[email] customer resend did not produce a verified receipt')
+    }
   }
 
-  redirect(`/admin/customers/${customerId}?tab=communication`)
+  if (status === 'queued' || status === 'duplicate') revalidatePath('/admin/customers/' + customerId)
+  redirect('/admin/customers/' + customerId + '?tab=communication&resend=' + status)
 }

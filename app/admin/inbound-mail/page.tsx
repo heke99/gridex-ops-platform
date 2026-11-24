@@ -1,11 +1,16 @@
 import Link from "next/link";
+import vercelConfig from "@/vercel.json";
+import { MAILBOX_POLL_PARTIAL, isMailboxPollPartialNotice } from "@/lib/inbound-mail/edielMailboxPoller.part-1";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import type { Json } from "@/supabase/database.types";
+import { listEdielImapRetries } from "@/lib/inbound-mail/edielImapScan";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   deactivateSharedMailboxProfileAction,
   deleteSharedMailboxProfileAction,
   processInboundMailQueueAction,
+  resumeEdielImapUidAction,
   runInboundMailEngineAction,
   saveSharedMailboxProfileAction,
 } from "@/app/admin/inbound-mail/actions";
@@ -78,6 +83,47 @@ type ParseRow = {
   transaction_reference: string | null;
   created_at: string;
 };
+
+function partialMailboxCount(metadata: unknown): number {
+  if (!metadata || typeof metadata !== "object" || !("results" in metadata) || !Array.isArray(metadata.results)) return 0;
+  return metadata.results.filter(result => result && typeof result === "object" && result.outcome === "partial").length;
+}
+
+const inboundCron = vercelConfig.crons.find(cron =>
+  cron.path === "/api/internal/inbound-mail/cron?environment=production"
+);
+
+const formatMailboxTime = new Intl.DateTimeFormat("sv-SE", {
+  dateStyle:"short",timeStyle:"short",timeZone:"Europe/Stockholm",
+});
+
+function nextMailboxAttempt(mailbox: MailboxRow): string {
+  if (mailbox.is_active !== true || mailbox.locked_at) return "Tidpunkt ej fastställd. Brevlådan är inaktiv eller låst.";
+  if (mailbox.environment !== "production" || mailbox.company_id !== null || mailbox.metadata?.scope !== "platform_shared") {
+    return "Tidpunkt ej fastställd. Brevlådan ingår inte i produktionsschemat.";
+  }
+  const schedule = /^(\d+)-(\d+)\/(\d+) \* \* \* \*$/.exec(inboundCron?.schedule ?? "");
+  const last = Date.parse(mailbox.last_polled_at ?? "");
+  const interval = Number(mailbox.poll_interval_minutes || 10);
+  if (!schedule || process.env.VERCEL_ENV !== "production" || !process.env.CRON_SECRET?.trim() || !mailbox.imap_host || !mailbox.username
+      || !Number.isFinite(last) || !Number.isFinite(interval) || interval <= 0) {
+    return "Tidpunkt ej fastställd. Kontrollera konfigurationen.";
+  }
+  const [, start, end, step] = schedule.map(Number);
+  if (start > end || end > 59 || step < 1) return "Tidpunkt ej fastställd. Kontrollera schemat.";
+
+  const minuteMs = 60_000;
+  const earliest = Math.ceil(Math.max(Date.now() + 1, last + interval * minuteMs) / minuteMs) * minuteMs;
+  for (let offset = 0; offset < 60; offset += 1) {
+    const time = new Date(earliest + offset * minuteMs);
+    const minute = time.getUTCMinutes();
+    if (minute >= start && minute <= end && (minute - start) % step === 0) {
+      const label = formatMailboxTime.format(time);
+      return `Tidigast enligt konfigurerat schema ${label} (Stockholm).`;
+    }
+  }
+  return "Tidpunkt ej fastställd. Kontrollera schemat.";
+}
 
 async function safeCount(table: string, filters: Record<string, string> = {}) {
   let query = supabaseService
@@ -183,6 +229,9 @@ export default async function InboundMailPage() {
   );
   const failedCount = failedMessageCount + failedJobCount;
 
+  const delayedSources = mailboxes.flatMap(mailbox => listEdielImapRetries(mailbox.metadata as Json)
+    .map(retry => ({...retry,mailbox})));
+
   return (
     <div>
       <AdminHeader
@@ -193,6 +242,30 @@ export default async function InboundMailPage() {
       />
 
       <main className="space-y-6 px-6 py-6 sm:px-8">
+        {delayedSources.length > 0 && (
+          <section className="rounded-3xl border border-amber-200 bg-white p-5">
+            <h2 className="font-semibold text-slate-950">Väntande Ediel-original</h2>
+            <ul className="mt-3 space-y-2">
+              {delayedSources.map(({mailbox,scope,uidValidity,uid,attempts,nextAttemptAt,reviewRequired}) => (
+                <li key={mailbox.id+scope+uid} className="flex flex-wrap items-center justify-between gap-3">
+                  <span>{mailbox.mailbox_name ?? mailbox.id} · UID {uid} · UID-period {uidValidity} · {attempts} försök ·{" "}
+                    {reviewRequired ? "Granskning krävs" : nextAttemptAt ? (
+                      <>Nästa försök tidigast <time dateTime={nextAttemptAt}>{formatMailboxTime.format(new Date(nextAttemptAt))}</time> (Stockholm)</>
+                    ) : "Tidpunkt för nästa försök ej fastställd"}
+                  </span>
+                  {mailbox.is_active && (
+                    <form action={resumeEdielImapUidAction}>
+                      <input type="hidden" name="mailbox_id" value={mailbox.id} />
+                      <input type="hidden" name="scope" value={scope} />
+                      <input type="hidden" name="uid" value={uid} />
+                      <button type="submit" className="rounded-lg border px-3 py-1">Läs om exakt original</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -496,7 +569,7 @@ export default async function InboundMailPage() {
                   </p>
                   {mailbox.last_successful_poll_at ? (
                     <p className="mt-1 text-xs text-emerald-700">
-                      Senast lyckad: {mailbox.last_successful_poll_at}
+                      Senast fullständig pollning: {mailbox.last_successful_poll_at}
                     </p>
                   ) : null}
                   {mailbox.locked_at ? (
@@ -504,7 +577,13 @@ export default async function InboundMailPage() {
                       Låst sedan: {mailbox.locked_at}
                     </p>
                   ) : null}
-                  {mailbox.last_error ? (
+                  {isMailboxPollPartialNotice(mailbox.last_error) ? (
+                    <p className="mt-2 text-xs font-medium text-amber-700">
+                      {MAILBOX_POLL_PARTIAL} Kvarvarande brev behöver tas emot på nytt.
+                      <span className="block">{nextMailboxAttempt(mailbox)}</span>
+                      <a className="underline" href="#poll-runs">Se körningshistoriken</a>
+                    </p>
+                  ) : mailbox.last_error ? (
                     <p className="mt-2 text-xs font-medium text-red-700">
                       {mailbox.last_error}
                     </p>
@@ -553,7 +632,7 @@ export default async function InboundMailPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+        <section id="poll-runs" className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
           <div className="border-b border-slate-100 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
               Cron health
@@ -608,6 +687,11 @@ export default async function InboundMailPage() {
                       {Array.isArray((run.metadata as Record<string, unknown> | null)?.results)
                         ? `${((run.metadata as Record<string, unknown>).results as unknown[]).length} mailbox-resultat`
                         : "—"}
+                      {partialMailboxCount(run.metadata) > 0 ? (
+                        <div className="mt-1 font-medium text-amber-700">
+                          {partialMailboxCount(run.metadata)} med delvis lyckad mottagning
+                        </div>
+                      ) : null}
                       {(run.metadata as Record<string, unknown> | null)?.configurationError ? (
                         <div className="mt-1 font-medium text-red-700">
                           {String((run.metadata as Record<string, unknown>).configurationError)}

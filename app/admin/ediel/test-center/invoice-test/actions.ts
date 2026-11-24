@@ -8,7 +8,7 @@ import { buildCreateCustomerParams } from '@/app/admin/customers/actions.part-1'
 import { createCustomerGraph } from '@/app/admin/customers/actions.part-2'
 import { importRawEdifactAndRunTestCenterChain } from '@/lib/ediel/testing/testCenterRawEdifactImport'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
-import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
+import { isExpectedMissingValuesBlock, materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import {
   assertInvoiceTestCompanyAndOffer,
   assertInvoiceTestCustomer,
@@ -240,17 +240,18 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
         })
       } catch (error) {
         unstable_rethrow(error)
-        if (run.expectation === 'blocked_missing_values') {
-          expectedBlock = formatErrorMessage(error, 'Missing-values blockerades som väntat.')
-          continue
+        if (run.expectation === 'blocked_missing_values' && isExpectedMissingValuesBlock(error)) {
+          expectedBlock = error.message
+          break
         }
         throw error
       }
     }
     if (scenario === 'missing_values') {
       if (last) throw new Error('Missing-values-scenariot skapade oväntat ett godkänt fakturaflöde.')
+      if (expectedBlock === null) throw new Error('Missing-values-scenariot gav ingen verifierad energispärr.')
       revalidatePath(WORKSPACE)
-      workspaceRedirect({ status: 'success', message: `Missing-values verifierat: ${expectedBlock ?? 'kedjan blockerades.'}`, companyId, customerId })
+      workspaceRedirect({ status: 'success', message: `Missing-values verifierat: ${expectedBlock}`, companyId, customerId })
     }
     if (!last) throw new Error('Fakturatest gav inget verifierbart körresultat.')
     revalidatePath(WORKSPACE)

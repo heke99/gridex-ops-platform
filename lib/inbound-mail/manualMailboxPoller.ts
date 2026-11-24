@@ -187,16 +187,25 @@ function isManualMailboxDueForPolling(mailbox: JsonRecord): boolean {
 
 async function claimMailbox(mailbox: JsonRecord, workerId: string): Promise<JsonRecord | null> {
   const staleCutoff = new Date(Date.now() - envInt('MANUAL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) * 60_000).toISOString()
+  const mailboxId = String(mailbox.id)
+  const lockedAt = nowIso()
   let query = supabaseService
     .from('manual_communication_mailboxes')
-    .update({ last_polled_at: nowIso(), locked_at: nowIso(), locked_by: workerId, updated_at: nowIso() })
-    .eq('id', String(mailbox.id)).eq('is_active', true).eq('is_verified', true)
+    .update({ last_polled_at: nowIso(), locked_at: lockedAt, locked_by: workerId, updated_at: nowIso() })
+    .eq('id', mailboxId).eq('is_active', true).eq('is_verified', true)
     .or(`locked_at.is.null,locked_at.lt.${staleCutoff}`)
   const lastPolledAt = clean(mailbox.last_polled_at)
   query = lastPolledAt ? query.eq('last_polled_at', lastPolledAt) : query.is('last_polled_at', null)
   const { data, error } = await query.select('*').maybeSingle()
   if (error) throw error
-  return data as JsonRecord | null
+  if (data) return data as JsonRecord
+
+  // Recover only this worker's exact conditional write if the response omitted it.
+  const readback = await supabaseService.from('manual_communication_mailboxes')
+    .select('*').eq('id', mailboxId).eq('locked_by', workerId).eq('locked_at', lockedAt)
+    .eq('is_active', true).eq('is_verified', true).maybeSingle()
+  if (readback.error) throw readback.error
+  return readback.data as JsonRecord | null
 }
 
 type MessageAttempt = {

@@ -349,6 +349,7 @@ export async function sendEdielMessageViaSmtp(
   rejected: string[]
   messageId: string | null
   dispatchObservedAt: string
+  delivery: 'new_acceptance' | 'repaired_projection'
 }> {
   // Captured once; an issued binding is deeply frozen (checked by the OPS-04 guard).
   const controlledBinding = params?.controlledBinding ?? null
@@ -360,7 +361,7 @@ export async function sendEdielMessageViaSmtp(
     try {
       const repaired = await repairAcceptedEdielMessageProjection({ message, actorUserId, projection: established })
       return { accepted: repaired.providerReceipt.accepted, rejected: [], messageId: repaired.providerReceipt.messageId,
-        dispatchObservedAt: repaired.observedAt }
+        dispatchObservedAt: repaired.observedAt, delivery: 'repaired_projection' }
     } catch (error) { throw new SmtpDeliveryUncertainError(error, established.providerReceipt.messageId) }
   }
   if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
@@ -439,7 +440,7 @@ export async function sendEdielMessageViaSmtp(
   // OPS-04: after every existing pre-I/O hold, before retry basis, wire
   // reference reservation, journal, archive and provider. Server-activated.
   await assertControlledLiveSendPreflight(message, actorUserId, controlledBinding)
-  const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
+  const recoveryAuthorization = message.message_family === 'PRODAT' && params?.dispatchOwner?.kind === 'worker'
     ? await readProdatTransportRetryBasis({ companyId: message.company_id, messageId: message.id,
       outboxId: params.dispatchOwner.outboxId, actorUserId })
     : null
@@ -936,7 +937,7 @@ export async function sendEdielMessageViaSmtp(
     try {
       const repaired = await repairObservedEdielSmtpProjection({ message, actorUserId, observedAt: dispatchObservedAt, smtpMessageId: result.messageId ?? null })
       return { accepted: repaired.providerReceipt.accepted, rejected: [], messageId: repaired.providerReceipt.messageId,
-        dispatchObservedAt: repaired.observedAt }
+        dispatchObservedAt: repaired.observedAt, delivery: 'repaired_projection' }
     } catch (error) { throw new SmtpDeliveryUncertainError(error, result.messageId ?? null) }
   }
   try {
@@ -995,6 +996,7 @@ export async function sendEdielMessageViaSmtp(
       rejected,
       messageId: result.messageId ?? null,
       dispatchObservedAt,
+      delivery: 'new_acceptance',
     }
   } catch (error) {
     // SMTP already accepted. A failed status/event write cannot establish

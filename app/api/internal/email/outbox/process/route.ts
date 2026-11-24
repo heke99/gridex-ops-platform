@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processTenantEmailOutbox } from '@/lib/email/emailOutbox'
+import { preparePendingWithdrawalConfirmations } from '@/lib/email/withdrawalConfirmation'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
@@ -69,17 +70,23 @@ async function run(request: NextRequest, body: Record<string, unknown> = {}) {
   const limit = parseLimit(String(body.limit ?? searchParams.get('limit') ?? '25'))
 
   try {
+    let withdrawalConfirmations
+    try {
+      withdrawalConfirmations = await preparePendingWithdrawalConfirmations({ companyId, limit })
+    } catch {
+      withdrawalConfirmations = null
+    }
     const result = await processTenantEmailOutbox({ companyId, limit })
     await logRun({
       company_id: companyId ?? null,
-      status: result.errors.length > 0 ? 'completed_with_errors' : 'completed',
+      status: result.errors.length > 0 || !withdrawalConfirmations || withdrawalConfirmations.deferred > 0 ? 'completed_with_errors' : 'completed',
       scanned: result.scanned,
       claimed: result.claimed,
       sent: result.sent,
       retried: result.retried,
       failed: result.failed,
       skipped: result.skipped,
-      metadata: { source: 'tenant_email_outbox_cron', result },
+      metadata: { source: 'tenant_email_outbox_cron', result, withdrawalConfirmations },
     })
     return NextResponse.json({ ok: true, source: 'tenant_email_outbox_cron', companyId: companyId ?? null, result })
   } catch (error) {

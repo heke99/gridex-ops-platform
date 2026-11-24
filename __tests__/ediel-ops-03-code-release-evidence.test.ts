@@ -77,7 +77,47 @@ const reviewedImageCachePrelude = "      - name: Prime content-verified Supabase
 // opt-in replay error boundary. Restored bytes retain every earlier pin.
 const reviewedReplayPinCurrent = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e"'
 const reviewedReplayPinPrevious = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"'
+// Qualify the two storage helper pin changes only within the historical Git port.
+const reviewedCleanReplayPinCurrent = reviewedReplayPinCurrent.replace(
+  '2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e',
+  '202c07a7a9f0a7ead472217693e6de816e98b5c69d05e1b36da164f55e1f6ca5',
+)
+function reviewedCleanReplayPinWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '2fafcd2cf02586c82272ec086fc2fea908214144215800c03f1f4cac8d219c88') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(reviewedCleanReplayPinCurrent).length !== 3) throw Error('fixture_reviewed_clean_replay_pin_inverse_count')
+  const restored = Buffer.from(source.replaceAll(reviewedCleanReplayPinCurrent, reviewedReplayPinCurrent))
+  if (sha256(restored) !== '73e2306d80c70edcc7a4505fb3cef157b925dc75f5b08260d6f08b779521586a') throw Error('fixture_reviewed_clean_replay_pin_inverse_digest_mismatch')
+  return restored
+}
+// The ordinary receipt changes the unrelated quality-release-gates job. The
+// historical mock strips this reviewed delta only from its exact input digest.
+const ordinaryReceiptWorkflowSource = `      - name: Run ordinary unit tests with per-file evidence\n        id: ordinary-unit-tests\n        run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" node scripts/gridex-ci-ordinary-unit-receipt.cjs\n      - name: Upload ordinary unit evidence\n        if: \${{ always() && steps.ordinary-unit-tests.outcome != 'skipped' && steps.ordinary-unit-tests.outcome != '' }}\n        uses: actions/upload-artifact@v4\n        with:\n          name: gridex-ordinary-unit-\${{ github.run_id }}-\${{ github.run_attempt }}\n          path: e2e-artifacts/ordinary-unit/*.json\n          if-no-files-found: error\n`
+const priorUnitWorkflowSource = `      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test\n`
+// This fixture replays historical native artifacts. Reverse only the exact
+// unrelated Quality step delta when preparing the historical workflow bytes.
+const qualityBudgetWorkflowSource = "      - run: npm run build\n        id: quality_build\n        if: ${{ !cancelled() }}\n      - run: npm run quality:bundle-budget\n        if: ${{ !cancelled() && steps.quality_build.outcome == 'success' }}\n"
+const priorQualityBudgetWorkflowSource = "      - run: npm run build\n        if: ${{ !cancelled() }}\n      - run: npm run quality:bundle-budget\n"
+function reviewedQualityBudgetWorkflow(bytes: Buffer) {
+  bytes = reviewedCleanReplayPinWorkflow(bytes)
+  if (sha256(bytes) !== '73e2306d80c70edcc7a4505fb3cef157b925dc75f5b08260d6f08b779521586a') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(qualityBudgetWorkflowSource).length !== 2) throw Error('fixture_reviewed_bundle_step_inverse_count')
+  const restored = Buffer.from(source.replace(qualityBudgetWorkflowSource, priorQualityBudgetWorkflowSource))
+  if (sha256(restored) !== 'e9d7278802690df1b8b91fc6a7ed5fd68b19a4ce53bc55cc88e1b16fa87cc0b1') throw Error('fixture_reviewed_bundle_step_inverse_digest_mismatch')
+  return restored
+}
+function reviewedOrdinaryReceiptWorkflow(bytes: Buffer) {
+  bytes = reviewedQualityBudgetWorkflow(bytes)
+  if (sha256(bytes) !== 'e9d7278802690df1b8b91fc6a7ed5fd68b19a4ce53bc55cc88e1b16fa87cc0b1') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(ordinaryReceiptWorkflowSource).length !== 2) throw Error('fixture_reviewed_unit_receipt_inverse_count')
+  const restored = Buffer.from(source.replace(ordinaryReceiptWorkflowSource, priorUnitWorkflowSource))
+  if (sha256(restored) !== '56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727') throw Error('fixture_reviewed_unit_receipt_inverse_digest_mismatch')
+  return restored
+}
 function reviewedReplayPinWorkflow(bytes: Buffer) {
+  bytes = reviewedOrdinaryReceiptWorkflow(bytes)
   if (sha256(bytes) !== '56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727') return bytes
   const source = bytes.toString('utf8')
   if (source.split(reviewedReplayPinCurrent).length !== 3) throw Error('fixture_reviewed_replay_pin_inverse_count')
@@ -778,7 +818,10 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries and bootstrap cache preparation', () => {
-  const file = '.github/workflows/ops-hardening.yml', rawPinned = readFileSync(file)
+  const file = '.github/workflows/ops-hardening.yml', raw = readFileSync(file)
+  const rawPinned = reviewedOrdinaryReceiptWorkflow(raw)
+  const unknown = Buffer.concat([raw, Buffer.from('\n# an unreviewed change')])
+  expect(reviewedOrdinaryReceiptWorkflow(unknown)).toEqual(unknown)
   expect(sha256(rawPinned)).toBe('56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727')
   const rawCurrent = reviewedReplayPinWorkflow(rawPinned)
   expect(sha256(rawCurrent)).toBe('feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac')
@@ -809,8 +852,13 @@ it.each([
   ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
   ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
   ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],
-  ['foreign storage wrapper pin', (source: string) => source.replaceAll('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', 'c'.repeat(64))],
-  ['only one storage wrapper pin', (source: string) => source.replace('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', '330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd')],
+  ['foreign storage wrapper pin', (source: string) => {
+    const pin = source.includes(reviewedCleanReplayPinCurrent) ? reviewedCleanReplayPinCurrent : reviewedReplayPinCurrent
+    return source.replaceAll(pin, pin.replace(/[0-9a-f]{64}/, 'c'.repeat(64)))
+  }],
+  ['only one storage wrapper pin', (source: string) => source.includes(reviewedCleanReplayPinCurrent)
+    ? source.replace(reviewedCleanReplayPinCurrent, reviewedReplayPinCurrent)
+    : source.replace(reviewedReplayPinCurrent, reviewedReplayPinPrevious)],
 ])('historical workflow port refuses %s without admitting current native proof', (_name, mutate) => {
   const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file, 'utf8'), changed = mutate(source)
   expect(changed).not.toBe(source)

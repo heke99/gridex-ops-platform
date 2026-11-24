@@ -66,9 +66,13 @@ describe('real underlay entrypoint selects a controlled signed revision',()=>{
    expect(io.commands).toHaveLength(0)
   }
  })
- it('preserves legacy same-date ambiguity refusal for unrelated contracts',async()=>{
+ it('holds a same-date legacy ambiguity without writing that interval',async()=>{
   io.contract.price_snapshot={};io.snapshots=io.snapshots.map(s=>({...s,source:'legacy'}))
-  await expect(generateBillingUnderlaysForMonth({companyId:'company-a',billingMonth:'2027-03'})).rejects.toThrow('Flera prissnapshots är giltiga samtidigt')
+  const result=await generateBillingUnderlaysForMonth({companyId:'company-a',billingMonth:'2027-03'})
+  expect(result).toMatchObject({
+   readyForPricing:0,needsReview:1,
+   results:[{underlayId:null,status:'needs_review',warnings:[expect.stringContaining('billing_price_snapshot_segment_incomplete')]}],
+  })
   expect(io.commands).toHaveLength(0)
  })
  it('holds marker loss even when an older proposal has the later validity date',async()=>{

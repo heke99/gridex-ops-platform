@@ -23,7 +23,7 @@ export async function createRequestedChangeSupplyFixture(provider:(email:string)
  // or source birth. It supplies no receiver READ or already-received UTILTS fact.
  const wire=buildCancellationProspectiveZ04(f),receivedAt=new Date().toISOString()
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
  const source=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
  expect(source,'public_creator_must_return_actual_source').toMatch(/^[a-f0-9-]{36}$/)

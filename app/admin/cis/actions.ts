@@ -7,15 +7,14 @@ import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminA
 import { supabaseService } from '@/lib/supabase/service'
 import {
   bulkQueueMissingBillingUnderlays,
-  bulkQueueMissingMeterValues,
   bulkQueueReadySupplierSwitches,
   createOutboundRequest,
   ingestBillingUnderlay,
   ingestMeteringValue,
   saveCommunicationRoute,
   syncGridOwnerDataRequestFromOutbound,
-  updateGridOwnerDataRequestStatus,
-  updateOutboundRequestStatus,
+  updateGridOwnerDataRequestBusiness,
+  updateOutboundRequestBusiness,
   updatePartnerExportStatus,
 } from '@/lib/cis/db'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
@@ -27,7 +26,7 @@ import {
   updateSupplierSwitchRequestStatus,
 } from '@/lib/operations/db'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
-import type { OutboundRequestRow, OutboundRequestStatus } from '@/lib/cis/types'
+import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
@@ -35,6 +34,7 @@ import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/contr
 import { assertUserCanOperateCompany, getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { bulkMeteringEnvironment, loadBulkMeteringCoverage, queueStaffBulkMeteringRequests } from '@/lib/cis/bulkMeteringCoverage'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -396,7 +396,7 @@ export async function queueOutboundRequestAction(
 export async function updateOutboundRequestStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
@@ -405,44 +405,66 @@ export async function updateOutboundRequestStatusAction(
   const actor = await getActor()
   const outboundRequestId = formValue(formData, 'outbound_request_id') ?? ''
   const customerId = formValue(formData, 'customer_id') ?? ''
-  const status =
-    (formValue(formData, 'status') as OutboundRequestStatus | null) ?? 'queued'
+  const originalStatus = formValue(formData, 'original_status')
+  const status = formValue(formData, 'status')
 
   if (!outboundRequestId || !customerId) {
     throw new Error('outbound_request_id och customer_id krävs')
   }
+  if (!originalStatus || !status) throw new Error('Ladda om utskicket innan du sparar.')
 
-  await assertEntityCompanyAccess({
+  const companyId = await assertEntityCompanyAccess({
     actorUserId: actor.id,
     table: 'outbound_requests',
     id: outboundRequestId,
     requiresOperationalWrite: ['queued', 'prepared', 'sent'].includes(status),
   })
+  if (!companyId) throw new Error('Utskickets bolag kunde inte verifieras.')
+  if (!isPlatformAdminContext(access)) {
+    const scope = await resolveAdminSelectedCompanyReadScope(access)
+    if (scope.companyId !== companyId) throw new Error('Utskicket tillhör inte det valda bolaget.')
+  }
 
-  const saved = await updateOutboundRequestStatus({
-    actorUserId: actor.id,
-    outboundRequestId,
-    status,
-    externalReference: formValue(formData, 'external_reference') || null,
-    failureReason: formValue(formData, 'failure_reason') || null,
-    responsePayload: {
-      admin_note: formValue(formData, 'response_payload_note') || null,
-      dispatch_step: formValue(formData, 'dispatch_step') || null,
-    },
+  const changes: Parameters<typeof updateOutboundRequestBusiness>[0]['changes'] = {}
+  if (status !== originalStatus) {
+    changes.status = status
+    if (status === 'sent' || status === 'acknowledged') {
+      const reference = formValue(formData, 'manual_delivery_reference')?.trim()
+      if (!reference || reference.length > 240) throw new Error('Ange referensen till det manuella kvittot.')
+      changes.manual_delivery_reference = reference
+    }
+  }
+
+  for (const [field, column] of [
+    ['external_reference', 'external_reference'],
+    ['response_payload_note', 'admin_note'],
+    ['dispatch_step', 'dispatch_step'],
+  ] as const) {
+    const value = formValue(formData, field)
+    if (value !== null && value !== formValue(formData, `original_${field}`)) {
+      changes[column] = value || null
+    }
+  }
+
+  const failureReason = formValue(formData, 'failure_reason')
+  if (failureReason !== null && failureReason !== formValue(formData, 'original_failure_reason')
+    && (failureReason || isPlatformAdminContext(access))) {
+    changes.failure_reason = failureReason || null
+  }
+
+  if (Object.keys(changes).length === 0) return
+
+  const saved = await updateOutboundRequestBusiness({
+    actorUserId: actor.id, companyId, customerId, outboundRequestId, originalStatus, changes,
   })
-
-  // The customer comes from the tenant-checked outbound request, never from the form.
   const savedCustomerId = saved.customer_id ?? customerId
 
-  const syncedSwitch = await syncSwitchRequestFromOutbound({
-    outboundRequest: saved,
-    actorUserId: actor.id,
-  })
-
-  const syncedGridOwnerDataRequest = await syncGridOwnerDataRequestFromOutbound({
-    actorUserId: actor.id,
-    outboundRequest: saved,
-  })
+  const syncedSwitch = changes.status
+    ? await syncSwitchRequestFromOutbound({ outboundRequest: saved, actorUserId: actor.id })
+    : null
+  const syncedGridOwnerDataRequest = changes.status
+    ? await syncGridOwnerDataRequestFromOutbound({ outboundRequest: saved, actorUserId: actor.id })
+    : null
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -461,7 +483,7 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(savedCustomerId)
+  if (changes.status) await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
@@ -480,40 +502,47 @@ export async function updateOutboundRequestStatusAction(
 export async function updateGridOwnerDataRequestStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['metering.write', 'billing_underlay.write'])
+  const access = await requireAdminActionAccess(['metering.write', 'billing_underlay.write'])
 
   const actor = await getActor()
   const requestId = formValue(formData, 'request_id') ?? ''
   const customerId = formValue(formData, 'customer_id') ?? ''
+  const originalStatus = formValue(formData, 'original_status')
+  const status = formValue(formData, 'status')
 
-  if (!requestId || !customerId) {
-    throw new Error('request_id och customer_id krävs')
-  }
+  if (!requestId || !customerId) throw new Error('request_id och customer_id krävs')
+  if (!originalStatus || !status) throw new Error('Ladda om nätägarbegäran innan du sparar.')
 
-  await assertEntityCompanyAccess({
+  const companyId = await assertEntityCompanyAccess({
     actorUserId: actor.id,
     table: 'grid_owner_data_requests',
     id: requestId,
     requiresOperationalWrite: true,
   })
+  if (!companyId) throw new Error('Begärans bolag kunde inte verifieras.')
 
-  const saved = await updateGridOwnerDataRequestStatus({
-    actorUserId: actor.id,
-    requestId,
-    status:
-      (formValue(formData, 'status') as
-        | 'pending'
-        | 'sent'
-        | 'received'
-        | 'failed'
-        | 'cancelled'
-        | null) ?? 'pending',
-    externalReference: formValue(formData, 'external_reference') || null,
-    failureReason: formValue(formData, 'failure_reason') || null,
-    responsePayload: {
-      admin_note: formValue(formData, 'response_payload_note') || null,
-    },
-    notes: formValue(formData, 'notes') || null,
+  const changes: Parameters<typeof updateGridOwnerDataRequestBusiness>[0]['changes'] = {}
+  if (status !== originalStatus) changes.status = status
+
+  for (const [field, column] of [
+    ['external_reference', 'external_reference'], ['notes', 'notes'], ['response_payload_note', 'admin_note'],
+  ] as const) {
+    const value = formValue(formData, field)
+    if (value !== null && value !== formValue(formData, `original_${field}`)) {
+      changes[column] = value || null
+    }
+  }
+
+  const failureReason = formValue(formData, 'failure_reason')
+  if (failureReason !== null && failureReason !== formValue(formData, 'original_failure_reason')
+    && (failureReason || isPlatformAdminContext(access))) {
+    changes.failure_reason = failureReason || null
+  }
+
+  if (Object.keys(changes).length === 0) return
+
+  const saved = await updateGridOwnerDataRequestBusiness({
+    actorUserId: actor.id, companyId, customerId, requestId, originalStatus, changes,
   })
 
   const savedCustomerId = saved.customer_id
@@ -545,42 +574,53 @@ export async function updateGridOwnerDataRequestStatusAction(
 export async function updatePartnerExportStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['partner_exports.write'])
+  const access = await requireAdminActionAccess(['partner_exports.write'])
 
   const actor = await getActor()
   const exportId = formValue(formData, 'export_id') ?? ''
   const customerId = formValue(formData, 'customer_id') ?? ''
+  const originalStatus = formValue(formData, 'original_status')
+  const status = formValue(formData, 'status')
 
   if (!exportId || !customerId) {
     throw new Error('export_id och customer_id krävs')
   }
+  if (!originalStatus || !status) throw new Error('Ladda om partnerexporten innan du sparar.')
+  if (status !== originalStatus && ['sent', 'acknowledged'].includes(status)) {
+    throw new Error('Partnerintegrationen ansvarar för exportens leveransstatus och kvitton.')
+  }
 
-  const nextStatus =
-    (formValue(formData, 'status') as
-      | 'queued'
-      | 'sent'
-      | 'acknowledged'
-      | 'failed'
-      | 'cancelled'
-      | null) ?? 'queued'
-
-  await assertEntityCompanyAccess({
+  const companyId = await assertEntityCompanyAccess({
     actorUserId: actor.id,
     table: 'partner_exports',
     id: exportId,
-    requiresOperationalWrite: ['queued', 'sent'].includes(nextStatus),
+    requiresOperationalWrite: ['queued', 'sent'].includes(status),
   })
+  if (!companyId) throw new Error('Partnerexportens bolag kunde inte verifieras.')
+
+  const changes: Parameters<typeof updatePartnerExportStatus>[0]['changes'] = {}
+  if (status !== originalStatus) changes.status = status
+
+  for (const [field, column] of [
+    ['external_reference', 'external_reference'],
+    ['response_payload_note', 'admin_note'],
+  ] as const) {
+    const value = formValue(formData, field)
+    if (value !== null && value !== formValue(formData, `original_${field}`)) {
+      changes[column] = value || null
+    }
+  }
+
+  const failureReason = formValue(formData, 'failure_reason')
+  if (isPlatformAdminContext(access) && failureReason !== null
+    && failureReason !== formValue(formData, 'original_failure_reason')) {
+    changes.failure_reason = failureReason || null
+  }
+
+  if (Object.keys(changes).length === 0) return
 
   const saved = await updatePartnerExportStatus({
-    actorUserId: actor.id,
-    exportId,
-    status: nextStatus,
-    externalReference: formValue(formData, 'external_reference') || null,
-    failureReason: formValue(formData, 'failure_reason') || null,
-    preserveFailureReason: !formData.has('failure_reason'),
-    responsePayload: {
-      admin_note: formValue(formData, 'response_payload_note') || null,
-    },
+    actorUserId: actor.id, companyId, customerId, exportId, originalStatus, changes,
   })
 
   const savedCustomerId = saved.customer_id
@@ -598,7 +638,7 @@ export async function updatePartnerExportStatusAction(
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(savedCustomerId)
+  if (changes.status) await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/billing')
@@ -748,9 +788,11 @@ export async function ingestBillingUnderlayAction(
 export async function queueSupplierSwitchOutboundAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['switching.write'])
+  const access = await requireAdminActionAccess(['switching.write'])
+  const scope = await resolveAdminSelectedCompanyReadScope(access)
 
   const actor = await getActor()
+  if (actor.id !== access.userId) throw new Error('Unauthorized')
   const supabase = await createSupabaseServerClient()
   const requestId = formValue(formData, 'request_id') ?? ''
   const communicationRouteId = formValue(formData, 'communication_route_id') || null
@@ -761,11 +803,12 @@ export async function queueSupplierSwitchOutboundAction(
 
   const request = await getSupplierSwitchRequestById(supabase, requestId)
 
-  if (!request) {
+  const companyId = request?.company_id
+  if (!request || !companyId || (!scope.isPlatformAdmin && scope.companyId !== companyId)) {
     throw new Error('Switch request hittades inte')
   }
 
-  await assertUserCanOperateCompany(actor.id, request.company_id)
+  await assertUserCanOperateCompany(actor.id, companyId)
 
   const message = await prepareAndQueueEdielZ03({
     actorUserId: actor.id,
@@ -787,6 +830,7 @@ export async function queueSupplierSwitchOutboundAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: 'ediel_message',
     entityId: message.id,
     action: 'supplier_switch_ediel_prepared',
@@ -877,64 +921,25 @@ export async function bulkQueueMissingMeterValuesAction(
   periodStart: string | null
   periodEnd: string | null
 }> {
-  const access = await requireAdminActionAccess(['metering.write'])
+  const access = await requireAdminActionAccess({ allOf: ['metering.write', 'communication.write'] })
+  const environment = bulkMeteringEnvironment(formData.get('ediel_environment'))
+  const selectedMonth = formValue(formData, 'period_month')
+  if (!selectedMonth) throw new Error('Välj en månad innan mätvärdesbegäran köas.')
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
   const bulkCompanyId = await resolveBulkCompanyScope(access)
-  const period = buildMonthPeriod(formValue(formData, 'period_month'))
-
-  let sitesSelect = supabase
-    .from('customer_sites')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (bulkCompanyId) sitesSelect = sitesSelect.eq('company_id', bulkCompanyId)
-  const sitesQuery = await sitesSelect
-
-  if (sitesQuery.error) throw sitesQuery.error
-  const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
-
-  const meteringPoints = await listMeteringPointsBySiteIds(
-    supabase,
-    sites.map((site) => site.id)
-  )
-
-  let meterValuesQuery = supabaseService.from('metering_values').select('metering_point_id')
-  if (period) {
-    meterValuesQuery = meterValuesQuery
-      .gte('period_start', period.periodStart)
-      .lte('period_end', period.periodEnd)
-  }
-
-  const { data: meterValues, error: meterValuesError } = await meterValuesQuery
-
-  if (meterValuesError) throw meterValuesError
-
-  const existingMeterValuePointIds = new Set(
-    ((meterValues ?? []) as { metering_point_id: string }[])
-      .map((row) => row.metering_point_id)
-      .filter(Boolean)
-  )
-
-  const result = await bulkQueueMissingMeterValues({
-    actorUserId: actor.id,
-    sites,
-    meteringPoints,
-    existingMeterValuePointIds,
-    periodStart: period?.periodStart ?? null,
-    periodEnd: period?.periodEnd ?? null,
-  })
+  const selection = await loadBulkMeteringCoverage(supabase, bulkCompanyId, selectedMonth, environment)
+  const { period } = selection
+  const result = await queueStaffBulkMeteringRequests({ actorUserId: actor.id, environment, selection })
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: bulkCompanyId,
     entityType: 'outbound_request',
     entityId: result.batchKey,
     action: 'bulk_queue_missing_meter_values',
-    metadata: {
-      ...result,
-      periodStart: period?.periodStart ?? null,
-      periodEnd: period?.periodEnd ?? null,
-    },
+    metadata: { ...result, environment, periodStart: period.periodStart, periodEnd: period.periodEnd },
   })
 
   revalidatePath('/admin/outbound')
@@ -945,8 +950,8 @@ export async function bulkQueueMissingMeterValuesAction(
     batchKey: result.batchKey,
     createdCount: result.createdCount,
     skippedCount: result.skippedCount,
-    periodStart: period?.periodStart ?? null,
-    periodEnd: period?.periodEnd ?? null,
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
   }
 }
 

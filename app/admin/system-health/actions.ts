@@ -6,6 +6,7 @@ import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { requeueUncertainTenantEmail } from '@/lib/email/emailOutbox'
 import { requeueUncertainManualEmail } from '@/lib/email/manualEmailOutbox'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { reconcileWithdrawalAcceptanceForAdmin } from '@/lib/email/withdrawalAcceptanceForAdmin'
 
 async function actorUserId(): Promise<string> {
   const supabase = await createSupabaseServerClient()
@@ -27,13 +28,14 @@ export async function requeueUncertainEmailAction(formData: FormData): Promise<v
   const outboxId = String(formData.get('outbox_id') ?? '').trim()
   const outboxKind = String(formData.get('outbox_kind') ?? '').trim()
   const companyId = String(formData.get('company_id') ?? '').trim()
+  const reviewedWithdrawalAttemptId = String(formData.get('reviewed_withdrawal_attempt_id') ?? '').trim() || null
   if (!outboxId) throw new Error('outbox_id saknas')
   if (!companyId) throw new Error('company_id saknas')
   if (outboxKind !== 'tenant' && outboxKind !== 'manual') throw new Error('Okänd outbox-typ.')
 
   const result =
     outboxKind === 'tenant'
-      ? await requeueUncertainTenantEmail({ outboxId, companyId, actorUserId: userId })
+      ? await requeueUncertainTenantEmail({ outboxId, companyId, actorUserId: userId, reviewedWithdrawalAttemptId })
       : await requeueUncertainManualEmail({ outboxId, companyId, actorUserId: userId })
 
   if (!result.ok) throw new Error(result.error)
@@ -48,4 +50,19 @@ export async function requeueUncertainEmailAction(formData: FormData): Promise<v
   }).catch(() => undefined)
 
   revalidatePath('/admin/system-health')
+}
+
+export async function reconcileWithdrawalEmailAcceptanceAction(formData: FormData): Promise<void> {
+  const data = await reconcileWithdrawalAcceptanceForAdmin({
+    companyId: String(formData.get('company_id') ?? '').trim(),
+    outboxId: String(formData.get('outbox_id') ?? '').trim(),
+    acceptanceToken: String(formData.get('acceptance_token') ?? '').trim(),
+    reviewedAttemptId: String(formData.get('reviewed_withdrawal_attempt_id') ?? '').trim(),
+  })
+  if (data === 'projected' || data === 'existing') {
+    revalidatePath('/admin/system-health')
+    return
+  }
+  if (data === 'review_changed') throw new Error('Transportunderlaget har ändrats. Uppdatera sidan och granska posten igen.')
+  throw new Error('Leverantörskvittot kräver fortsatt manuell avstämning.')
 }

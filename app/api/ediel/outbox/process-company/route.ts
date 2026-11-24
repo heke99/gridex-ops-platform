@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { readEdielOutboxRunResponse } from '@/lib/ediel/outbox/batchReadResponse'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
@@ -50,12 +51,38 @@ async function companyExists(companyId: string): Promise<boolean> {
   return Boolean(data)
 }
 
-export async function POST(request: NextRequest) {
+function authorize(request: NextRequest) {
   if (expectedSecrets().length === 0) {
     return NextResponse.json({ ok: false, error: 'EDIEL_PLATFORM_MAINTENANCE_SECRET is not configured.' }, { status: 503 })
   }
   if (!isAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
 
+  return null
+}
+
+export async function GET(request: NextRequest) {
+  const denial=authorize(request)
+  if (denial) return denial
+  const params=request.nextUrl.searchParams
+  const companyId=clean(params.get('company_id'))
+  if (!companyId || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(companyId)) {
+    return NextResponse.json({ok:false,code:'invalid_company_id'},{status:400})
+  }
+  let actorUserId:string
+  try {
+    actorUserId=await resolveConfiguredEdielAutomationActorId()
+  } catch {
+    return NextResponse.json({ok:false,code:'ediel_automation_actor_missing'},{status:503})
+  }
+  return readEdielOutboxRunResponse(params,actorUserId,companyId)
+}
+
+export async function POST(request: NextRequest) {
+  const denial=authorize(request)
+  if (denial) return denial
+  if (['run_id','recent'].some(key=>request.nextUrl.searchParams.has(key))) {
+    return NextResponse.json({ok:false,code:'outbox_run_read_requires_get'},{status:405,headers:{Allow:'GET'}})
+  }
   const body = await request.json().catch(() => ({} as Record<string, unknown>))
   const companyId = clean(body.companyId) ?? clean(body.company_id)
   const reason = clean(body.reason)
@@ -90,5 +117,6 @@ export async function POST(request: NextRequest) {
     if (error) console.warn('[ediel-outbox-company] Audit log skipped', error)
   })
 
-  return NextResponse.json({ ok: true, source: 'ediel_outbox_company_maintenance', companyId, environment, result })
+  const interrupted=result.stoppedBy==='dependency_failure'
+  return NextResponse.json({ ok: !interrupted, source: 'ediel_outbox_company_maintenance', companyId, environment, result },{status:interrupted?503:200})
 }

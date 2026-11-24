@@ -5,16 +5,20 @@ import { readManualServicePermissionOptions, type ManualServicePermissionOption 
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { hasPermissionRequirement, type PermissionRequirement } from '@/lib/admin/accessModel'
+import { customerInfoRequestActionAccess } from './actionAccess'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
 import {
+  getCustomerInfoRequestById,
   listAuthorizationScopes,
   listCustomerInfoRequests,
   listCustomerInfoRequestResourceOptions,
   listCustomersForInfoRequestSelector,
   listMeteringPermissions,
+  type MeteringPermissionRow,
 } from '@/lib/onboarding/infoRequests'
 import {
   applyZ14SnapshotAction,
@@ -25,9 +29,11 @@ import {
   queueCustomerInfoRequestAction,
   queueMeteringPermissionZ13Action,
 } from './actions'
-import { formatStatusLabel } from '@/lib/ui/format'
+import { formatAdminDateTime, formatStatusLabel } from '@/lib/ui/format'
+import { prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/render/dates'
 import { canCloseInfoRequest } from '@/lib/onboarding/infoRequestClosure'
 import { listPortalRepliesForInfoRequests, type InfoRequestPortalReply } from '@/lib/onboarding/infoRequestPortalReplies'
+import { isUuid } from '@/lib/validation/uuid'
 import CustomerResourceSelects from './CustomerResourceSelects'
 
 export const dynamic = 'force-dynamic'
@@ -68,6 +74,67 @@ function statusLabel(status: string): string {
     sent: 'Skickad',
   }
   return labels[status] ?? formatStatusLabel(status, 'Status saknas', 'Behöver granskning')
+}
+
+type ReportingState = keyof typeof REPORTING_STATE_TEXT
+
+function effectiveReportingState(permission: MeteringPermissionRow, evaluatedAt: number): ReportingState | null {
+  if (permission.reportingSites === undefined) return null
+  if (!permission.reportingSites) return 'unavailable'
+  const qualifiedPartialSites = permission.status === 'partially_approved'
+    ? new Set(reportingPeriodDetails(permission).map(period => period.site))
+    : null
+  const states = permission.reportingSites
+    .filter(site => ['approved', 'active', 'ended'].includes(site.status) && (!qualifiedPartialSites || qualifiedPartialSites.has(site)))
+    .map((site): ReportingState => {
+      const evidence = site.metadata as { source?: unknown; mode?: unknown; edielMessageId?: unknown } | null
+      if (evidence?.source !== 'inbound_prodat_z14' || evidence.mode !== 'S17' || typeof evidence.edielMessageId !== 'string') return 'unavailable'
+      const start = Date.parse(site.start_at ?? '')
+      const reportEnd = site.end_at ? Date.parse(site.end_at) : Infinity
+      const revocation = site.permission_end_at ? Date.parse(site.permission_end_at) : Infinity
+      if (!Number.isFinite(start) || Number.isNaN(reportEnd) || Number.isNaN(revocation)
+          || reportEnd <= start || (site.end_date && !site.end_at)) return 'unavailable'
+      const cutoff = Math.min(reportEnd, revocation)
+      if (cutoff <= evaluatedAt) return 'elapsed'
+      if (site.status === 'ended') return 'unavailable'
+      return start > evaluatedAt ? 'scheduled' : 'ongoing'
+    })
+  if (states.includes('ongoing')) return 'ongoing'
+  if (states.length === 0 || states.includes('unavailable')) return 'unavailable'
+  return states.includes('scheduled') ? 'scheduled' : 'elapsed'
+}
+
+function reportingPeriodDetails(permission: MeteringPermissionRow) {
+  const approval = permission.metadata?.marketPermission
+  const objects = approval?.objects
+  if (approval?.mode !== 'S17' || !Array.isArray(objects)) return []
+  return (permission.reportingSites ?? []).flatMap(site => {
+    const source = site.metadata as { source?: unknown; mode?: unknown; edielMessageId?: unknown; permissionId?: unknown } | null
+    if (!site.facility_id || !['approved', 'active', 'ended'].includes(site.status) || source?.source !== 'inbound_prodat_z14' || source.mode !== 'S17'
+      || typeof source.edielMessageId !== 'string' || source.edielMessageId !== approval.sourceZ14
+      || typeof source.permissionId !== 'string') return []
+    const ownObjects = objects.filter(object => object && object.point === site.facility_id
+      && object.permissionId === source.permissionId && object.status === 'A74' && object.reason === 'S17')
+    if (ownObjects.length !== 1) return []
+    const own = ownObjects[0]
+    const originalStart = prodatMarketMinuteToUtc(own.reportStart)
+    const originalEnd = prodatMarketMinuteToUtc(own.reportEnd)
+    if (!originalStart || (own.reportEnd !== null && !originalEnd)
+      || Date.parse(originalStart) !== Date.parse(site.start_at ?? '')
+      || (originalEnd && Date.parse(originalEnd) <= Date.parse(originalStart))) return []
+    const approvedEnd = originalEnd ? Date.parse(originalEnd) : Infinity
+    const revocation = site.permission_end_at ? Date.parse(site.permission_end_at) : Infinity
+    const storedEnd = site.end_at ? Date.parse(site.end_at) : Infinity
+    if (storedEnd !== Math.min(approvedEnd, revocation)) return []
+    return [{ site, facilityId: site.facility_id, originalStart, originalEnd, revocation: site.permission_end_at, effectiveEnd: site.end_at }]
+  })
+}
+
+const REPORTING_STATE_TEXT = {
+  ongoing: 'Rapportering pågår inom godkänd period',
+  elapsed: 'Rapporteringsperioden har löpt ut',
+  scheduled: 'Godkänd rapportering har ännu inte börjat',
+  unavailable: 'Effektiv rapporteringsperiod kunde inte bestämmas',
 }
 
 function requestTypeLabel(type: string): string {
@@ -131,6 +198,15 @@ function portalReplySummary(reply: InfoRequestPortalReply): string {
     ['street', 'Gatuadress'], ['postal_code', 'Postnummer'], ['city', 'Ort'],
     ['email', 'E-post'], ['phone', 'Telefon'],
   ]
+  if (reply.completion_type === 'info_request_reply') {
+    fields.push(
+      ['metering_point_id', 'Mätpunkt'],
+      ['site.address', 'Anläggningens adress'],
+      ['customer.email', 'E-post'],
+      ['customer.name', 'Namn'],
+      ['requested_start_date', 'Önskat startdatum'],
+    )
+  }
   const values = fields.flatMap(([key, label]) => {
     const value = payload[key]
     return typeof value === 'string' && value.trim() || typeof value === 'number'
@@ -155,7 +231,7 @@ function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label
 function ListPagination({ pageKey, page, total, label, resolvedSearch }: { pageKey: string; page: number; total: number; label: string; resolvedSearch: Record<string, string | string[] | undefined> }) {
     const href = (nextPage: number) => {
       const next = new URLSearchParams()
-      for (const [key, value] of Object.entries(resolvedSearch)) if (typeof value === 'string' && !['success', 'error'].includes(key)) next.set(key, value)
+      for (const [key, value] of Object.entries(resolvedSearch)) if (typeof value === 'string' && !['success', 'error', 'request_id', 'request_status'].includes(key)) next.set(key, value)
       next.set(pageKey, String(nextPage))
       return `?${next}`
     }
@@ -163,6 +239,7 @@ function ListPagination({ pageKey, page, total, label, resolvedSearch }: { pageK
   }
 
 export default async function CustomerInfoRequestsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+  const evaluatedAt = new Date()
   const resolvedSearch = searchParams ? await searchParams : {}
   const successNotice = typeof resolvedSearch.success === 'string' ? resolvedSearch.success.slice(0, 300) : null
   const errorNotice = typeof resolvedSearch.error === 'string' ? resolvedSearch.error.slice(0, 300) : null
@@ -179,31 +256,66 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
   const membership = scope?.memberships.find(row=>row.companyId===companyId)
   const currentWritable = Boolean(user&&admin.userId===user.id&&admin.companyId===companyId&&membership?.status==='active'&&isCompanyWritableInTenantWorkspace(membership.companyStatus))
   const canReadProcess = Boolean(companyId&&admin.permissions.includes('communication.read'))
-  const canPrepareRequest = currentWritable&&admin.permissions.includes('customers.write')&&admin.permissions.includes('communication.send')
+  const canUseRequestAction = (requirement: PermissionRequirement) =>
+    currentWritable && scope?.companyId === companyId && (isPlatformAdmin || hasPermissionRequirement(admin.permissions, requirement))
+  const canPrepareRequest = canUseRequestAction(customerInfoRequestActionAccess.prepareRequest)
+  const canPrepareSourceProcess = currentWritable && admin.permissions.includes('customers.write') && admin.permissions.includes('communication.send')
   const canPreparePermission = currentWritable&&admin.permissions.includes('metering.write')&&admin.permissions.includes('communication.send')
+
+  const requestedId = (key: string) => {
+    const value = resolvedSearch[key]
+    return typeof value === 'string' && isUuid(value) ? value.trim().toLowerCase() : undefined
+  }
+  const customerHint = requestedId('customer_id')
+  const siteHint = requestedId('site_id')
+  const meterHint = requestedId('metering_point_id')
+  const resourceFocus = customerHint && siteHint
+    ? { customerId: customerHint, siteId: siteHint, meteringPointId: meterHint }
+    : undefined
 
   const [customers, requests, authorizationScopes, permissions, resourceOptions] = companyId
     ? await Promise.all([
-        listCustomersForInfoRequestSelector(companyId),
+        listCustomersForInfoRequestSelector(companyId, customerHint),
         listCustomerInfoRequests(companyId),
         listAuthorizationScopes(companyId),
         listMeteringPermissions(companyId),
-        listCustomerInfoRequestResourceOptions(companyId),
+        listCustomerInfoRequestResourceOptions(companyId, resourceFocus),
       ])
     : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
 
-  const selectedCustomerId = typeof resolvedSearch.customer_id === 'string' && customers.some(customer => customer.id === resolvedSearch.customer_id) ? resolvedSearch.customer_id : ''
+  const customerSelection = customerHint ?? resolvedSearch.customer_id
+  const selectedCustomerId = customers.find(customer => customer.id === customerSelection)?.id ?? ''
+  const selectedSiteId = resourceOptions.sites.find(site =>
+    site.id === siteHint && site.customerId === selectedCustomerId,
+  )?.id ?? ''
+  const selectedMeterId = selectedSiteId
+    ? resourceOptions.meteringPoints.find(point =>
+      point.id === meterHint && point.customerId === selectedCustomerId && point.siteId === selectedSiteId,
+    )?.id ?? ''
+    : ''
+  const incompleteSelection =
+    (resolvedSearch.customer_id !== undefined && !selectedCustomerId) ||
+    (resolvedSearch.site_id !== undefined && !selectedSiteId) ||
+    (resolvedSearch.metering_point_id !== undefined && !selectedMeterId)
   const pageNumber = (key: string, total: number) => Math.min(Math.max(1, Number.parseInt(String(resolvedSearch[key] ?? '1'), 10) || 1), Math.max(1, Math.ceil(total / 12)))
-  const requestPage = pageNumber('requestPage', requests.length)
+  const requestHint = requestedId('request_id')
+  const requestedIndex = requestHint ? requests.findIndex(request => request.id === requestHint) : -1
+  const focusedRequest = requestedIndex >= 0 ? requests[requestedIndex] : companyId && requestHint
+    ? await getCustomerInfoRequestById({ companyId, requestId: requestHint }).catch(() => null)
+    : null
+  const requestPage = requestedIndex >= 0 ? Math.floor(requestedIndex / 12) + 1 : pageNumber('requestPage', requests.length)
+  const requestUnconfirmed = resolvedSearch.request_status === 'unconfirmed' ||
+    (resolvedSearch.request_id !== undefined && !focusedRequest)
   const scopePage = pageNumber('scopePage', authorizationScopes.length)
   const permissionPage = pageNumber('permissionPage', permissions.length)
   const visibleRequests = requests.slice((requestPage - 1) * 12, requestPage * 12)
+  if (focusedRequest && requestedIndex < 0) visibleRequests.unshift(focusedRequest)
   const visibleScopes = authorizationScopes.slice((scopePage - 1) * 12, scopePage * 12)
   const visiblePermissions = permissions.slice((permissionPage - 1) * 12, permissionPage * 12)
-  const canCloseRequests = currentWritable && admin.permissions.includes('customers.write')
+  const canCloseRequests = canUseRequestAction(customerInfoRequestActionAccess.closeRequest)
   let portalRepliesReadFailed = false
   let portalReplies = new Map<string, InfoRequestPortalReply[]>()
-  if (companyId && requests.length) {
+  if (companyId && visibleRequests.length) {
     try {
       portalReplies = await listPortalRepliesForInfoRequests(companyId, visibleRequests)
     } catch {
@@ -218,8 +330,8 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
     const sourceIds = visibleRequests.flatMap(request=>request.ediel_message_id?[request.ediel_message_id]:[])
     try {
       for(const environment of ['test','production'] as const){
-        const decisions=await readEdielProcessNextActions({companyId,actorUserId:user.id,environment,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
-          access:{canRead:canReadProcess,canReview:currentWritable&&admin.permissions.includes('cases.write'),canPrepare:canPrepareRequest}})
+        const decisions=await readEdielProcessNextActions({companyId,actorUserId:user.id,environment,messageIds:sourceIds,evaluatedAt:evaluatedAt.toISOString(),
+          access:{canRead:canReadProcess,canReview:currentWritable&&admin.permissions.includes('cases.write'),canPrepare:canPrepareSourceProcess}})
         for(const [id,decision] of decisions)processDecisions.set(id,decision)
       }
     }catch{processReadUnavailable=true;processDecisions.clear()}
@@ -236,7 +348,11 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
 
   const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
   const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
-  const activePermissions = permissions.filter((permission) => ['approved', 'active', 'z14_received'].includes(permission.status))
+  const reportingStates = new Map(permissions.map(permission => [permission.id, effectiveReportingState(permission, evaluatedAt.getTime())]))
+  const marketApprovedPermissions = permissions.filter(permission => ['approved', 'active', 'z14_received'].includes(permission.status)
+    || (permission.status === 'partially_approved' && permission.reportingSites !== undefined))
+  const anyReportingUnavailable = marketApprovedPermissions.some(permission => reportingStates.get(permission.id) === 'unavailable')
+  const activePermissions = marketApprovedPermissions.filter(permission => [null, 'ongoing'].includes(reportingStates.get(permission.id) ?? null))
 
   return (
     <div className="min-h-screen">
@@ -255,6 +371,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
 
         {portalRepliesReadFailed ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Svar från kundportalen kunde inte läsas. Försök igen innan du bedömer om kunden behöver komplettera.</p> : null}
         {successNotice ? <section role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{successNotice}</section> : null}
+        {requestUnconfirmed ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Begäran kunde inte bekräftas. Kontrollera listan innan du skapar en ny.</p> : null}
         {errorNotice ? <section role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorNotice}</section> : null}
 
         <section className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
@@ -270,7 +387,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva mätvärdestillstånd</div>
-            <div className="mt-1 text-2xl font-semibold text-slate-950">{activePermissions.length}</div>
+            <div className="mt-1 text-2xl font-semibold text-slate-950">{anyReportingUnavailable ? 'Uppgift saknas' : activePermissions.length}</div>
             <p className="mt-2 text-xs text-emerald-900">Aktiva i det inlästa urvalet.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
@@ -286,7 +403,20 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Anläggnings- och avtalsuppgifter</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
-              <CustomerResourceSelects key={`${companyId}:${selectedCustomerId}`} initialCustomerId={selectedCustomerId} customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
+              {incompleteSelection ? (
+                <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Hela valet från länken kunde inte bekräftas. Kontrollera kund, anläggning och mätpunkt innan du skapar begäran.
+                </p>
+              ) : null}
+              <CustomerResourceSelects
+                key={`${companyId}:${selectedCustomerId}:${selectedSiteId}:${selectedMeterId}`}
+                initialCustomerId={selectedCustomerId}
+                initialSiteId={selectedSiteId}
+                initialMeteringPointId={selectedMeterId}
+                customers={customers}
+                sites={resourceOptions.sites}
+                meteringPoints={resourceOptions.meteringPoints}
+              />
               <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
                 Kontrollera kundens anläggning, mätpunkt och nätägare. Saknade uppgifter behöver kompletteras innan begäran kan skickas.
@@ -324,7 +454,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 </div>
               </div>
               <textarea name="notes" aria-label="Intern notering" rows={3} placeholder="Intern notering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <button disabled={!currentWritable||!admin.permissions.includes('customers.write')} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa uppgiftsbegäran</button>
+              <button disabled={!canUseRequestAction(customerInfoRequestActionAccess.createRequest)} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa uppgiftsbegäran</button>
             </div>
           </form>
           </AdminDisclosurePanel>
@@ -353,7 +483,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 <input name="valid_to" aria-label="Giltig till" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               </div>
               <textarea name="evidence_note" aria-label="Bevisnotering" rows={3} placeholder="Signeringsmetod, bilaga, muntlig fullmakt eller bevisnotering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <button disabled={!currentWritable||!admin.permissions.some(value=>['poa.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Spara omfattning</button>
+              <button disabled={!canUseRequestAction(customerInfoRequestActionAccess.createAuthorization)} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Spara omfattning</button>
             </div>
           </form>
           </AdminDisclosurePanel>
@@ -375,7 +505,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 <input type="checkbox" name="authorization_confirmed" className="mt-1" />
                 <span>Fullmakt/avtal är kontrollerad och täcker mätvärdesbegäran.</span>
               </label>
-              <button disabled={!currentWritable||!admin.permissions.some(value=>['metering.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa tillståndsutkast</button>
+              <button disabled={!canUseRequestAction(customerInfoRequestActionAccess.createMeteringPermissionDraft)} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa tillståndsutkast</button>
             </div>
           </form>
           </AdminDisclosurePanel>
@@ -388,8 +518,9 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
               <p className="mt-1 text-sm text-slate-700">Separera nätägaruppgifter från bindning/uppsägning hos befintlig leverantör.</p>
             </div>
             <div tabIndex={0} role="region" aria-label="Uppgiftsbegäranden" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
-              {requests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : visibleRequests.map((request) => (
-                <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
+              {visibleRequests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : visibleRequests.map((request) => (
+                <div key={request.id} id={`info-request-${request.id}`} aria-current={focusedRequest?.id === request.id || undefined} className="rounded-2xl border border-slate-200 p-4">
+                  {focusedRequest?.id === request.id ? <p role="status" className="mb-2 text-sm font-semibold text-emerald-800">Sparad uppgiftsbegäran visas.</p> : null}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{statusLabel(request.status)}</span>
                     <Link href={`/admin/customers/${request.customer_id}`} className="text-xs font-semibold text-emerald-800 hover:underline">Öppna kund</Link>
@@ -468,6 +599,18 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
               {permissions.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga mätvärdestillstånd ännu.</div> : visiblePermissions.map((permission) => (
                 <div key={permission.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{formatStatusLabel(permission.status)}</span>
+                  {reportingStates.get(permission.id) ? (
+                    <p className="mt-2 text-xs text-slate-700">{REPORTING_STATE_TEXT[reportingStates.get(permission.id)!]}</p>
+                  ) : null}
+                  {reportingPeriodDetails(permission).map(period => (
+                    <dl key={period.facilityId} className="mt-2 text-xs leading-5 text-slate-700">
+                      <dt className="font-medium">Godkänd rapporteringsperiod för {period.facilityId}</dt>
+                      <dd>{formatAdminDateTime(period.originalStart)} → {formatAdminDateTime(period.originalEnd, 'utan angivet slut')}</dd>
+                      {period.revocation ? <><dt className="font-medium">Senare återkallelse</dt><dd>{formatAdminDateTime(period.revocation)}</dd></> : null}
+                      <dt className="font-medium">Effektiv giltighet</dt>
+                      <dd>{formatAdminDateTime(period.originalStart)} → {formatAdminDateTime(period.effectiveEnd, 'utan angivet slut')}</dd>
+                    </dl>
+                  ))}
                   <div className="mt-3 text-sm font-semibold text-slate-950">{permission.case_reference ?? permission.permission_reference ?? 'Tillståndsutkast'}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}

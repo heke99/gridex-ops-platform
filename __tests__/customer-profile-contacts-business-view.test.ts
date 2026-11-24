@@ -7,9 +7,12 @@ import { customerProfileEditHref } from '@/lib/admin/customerProfileLinks'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => { throw new Error('Unexpected database access during rendering') } } }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => { throw new Error('Unexpected session read during rendering') } }))
-vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: async () => { throw new Error('No writes authorized during rendering') } }))
+vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: vi.fn(async () => { throw new Error('No writes authorized during rendering') }), isPlatformAdminContext: () => true }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/app/admin/customers/[id]/profile-actions', () => ({ archiveCustomerAction: async () => {}, closeCustomerLifecycleAction: async () => {}, deleteCustomerForRecreateAction: async () => {}, markCustomerAsTestDataAction: async () => {}, saveCustomerProfileAction: async () => {} }))
+import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { closeCustomerLifecycleAction, normalizeIsoDateOrToday } from '@/app/admin/customers/[id]/profile-actions.part-1'
+import { IDLE_CUSTOMER_ACTION_STATE } from '@/app/admin/customers/[id]/customer-action-state'
 import ProfileSummary, { projectCustomerProfile } from '@/components/admin/customers/CustomerProfileSummary'
 import ContactsCard from '@/components/admin/customers/CustomerContactsAddressesCard'
 const customer = { id: 'customer', customer_type: 'private', status: 'active', first_name: 'Syntetisk', last_name: 'Kund', company_name: null, personal_number: '200001011234', org_number: null, email: 'kund@example.invalid', phone: '0701234567', apartment_number: '1234', updated_at: '2026-11-15T10:00:00Z', lifecycle_status_reason: 'RAW_LIFECYCLE_REASON', data_retention_note: 'RAW_RETENTION_NOTE', request_payload: { value: 'RAW_PAYLOAD' }, portal_user_id: 'RAW_PORTAL_ID' }
@@ -52,6 +55,40 @@ it('retains platform lifecycle tools behind the same profile edit disclosure', (
   expect(html).toContain('name="customer_id" value="customer"')
   expect(html).toContain('Arkivera')
   expect(html).not.toContain('RAW_PAYLOAD')
+})
+it('uses the Swedish calendar date for the lifecycle form and its blank fallback', () => {
+  vi.useFakeTimers()
+  try {
+    vi.setSystemTime(new Date('2026-11-23T23:15:00Z'))
+    const html = renderToStaticMarkup(React.createElement(ProfileSummary, { customer, canWrite: true, isPlatformAdmin: true }))
+    expect(html).toMatch(/name="move_out_date"[^>]*value="2026-11-24"/)
+    expect(normalizeIsoDateOrToday(' ')).toBe('2026-11-24')
+    expect(normalizeIsoDateOrToday('2026-11-18')).toBe('2026-11-18')
+  } finally {
+    vi.useRealTimers()
+  }
+})
+it.each(['igår', '2026-02-30'])('rejects invalid lifecycle date %s before database access', async (value) => {
+  vi.mocked(requireAdminActionAccess).mockResolvedValueOnce({ userId: 'actor' } as Awaited<ReturnType<typeof requireAdminActionAccess>>)
+  const form = new FormData()
+  form.set('customer_id', 'customer')
+  form.set('confirm_close', 'AVSLUTA')
+  form.set('lifecycle_mode', 'move_out')
+  form.set('move_out_date', value)
+  await expect(closeCustomerLifecycleAction(IDLE_CUSTOMER_ACTION_STATE, form)).resolves.toMatchObject({
+    status: 'error', code: 'invalid_move_out_date',
+  })
+})
+it('rejects an unrecognized lifecycle operation before database access', async () => {
+  vi.mocked(requireAdminActionAccess).mockResolvedValueOnce({ userId: 'actor' } as Awaited<ReturnType<typeof requireAdminActionAccess>>)
+  const form = new FormData()
+  form.set('customer_id', 'customer')
+  form.set('confirm_close', 'AVSLUTA')
+  form.set('lifecycle_mode', 'terminate_typo')
+  form.set('move_out_date', '2026-11-24')
+  await expect(closeCustomerLifecycleAction(IDLE_CUSTOMER_ACTION_STATE, form)).resolves.toMatchObject({
+    status: 'error', code: 'invalid_lifecycle_mode',
+  })
 })
 it('requires explicit type and status selections for unknown legacy values', () => {
   const html = renderToStaticMarkup(React.createElement(ProfileSummary, { customer: { ...customer, customer_type: 'RAW_CUSTOMER_TYPE', status: 'RAW_STATUS' }, canWrite: true }))

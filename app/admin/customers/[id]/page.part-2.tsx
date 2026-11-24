@@ -1,4 +1,5 @@
 // Extracted from page.tsx; keep public imports on the facade module.
+import { randomUUID } from "node:crypto"
 import Link from "next/link"
 
 
@@ -168,6 +169,7 @@ export function LifecycleDecisionSection({
     >
       <input type="hidden" name="customer_id" value={customerId} />
       <input type="hidden" name="decision_type" value={input.decisionType} />
+      {input.decisionType === "withdrawal" ? <input type="hidden" name="decision_intent_id" value={randomUUID()} /> : null}
       <input type="hidden" name="block_billing" value="true" />
       <h3 className="font-semibold text-slate-950">{input.title}</h3>
       <p className="mt-1 text-sm leading-6 text-slate-700">{input.description}</p>

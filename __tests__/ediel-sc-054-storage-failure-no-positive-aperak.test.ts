@@ -68,7 +68,9 @@ vi.mock('@/lib/supabase/service',async()=>{
 vi.mock('@/lib/ediel/tenant/tenantEdielIdentity',async(original)=>({...(await original<object>()),
  resolveCanonicalTenantEdielIdentityWithEvidence:vi.fn(async()=>({identity:{legalEdielId:'21660',transportEdielId:'21660',
   roleCodes:['supplier'],legalActorId:'actor-legal',transportActorId:'actor-legal',representedByTransportAgent:false,transportRelationId:null},evidence:{}}))}))
-vi.mock('@/lib/ediel/matching',()=>({matchMeteringPointIdByIdentifier:vi.fn().mockResolvedValue('point-a'),
+vi.mock('@/lib/ediel/matching',async importOriginal=>({
+ findE66GridOwnerDataRequest:(await importOriginal<typeof import('@/lib/ediel/matching')>()).findE66GridOwnerDataRequest,
+ matchMeteringPointIdByIdentifier:vi.fn().mockResolvedValue('point-a'),
  matchMeteringPointForEdielMessage:vi.fn().mockResolvedValue('point-a'),
  matchSiteAndCustomerForMeteringPoint:vi.fn().mockResolvedValue({customerId:'customer-a',siteId:'site-a',gridOwnerId:'owner-a'}),
  findMatchingSupplierSwitchRequest:vi.fn().mockResolvedValue(null),findMatchingGridOwnerDataRequest:vi.fn().mockResolvedValue(null)}))
@@ -115,6 +117,8 @@ async function runFailingInbound(){
  Object.assign(message,{status:'received',requires_contrl:true,requires_aperak:true,contrl_status:'pending',aperak_status:'pending',utilts_err_status:'pending'})
  port.io=createUtiltsFinalValidationIo() as never
  seedActor()
+ // This is periodic E66, with no ACW reference or outstanding E73 for the point.
+ port.tables.grid_owner_data_requests=[]
  port.tables.ediel_messages=[structuredClone(message) as unknown as Row]
  port.tables.tenant_actor_identifiers=[{company_id:company,environment:'test',identifier_type:'EdielId',identifier_value:'21660',valid_from:'2020-01-01T00:00:00Z',valid_to:null}]
  const failure=await processInboundEdifactMessage({actorUserId:UTILTS_FIXTURE_ACTOR,message:message as EdielMessageRow}).catch((error:unknown)=>error)

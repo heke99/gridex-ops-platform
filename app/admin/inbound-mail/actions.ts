@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor";
 import {
+  pollEdielMailbox,
   processQueuedInboundProcessingJobs,
   runInboundEdielMailEngine,
   syncActiveInboundProcessingJobForMessage,
 } from "@/lib/inbound-mail/edielMailboxPoller";
+import type { EdielMailboxRow } from "@/lib/inbound-mail/edielMailboxPoller.part-1";
 import { supabaseService } from "@/lib/supabase/service";
 import { resolveImapSecureForSave } from "@/lib/inbound-mail/imapTls";
 
@@ -83,12 +85,35 @@ export async function runInboundMailEngineAction(formData: FormData) {
     actorUserId: admin.userId,
     markSeen: false,
     includeSeenRecent: true,
+    continueUnreadRun: true,
     recentDays: 14,
     messageLimitPerMailbox: 50,
     processLimit: 100,
     createDiagnosticMessagesForUnresolved: true,
   });
   revalidatePath("/admin/inbound-mail");
+}
+
+export async function resumeEdielImapUidAction(formData: FormData) {
+  const admin = await requirePlatformAdminActionAccess();
+  const mailboxId = requireMailboxId(formData);
+  const scope = requiredText(formData, "scope", "IMAP-scope");
+  const rawUid = requiredText(formData, "uid", "IMAP-UID");
+  if (!/^[a-f0-9]{64}$/.test(scope) || !/^[1-9][0-9]{0,9}$/.test(rawUid) || Number(rawUid)>0xffffffff) {
+    throw new Error("IMAP-referensen är ogiltig.");
+  }
+  const { data, error } = await supabaseService.from("ediel_mailboxes")
+    .select("*").eq("id",mailboxId).eq("is_active",true).maybeSingle();
+  if (error || !data) throw new Error("Den aktiva Ediel-brevlådan kunde inte läsas.");
+  const result = await pollEdielMailbox({
+    mailbox:data as unknown as EdielMailboxRow, actorUserId:admin.userId,
+    markSeen:false, maxMessages:1, resumeUid:{scope,uid:Number(rawUid)},
+  });
+  revalidatePath("/admin/inbound-mail");
+  if (result.skippedLocked) throw new Error("Brevlådan används av en annan körning.");
+  if (result.errors.length || result.stored+result.deduped!==1) {
+    throw new Error("Exakt återläsning kunde inte slutföras. Kontrollera brevlådans status och UID-period.");
+  }
 }
 
 export async function processInboundMailQueueAction() {

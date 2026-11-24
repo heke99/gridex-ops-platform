@@ -3,12 +3,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import {
   archiveSupplierSwitchEvent,
+  canWriteOperationTaskCompany,
   createSupplierSwitchEvent,
   finalizeSupplierSwitchExecution,
   findCustomerSiteById,
@@ -16,20 +17,19 @@ import {
   listMeteringPointsForSite,
   listPowersOfAttorneyByCustomerId,
   syncCustomerOperationsForCustomer,
+  syncCustomerOperationsForSite,
   updateOperationTaskStatus,
   updateSupplierSwitchRequestStatus,
   updateSupplierSwitchValidationSnapshot,
 } from '@/lib/operations/db'
-import {
-  getOutboundRequestById,
-  resetOutboundRequestForRetry,
-} from '@/lib/cis/db'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 import { readCompleteBulkReadySelection } from '@/lib/operations/readyBulkCandidates'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { readSwitchActivationCompanyIds } from '@/lib/operations/switchActivationAuthority'
+import { canEditManualSwitchStatus, canRetrySwitchOutboundStatus, isManualSwitchStatusSelection } from '@/lib/operations/manualSwitchStatus'
+import { resolveAdminSelectedCompanyReadScope, resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import type {
   CustomerOperationTaskStatus,
-  SupplierSwitchRequestStatus,
+  SupplierSwitchRequestRow,
 } from '@/lib/operations/types'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -37,25 +37,13 @@ function formValue(formData: FormData, key: string): string | null {
   return typeof value === 'string' ? value : null
 }
 
-function normalizeTaskStatus(value: string | null): CustomerOperationTaskStatus {
+function requireTaskStatus(value: string | null): CustomerOperationTaskStatus {
+  if (value === 'open') return 'open'
   if (value === 'in_progress') return 'in_progress'
   if (value === 'blocked') return 'blocked'
   if (value === 'done') return 'done'
   if (value === 'cancelled') return 'cancelled'
-  return 'open'
-}
-
-function normalizeSwitchStatus(
-  value: string | null
-): SupplierSwitchRequestStatus {
-  if (value === 'draft') return 'draft'
-  if (value === 'queued') return 'queued'
-  if (value === 'submitted') return 'submitted'
-  if (value === 'accepted') return 'accepted'
-  if (value === 'rejected') return 'rejected'
-  if (value === 'completed') return 'completed'
-  if (value === 'failed') return 'failed'
-  return 'queued'
+  throw new Error('Välj en giltig status för driftuppgiften.')
 }
 
 async function getActor() {
@@ -167,25 +155,30 @@ function revalidateSupplierSwitchPaths(customerId: string, requestId?: string) {
 export async function updateOperationTaskStatusFromAdminAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
-  const actor = await getActor()
+  const context = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const scope = await resolveAdminTenantReadScope(context)
   const supabase = await createSupabaseServerClient()
 
   const taskId = formValue(formData, 'task_id') ?? ''
-  const status = normalizeTaskStatus(formValue(formData, 'status'))
+  const status = requireTaskStatus(formValue(formData, 'status'))
+  if (!taskId) throw new Error('Task ID saknas')
 
-  if (!taskId) {
-    throw new Error('Task ID saknas')
+  let taskQuery = supabase.from('customer_operation_tasks').select('company_id').eq('id', taskId)
+  if (scope.companyId) taskQuery = taskQuery.eq('company_id', scope.companyId)
+  const { data: task, error } = await taskQuery.maybeSingle()
+  if (error) throw error
+  if (!task?.company_id || !await canWriteOperationTaskCompany(supabase, task.company_id)) {
+    throw new Error('Driftuppgiften kan inte ändras i det här bolaget.')
   }
 
   const saved = await updateOperationTaskStatus(supabase, {
     taskId,
+    companyId: task.company_id,
     status,
   })
 
   await insertAuditLog({
-    actorUserId: actor.id,
+    actorUserId: context.userId,
     entityType: 'customer_operation_task',
     entityId: saved.id,
     action: 'customer_operation_task_status_updated_from_admin_operations',
@@ -212,31 +205,34 @@ export async function updateSupplierSwitchStatusFromAdminAction(
   const supabase = await createSupabaseServerClient()
 
   const requestId = formValue(formData, 'request_id') ?? ''
-  const status = normalizeSwitchStatus(formValue(formData, 'status'))
-  const failureReason = formValue(formData, 'failure_reason')
-  const externalReference = formValue(formData, 'external_reference')
+  const status = formValue(formData, 'status')
+  const expectedStatus = formValue(formData, 'expected_status')
+  const expectedUpdatedAt = formValue(formData, 'expected_updated_at')
+  const failureReason = formValue(formData, 'failure_reason')?.trim() || null
+  const externalReference = formValue(formData, 'external_reference')?.trim() || null
 
-  if (!requestId) {
-    throw new Error('Switch request ID saknas')
-  }
+  if (!requestId) throw new Error('Switch request ID saknas')
+  if (!isManualSwitchStatusSelection(status)) throw new Error('Välj en giltig manuell switchstatus.')
+  const reloadMessage = 'Ladda om ärendet och kontrollera aktuell status innan du sparar.'
+  if (!canEditManualSwitchStatus(expectedStatus) || !expectedUpdatedAt) throw new Error(reloadMessage)
 
   const current = await getSupplierSwitchRequestById(supabase, requestId)
-  if (!current) throw new Error('Switchärendet hittades inte')
-  if (status === 'accepted' || status === 'completed') {
-    throw new Error('accepted styrs av inbound PRODAT Z04 och completed av leveransstart på bekräftat startdatum.')
-  }
-  if (current.status === 'accepted' || current.status === 'completed') {
-    throw new Error('Ett affärsmässigt bekräftat eller slutfört switchärende får inte backas via generell statusändring.')
-  }
+  if (!current?.company_id) throw new Error('Switchärendet hittades inte för bolaget.')
+  if (current.status !== expectedStatus || current.updated_at !== expectedUpdatedAt) throw new Error(reloadMessage)
 
-  const saved = await updateSupplierSwitchRequestStatus(supabase, {
-    requestId,
-    status,
-    failureReason: failureReason?.trim() ? failureReason.trim() : null,
-    externalReference: externalReference?.trim()
-      ? externalReference.trim()
-      : null,
+  const { data, error } = await supabase.rpc('gridex_update_manual_supplier_switch_status_v1', {
+    p_company_id: current.company_id,
+    p_request_id: requestId,
+    p_expected_status: expectedStatus,
+    p_expected_updated_at: expectedUpdatedAt,
+    p_status: status,
+    p_failure_reason: failureReason,
+    p_external_reference: externalReference,
   })
+  if (error?.code === 'PT409' && error.message === 'manual_supplier_switch_status_stale') throw new Error(reloadMessage)
+  if (error) throw error
+  const saved = (data as { request?: SupplierSwitchRequestRow } | null)?.request
+  if (!saved) throw new Error('Ärendet kunde inte läsas efter statusändringen.')
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -397,9 +393,10 @@ export async function validateSupplierSwitchBeforeProcessingAction(
 export async function finalizeSupplierSwitchExecutionAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
-
+  const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const scope = await resolveAdminTenantReadScope(access)
   const actor = await getActor()
+  if (actor.id !== access.userId) throw new Error('Unauthorized')
   const supabase = await createSupabaseServerClient()
   const requestId = formValue(formData, 'request_id') ?? ''
 
@@ -409,13 +406,24 @@ export async function finalizeSupplierSwitchExecutionAction(
 
   const result = await finalizeSupplierSwitchExecution(supabase, {
     requestId,
-    actorUserId: actor.id,
+    actorUserId: access.userId,
     executionSource: 'manual_admin',
     executionNotes: 'Manuell slutföring från admin operations.',
+    authorizeTargetCompany: async (companyId) => {
+      if (!companyId || (!scope.isPlatformAdmin && scope.companyId !== companyId)
+        || !(await readSwitchActivationCompanyIds(supabase, access.userId, [companyId])).has(companyId)) {
+        throw new Error('Du saknar behörighet att aktivera leverans för detta bolag.')
+      }
+    },
   })
 
+  if (result.alreadyCompleted) {
+    revalidateSupplierSwitchPaths(result.request.customer_id, result.request.id)
+    return
+  }
+
   await writeSupplierSwitchExecutionAudit({
-    actorUserId: actor.id,
+    actorUserId: access.userId,
     result,
     executionSource: 'manual_admin',
   })
@@ -428,25 +436,77 @@ export async function finalizeSupplierSwitchExecutionAction(
 export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
   const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
   const scope = await resolveAdminTenantReadScope(access)
-
   const actor = await getActor()
+  if (actor.id !== access.userId) throw new Error('Unauthorized')
+
   const supabase = await createSupabaseServerClient()
 
   const { accepted: switchRequests, ready: readyRequests } = await readCompleteBulkReadySelection(supabase, scope.companyId)
+  const writableCompanies = await readSwitchActivationCompanyIds(
+    supabase, access.userId, readyRequests.map(request => request.company_id),
+  )
 
   let completedCount = 0
+  let alreadyCompletedCount = 0
+  let waitingCount = 0
+  let blockedByCompanyCount = 0
+  const notDueReason = 'normal_supply_activation_not_due'
 
   for (const request of readyRequests) {
+    const requestCompanyId = request.company_id
+    if (!requestCompanyId || !writableCompanies.has(requestCompanyId)) {
+      blockedByCompanyCount += 1
+      continue
+    }
+
     const readiness = getSupplierSwitchActivationReadiness(request)
-    const result = await finalizeSupplierSwitchExecution(supabase, {
-      requestId: request.id,
-      actorUserId: actor.id,
-      executionSource: 'bulk_admin_ready_queue',
-      executionNotes: 'Bulk-aktivering efter inbound PRODAT Z04 och uppnått bekräftat startdatum.',
-    })
+    let result: Awaited<ReturnType<typeof finalizeSupplierSwitchExecution>>
+    try {
+      result = await finalizeSupplierSwitchExecution(supabase, {
+        requestId: request.id,
+        actorUserId: access.userId,
+        executionSource: 'bulk_admin_ready_queue',
+        executionNotes: 'Bulk-aktivering efter inbound PRODAT Z04 och uppnått bekräftat startdatum.',
+        authorizeTargetCompany: async (companyId) => {
+          if (companyId !== requestCompanyId) throw new Error('Ärendets bolag ändrades sedan urvalet. Läs in kön på nytt.')
+        },
+      })
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || !('message' in error)) throw error
+      if (error.code === '42501' && ['supplier_switch_write_not_allowed', 'normal_supply_activation_actor_forbidden'].includes(String(error.message))) {
+        const currentWritable = await readSwitchActivationCompanyIds(supabase, access.userId, [requestCompanyId])
+        if (!currentWritable.has(requestCompanyId)) {
+          writableCompanies.delete(requestCompanyId)
+          blockedByCompanyCount += 1
+          continue
+        }
+      }
+      if (error.code !== 'P0001' || error.message !== notDueReason) throw error
+
+      await insertAuditLog({
+        actorUserId: access.userId,
+        entityType: 'supplier_switch_request',
+        entityId: request.id,
+        action: 'supplier_switch_request_execution_waiting',
+        metadata: {
+          customerId: request.customer_id,
+          siteId: request.site_id,
+          reasonCode: notDueReason,
+          executionSource: 'bulk_admin_ready_queue',
+        },
+      })
+      waitingCount += 1
+      continue
+    }
+
+    if (result.alreadyCompleted) {
+      alreadyCompletedCount += 1
+      revalidateSupplierSwitchPaths(result.request.customer_id, result.request.id)
+      continue
+    }
 
     await writeSupplierSwitchExecutionAudit({
-      actorUserId: actor.id,
+      actorUserId: access.userId,
       result,
       executionSource: 'bulk_admin_ready_queue',
     })
@@ -470,15 +530,18 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
   }
 
   await insertAuditLog({
-    actorUserId: actor.id,
+    actorUserId: access.userId,
     entityType: 'supplier_switch_execution_bulk',
-    entityId: actor.id,
+    entityId: access.userId,
     action: 'supplier_switch_ready_queue_bulk_execution_ran',
     metadata: {
       scannedAcceptedCount: switchRequests.length,
-      readyCount: readyRequests.length,
+      readyCount: readyRequests.length - blockedByCompanyCount,
       completedCount,
-      blockedCount: switchRequests.length - readyRequests.length,
+      alreadyCompletedCount,
+      waitingCount,
+      blockedCount: switchRequests.length - readyRequests.length + blockedByCompanyCount,
+      blockedByCompanyCount,
       readinessRule: 'inbound_z04_plus_effective_start_date',
     },
   })
@@ -491,71 +554,45 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
 export async function retryOutboundFromSwitchDetailAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const companyId = formValue(formData, 'company_id')
+  const switchRequestId = formValue(formData, 'switch_request_id')
+  const outboundRequestId = formValue(formData, 'outbound_request_id')
+  const customerId = formValue(formData, 'customer_id')
+  const expectedSwitchStatus = formValue(formData, 'expected_switch_status')
+  const expectedSwitchUpdatedAt = formValue(formData, 'expected_switch_updated_at')
+  const expectedOutboundStatus = formValue(formData, 'expected_outbound_status')
+  const expectedOutboundUpdatedAt = formValue(formData, 'expected_outbound_updated_at')
+  const reloadMessage = 'Ladda om ärendet och kontrollera leveransens aktuella status innan du försöker igen.'
 
-  const actor = await getActor()
+  if (!companyId || !switchRequestId || !outboundRequestId || !customerId
+      || !canEditManualSwitchStatus(expectedSwitchStatus) || !expectedSwitchUpdatedAt
+      || !canRetrySwitchOutboundStatus(expectedOutboundStatus) || !expectedOutboundUpdatedAt) {
+    throw new Error(reloadMessage)
+  }
+  if (!isPlatformAdminContext(access) && access.companyId !== companyId) {
+    throw new Error('Du saknar aktiv ändringsbehörighet för valt bolag.')
+  }
+
   const supabase = await createSupabaseServerClient()
-
-  const switchRequestId = formValue(formData, 'switch_request_id') ?? ''
-  const outboundRequestId = formValue(formData, 'outbound_request_id') ?? ''
-  const customerId = formValue(formData, 'customer_id') ?? ''
-
-  if (!switchRequestId || !outboundRequestId || !customerId) {
-    throw new Error('switch_request_id, outbound_request_id och customer_id krävs')
+  const { data, error } = await supabase.rpc('gridex_retry_supplier_switch_outbound_v1', {
+    p_company_id: companyId,
+    p_customer_id: customerId,
+    p_switch_request_id: switchRequestId,
+    p_outbound_request_id: outboundRequestId,
+    p_expected_switch_status: expectedSwitchStatus,
+    p_expected_switch_updated_at: expectedSwitchUpdatedAt,
+    p_expected_outbound_status: expectedOutboundStatus,
+    p_expected_outbound_updated_at: expectedOutboundUpdatedAt,
+  })
+  if (error?.code === 'PT409' && error.message === 'supplier_switch_retry_transport_history') {
+    throw new Error('Kontrollera utskickets transporthistorik innan du försöker igen.')
   }
-
-  const [outboundRequest, switchRequest] = await Promise.all([
-    getOutboundRequestById(outboundRequestId),
-    getSupplierSwitchRequestById(supabase, switchRequestId),
-  ])
-
-  if (!outboundRequest) throw new Error('Outbound request hittades inte')
-  if (!switchRequest) throw new Error('Switchärendet hittades inte')
-  if (switchRequest.status === 'accepted' || switchRequest.status === 'completed') {
-    throw new Error('Outbound får inte återköas genom att backa ett Z04-bekräftat eller slutfört switchärende.')
+  if (error && ['PT409', 'P0002', '22023', '22007', '22008', '22P02'].includes(error.code)) {
+    throw new Error(reloadMessage)
   }
-
-  const reset = await resetOutboundRequestForRetry({
-    actorUserId: actor.id,
-    outboundRequestId,
-    reason: 'Manuell retry från switch detail.',
-  })
-
-  const savedSwitch = await updateSupplierSwitchRequestStatus(supabase, {
-    requestId: switchRequestId,
-    status: 'queued',
-    externalReference:
-      reset.external_reference ??
-      formValue(formData, 'external_reference') ??
-      null,
-    event: {
-      eventType: 'manual_retry_queued',
-      eventStatus: reset.status,
-      message: `Outbound ${reset.id} återköades manuellt från switch detail.`,
-      payload: {
-        outboundRequestId: reset.id,
-        customerId,
-        attemptsCount: reset.attempts_count,
-      },
-    },
-  })
-
-  await insertAuditLog({
-    actorUserId: actor.id,
-    entityType: 'outbound_request',
-    entityId: reset.id,
-    action: 'outbound_request_manual_retry_from_switch_detail',
-    newValues: reset,
-    metadata: {
-      customerId,
-      switchRequestId,
-      requestType: reset.request_type,
-      sourceType: reset.source_type,
-      sourceId: reset.source_id,
-    },
-  })
-
-  await syncCustomerOperationsForCustomer(supabase, customerId)
+  if (error) throw error
+  if (data?.queued !== true) throw new Error('Köändringen kunde inte bekräftas. Kontrollera leveransen.')
 
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/ready-switches')
@@ -565,50 +602,62 @@ export async function retryOutboundFromSwitchDetailAction(
   revalidatePath('/admin/operations/ready-to-execute')
   revalidatePath(`/admin/operations/switches/${switchRequestId}`)
   revalidatePath(`/admin/customers/${customerId}`)
-  revalidatePath(`/admin/customers/${savedSwitch.customer_id}`)
 }
 
 export async function runOperationsTaskAutoResolutionSweepAction(): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const context = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true })
+  const companyId = scope.companyId
+  if (!companyId) throw new Error('Välj ett bolag innan du kör automatisk uppföljning.')
 
-  const actor = await getActor()
   const supabase = await createSupabaseServerClient()
-
-  const sitesQuery = await supabase
-    .from('customer_sites')
-    .select('customer_id')
-    .order('created_at', { ascending: false })
-
-  if (sitesQuery.error) {
-    throw sitesQuery.error
+  if (!await canWriteOperationTaskCompany(supabase, companyId)) {
+    throw new Error('Automatisk uppföljning är spärrad för det valda bolaget.')
   }
 
-  const customerIds = Array.from(
-    new Set(
-      (sitesQuery.data ?? [])
-        .map((row) => row.customer_id)
-        .filter((value): value is string => Boolean(value))
-    )
-  )
-
+  const customerIds = new Set<string>()
   let siteCount = 0
   let readyCount = 0
   let blockedCount = 0
+  let afterSiteId: string | null = null
+  const pageSize = 200
 
-  for (const customerId of customerIds) {
-    const result = await syncCustomerOperationsForCustomer(supabase, customerId)
-    siteCount += result.siteCount
-    readyCount += result.readyCount
-    blockedCount += result.blockedCount
+  while (true) {
+    let siteQuery = supabase
+      .from('customer_sites')
+      .select('id,customer_id')
+      .eq('company_id', companyId)
+      .order('id')
+      .limit(pageSize)
+    if (afterSiteId) siteQuery = siteQuery.gt('id', afterSiteId)
+    const { data: sites, error } = await siteQuery
+    if (error) throw error
+
+    for (const site of sites ?? []) {
+      if (!site.customer_id) continue
+      const result = await syncCustomerOperationsForSite(supabase, {
+        customerId: site.customer_id,
+        siteId: site.id,
+        companyId,
+      })
+      customerIds.add(site.customer_id)
+      siteCount += 1
+      if (result.isReady) readyCount += 1
+      else blockedCount += 1
+    }
+
+    if (!sites || sites.length < pageSize) break
+    afterSiteId = sites[sites.length - 1].id
   }
 
   await insertAuditLog({
-    actorUserId: actor.id,
+    actorUserId: context.userId,
     entityType: 'operations_task_sync',
-    entityId: actor.id,
+    entityId: context.userId,
     action: 'operations_task_auto_resolution_sweep_ran',
     metadata: {
-      customerCount: customerIds.length,
+      companyId,
+      customerCount: customerIds.size,
       siteCount,
       readyCount,
       blockedCount,

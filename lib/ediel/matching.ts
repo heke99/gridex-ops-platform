@@ -43,6 +43,7 @@ function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
 export async function matchMeteringPointIdByIdentifier(params: {
   companyId: string
   identifiers: string[]
+  requireUnique?: boolean
 }): Promise<string | null> {
   const identifiers = params.identifiers
   if (identifiers.length === 0) return null
@@ -62,7 +63,7 @@ export async function matchMeteringPointIdByIdentifier(params: {
     .limit(5)
 
   if (error) throw error
-
+  if (params.requireUnique && data?.length !== 1) return null
   return (data?.[0] as { id: string } | undefined)?.id ?? null
 }
 
@@ -210,6 +211,50 @@ export async function findMatchingSupplierSwitchRequest(
 
   if (error) throw error
   return (data?.[0] as SupplierSwitchRequestRow | undefined) ?? null
+}
+
+export type E66RequestReferenceIssue = 'missing_reference' | 'ambiguous_reference' |
+  'unknown_reference' | 'point_mismatch' | 'inactive_request' | 'disjoint_period' | 'unverified_period'
+
+export async function findE66GridOwnerDataRequest(params: {
+  companyId: string
+  environment: 'test' | 'production'
+  actorUserId: string
+  reference: string | null
+  hasAmbiguousReferences: boolean
+  meteringPointId: string | null
+}) {
+  const pending = supabaseService.from('grid_owner_data_requests').select('*')
+    .eq('company_id', params.companyId)
+    .in('request_scope', ['meter_values', 'billing_underlay'])
+  if (params.hasAmbiguousReferences) return {request: null, issue: 'ambiguous_reference' as const}
+  if (!params.reference) {
+    if (!params.meteringPointId) return {request: null, issue: null}
+    const {data, error} = await pending.eq('metering_point_id', params.meteringPointId).in('status',['pending','sent']).limit(1)
+    if (error) throw error
+    return {request: null, issue: data?.length ? 'missing_reference' as const : null}
+  }
+
+  const match = await supabaseService.rpc('gridex_match_e66_to_sent_e73_reference_v1',{
+    p_company_id:params.companyId, p_environment:params.environment,
+    p_actor_user_id:params.actorUserId, p_reference:params.reference,
+  })
+  if (match.error) throw match.error
+  const ids: unknown = match.data
+  if (!Array.isArray(ids) || ids.some(id=>typeof id!=='string')) throw new Error('e66_sent_e73_reference_invalid')
+  if (!ids.length) return {request: null, issue: 'unknown_reference' as const}
+  if (ids.length!==1) return {request: null, issue: 'ambiguous_reference' as const}
+  const {data,error} = await pending.eq('id',ids[0]).maybeSingle()
+  if (error) throw error
+  if (!data) return {request:null,issue:'unknown_reference' as const}
+  const request = data as GridOwnerDataRequestRow
+  if (!params.meteringPointId || request.metering_point_id !== params.meteringPointId) {
+    return {request: null, issue: 'point_mismatch' as const}
+  }
+  if (request.status !== 'sent' && request.status !== 'received') {
+    return {request: null, issue: 'inactive_request' as const}
+  }
+  return {request, issue: null}
 }
 
 export async function findMatchingGridOwnerDataRequest(

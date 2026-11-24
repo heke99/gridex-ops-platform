@@ -3,10 +3,14 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({writes:[] as {op:string;table:string;row:Record<string,unknown>|null}[],tasks:[] as Record<string,unknown>[]}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  const q:Record<string,unknown>={}
- const write=(op:string)=>(row:Record<string,unknown>|null=null)=>{io.writes.push({op,table,row});return q}
- Object.assign(q,{select:()=>q,eq:()=>q,is:()=>q,in:()=>q,not:()=>q,limit:()=>q,order:()=>q,maybeSingle:()=>q,single:()=>q,
+ let op:string|null=null, selected:string|null=null, rowId:unknown=null
+ const write=(operation:string)=>(row:Record<string,unknown>|null=null)=>{op=operation;io.writes.push({op,table,row});return q}
+ Object.assign(q,{select:(columns:string)=>{selected=columns;return q},eq:(key:string,value:unknown)=>{if(key==='id')rowId=value;return q},is:()=>q,in:()=>q,not:()=>q,limit:()=>q,order:()=>q,maybeSingle:()=>q,single:()=>q,
   insert:write('insert'),update:write('update'),upsert:write('upsert'),
-  then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:table==='ediel_messages'&&io.writes.at(-1)?.table==='ediel_messages'?{id:'inbound-ack'}:null,error:null}).then(resolve)})
+  then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({
+   data:table==='outbound_requests'&&op==='update'&&selected==='id'?{id:rowId}
+    :table==='ediel_messages'&&io.writes.at(-1)?.table==='ediel_messages'?{id:'inbound-ack'}:null,error:null,
+  }).then(resolve)})
  return q}}}))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory',()=>({createInboundMailTask:async(task:Record<string,unknown>)=>{io.tasks.push(task);return 'task'}}))
 import {applyCanonicalInboundAckStatusUpdate} from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
