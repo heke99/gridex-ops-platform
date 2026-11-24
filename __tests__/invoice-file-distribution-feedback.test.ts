@@ -71,10 +71,14 @@ import { createInvoiceFileAction } from '@/app/admin/billing/invoice-files/actio
 import { InvoiceProviderConfigError } from '@/lib/billing/providers/registry'
 import { signInvoiceFileIntent } from '@/lib/billing/invoiceFileIntentToken'
 
-async function alertFor(code: string) {
-  const stream = await renderToReadableStream(await Page({ searchParams: Promise.resolve({ month: '2026-02', file_error: code }) }))
+async function renderBillingFeedback(searchParams: Record<string, string>) {
+  const stream = await renderToReadableStream(await Page({ searchParams: Promise.resolve({ month: '2026-02', ...searchParams }) }))
   await stream.allReady
-  const html = await new Response(stream).text()
+  return (await new Response(stream).text()).replace(/<!--.*?-->/g, '')
+}
+
+async function alertFor(code: string) {
+  const html = await renderBillingFeedback({ file_error: code })
   const alert = html.match(/<p role="alert"[^>]*>([^<]*)<\/p>/)?.[1]
   expect(alert).toBeDefined()
   return alert
@@ -110,6 +114,16 @@ describe('invoice-file distribution validation feedback', () => {
     expect(params.get('file')).toBeNull()
     expect(params.get('file_error')).toBe(code)
     expect(await alertFor(code)).toBe(`${message} Ingen fil skapades.`)
+  })
+
+  it('gives the operator a retry for a locked file approval without suggesting a send', async () => {
+    const html = await renderBillingFeedback({ mode: 'file', approved: '0', failed: '1', approval_busy: '2' })
+    expect(html).toContain('Godkända i körningen: 0.')
+    expect(html).toContain('Övriga fel: 1.')
+    expect(html).toContain('Väntar på omtag: 2.')
+    expect(html).toContain('Försök godkänna igen om en stund.')
+    expect(html).not.toContain('Fakturafilen omfattar bara godkända fakturor.')
+    expect(html).not.toContain('skicka dem till fakturaleverantören')
   })
 
   it('keeps the generic fallback for unknown error codes', async () => {

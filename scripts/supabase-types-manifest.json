@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-11-24T06:32:53.134927+00:00",
-  "generated_with": "Supabase CLI 2.101.0 canonical replay, GitHub Actions 45340714216",
+  "generated_at": "2026-11-24T08:27:20.983079+00:00",
+  "generated_with": "Supabase CLI 2.101.0 canonical replay, GitHub Actions 45354787924",
   "sha256": "ccb1bfd3b7e341c2f9db56ec11433a3ad62e2e8faeb956b61533eaa821173ff3",
-  "latest_migration": "20261124055200_accelerate_ediel_wire_ingest.sql",
-  "latest_migration_schema_effect": "Accelerates bounded Ediel tokenization and envelope framing with existing return formats and grants.",
+  "latest_migration": "20261124081552_freeze_single_invoice_file_customer_identity.sql",
+  "latest_migration_schema_effect": "Preserves customer name and number from ordinary single-invoice file approval through the first archive write. Existing signatures and grants are preserved.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -2271,6 +2271,40 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
+    "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+    "source_head": "646329dc12cb9a4861a97cd72104426a0b7bbb44",
+    "source_tree": "a9ecb1dd5541662a2b7ef09ca45de637e7241e3f",
+    "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+    "workflow_run_id": 45354787924,
+    "workflow_job_id": 138309803788,
+    "attempt": 1,
+    "artifact_id": 14901972758,
+    "artifact_name": "staff-schema-capture-646329dc12cb9a4861a97cd72104426a0b7bbb44",
+    "artifact_archive_sha256": "8fac12d724769bcbe78b6cf2075d435ff6516c339d17dd3acf486527a8aab71c",
+    "artifact_archive_bytes": 2079018,
+    "capture_receipt_sha256": "bfb31ab5122848e363d0ea2f8489af41bdb1d9e1d9b0011ab7ce9a6c334167e0",
+    "raw_output_sha256": {
+      "database.types.ts": "ccb1bfd3b7e341c2f9db56ec11433a3ad62e2e8faeb956b61533eaa821173ff3",
+      "schema.sql": "19a85a483c1fc9ecf76d93e1dbf8ef9b407606e1165e2526b229a8f223a8d6bd",
+      "schema.fingerprint.json": "b865db45effb92445e8907b0dcb2e97c547f986ded279f086936ff8a73c3a5a0"
+    },
+    "schema_fingerprint": "111c9f7c50a0608f26f3178725ded53548ce210b1a44d4eb4956ede65c9217c1",
+    "actual_capture_completed_at": "2026-11-24T08:27:38Z",
+    "workflow_job_conclusion": "success",
+    "epoch_attestation_enabled": false,
+    "migration_source": {
+      "algorithm": "gridex-supabase-replay-source-v2",
+      "count": 1582,
+      "sha256": "ab690b49fdc4d083d1cf8775a982360eee0a82ca9d108e29240ad2dd11510591"
+    },
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+    "whole_approval": false
+  },
+  "pre_20261124_rad82_single_invoice_identity_active_generated_outputs_origin": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
     "source_head": "54a1096b5a86b7ad9dee9f060897b533a7c30b90",
     "source_tree": "daa24786af747ef6b24d262dee0a187497e21cae",

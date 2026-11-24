@@ -1255,6 +1255,9 @@ jobs:
             # Keep original BASE births and frozen complete history unchanged.
             # Then install only the qualified, delivered current reader closure.
             # Real SQL/catalog/API exits are distinct from the unchanged 13 cases.
+            if ! python3 scripts/helpers/ediel-db01-reader-catalog.py before; then
+              printf '%s\n' 'DB01 supplemental reader preimage observation unavailable'
+            fi
             for stage in before forwards after api; do
               case "$stage" in
                 before) phase=current_guard_preparation ;;
@@ -1266,6 +1269,9 @@ jobs:
               python3 "$DB01_PRIVATE/qualify-current-guards.py" "$stage" || guard_exit=$?
               update_phase "$phase" "$guard_exit"
               if [[ "$guard_exit" != 0 ]]; then exit "$guard_exit"; fi
+              if [[ "$stage" == forwards ]] && ! python3 scripts/helpers/ediel-db01-reader-catalog.py after; then
+                printf '%s\n' 'DB01 supplemental reader postimage observation unavailable'
+              fi
             done
             export GRIDEX_DB01_NATIVE_PHASE=current GRIDEX_DB01_SOURCE_ROOT="$CURRENT_ROOT"
             current_exit=0

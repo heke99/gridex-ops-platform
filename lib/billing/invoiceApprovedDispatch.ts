@@ -616,6 +616,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
   let approved = 0
   let sent = 0
   let failed = 0
+  let approvalBusy = 0
   const errors: Array<{ invoiceExportItemId: string; error: string }> = []
   for (const item of items) {
     const itemId = text(item.id) ?? 'unknown'
@@ -631,11 +632,16 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
         errors.push({ invoiceExportItemId: itemId, error: 'Fakturaexporten returnerade ett icke-skickat resultat.' })
       }
     } catch (error) {
+      // A lock error in file mode leaves the approval uncommitted and retryable.
+      if (approveOnly && objectValue(error).code === '55P03') {
+        approvalBusy += 1
+        continue
+      }
       failed += 1
       errors.push({ invoiceExportItemId: itemId, error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.' })
     }
   }
-  return { approved, sent, failed, errors, approveOnly }
+  return { approved, sent, failed, approvalBusy, errors, approveOnly }
 }
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {

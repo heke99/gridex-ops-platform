@@ -8,6 +8,7 @@ import {getEdielMessageById} from '@/lib/ediel/db'
 import {canonicalAdmissionDate} from '@/lib/ediel/core/messagePolicy'
 import {resolveAuthoritativeEdielGuide} from '@/lib/ediel/rulebook/guideRegistry'
 import {localEdifactDateTimeToUtc,parseEdifactTimezoneOffsetFromComponents} from '@/lib/ediel/utilts/timezone'
+import {parseUtilts} from '@/lib/ediel/utilts/parseUtilts'
 import {supabaseService} from '@/lib/supabase/service'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -385,7 +386,8 @@ async function receiveUtilts(f:Fixture,wire:string){
     &&segmentComposite(segment,1,physical.una)[0]===qualifier),1,physical.una)
   const timezone=parseEdifactTimezoneOffsetFromComponents(dtm('735'))
   const registration=dtm('597')
-  const registeredAt=localEdifactDateTimeToUtc(registration[1],timezone)
+  const [transaction]=parseUtilts(source.raw_payload!).transactions
+  const registeredAt=localEdifactDateTimeToUtc(transaction?.registrationTime,timezone)
   expect(registration[2]).toBe('203')
   expect(timezone?.offsetMinutes).toBe(60)
   expect(Date.parse(registeredAt??'')).toBeLessThanOrEqual(Date.parse(source.message_received_at!))

@@ -163,6 +163,27 @@ function customerName(customer: Row) {
     ?? ([text(customer.first_name), text(customer.last_name)].filter(Boolean).join(' ') || 'Okänd kund')
 }
 
+function approvedCustomerIdentity(item: Row, invoice: Row, customer: Row) {
+  const itemIdentity = approval(item.metadata).customer_identity
+  const invoiceIdentity = approval(invoice.metadata).customer_identity
+  if (itemIdentity === undefined && invoiceIdentity === undefined) {
+    return { number: text(customer.customer_number), name: customerName(customer) }
+  }
+
+  const snapshot = itemIdentity as Row | null | undefined
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)
+      || snapshot.version !== 1
+      || typeof snapshot.customer_id !== 'string' || !snapshot.customer_id
+      || snapshot.customer_id !== item.customer_id || snapshot.customer_id !== invoice.customer_id
+      || snapshot.customer_id !== customer.id
+      || typeof snapshot.name !== 'string' || text(snapshot.name) !== snapshot.name
+      || (snapshot.number !== null && (typeof snapshot.number !== 'string' || text(snapshot.number) !== snapshot.number))
+      || stableJson(snapshot) !== stableJson(invoiceIdentity)) {
+    throw staleSelection()
+  }
+  return { number: snapshot.number, name: snapshot.name }
+}
+
 export function buildInvoiceFileRow(input: {
   item: Row
   invoice: Row
@@ -192,12 +213,13 @@ export function buildInvoiceFileRow(input: {
   const invoiceReference = text(input.invoice.invoice_reference)
   if (neutral && !invoiceReference) throw staleSelection()
   const invoiceNumber = text(input.invoice.invoice_number)
+  const identity = approvedCustomerIdentity(input.item, input.invoice, input.customer)
   return {
     invoice_export_item_id: itemId,
     invoice_number: neutral ? invoiceNumber : invoiceNumber ?? `GX-${input.billingMonth.replace('-', '')}-${itemId.slice(0, 8).toUpperCase()}`,
     ...(neutral ? { invoice_reference: invoiceReference } : {}),
-    customer_number: text(input.customer.customer_number),
-    customer_name: customerName(input.customer),
+    customer_number: identity.number,
+    customer_name: identity.name,
     customer_type: business ? 'business' : 'private',
     identity_number: business ? text(input.customer.org_number) : text(input.customer.personal_number),
     recipient: text(address.recipient) ?? text(input.legacyItem?.invoice_recipient),

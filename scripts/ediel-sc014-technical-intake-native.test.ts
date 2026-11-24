@@ -591,12 +591,22 @@ describe('SC014 actual native protected technical source birth', () => {
     // A different real mail now has a valid legal-company mailbox and an
     // actual matching public request. This forces the ordinary matched path;
     // the protected physical tuple must stop it before request/domain updates.
-    const secondMailboxId = randomUUID(), requestId = randomUUID()
+    const secondMailboxId = randomUUID(), requestId = randomUUID(), outboundOriginalId = randomUUID()
+    const outboundPayload = 'SYNTHETIC SC014 outbound matching control'
     sql(`INSERT INTO public.ediel_mailboxes(id,company_id,environment,mailbox_name,email_address,mailbox_type,is_active,is_shared_platform_mailbox)
       VALUES(${literal(secondMailboxId)},${literal(f.companyId)},'production','SYNTHETIC later legal mailbox','legal@example.invalid','tenant',true,false);
       INSERT INTO public.outbound_requests(id,company_id,request_type,source_type,status,external_reference,metadata)
       VALUES(${literal(requestId)},${literal(f.companyId)},'SC014_NATIVE_HELD','SC014_NATIVE_UNQUALIFIED','queued',
-        ${literal(parseEdifactPayload(f.wire).interchangeReference)},'{"scope":"SYNTHETIC matching control, no source approval"}')`)
+        ${literal(parseEdifactPayload(f.wire).interchangeReference)},'{"scope":"SYNTHETIC matching control, no source approval"}');
+      INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
+        outbound_request_id,raw_payload,requires_contrl,requires_aperak)
+      VALUES(${literal(outboundOriginalId)},${literal(f.companyId)},'production','outbound','edifact','SC014_DIAGNOSTIC','SC014_DIAGNOSTIC',
+        'draft',${literal(requestId)},${literal(outboundPayload)},false,false)`)
+    // The matcher establishes the request environment from a persisted
+    // non-ACK original. This diagnostic draft makes no canonical source claim.
+    const outboundOriginal = sourceRow(outboundOriginalId)
+    expect(outboundOriginal).toMatchObject({ company_id: f.companyId, environment: 'production', direction: 'outbound',
+      status: 'draft', outbound_request_id: requestId, raw_payload: outboundPayload, message_sent_at: null })
     const secondMailbox = sql<EdielMailboxRow>(`SELECT to_jsonb(m) FROM public.ediel_mailboxes m WHERE id=${literal(secondMailboxId)}`)
     const rawMime = `From: sender@example.invalid\r\nTo: legal@example.invalid\r\nMessage-ID: <${randomUUID()}@example.invalid>\r\nContent-Type: application/edifact\r\n\r\n${f.wire}`
     const second = await storeMailboxFetchMessage({ mailbox: secondMailbox, actorUserId: legalActor.id,
@@ -608,6 +618,7 @@ describe('SC014 actual native protected technical source birth', () => {
     const match = sql<Array<{ status: string; type: string; id: string | null }>>(`SELECT jsonb_agg(jsonb_build_object('status',match_status,
       'type',match_type,'id',matched_entity_id) ORDER BY match_type) FROM public.inbound_ediel_match_attempts WHERE inbound_email_message_id=${literal(second.id)}`)
     expect(match).toEqual(expect.arrayContaining([{ status: 'matched', type: 'outbound_request', id: requestId }]))
+    expect(sourceRow(outboundOriginalId)).toEqual(outboundOriginal)
     expect(() => sql(ordinaryInsert(f, randomUUID(), f.companyId))).toThrow(/ediel_technical_intake_physical_original_exists/)
     expect(custodySnapshot(second.id)).toMatchObject({ birth: null, sources: [] })
     expect(custodySnapshot(p.mailId)).toEqual(custody); expect(sourceRow(ack.id)).toEqual(originalAck)

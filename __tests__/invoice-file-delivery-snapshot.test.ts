@@ -520,6 +520,34 @@ describe('DELIVERY01.04 public file export frozen delivery boundary', () => {
         });
         expect(legacy().invoice_address_snapshot).toEqual(before);
     });
+    function setApprovedCustomerIdentity(number: string | null) {
+        const entry = state.tables.invoice_export_items[0].metadata as { approval: FixtureRow };
+        entry.approval.customer_identity = { version: 1, customer_id: 'customer-A', name: 'Approved customer', number };
+        Object.assign(state.tables.customer_invoices[0], {
+            customer_id: 'customer-A',
+            metadata: structuredClone(entry)
+        });
+    }
+
+    it.each(['A-27', null])('uses the approved customer identity with number %s after a profile change', async (number) => {
+        setApprovedCustomerIdentity(number);
+        Object.assign(state.tables.customers[0], { name: 'New customer name', customer_number: 'NEW-27' });
+        await run();
+        expect(state.calls[0].args.p_rows[0]).toMatchObject({
+            customer_name: 'Approved customer', customer_number: number
+        });
+    });
+
+    it('rejects a different customer snapshot in the invoice mirror before file creation', async () => {
+        setApprovedCustomerIdentity('A-27');
+        const metadata = state.tables.customer_invoices[0].metadata as { approval: FixtureRow };
+        metadata.approval.customer_identity = {
+            version: 1, customer_id: 'customer-A', name: 'Different customer name', number: 'A-27'
+        };
+        await expect(run()).rejects.toMatchObject({ code: 'invoice_file_selection_changed' });
+        expect(state.calls).toEqual([]);
+    });
+
     it('archives the frozen paper choice and foreign country without either stored email', async () => {
         state.tables.customer_invoices[0].calculation_snapshot = { invoice_delivery_method: 'paper' };
         legacy().invoice_email = 'legacy@example.invalid';

@@ -100,6 +100,16 @@ it.each([
   expect(fixture.membershipScope).not.toHaveBeenCalled()
 })
 
+it('reports file approval lock retries separately without forwarding diagnostics', async () => {
+  fixture.approve.mockResolvedValueOnce({
+    approved: 1, sent: 0, failed: 1, approvalBusy: 2, approveOnly: true,
+    errors: [{ invoiceExportItemId: 'private-export-item', error: 'private-sql-detail' }],
+  })
+  await expect(approveAndSendReadyInvoicesAction(request())).rejects.toThrow(
+    new Error('/admin/billing?month=2026-10&sent=0&failed=1&approved=1&mode=file&approval_busy=2'),
+  )
+})
+
 it('does not prepare or approve for a reader, an unselected platform, or a paused selected company', async () => {
   setContext(context('company-a', false, ['billing_underlay.read']))
   await expect(approveAndSendReadyInvoicesAction(request())).rejects.toThrow('Forbidden')

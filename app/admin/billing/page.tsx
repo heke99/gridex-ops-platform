@@ -27,6 +27,7 @@ type PageProps = {
     sent?: string
     failed?: string
     approved?: string
+    approval_busy?: string | string[]
     mode?: string
     file?: string | string[]
     file_error?: string
@@ -109,9 +110,18 @@ function productLabel(contractType: string | null, contractName: string | null) 
   }
 }
 
+function batchResultCount(value: unknown): number {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return 0
+  const count = Number(value)
+  return Number.isSafeInteger(count) ? count : 0
+}
+
 export default async function AdminBillingPage({ searchParams }: PageProps) {
   const admin = await requirePermissionServer('billing_underlay.read')
   const params = await searchParams
+  const approvalsInBatch = batchResultCount(params.approved)
+  const approvalFailures = batchResultCount(params.failed)
+  const approvalsToRetry = batchResultCount(params.approval_busy)
   let selectedMonth = previousStockholmBillingMonth()
   if (params.month) {
     try { selectedMonth = parseBillingMonth(params.month).value } catch { selectedMonth = previousStockholmBillingMonth() }
@@ -217,7 +227,15 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
         {companyId && (params.sent || params.failed) ? (
           <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm shadow-sm">
             {params.mode === 'file'
-              ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Skapa fakturafilen nedan för att skicka dem till fakturaleverantören.</>
+              ? <div role="status" className="space-y-1">
+                  <p><strong>Godkända i körningen: {approvalsInBatch}.</strong> Övriga fel: {approvalFailures}.</p>
+                  {approvalsToRetry > 0 ? (
+                    <p>Väntar på omtag: {approvalsToRetry}. Uppgifterna var tillfälligt låsta. Försök godkänna igen om en stund.</p>
+                  ) : null}
+                  {approvalsInBatch > 0 ? (
+                    <p>Fakturafilen omfattar bara godkända fakturor. Överlämningen till fakturaleverantören följs upp separat.</p>
+                  ) : null}
+                </div>
               : <>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.</>}
           </section>
         ) : null}

@@ -57,7 +57,10 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     failed: String(result.failed),
     approved: String(result.approved),
   })
-  if (result.approveOnly) query.set('mode', 'file')
+  if (result.approveOnly) {
+    query.set('mode', 'file')
+    if (result.approvalBusy > 0) query.set('approval_busy', String(result.approvalBusy))
+  }
   redirect(`/admin/billing?${query.toString()}`)
 }
 
