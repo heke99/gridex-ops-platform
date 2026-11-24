@@ -23,7 +23,7 @@ function smtp(){
 }
 async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.companyId){
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:company,environment:'test',raw,smtpFrom:edielSmtpConfig().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:company,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:company,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:company,parsed:mail.parsed})
  const id=await createInboundEdielMessage({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
  expect(typeof id,JSON.stringify({phase:'public_inbound_birth',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})).toBe('string')
@@ -101,7 +101,7 @@ for(const code of ['Z04','Z05'] as const)it('SOURCE_ONLY actual public '+code+'/
  expect(business()).toEqual(before);expect(provider).not.toHaveBeenCalled()
  const originals=protectedOriginals()
  for(const [table,rows]of Object.entries(originals))expect(table==='public.ediel_message_payloads'?rows.filter(row=>row.ediel_message_id!==m.sourceId):table==='public.ediel_messages'?rows.filter(row=>row.id!==m.sourceId):rows,table).toEqual(originalsBefore[table])
- const born=custody(m.sourceId),outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:m.parsed,inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:m.parsed})
+ const born=custody(m.sourceId),outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,environment:m.environment,parsed:m.parsed,inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:m.parsed})
  const replay=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId,parsed:m.parsed,outboundMatch,meteringPointMatch})
  expect(replay).toBe(m.sourceId);expect(custody(m.sourceId)).toEqual(born)
  expect(sql(`SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}`)).toEqual(proof.context)

@@ -203,6 +203,21 @@ create unique index if not exists bucketid_objname on storage.objects (bucket_id
 alter table storage.buckets enable row level security;
 alter table storage.objects enable row level security;
 
+-- Storage API v1.54.1 sets the transaction-local operation used by retention
+-- policies. Keep an existing provider implementation when it is present.
+do $storage_operation$
+begin
+  if pg_catalog.to_regprocedure('storage.operation()') is null then
+    create function storage.operation()
+    returns text language plpgsql stable as $operation$
+    begin
+      return current_setting('storage.operation', true);
+    end;
+    $operation$;
+  end if;
+end
+$storage_operation$;
+
 -- Supabase Vault. Migrations read secrets through these, so the surface must
 -- exist; values are supplied by the environment, never by replay.
 create table if not exists vault.secrets (

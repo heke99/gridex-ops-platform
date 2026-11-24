@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerCaseRow, CustomerCaseType } from '@/lib/customer-cases/types'
 import type { SupplierSwitchRequestRow, SupplierSwitchRequestStatus } from '@/lib/operations/types'
+import { isUuid } from '@/lib/validation/uuid'
 
 type LifecycleDecisionType = 'withdrawal' | 'cancelled' | 'rejected'
 
@@ -11,6 +12,7 @@ export type SwitchLifecycleBlock = {
   customerId: string
   siteId: string | null
   meteringPointId: string | null
+  contractId?: string | null
   decisionType: LifecycleDecisionType
   title: string
   reason: string
@@ -79,9 +81,25 @@ function databaseShapeMissing(error: unknown): boolean {
   )
 }
 
-function scopeMatches(block: Pick<SwitchLifecycleBlock, 'siteId' | 'meteringPointId'>, params: { siteId?: string | null; meteringPointId?: string | null }) {
-  if (block.meteringPointId) return block.meteringPointId === (params.meteringPointId ?? null)
-  if (block.siteId) return block.siteId === (params.siteId ?? null)
+type SwitchLifecycleTarget = {
+  companyId?: string | null
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  contractId?: string | null
+}
+
+function exactScopeId(value: string | null | undefined): string | null {
+  return value && isUuid(value) ? value.trim().toLowerCase() : null
+}
+
+function scopeMatches(
+  block: Pick<SwitchLifecycleBlock, 'contractId' | 'siteId' | 'meteringPointId'>,
+  target: Pick<SwitchLifecycleTarget, 'contractId' | 'siteId' | 'meteringPointId'>,
+) {
+  if (block.contractId) return block.contractId === (target.contractId ?? null)
+  if (block.meteringPointId) return block.meteringPointId === (target.meteringPointId ?? null)
+  if (block.siteId) return block.siteId === (target.siteId ?? null)
   return true
 }
 
@@ -183,21 +201,33 @@ export async function createLifecycleDecisionFromCase(
 
 export async function findActiveSwitchLifecycleBlock(
   supabase: SupabaseClient,
-  params: {
-    companyId?: string | null
-    customerId: string
-    siteId?: string | null
-    meteringPointId?: string | null
-  }
+  params: SwitchLifecycleTarget,
 ): Promise<SwitchLifecycleBlock | null> {
+  const target = {
+    contractId: exactScopeId(params.contractId),
+    siteId: exactScopeId(params.siteId),
+    meteringPointId: exactScopeId(params.meteringPointId),
+  }
+  const scopedDecisionFilters = ['scope_type.eq.customer']
+  const exactScopes = [
+    ['contract', target.contractId],
+    ['site', target.siteId],
+    ['metering_point', target.meteringPointId],
+  ] as const
+  for (const [scopeType, scopeId] of exactScopes) {
+    if (scopeId) scopedDecisionFilters.push(`and(scope_type.eq.${scopeType},scope_id.eq.${scopeId})`)
+  }
+
   try {
     let decisionQuery = supabase
       .from('customer_lifecycle_decisions')
       .select('id, company_id, customer_id, decision_type, scope_type, scope_id, reason, created_at')
       .eq('customer_id', params.customerId)
       .in('decision_type', ['withdrawal', 'cancelled', 'rejected'])
+      .or(scopedDecisionFilters.join(','))
       .order('created_at', { ascending: false })
-      .limit(20)
+      .order('id', { ascending: false })
+      .limit(1)
 
     if (params.companyId) decisionQuery = decisionQuery.eq('company_id', params.companyId)
 
@@ -206,13 +236,15 @@ export async function findActiveSwitchLifecycleBlock(
       if (!databaseShapeMissing(error)) throw error
     } else {
       for (const row of decisions ?? []) {
-        const scopeType = String(row.scope_type ?? 'customer')
-        const scopeId = row.scope_id ? String(row.scope_id) : null
+        const scopeType = row.scope_type
+        const scopeId = exactScopeId(typeof row.scope_id === 'string' ? row.scope_id : null)
+        if (scopeType !== 'customer' && (!scopeId || !exactScopes.some(([type]) => type === scopeType))) continue
         const block: SwitchLifecycleBlock = {
           source: 'customer_lifecycle_decision',
           id: String(row.id),
           companyId: row.company_id ? String(row.company_id) : null,
           customerId: String(row.customer_id),
+          contractId: scopeType === 'contract' ? scopeId : null,
           siteId: scopeType === 'site' ? scopeId : null,
           meteringPointId: scopeType === 'metering_point' ? scopeId : null,
           decisionType: row.decision_type === 'withdrawal' ? 'withdrawal' : row.decision_type === 'cancelled' ? 'cancelled' : 'rejected',
@@ -221,7 +253,7 @@ export async function findActiveSwitchLifecycleBlock(
           createdAt: row.created_at ? String(row.created_at) : null,
         }
 
-        if (scopeMatches(block, params)) return block
+        if (scopeMatches(block, target)) return block
       }
     }
   } catch (error) {
@@ -278,12 +310,7 @@ export async function findActiveSwitchLifecycleBlock(
 
 export async function assertNoActiveSwitchLifecycleBlock(
   supabase: SupabaseClient,
-  params: {
-    companyId?: string | null
-    customerId: string
-    siteId?: string | null
-    meteringPointId?: string | null
-  }
+  params: SwitchLifecycleTarget,
 ): Promise<void> {
   const block = await findActiveSwitchLifecycleBlock(supabase, params)
   if (!block) return

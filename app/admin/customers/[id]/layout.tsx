@@ -2,11 +2,15 @@ import Link from 'next/link'
 import CustomerActionsMenu from '@/components/admin/customers/CustomerActionsMenu'
 import type { ReactNode } from 'react'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { CUSTOMER_DETAIL_LAYOUT_READ } from '@/lib/admin/accessModel'
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import { supabaseService } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import { guardIsPlatformAdmin, loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
 import { resolveCustomerCardLookup } from './customer-lookup-outcome'
 import { isUuid } from '@/lib/validation/uuid'
+import { canSendSignatureForCompany } from '@/lib/tenant/governance'
+import { SEND_CONTRACT_SIGNATURE_REQUIREMENT } from './contracts/[contractId]/signature/policy'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +22,7 @@ export default async function CustomerWorkspaceLayout({
   params: Promise<{ id: string }>
 }) {
   const { id: customerId } = await params
-  const access = await requireAdminPageAccess({ anyOf: ['contracts.write', 'contracts.read', 'customers.read'] })
+  const access = await requireAdminPageAccess(CUSTOMER_DETAIL_LAYOUT_READ)
   // A missing id, a customer without company link and another tenant's customer all end
   // in the same 404 before the tenant guard, whose error texts differ (finding 003).
   // A malformed id would fail in Postgres (22P02) instead of answering like a missing id.
@@ -34,10 +38,14 @@ export default async function CustomerWorkspaceLayout({
     lookupRow as { company_id: string | null; source: string | null } | null,
   )
   if (lookup.kind === 'not_found') notFound()
-  // Without an active company the page explains the actor's own setup; that answer must
-  // not depend on the customer id, so the id-specific guard is skipped here.
-  if (lookup.kind === 'no_active_company') return <>{children}</>
+  // The page handles accounts without a company and Ediel control customers.
+  if (lookup.kind !== 'ok') return <>{children}</>
   const { companyId } = await loadCustomerTenantContext(customerId, access)
+  if (
+    !canPresentAdminLink(access, SEND_CONTRACT_SIGNATURE_REQUIREMENT)
+    || !await canPresentAdminAction(SEND_CONTRACT_SIGNATURE_REQUIREMENT)
+    || !await canSendSignatureForCompany(companyId)
+  ) return <>{children}</>
 
   const { data: signableContracts, error } = await supabaseService
     .from('customer_contracts')

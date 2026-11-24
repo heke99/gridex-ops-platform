@@ -4,7 +4,7 @@ import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
 import { canonicalUtiltsDecimal, utiltsEnergyQuantityKwh } from './exactDecimal'
 import { supportedUtiltsConsumptionIdentity } from './consumptionIdentity'
-import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch, type SentE73Period } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
 import { edifactInstantInDeclaredOffset, localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
@@ -23,6 +23,7 @@ export async function prepareUtiltsConsumptionContracts(input: {
   policy: CanonicalEdielPolicy
   matches: readonly UtiltsTransactionMatch[]
   dataRequest: GridOwnerDataRequestRow | null
+  sentRequestPeriod?: SentE73Period | null
   fallback: { customerId: string | null; siteId: string | null; meteringPointId: string | null; gridOwnerId: string | null }
   allowConsumption: boolean
 }): Promise<UtiltsConsumptionContract[]> {
@@ -134,13 +135,16 @@ export async function prepareUtiltsConsumptionContracts(input: {
         registerCode: observation?.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null, productCode,
         sourceLineReference: item.externalMeteringPointId ?? stringOrNull(qty.lineReference), externalPoint: item.externalMeteringPointId, gridArea: item.externalGridAreaId }
     })
-    const billingAllowed = consume && observations.length > 0 && input.dataRequest?.request_scope === 'billing_underlay' && Boolean(input.fallback.customerId)
+    const sentPeriod = input.sentRequestPeriod
+    const hasWholeRequestedObservation = !sentPeriod || observations.some(observation =>
+      observation.periodStart >= sentPeriod.from && observation.periodEnd <= sentPeriod.until)
+    const billingAllowed = consume && observations.length > 0 && hasWholeRequestedObservation && input.dataRequest?.request_scope === 'billing_underlay' && Boolean(input.fallback.customerId)
     const periodStart = consume && runtime.normalizedPayload.periodStart ? absolute(runtime.normalizedPayload.periodStart) : null
     const periodEnd = consume && runtime.normalizedPayload.periodEnd ? absolute(runtime.normalizedPayload.periodEnd) : null
     const date = periodEnd ?? periodStart
     const billing: UtiltsBillingContext = {
       ...noAttribution('billing_not_applicable'), ...input.fallback, customerSiteId: input.fallback.siteId,
-      capability: billingAllowed ? 'write' : 'skip', reason: billingAllowed ? null : 'billing_not_applicable',
+      capability: billingAllowed ? 'write' : 'skip', reason: billingAllowed ? null : hasWholeRequestedObservation ? 'billing_not_applicable' : 'e66_no_whole_requested_observation',
       sourceRequestId: input.dataRequest?.id ?? null, requestScope: input.dataRequest?.request_scope ?? null,
       periodStart, periodEnd, month: date ? new Date(date).getUTCMonth() + 1 : null, year: date ? new Date(date).getUTCFullYear() : null,
       status: 'received', sourceSystem: 'ediel_utilts', currency: 'SEK',

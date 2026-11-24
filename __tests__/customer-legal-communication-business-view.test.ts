@@ -82,9 +82,36 @@ it('omits resend for an incomplete log even when the operator has permission', (
   const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, { logs: [{ ...log('failed'), template_key: null }], canResend: true }))
   expect(html).not.toContain('<form')
 })
-it('server caller passes resend permission matching the unchanged server action', () => {
+it('server caller requires customer write permission or platform override for resend', () => {
   const page = fs.readFileSync('app/admin/customers/[id]/page.part-4.tsx', 'utf8')
-  expect(page).toContain('isPlatformAdmin || hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] })')
+  expect(page).toContain('isPlatformAdmin || access.permissions.includes("customers.write")')
   expect(page.match(/canResend={canResendCustomerEmail}/g)).toHaveLength(2)
   expect(page).toContain('isPlatformAdmin={isPlatformAdmin}\n            customerIdentity=')
 })
+
+it.each([
+  ['queued', 'Omtaget har lagts i utskickskön.', 'status'],
+  ['duplicate', 'Omtaget finns redan registrerat.', 'status'],
+  ['requires_reconciliation', 'Granska tidigare försök i kommunikationshistoriken.', 'alert'],
+  ['failed', 'Omtaget kunde inte köas.', 'alert'],
+  ['already_pending', 'Ett omtag pågår redan.', 'status'],
+])('communication renders the fixed result for %s without enabling resend', (resend, message, role) => {
+  for (const isPlatformAdmin of [false, true]) {
+    const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, {
+      logs: [], resend, isPlatformAdmin,
+    }))
+    expect(html).toContain(message)
+    expect(html).toContain('role="' + role + '"')
+    expect(html).not.toContain('<form')
+  }
+})
+
+it.each([{resend: 'secret@example.invalid'}, {resend: '__proto__'}, {resend: ['queued', 'failed']}])(
+  'communication ignores unrecognized or repeated status values',
+  ({resend}) => {
+    const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, { logs: [], resend }))
+    expect(html).not.toContain('role="status"')
+    expect(html).not.toContain('role="alert"')
+    expect(html).not.toContain('secret@example.invalid')
+  },
+)

@@ -2,16 +2,16 @@
 import { revalidatePath } from "next/cache"
 import { createHash } from "node:crypto"
 
-import { isPlatformAdminContext, requireAdminActionAccess, requireCompanyScopedActionAccess, type GuardResult } from "@/lib/admin/guards"
+import { isPlatformAdminContext, type GuardResult } from "@/lib/admin/guards"
 import { hasPermissionRequirement } from "@/lib/admin/accessModel"
+import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 
 // Mirrors the manual signing-link action's contracts.write requirement.
 function canWriteContracts(guard: GuardResult): boolean {
   return isPlatformAdminContext(guard) || hasPermissionRequirement(guard.permissions, { allOf: ["contracts.write"] })
 }
 import { supabaseService } from "@/lib/supabase/service"
-import { requireOperationalCompanyId } from "@/lib/tenant/scope"
-import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
+import { requireAdminCustomerIntakeContext } from "@/lib/customers/adminIntakeScope"
 import { parseCustomerImportFormData } from "@/lib/customers/importParser"
 
 
@@ -27,7 +27,7 @@ import type { CustomerImportPreviewRowStatus, IntakeActionState } from "./action
 
 
 import type { ContractStatus, CreateCustomerGraphParams, PriceAreaCode, SiteType } from './actions.part-1'
-import { buildCreateCustomerParams, getActorUserId, getFormValues, getString, insertAuditLog, normalizeBillingLevel, normalizeCustomerType, normalizeDuplicateResolution, normalizeIntakeFlowType, parseContractType, parseGreenFeeMode, parseIntOrNull, parseNumber, parseOptionalFeeLines, resolveOrCreateCurrentSupplierForIntake, resolveOrCreateGridOwnerForIntake } from './actions.part-1'
+import { buildCreateCustomerParams, getFormValues, getString, insertAuditLog, normalizeBillingLevel, normalizeCustomerType, normalizeDuplicateResolution, normalizeIntakeFlowType, parseContractType, parseGreenFeeMode, parseIntOrNull, parseNumber, parseOptionalFeeLines, resolveOrCreateCurrentSupplierForIntake, resolveOrCreateGridOwnerForIntake } from './actions.part-1'
 import type { CustomerGraphResult } from './actions.part-2'
 import { CustomerGraphCommittedReviewError, ADMIN_INTAKE_IN_PROGRESS_STALE_MS, ADMIN_INTAKE_ROUTE, createCustomerGraph, databaseObjectMissing, mapUnknownErrorToIntakeState } from './actions.part-2'
 import { rowValue } from './actions.part-4'
@@ -89,11 +89,13 @@ export async function createCustomerAction(
   formData: FormData,
 ): Promise<IntakeActionState> {
   try {
-    const guard = await requireAdminActionAccess({ allOf: ["customers.write"] });
-    const actorUserId = await getActorUserId();
-    const companyId = await requireOperationalCompanyId(actorUserId);
-    await requireCompanyOperationalForWrites(companyId);
+    const { actor: guard, companyId } = await requireAdminCustomerIntakeContext();
+    const actorUserId = guard.userId;
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
+    if (params.postCreateAction === "request_data" && !isPlatformAdminContext(guard)
+      && !hasPermissionRequirement(guard.permissions, { allOf: [MASTERDATA_PERMISSIONS.WRITE] })) {
+      throw new Error("Direkt uppgiftsbegäran kräver behörighet att ändra masterdata. Välj ett annat nästa steg.");
+    }
 
     const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
     const { intake, created: intakeCreated } = await getOrCreateCustomerApplicationIntake({
@@ -356,9 +358,9 @@ export async function insertImportRow(params: {
   duplicateWarnings?: string[];
   confidence?: number;
 }) {
-  if (!params.importBatchId) return;
+  if (!params.importBatchId) return false;
 
-  await supabaseService.from("customer_import_rows").insert({
+  const { error } = await supabaseService.from("customer_import_rows").insert({
     import_batch_id: params.importBatchId,
     company_id: params.companyId,
     row_number: params.rowNumber,
@@ -375,6 +377,7 @@ export async function insertImportRow(params: {
     },
     parser_confidence: params.confidence ?? null,
   });
+  return error === null;
 }
 
 export async function recordDocumentAiExtractionForImport(params: {
@@ -625,13 +628,15 @@ export async function buildCustomerParamsFromImportRow(params: {
 
 export async function recalculateImportBatchCounters(
   importBatchId: string | null | undefined,
+  companyId: string,
 ) {
   if (!importBatchId) return;
 
   const { data: rows, error } = await supabaseService
     .from("customer_import_rows")
     .select("status")
-    .eq("import_batch_id", importBatchId);
+    .eq("import_batch_id", importBatchId)
+    .eq("company_id", companyId);
 
   if (error) {
     if (!databaseObjectMissing(error)) throw error;
@@ -677,7 +682,8 @@ export async function recalculateImportBatchCounters(
         failedRows,
       },
     })
-    .eq("id", importBatchId);
+    .eq("id", importBatchId)
+    .eq("company_id", companyId);
 
   if (updateError && !databaseObjectMissing(updateError)) throw updateError;
 }
@@ -686,40 +692,115 @@ export type CustomerImportRowForAction = CustomerImportRowRecord & {
   company_id: string;
 };
 
-export async function loadImportRowForAction(
+async function loadImportRowForAction(
   rowId: string,
+  companyId: string,
 ): Promise<CustomerImportRowForAction> {
   const { data, error } = await supabaseService
     .from("customer_import_rows")
     .select("*")
     .eq("id", rowId)
+    .eq("company_id", companyId)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) throw new Error("Importraden hittades inte.");
 
   const row = data as CustomerImportRowRecord;
-  if (!row.company_id)
-    throw new Error(
-      "Importraden saknar bolagskoppling och kan inte behandlas säkert.",
-    );
+  if (row.company_id !== companyId) throw new Error("Importraden hittades inte.");
 
   return row as CustomerImportRowForAction;
+}
+
+const IMPORT_REVIEW_RECEIPT_COLUMNS = "id, company_id, status, customer_id, reviewed_at, reviewed_by";
+
+type ImportReview = {
+  companyId: string;
+  actorUserId: string;
+} & (
+  | { status: "created"; customerId: string; resolution?: CreateCustomerGraphParams["duplicateResolution"]; errorMessage?: never }
+  | { status: "rejected"; customerId: null; resolution?: never; errorMessage: string }
+);
+
+type ImportReviewReceipt = ImportReview & {
+  rowId: string;
+  reviewedAt: string;
+};
+
+function hasImportReviewColumns(row: CustomerImportRowForAction, requireResolution = false): boolean {
+  // A full row includes nullable columns. Missing keys indicate that the
+  // legacy database cannot record the required review.
+  return Object.hasOwn(row, "reviewed_at") && Object.hasOwn(row, "reviewed_by") &&
+    (!requireResolution || Object.hasOwn(row, "resolution"));
+}
+
+function matchesImportReviewReceipt(value: unknown, expected: ImportReviewReceipt): boolean {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return row.id === expected.rowId && row.company_id === expected.companyId &&
+    row.status === expected.status && row.customer_id === expected.customerId &&
+    row.reviewed_by === expected.actorUserId && row.error_message === (expected.errorMessage ?? null) &&
+    (expected.resolution === undefined || row.resolution === expected.resolution) &&
+    typeof row.reviewed_at === "string" && Date.parse(row.reviewed_at) === Date.parse(expected.reviewedAt);
+}
+
+async function persistImportReviewReceipt(row: CustomerImportRowForAction, review: ImportReview) {
+  const expected = { ...review, rowId: row.id, reviewedAt: new Date().toISOString() };
+  const columns = `${IMPORT_REVIEW_RECEIPT_COLUMNS}, ${review.resolution === undefined ? "" : "resolution, "}error_message`;
+
+  const { data: receipt, error: updateError } = await supabaseService
+    .from("customer_import_rows")
+    .update({
+      status: expected.status,
+      customer_id: expected.customerId,
+      reviewed_at: expected.reviewedAt,
+      reviewed_by: expected.actorUserId,
+      ...(expected.resolution === undefined ? {} : { resolution: expected.resolution }),
+      error_message: expected.errorMessage ?? null,
+    })
+    .eq("id", expected.rowId)
+    .eq("company_id", expected.companyId)
+    .eq("status", row.status)
+    .is("customer_id", null)
+    .select(columns)
+    .maybeSingle();
+
+  if (!updateError && matchesImportReviewReceipt(receipt, expected)) return;
+
+  // If the write response was lost, verify the exact committed row once.
+  const { data: storedReceipt, error: readError } = await supabaseService
+    .from("customer_import_rows")
+    .select(columns)
+    .eq("id", expected.rowId)
+    .eq("company_id", expected.companyId)
+    .maybeSingle();
+
+  if (readError || !matchesImportReviewReceipt(storedReceipt, expected)) {
+    const message = expected.status === "rejected"
+      ? "Avvisningen kunde inte bekräftas. Kontrollera importraden innan du försöker igen."
+      : "Kundändringen och granskningsraden kunde inte bekräftas tillsammans. Kontrollera kunden och importraden innan du försöker igen.";
+    throw new Error(message, { cause: updateError ?? readError });
+  }
 }
 
 export async function createCustomerFromImportRowAction(formData: FormData) {
   const rowId = getString(formData, "importRowId");
   if (!rowId) throw new Error("Import-rad saknas.");
 
-  const importRow = await loadImportRowForAction(rowId);
-  await requireCompanyScopedActionAccess(importRow.company_id, {
-    anyOf: ["customers.write"],
-  });
-  const actorUserId = await getActorUserId();
-  await requireCompanyOperationalForWrites(importRow.company_id);
+  const { actor, companyId } = await requireAdminCustomerIntakeContext();
+  const actorUserId = actor.userId;
+  const importRow = await loadImportRowForAction(rowId, companyId);
+
+  if (importRow.status === "rejected") {
+    throw new Error("Importraden är avvisad och kan inte ändra kunduppgifter.");
+  }
 
   if (importRow.customer_id || importRow.status === "created") {
     throw new Error("Importraden har redan skapat en kund.");
+  }
+
+  if (!hasImportReviewColumns(importRow)) {
+    throw new Error("Den äldre importkön kan inte spara ett granskat kundskapande. Kundposten har inte ändrats.");
   }
 
   const normalizedPayload =
@@ -728,30 +809,23 @@ export async function createCustomerFromImportRowAction(formData: FormData) {
     throw new Error("Importraden saknar normaliserad payload.");
   }
 
+  const params = await buildCustomerParamsFromImportRow({
+    actorUserId,
+    companyId,
+    row: normalizedPayload,
+  });
+  const customer = await createCustomerGraph(params);
+
   try {
-    const params = await buildCustomerParamsFromImportRow({
+    await persistImportReviewReceipt(importRow, {
+      companyId,
+      status: "created",
+      customerId: customer.id,
       actorUserId,
-      companyId: importRow.company_id,
-      row: normalizedPayload,
     });
-    const customer = await createCustomerGraph(params);
-
-    const { error: updateError } = await supabaseService
-      .from("customer_import_rows")
-      .update({
-        status: "created",
-        customer_id: customer.id,
-        error_message: null,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: actorUserId,
-      })
-      .eq("id", importRow.id);
-
-    if (updateError) throw updateError;
-
     await insertAuditLog({
       actorUserId,
-      companyId: importRow.company_id,
+      companyId,
       entityType: "customer_import_row",
       entityId: importRow.id,
       action: "customer_import_row_created_customer",
@@ -761,29 +835,11 @@ export async function createCustomerFromImportRowAction(formData: FormData) {
         rowNumber: importRow.row_number,
       },
     });
-
-    await recalculateImportBatchCounters(importRow.import_batch_id);
-
+    await recalculateImportBatchCounters(importRow.import_batch_id, companyId);
+  } finally {
     revalidatePath("/admin/customers");
     revalidatePath("/admin/customers/imports");
     revalidatePath(`/admin/customers/${customer.id}`);
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Kunden kunde inte skapas från importraden.";
-    await supabaseService
-      .from("customer_import_rows")
-      .update({
-        status: "failed",
-        error_message: message,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: actorUserId,
-      })
-      .eq("id", importRow.id);
-    await recalculateImportBatchCounters(importRow.import_batch_id);
-    revalidatePath("/admin/customers/imports");
-    throw error;
   }
 }
 
@@ -800,15 +856,20 @@ export async function linkCustomerImportRowToExistingCustomerAction(
   if (!existingCustomerId)
     throw new Error("Välj befintlig kund innan raden kopplas.");
 
-  const importRow = await loadImportRowForAction(rowId);
-  await requireCompanyScopedActionAccess(importRow.company_id, {
-    anyOf: ["customers.write"],
-  });
-  const actorUserId = await getActorUserId();
-  await requireCompanyOperationalForWrites(importRow.company_id);
+  const { actor, companyId } = await requireAdminCustomerIntakeContext();
+  const actorUserId = actor.userId;
+  const importRow = await loadImportRowForAction(rowId, companyId);
+
+  if (importRow.status === "rejected") {
+    throw new Error("Importraden är avvisad och kan inte ändra kunduppgifter.");
+  }
 
   if (importRow.customer_id || importRow.status === "created") {
     throw new Error("Importraden är redan kopplad till en kund.");
+  }
+
+  if (!hasImportReviewColumns(importRow, true)) {
+    throw new Error("Den äldre importkön kan inte spara en granskad koppling. Kundposten har inte ändrats.");
   }
 
   const normalizedPayload =
@@ -819,7 +880,7 @@ export async function linkCustomerImportRowToExistingCustomerAction(
 
   const params = await buildCustomerParamsFromImportRow({
     actorUserId,
-    companyId: importRow.company_id,
+    companyId,
     row: {
       ...(normalizedPayload as Record<string, string>),
       existing_customer_id: existingCustomerId,
@@ -835,42 +896,41 @@ export async function linkCustomerImportRowToExistingCustomerAction(
       : resolution;
 
   const customer = await createCustomerGraph(params);
+  if (customer.id.toLowerCase() !== existingCustomerId.toLowerCase()) {
+    throw new Error("Kundändringen avser en annan kund än den valda. Kontrollera kunden och importraden.");
+  }
 
-  const { error: updateError } = await supabaseService
-    .from("customer_import_rows")
-    .update({
+  try {
+    await persistImportReviewReceipt(importRow, {
+      companyId,
       status: "created",
-      customer_id: customer.id,
-      error_message: null,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: actorUserId,
-      resolution: params.duplicateResolution,
-    })
-    .eq("id", importRow.id);
-
-  if (updateError && updateError.code !== "42703") throw updateError;
-
-  await insertAuditLog({
-    actorUserId,
-    companyId: importRow.company_id,
-    entityType: "customer_import_row",
-    entityId: importRow.id,
-    action: "customer_import_row_linked_existing_customer",
-    newValues: {
       customerId: customer.id,
-      existingCustomerId,
+      actorUserId,
       resolution: params.duplicateResolution,
-    },
-    metadata: {
-      importBatchId: importRow.import_batch_id,
-      rowNumber: importRow.row_number,
-    },
-  });
+    });
+    await insertAuditLog({
+      actorUserId,
+      companyId,
+      entityType: "customer_import_row",
+      entityId: importRow.id,
+      action: "customer_import_row_linked_existing_customer",
+      newValues: {
+        customerId: customer.id,
+        existingCustomerId,
+        resolution: params.duplicateResolution,
+      },
+      metadata: {
+        importBatchId: importRow.import_batch_id,
+        rowNumber: importRow.row_number,
+      },
+    });
 
-  await recalculateImportBatchCounters(importRow.import_batch_id);
-  revalidatePath("/admin/customers");
-  revalidatePath("/admin/customers/imports");
-  revalidatePath(`/admin/customers/${customer.id}`);
+    await recalculateImportBatchCounters(importRow.import_batch_id, companyId);
+  } finally {
+    revalidatePath("/admin/customers");
+    revalidatePath("/admin/customers/imports");
+    revalidatePath(`/admin/customers/${customer.id}`);
+  }
 }
 
 export async function rejectCustomerImportRowAction(formData: FormData) {
@@ -879,41 +939,43 @@ export async function rejectCustomerImportRowAction(formData: FormData) {
     getString(formData, "reason") || "Avvisad vid manuell granskning.";
   if (!rowId) throw new Error("Import-rad saknas.");
 
-  const importRow = await loadImportRowForAction(rowId);
-  await requireCompanyScopedActionAccess(importRow.company_id, {
-    anyOf: ["customers.write"],
-  });
-  const actorUserId = await getActorUserId();
+  const { actor, companyId } = await requireAdminCustomerIntakeContext();
+  const actorUserId = actor.userId;
+  const importRow = await loadImportRowForAction(rowId, companyId);
 
-  if (importRow.status === "created") {
-    throw new Error("Raden har redan skapat en kund och kan inte avvisas.");
+  if (importRow.status === "created" || importRow.customer_id) {
+    throw new Error("Raden är redan kopplad till en kund och kan inte avvisas.");
+  }
+  if (importRow.status === "rejected") {
+    throw new Error("Importraden är redan avvisad.");
+  }
+  if (!hasImportReviewColumns(importRow)) {
+    throw new Error("Den äldre importkön kan inte spara en granskad avvisning.");
   }
 
-  const { error } = await supabaseService
-    .from("customer_import_rows")
-    .update({
+  try {
+    await persistImportReviewReceipt(importRow, {
+      companyId,
+      actorUserId,
       status: "rejected",
-      error_message: reason,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: actorUserId,
-    })
-    .eq("id", importRow.id);
+      customerId: null,
+      errorMessage: reason,
+    });
+    await insertAuditLog({
+      actorUserId,
+      companyId,
+      entityType: "customer_import_row",
+      entityId: importRow.id,
+      action: "customer_import_row_rejected",
+      newValues: { status: "rejected", reason },
+      metadata: {
+        importBatchId: importRow.import_batch_id,
+        rowNumber: importRow.row_number,
+      },
+    });
 
-  if (error) throw error;
-
-  await insertAuditLog({
-    actorUserId,
-    companyId: importRow.company_id,
-    entityType: "customer_import_row",
-    entityId: importRow.id,
-    action: "customer_import_row_rejected",
-    newValues: { status: "rejected", reason },
-    metadata: {
-      importBatchId: importRow.import_batch_id,
-      rowNumber: importRow.row_number,
-    },
-  });
-
-  await recalculateImportBatchCounters(importRow.import_batch_id);
-  revalidatePath("/admin/customers/imports");
+    await recalculateImportBatchCounters(importRow.import_batch_id, companyId);
+  } finally {
+    revalidatePath("/admin/customers/imports");
+  }
 }

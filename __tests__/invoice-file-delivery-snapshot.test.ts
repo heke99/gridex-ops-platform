@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { InvoiceFileRow } from '@/lib/billing/invoiceFileExport';
+import type { InvoiceFileArtifact, InvoiceFileRow } from '@/lib/billing/invoiceFileExport';
+const itemId = '33000000-0000-4000-8000-000000000001';
+const approverId = '33000000-0000-4000-8000-000000000002';
+const reviewHash = 'c'.repeat(64);
+const approvedAt = '2026-11-01T10:00:00.000Z';
 type FileRpcArgs = {
     p_company_id: string;
     p_environment: string;
     p_rows: InvoiceFileRow[];
+    p_file_id: string;
+    p_created_at: string;
+    p_rows_sha256: string;
+    p_artifacts: InvoiceFileArtifact[];
 };
 const state = vi.hoisted(() => ({
     tables: {} as FixtureTables,
+    writeError: null as { code: string; message: string } | null,
     calls: [] as Array<{
         name: string;
         args: FileRpcArgs;
@@ -148,14 +157,18 @@ vi.mock('@/lib/supabase/service', () => ({
     supabaseService: {
         from: (table: string) => new ProjectionQuery(table),
         async rpc(name: string, args: FileRpcArgs) {
-            if (name !== 'gridex_create_invoice_export_file_v1')
+            if (name === 'gridex_read_invoice_file_intent_v2') return { data: null, error: null };
+            if (name !== 'gridex_write_invoice_file_intent_v2')
                 throw new Error('Unexpected RPC ' + name);
             state.calls.push({
                 name,
                 args: structuredClone(args)
             });
+            if (state.writeError) return { data: null, error: state.writeError };
             return {
-                data: 'file-A',
+                data: { fileId: args.p_file_id, rowCount: args.p_rows.length, rowsSha256: args.p_rows_sha256, replayed: false,
+                    provider: 'file_export', environment: args.p_environment, createdAt: args.p_created_at,
+                    artifacts: args.p_artifacts.map(({ bodyBase64: _storedBody, ...manifest }) => manifest) },
                 error: null
             };
         }
@@ -200,7 +213,9 @@ import { createInvoiceFile } from '@/lib/billing/invoiceFileExport';
 const run = () => createInvoiceFile({
     companyId: 'company-A',
     billingMonth: '2026-11',
-    actorUserId: 'actor-A',
+    actorUserId: approverId,
+    exportIntentId: '33000000-0000-4000-8000-000000000003',
+    exportIntentScope: { provider: 'file_export', environment: 'test', selection: [{ itemId, approvedBy: approverId, approvedAt, reviewHash }] },
     now: new Date('2026-11-01T12:00:00Z')
 });
 const legacy = () => state.tables.billing_export_run_items[0] as FixtureRow & {
@@ -208,6 +223,7 @@ const legacy = () => state.tables.billing_export_run_items[0] as FixtureRow & {
 };
 beforeEach(() => {
     state.calls = [];
+    state.writeError = null;
     state.updates = [];
     state.tables = {
         companies: [{
@@ -224,7 +240,7 @@ beforeEach(() => {
             environment: 'test'
             }],
         invoice_export_items: [{
-            id: 'item-A',
+            id: itemId,
             company_id: 'company-A',
             export_run_id: 'run-A',
             customer_id: 'customer-A',
@@ -235,7 +251,7 @@ beforeEach(() => {
             export_file_id: null,
             metadata: {
                     approval: {
-                        status: 'approved'
+                        status: 'approved', approved_by: approverId, approved_at: approvedAt, review_hash: reviewHash
                     }
                 },
             total_kwh: 10,
@@ -281,17 +297,19 @@ beforeEach(() => {
         customer_invoices: [{
             id: 'invoice-A',
             company_id: 'company-A',
-            invoice_export_item_id: 'item-A',
+            invoice_export_item_id: itemId,
+            invoice_reference: 'invoice-stable-reference',
             price_area_code: 'SE3',
             calculation_snapshot_sha256: 'a'.repeat(64),
             total_kwh: 10,
             amount_inc_vat: 125
             }],
         billing_export_run_items: [{
-            id: 'item-A',
+            id: itemId,
             company_id: 'company-A',
             invoice_recipient: 'Frozen recipient',
             invoice_email: null,
+            invoice_reference: 'Frozen contact reference',
             invoice_address_snapshot: {
                     recipient: 'Frozen recipient',
                     email: null,
@@ -323,9 +341,40 @@ beforeEach(() => {
     };
 });
 describe('DELIVERY01.04 public file export frozen delivery boundary', () => {
+    it.each([
+        'billing_finalized_supply_basis_changed',
+        'ended_supply_pricing_basis_changed',
+    ])('reports %s as a changed approved file selection', async (message) => {
+        state.writeError = { code: '23514', message };
+        await expect(run()).rejects.toMatchObject({ code: 'invoice_file_selection_changed' });
+        expect(state.calls).toHaveLength(1);
+    });
+
+    it('preserves the named recoverable archive lock for a retry', async () => {
+        state.writeError = { code: '55P03', message: 'invoice_file_finance_lock_busy' };
+        await expect(run()).rejects.toMatchObject({ code: 'invoice_file_finance_lock_busy' });
+        expect(state.calls).toHaveLength(1);
+    });
+
+    it.each([
+        { code: '40001', message: 'billing_finalized_supply_basis_changed' },
+        { code: '23514', message: 'unexpected_file_constraint' },
+        { code: '23514', message: 'invoice_file_finance_lock_busy' },
+        { code: '55P03', message: 'unexpected_file_lock' },
+    ])('preserves unexpected archive error $code and $message', async (error) => {
+        state.writeError = error;
+        await expect(run()).rejects.toThrow(error.message);
+        expect(state.calls).toHaveLength(1);
+    });
+
+    it('refuses a new export without its identified frozen intent before reading or writing', async () => {
+        await expect(createInvoiceFile({ companyId: 'company-A', billingMonth: '2026-11', actorUserId: approverId }))
+            .rejects.toMatchObject({ code: 'invoice_file_intent_invalid' });
+        expect(state.calls).toEqual([]);
+    });
     it.each(['street', 'postal_code', 'city'])('refuses approved snapshot missing %s before file RPC', async (field) => {
         legacy().invoice_address_snapshot[field] = '  ';
-        await expect(run()).rejects.toThrow();
+        await expect(run()).rejects.toMatchObject({ code: 'invoice_distribution_missing' });
         expect(state.calls).toEqual([]);
         expect(state.updates).toEqual([]);
     });
@@ -333,7 +382,7 @@ describe('DELIVERY01.04 public file export frozen delivery boundary', () => {
         legacy().invoice_address_snapshot = {
             recipient: 'Frozen recipient'
         };
-        await expect(run()).rejects.toThrow();
+        await expect(run()).rejects.toMatchObject({ code: 'invoice_distribution_missing' });
         expect(state.calls).toEqual([]);
     });
     it('persists the approved frozen address despite changed live customer and site addresses', async () => {
@@ -346,7 +395,10 @@ describe('DELIVERY01.04 public file export frozen delivery boundary', () => {
             p_environment: 'test'
         });
         expect(state.calls[0].args.p_rows[0]).toMatchObject({
-            invoice_export_item_id: 'item-A',
+            invoice_export_item_id: itemId,
+            invoice_number: null,
+            invoice_reference: 'invoice-stable-reference',
+            reference: 'Frozen contact reference',
             recipient: 'Frozen recipient',
             email: null,
             street: 'Frozen approved street',

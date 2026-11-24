@@ -8,10 +8,11 @@ const io = vi.hoisted(() => ({
   audit: [] as Array<Record<string, unknown>>,
   create: vi.fn(), update: vi.fn(), getCase: vi.fn(), note: vi.fn(),
   getOutbound: vi.fn(), listOutbound: vi.fn(), refresh: vi.fn(), retry: vi.fn(),
-  revalidate: vi.fn(), legacy: vi.fn(),
+  revalidate: vi.fn(), legacy: vi.fn(), requestedPermissions: [] as string[][],
 }))
 vi.mock('@/lib/admin/guards', () => ({
-  requireAdminActionAccess: async () => {
+  requireAdminActionAccess: async (permissions: string[]) => {
+    io.requestedPermissions.push(permissions)
     if (io.denied) throw new Error('permission_denied')
     return { userId: 'operator', email: 'operator@example.invalid', roles: [],
       permissions: ['cases.write', 'switching.write'], companyId: io.companyId, isPlatformAdmin: io.platform }
@@ -32,7 +33,7 @@ vi.mock('@/lib/customer-service/supportConversation', () => ({
 vi.mock('@/lib/customer-service/supportAttachments', () => ({ SUPPORT_ATTACHMENT_OPS_MAX_BYTES: 4_000_000, addSupportAttachment: vi.fn() }))
 vi.mock('@/lib/cis/db', () => ({
   getOutboundRequestById: io.getOutbound, listUnresolvedOutboundRequests: io.listOutbound,
-  resetOutboundRequestForRetry: io.retry, refreshOutboundRequestRouteResolution: io.refresh,
+  resolveLegacyOutboundRoute: io.refresh,
 }))
 vi.mock('@/lib/operations/db', () => ({ createSupplierSwitchEvent: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({
@@ -44,7 +45,14 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   } }),
 } }))
 
-import { addInternalNoteAction, createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from '@/app/admin/customer-cases/actions'
+import {
+  addInternalNoteAction,
+  createCustomerCaseFromFormAction,
+  recordPhoneInteractionAction,
+  replyToCustomerAction,
+  updateCustomerCaseStatusAction,
+  uploadSupportAttachmentAction,
+} from '@/app/admin/customer-cases/actions'
 import { rerunAllUnresolvedRouteResolutionsAction, rerunUnresolvedRouteResolutionAction } from '@/app/admin/outbound/unresolved/actions'
 
 const form = (values: Record<string, string>) => {
@@ -56,7 +64,7 @@ const createForm = () => form({ customer_id: 'customer-A', title: 'Fixture suppo
 const outboundForm = (id = 'outbound-A') => form({ outbound_request_id: id, customer_id: `customer-${id.slice(-1)}` })
 
 beforeEach(() => {
-  io.companyId = 'guard-A'; io.platform = false; io.denied = false; io.audit = []
+  io.companyId = 'guard-A'; io.platform = false; io.denied = false; io.audit = []; io.requestedPermissions = []
   for (const mock of [io.create, io.update, io.getCase, io.note, io.getOutbound, io.listOutbound, io.refresh, io.retry, io.revalidate, io.legacy]) mock.mockReset()
   io.legacy.mockResolvedValue({ companyId: 'legacy-B', companyName: 'Legacy B', message: null })
   io.create.mockImplementation(async input => {
@@ -70,14 +78,17 @@ beforeEach(() => {
     if (input.companyId !== 'guard-A') throw new Error('case_not_found_in_company')
   })
   io.getCase.mockImplementation(async (id, company) => company === 'guard-A'
-    ? { id, company_id: company, customer_id: 'customer-A' } : null)
+    ? { id, company_id: company, customer_id: 'customer-A', source: 'tenant_support_admin' } : null)
   io.rows = new Map(['A', 'B'].map(suffix => [`outbound-${suffix}`, {
     id: `outbound-${suffix}`, company_id: suffix === 'A' ? 'guard-A' : 'legacy-B', customer_id: `customer-${suffix}`,
     channel_type: 'unresolved', status: 'queued', request_type: 'meter_values', source_type: 'metering', source_id: null,
   }]))
   io.getOutbound.mockImplementation(async id => io.rows.get(id) ?? null)
   io.listOutbound.mockImplementation(async ({ companyId }) => [...io.rows.values()].filter(row => companyId === null || row.company_id === companyId))
-  io.refresh.mockImplementation(async ({ outboundRequestId }) => ({ ...io.rows.get(outboundRequestId), channel_type: 'api' }))
+  io.refresh.mockImplementation(async ({ request }) => {
+    io.audit.push({ company_id: request.company_id, entity_id: request.id })
+    return { status: 'resolved', request: { ...request, channel_type: 'api' }, requeued: false }
+  })
 })
 
 it('creates support under the canonical permission company and retains the rendered-form tenant fence', async () => {
@@ -107,9 +118,32 @@ it('uses the canonical company for support status and conversation ownership', a
   expect(io.note).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'guard-A', actorUserId: 'operator' }))
 })
 
+it.each([
+  createCustomerCaseFromFormAction,
+  updateCustomerCaseStatusAction,
+  replyToCustomerAction,
+  addInternalNoteAction,
+  recordPhoneInteractionAction,
+  uploadSupportAttachmentAction,
+])('%o requires cases.write before reading the case or accepting a stale form', async action => {
+  const stale = form({ case_id: 'case-A', expected_company_id: 'legacy-B' })
+  io.denied = true
+  await expect(action(stale)).rejects.toThrow('permission_denied')
+  expect(io.requestedPermissions).toEqual([['cases.write']])
+
+  io.denied = false
+  await expect(action(stale)).rejects.toThrow('annan flik')
+  expect(io.requestedPermissions).toEqual([['cases.write'], ['cases.write']])
+  expect(io.getCase).not.toHaveBeenCalled()
+  expect(io.create).not.toHaveBeenCalled()
+  expect(io.update).not.toHaveBeenCalled()
+  expect(io.note).not.toHaveBeenCalled()
+  expect(io.revalidate).not.toHaveBeenCalled()
+})
+
 it('reruns the canonical company outbound row even when legacy selection differs', async () => {
   await rerunUnresolvedRouteResolutionAction(outboundForm())
-  expect(io.refresh).toHaveBeenCalledWith({ actorUserId: 'operator', outboundRequestId: 'outbound-A' })
+  expect(io.refresh).toHaveBeenCalledWith({ actorUserId: 'operator', request: io.rows.get('outbound-A'), mode: 'rerun' })
   expect(io.audit[0].company_id).toBe('guard-A')
   expect(io.legacy).not.toHaveBeenCalled()
 })
@@ -122,7 +156,7 @@ it('refuses a foreign outbound row before any route or audit mutation', async ()
 it('bulk rerun selects only the company covered by the existing permission guard', async () => {
   await rerunAllUnresolvedRouteResolutionsAction()
   expect(io.listOutbound).toHaveBeenCalledWith({ companyId: 'guard-A' })
-  expect(io.refresh.mock.calls.map(([input]) => input.outboundRequestId)).toEqual(['outbound-A'])
+  expect(io.refresh.mock.calls.map(([input]) => input.request.id)).toEqual(['outbound-A'])
   expect(io.audit.every(row => row.company_id === 'guard-A')).toBe(true)
 })
 
@@ -151,7 +185,7 @@ it('platform outbound keeps global bulk scope independently of a selected compan
   io.platform = true
   await rerunAllUnresolvedRouteResolutionsAction()
   expect(io.listOutbound).toHaveBeenCalledWith({ companyId: null })
-  expect(io.refresh.mock.calls.map(([input]) => input.outboundRequestId)).toEqual(['outbound-A', 'outbound-B'])
+  expect(io.refresh.mock.calls.map(([input]) => input.request.id)).toEqual(['outbound-A', 'outbound-B'])
   expect(io.audit.at(-1)?.company_id).toBeNull()
 })
 
@@ -162,4 +196,20 @@ it('platform support retains the explicit selected company and cannot invent one
   io.create.mockClear(); io.companyId = null
   await expect(createCustomerCaseFromFormAction(createForm())).rejects.toThrow()
   expect(io.create).not.toHaveBeenCalled()
+})
+
+it('holds a route with transport history before updating audit or refreshing the page', async () => {
+  io.refresh.mockResolvedValueOnce({ status: 'held', reason: 'transport_history', request: io.rows.get('outbound-A') })
+  await expect(rerunUnresolvedRouteResolutionAction(outboundForm())).rejects.toThrow('transporthistorik')
+  expect(io.audit).toEqual([])
+  expect(io.revalidate).not.toHaveBeenCalled()
+})
+
+it('continues bulk route processing and reports the held row with no requeue audit', async () => {
+  io.platform = true
+  io.refresh.mockResolvedValueOnce({ status: 'held', reason: 'transport_history', request: io.rows.get('outbound-A') })
+  await rerunAllUnresolvedRouteResolutionsAction()
+  expect(io.refresh.mock.calls.map(([input]) => input.request.id)).toEqual(['outbound-A', 'outbound-B'])
+  expect(io.audit.some(row => row.entity_id === 'outbound-A')).toBe(false)
+  expect(io.audit.at(-1)?.metadata).toMatchObject({ heldCount: 1, resolvedCount: 1, requeuedCount: 0 })
 })

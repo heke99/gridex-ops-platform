@@ -28,7 +28,7 @@ type SafeSupabaseQuery = {
 }
 type RecentCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null }
 type CustomerCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null; reason_category: string | null; source: string | null; metadata: Record<string, unknown> | null }
-type QueueRow = { queue_type: string | null; company_id: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null }
+type QueueRow = { queue_type: string | null; company_id: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null; payload: Record<string, unknown> | null }
 
 const SEVERITY_LABEL: Record<string, string> = { critical: 'Kritisk', warning: 'Varning', info: 'Info' }
 
@@ -96,6 +96,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
   }
   const canReadCases = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('customer.cases'))
   const canReadSupport = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('operations.tasks'))
+  const canReadBilling = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('billing.workspace'))
   const exceptionTaskStatuses = ['open', 'in_progress', 'blocked', 'pending_review']
   const exceptionCaseStatuses = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up']
 
@@ -111,7 +112,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', op: 'in', value: ['warning', 'blocked', 'requires_correction'] }]),
     safeRows<RecentCaseRow>('customer_operation_tasks', companyId, 'id,title,status,priority,created_at,customer_id', [{ column: 'status', op: 'in', value: exceptionTaskStatuses }], 8),
     safeRows<CustomerCaseRow>('customer_cases', companyId, 'id,title,status,priority,created_at,customer_id,reason_category,source,metadata', [{ column: 'status', op: 'in', value: exceptionCaseStatuses }], 8),
-    safeRows<QueueRow>('gridex_batch_2c_drift_queue_v', companyId, 'queue_type,company_id,source_id,title,severity,status,created_at', [], 8),
+    safeRows<QueueRow>('gridex_batch_2c_drift_queue_v', companyId, 'queue_type,company_id,source_id,title,severity,status,created_at,payload', [], 8),
   ])
   const exceptionSignals = openTasks + customerCases + switchBlocked + outboundFailed + outboundUnresolved + meteringGaps + blockedBilling
   const workspaceName = tenantScope.isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName ?? 'Bolag saknas'
@@ -153,7 +154,38 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
                 return href ? <Link key={`case-${row.id}`} href={href} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">{content}</Link> : <article key={`case-${row.id}`} className="rounded-2xl border border-slate-200 p-4">{content}</article>
               })}
               {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
-              {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="company_id" value={row.company_id ?? ''} /><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
+              {queueRows.map((row) => {
+                const key = `${row.queue_type}-${row.source_id}`
+                const heading = (
+                  <div>
+                    <p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p>
+                    <p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p>
+                  </div>
+                )
+                if (row.queue_type === 'billing_export_item') {
+                  const underlay = row.payload?.billing_underlay_id
+                  const href = typeof underlay === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(underlay)
+                    ? `/admin/billing/underlays/${encodeURIComponent(underlay)}` : '/admin/billing'
+                  return (
+                    <article key={key} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
+                      {heading}
+                      {canReadBilling ? <Link href={href} className="text-sm font-semibold underline">Öppna fakturaunderlag</Link>
+                        : <p className="text-sm text-slate-600">Blockeringen hanteras i faktureringen.</p>}
+                    </article>
+                  )
+                }
+                return (
+                  <form key={key} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4">
+                    <input type="hidden" name="company_id" value={row.company_id ?? ''} />
+                    <input type="hidden" name="queue_type" value={row.queue_type ?? ''} />
+                    <input type="hidden" name="source_id" value={row.source_id ?? ''} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      {heading}
+                      <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button>
+                    </div>
+                  </form>
+                )
+              })}
             </div>
           </div>
 

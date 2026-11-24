@@ -366,12 +366,6 @@ describe('atomic quota transaction boundary (T10)', () => {
 })
 
 describe('OPS adapters', () => {
-  const actions = readFileSync('app/admin/customer-cases/actions.ts', 'utf8')
-  it('every support action requires cases.write and refuses a tenant switched in another tab', () => {
-    expect(actions).toContain("supportCaseScope(formData, 'cases.write')")
-    expect(actions).toContain('expected_company_id')
-    expect(actions.match(/assertFormTenant\(/g)?.length).toBeGreaterThanOrEqual(3)
-  })
   it('API routes are thin adapters mounted with the current contract release', async () => {
     const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
     expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")

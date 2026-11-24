@@ -18,8 +18,8 @@ import {
 } from "@/lib/ediel/flows/shared";
 import {
   getOutboundRequestById,
-  updateGridOwnerDataRequestStatus,
-  updateOutboundRequestStatus,
+  applyGridOwnerProviderStatus,
+  applyEdielOutboundProviderStatus,
 } from "@/lib/cis/db";
 import { formatErrorMessage } from "@/lib/errors";
 import type {
@@ -253,69 +253,6 @@ function resolveGridOwnerDataRequestId(params: {
   return null;
 }
 
-async function ensureOutboundRequestHasSentTimestamp(params: {
-  actorUserId: string;
-  outboundRequest: OutboundRequestRow;
-  sourceMessage: EdielMessageRow;
-  ackMessage: EdielMessageRow;
-}): Promise<OutboundRequestRow> {
-  if (params.outboundRequest.sent_at) return params.outboundRequest;
-
-  const sentAt =
-    params.sourceMessage.message_sent_at ??
-    params.sourceMessage.updated_at ??
-    params.sourceMessage.created_at ??
-    new Date().toISOString();
-
-  const nextStatus =
-    params.outboundRequest.status === "queued" ||
-    params.outboundRequest.status === "prepared"
-      ? "sent"
-      : params.outboundRequest.status;
-
-  const responsePayload = {
-    ...(params.outboundRequest.response_payload ?? {}),
-    sentAtBackfilledFrom: "ediel_inbound_ack_processing",
-    sentAtBackfilledViaAckMessageId: params.ackMessage.id,
-    sentAtBackfilledSourceMessageId: params.sourceMessage.id,
-  };
-
-  const { data, error } = await supabaseService
-    .from("outbound_requests")
-    .update({
-      status: nextStatus,
-      sent_at: sentAt,
-      response_payload: responsePayload,
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.outboundRequest.id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  const updated = data as OutboundRequestRow;
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.sourceMessage.id,
-    eventType: "manual_note",
-    eventStatus: "warning",
-    message:
-      "Outbound request saknade sent_at vid inbound kvittens. sent_at backfillades innan acknowledgment.",
-    payload: {
-      outboundRequestId: updated.id,
-      previousStatus: params.outboundRequest.status,
-      nextStatus: updated.status,
-      sentAt,
-      ackMessageId: params.ackMessage.id,
-    },
-  });
-
-  return updated;
-}
-
 async function syncOutboundRequestFromInboundAck(params: {
   actorUserId: string;
   sourceMessage: EdielMessageRow;
@@ -326,56 +263,34 @@ async function syncOutboundRequestFromInboundAck(params: {
 }): Promise<OutboundRequestRow | null> {
   if (!params.sourceMessage.outbound_request_id) return null;
 
-  const outbound = await getOutboundRequestById(
-    params.sourceMessage.outbound_request_id,
-  );
+  const outbound = await getOutboundRequestById(params.sourceMessage.outbound_request_id);
   if (!outbound) return null;
-
-  if (params.outcome === "negative") {
-    return updateOutboundRequestStatus({
-      actorUserId: params.actorUserId,
-      outboundRequestId: outbound.id,
-      status: "failed",
-      externalReference:
-        params.ackMessage.external_reference ??
-        outbound.external_reference ??
-        null,
-      failureReason:
-        params.failureReason ??
-        `${params.ackMessage.message_family} negativ kvittens.`,
-      responsePayload: {
-        ...(outbound.response_payload ?? {}),
-        inboundAckMessageId: params.ackMessage.id,
-        inboundAckFamily: params.ackMessage.message_family,
-        inboundAckOutcome: params.outcome,
-      },
-    });
+  if (!outbound.company_id || (params.sourceMessage.company_id && params.sourceMessage.company_id !== outbound.company_id)) {
+    throw new Error('Utskickets bolag stämmer inte med Ediel-källan.');
   }
 
-  if (!params.finalAckReached) return outbound;
+  const negative = params.outcome === "negative";
+  if (!negative && !params.finalAckReached) return outbound;
 
-  const ackReadyOutbound = await ensureOutboundRequestHasSentTimestamp({
+  return applyEdielOutboundProviderStatus({
     actorUserId: params.actorUserId,
-    outboundRequest: outbound,
-    sourceMessage: params.sourceMessage,
-    ackMessage: params.ackMessage,
-  });
-
-  return updateOutboundRequestStatus({
-    actorUserId: params.actorUserId,
-    outboundRequestId: ackReadyOutbound.id,
-    status: "acknowledged",
-    externalReference:
-      params.ackMessage.external_reference ??
-      ackReadyOutbound.external_reference ??
-      null,
-    responsePayload: {
-      ...(ackReadyOutbound.response_payload ?? {}),
+    companyId: outbound.company_id,
+    outboundRequestId: outbound.id,
+    status: negative ? "failed" : "acknowledged",
+    externalReference: params.ackMessage.external_reference ?? null,
+    failureReason: negative
+      ? params.failureReason ?? `${params.ackMessage.message_family} negativ kvittens.`
+      : null,
+    responsePatch: {
       inboundAckMessageId: params.ackMessage.id,
       inboundAckFamily: params.ackMessage.message_family,
       inboundAckOutcome: params.outcome,
-      acknowledgedVia: "inbound_ediel_ack",
+      ...(!negative ? { acknowledgedVia: "inbound_ediel_ack" } : {}),
     },
+    sentAtBackfill: !negative ? {
+      sourceMessageId: params.sourceMessage.id,
+      ackMessageId: params.ackMessage.id,
+    } : undefined,
   });
 }
 
@@ -501,46 +416,27 @@ async function syncGridOwnerDataRequestFromInboundAck(params: {
   const current = await getGridOwnerDataRequestById(requestId);
   if (!current) return null;
 
-  if (params.outcome === "negative") {
-    return updateGridOwnerDataRequestStatus({
-      actorUserId: params.actorUserId,
-      requestId: current.id,
-      status: "failed",
-      externalReference:
-        params.ackMessage.external_reference ??
-        current.external_reference ??
-        null,
-      failureReason:
-        params.failureReason ??
-        `${params.ackMessage.message_family} negativ kvittens.`,
-      responsePayload: {
-        ...(current.response_payload ?? {}),
-        inboundAckMessageId: params.ackMessage.id,
-        inboundAckFamily: params.ackMessage.message_family,
-        inboundAckOutcome: params.outcome,
-      },
-      notes: current.notes,
-    });
+  const negative = params.outcome === "negative";
+  if (!negative && !params.finalAckReached) return current;
+  if (!current.company_id || (params.sourceMessage.company_id && params.sourceMessage.company_id !== current.company_id)) {
+    throw new Error('Nätägarbegärans bolag stämmer inte med Ediel-källan.');
   }
 
-  if (!params.finalAckReached || current.status === "received") return current;
-
-  return updateGridOwnerDataRequestStatus({
+  return applyGridOwnerProviderStatus({
     actorUserId: params.actorUserId,
+    companyId: current.company_id,
     requestId: current.id,
-    status: current.status === "pending" ? "sent" : current.status,
-    externalReference:
-      params.ackMessage.external_reference ??
-      current.external_reference ??
-      null,
-    responsePayload: {
-      ...(current.response_payload ?? {}),
+    sourceId: params.ackMessage.id,
+    kind: negative ? "ediel_ack_negative" : "ediel_ack_positive",
+    failureReason: negative
+      ? params.failureReason ?? `${params.ackMessage.message_family} negativ kvittens.`
+      : null,
+    responsePatch: {
       inboundAckMessageId: params.ackMessage.id,
       inboundAckFamily: params.ackMessage.message_family,
       inboundAckOutcome: params.outcome,
-      acknowledgedVia: "inbound_ediel_ack",
+      ...(!negative ? { acknowledgedVia: "inbound_ediel_ack" } : {}),
     },
-    notes: current.notes,
   });
 }
 

@@ -1,3 +1,4 @@
+import { readFacilityRequestDiagnostics } from '@/lib/customers/facilityRequestDiagnostics'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -121,6 +122,7 @@ export default async function ManualRequestDiagnosticsPage({ searchParams }: {
   const requests = (requestData ?? []) as RequestRow[]
   const recentInbound = (recentInboundData ?? []) as InboundRow[]
   const requestIds = requests.map((row) => row.id)
+  const requestDiagnostics = await readFacilityRequestDiagnostics(supabase, requestIds)
 
   const outboxResult = requestIds.length
     ? await supabase
@@ -217,7 +219,7 @@ export default async function ManualRequestDiagnosticsPage({ searchParams }: {
                       <td className="px-4 py-3 text-xs text-slate-700">
                         <div className="font-semibold">{row.status ?? '—'}</div>
                         <div className="text-slate-500">dispatch: {row.dispatch_status ?? '—'}</div>
-                        {row.last_error_code ? <div className="mt-1 text-red-700">{row.last_error_code}: {row.last_error_message}</div> : null}
+                        {row.last_error_code ? <div className="mt-1 text-red-700">{row.last_error_code}: {row.last_error_message ?? requestDiagnostics.get(row.id)?.last_error_message}</div> : null}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-700">
                         <div>till: {row.recipient_email ?? '—'}</div>

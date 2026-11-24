@@ -1,5 +1,7 @@
 "use server";
 
+import type { PermissionRequirement } from "@/lib/admin/accessModel";
+import { customerInfoRequestActionAccess } from "./actionAccess";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminActionAccess } from "@/lib/admin/guards";
@@ -15,6 +17,7 @@ import {
   closeCustomerInfoRequest,
 } from "@/lib/onboarding/infoRequests";
 import { redirect } from "next/navigation";
+import { isUuid } from "@/lib/validation/uuid";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -36,7 +39,8 @@ function checkedValues(formData: FormData, key: string): string[] {
     .filter(Boolean);
 }
 
-async function currentActor() {
+async function currentActor(requiredPermissions: string[] | PermissionRequirement) {
+  const access = await requireAdminActionAccess(requiredPermissions);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -44,15 +48,15 @@ async function currentActor() {
 
   if (!user) throw new Error("Du måste vara inloggad.");
 
-  return {
-    userId: user.id,
-    companyId: await requireOperationalCompanyId(user.id),
-  };
+  const companyId = await requireOperationalCompanyId(user.id);
+  if (access.userId !== user.id || access.companyId !== companyId) {
+    throw new Error("Välj rätt bolag för åtgärden.");
+  }
+  return { userId: user.id, companyId };
 }
 
 export async function createCustomerInfoRequestAction(formData: FormData) {
-  await requireAdminActionAccess(["customers.write"]);
-  const actor = await currentActor();
+  const actor = await currentActor(customerInfoRequestActionAccess.createRequest);
   const customerId = text(formData, "customer_id");
 
   if (!customerId) throw new Error("Välj kund innan uppgiftsbegäran skapas.");
@@ -60,7 +64,7 @@ export async function createCustomerInfoRequestAction(formData: FormData) {
     throw new Error("Välj minst en uppgift som ska begäras eller kontrolleras.");
   }
 
-  await createCustomerInfoRequest({
+  const request = await createCustomerInfoRequest({
     companyId: actor.companyId,
     actorUserId: actor.userId,
     customerId,
@@ -76,14 +80,22 @@ export async function createCustomerInfoRequestAction(formData: FormData) {
       "requested_data_categories",
     ),
     notes: nullableText(formData, "notes"),
+  }).catch((error: unknown) => {
+    if (error instanceof Error && error.message === "customer_info_request_not_created") return null;
+    throw error;
   });
 
   revalidatePath("/admin/customer-info-requests");
+  if (!request || !isUuid(request.id) || request.company_id !== actor.companyId.toLowerCase() ||
+      request.customer_id !== customerId.toLowerCase()) {
+    redirect("/admin/customer-info-requests?request_status=unconfirmed");
+  }
+  const requestId = request.id.toLowerCase();
+  redirect(`/admin/customer-info-requests?request_id=${requestId}#info-request-${requestId}`);
 }
 
 export async function createAuthorizationScopeAction(formData: FormData) {
-  await requireAdminActionAccess(["poa.write", "customers.write"]);
-  const actor = await currentActor();
+  const actor = await currentActor(customerInfoRequestActionAccess.createAuthorization);
   const customerId = text(formData, "customer_id");
 
   if (!customerId)
@@ -109,8 +121,7 @@ export async function createAuthorizationScopeAction(formData: FormData) {
 }
 
 export async function createMeteringPermissionDraftAction(formData: FormData) {
-  await requireAdminActionAccess(["metering.write", "customers.write"]);
-  const actor = await currentActor();
+  const actor = await currentActor(customerInfoRequestActionAccess.createMeteringPermissionDraft);
   const customerId = text(formData, "customer_id");
 
   if (!customerId)
@@ -137,8 +148,7 @@ export async function createMeteringPermissionDraftAction(formData: FormData) {
 }
 
 export async function queueCustomerInfoRequestAction(formData: FormData) {
-  await requireAdminActionAccess(["customers.write", "communication.send"]);
-  const actor = await currentActor();
+  const actor = await currentActor(customerInfoRequestActionAccess.prepareRequest);
   const requestId = text(formData, "request_id");
 
   if (!requestId) throw new Error("Ärendet kunde inte identifieras. Ladda om sidan och försök igen.");
@@ -155,8 +165,7 @@ export async function queueCustomerInfoRequestAction(formData: FormData) {
 }
 
 export async function queueMeteringPermissionZ13Action(formData: FormData) {
-  await requireAdminActionAccess(["metering.write", "communication.write"]);
-  const actor = await currentActor();
+  const actor = await currentActor(["metering.write", "communication.write"]);
   const permissionId = text(formData, "permission_id");
 
   if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
@@ -174,8 +183,7 @@ export async function queueMeteringPermissionZ13Action(formData: FormData) {
 }
 
 export async function applyZ14SnapshotAction(formData: FormData) {
-  await requireAdminActionAccess(["metering.write", "communication.send"]);
-  const actor = await currentActor();
+  const actor = await currentActor(["metering.write", "communication.send"]);
   const permissionId = text(formData, "permission_id");
 
   if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
@@ -192,8 +200,7 @@ export async function applyZ14SnapshotAction(formData: FormData) {
 }
 
 export async function closeCustomerInfoRequestAction(formData: FormData) {
-  await requireAdminActionAccess(["customers.write"]);
-  const actor = await currentActor();
+  const actor = await currentActor(customerInfoRequestActionAccess.closeRequest);
   const requestId = text(formData, "request_id");
   if (!requestId) throw new Error("Ärendet kunde inte identifieras. Ladda om sidan och försök igen.");
 

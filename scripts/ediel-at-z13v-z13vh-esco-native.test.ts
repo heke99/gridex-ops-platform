@@ -162,7 +162,7 @@ const wrongCounterparty='59999'
 async function receiveAck(p:Pending,raw:string){
  const {f}=p
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId:f.ids.company,environment:'test',raw,smtpFrom:edielSmtpConfig().from,senderEmail:'dso-native@example.invalid'})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:f.ids.company,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:f.ids.company,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const id=await createInboundEdielMessage({companyId:f.ids.company,actorUserId:f.ids.actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch})
  expect(id).toBeTruthy();if(!id)throw new Error('actual_z13_ack_intake_required')
  const message=(await getEdielMessageById(id))!

@@ -383,3 +383,22 @@ describe('evaluateContractBillingAccountReadiness', () => {
     ])
   })
 })
+
+it('requires the native underlay qualification for the same terminated contract and ended supply', () => {
+  const base = billableInput()
+  const input = {
+    ...base,
+    contract: { ...base.contract, status: 'terminated' },
+    supplyPeriods: [{ ...base.supplyPeriods?.[0], status: 'ended', contract_id: 'contract-1' }],
+    qualifiedTerminatedSupply: { contractId: 'contract-1', supplyPeriodId: 'sp-1' },
+  }
+  expect(evaluateBillingReadinessCore(input).billable).toBe(true)
+  expect(evaluateBillingReadinessCore({ ...input, qualifiedTerminatedSupply: undefined }).blockers
+    .map(entry => entry.code)).toContain('contract_not_approved')
+  expect(evaluateBillingReadinessCore({
+    ...input, qualifiedTerminatedSupply: { contractId: 'another-contract', supplyPeriodId: 'sp-1' },
+  }).blockers.map(entry => entry.code)).toContain('contract_not_approved')
+  expect(evaluateBillingReadinessCore({
+    ...input, qualifiedTerminatedSupply: { contractId: 'contract-1', supplyPeriodId: 'another-period' },
+  }).blockers.map(entry => entry.code)).toContain('delivery_not_started')
+})

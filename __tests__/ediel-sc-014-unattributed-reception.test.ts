@@ -298,7 +298,7 @@ beforeEach(async () => {
   }
   const db = new PGlite(); port.db = db
   for (const [key, value] of Object.entries({ EDIEL_EMAIL_PROVIDER: 'strato', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'configured@example.invalid', EDIEL_SMTP_HOST: 'smtp.example.invalid', EDIEL_SMTP_PORT: '465', EDIEL_SMTP_USER: 'finite-account', EDIEL_SMTP_PASS: 'synthetic-not-a-credential' })) vi.stubEnv(key, value)
-  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide; create schema gridex_ediel_inbound_receptions;
+  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_ediel_transport; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide; create schema gridex_ediel_inbound_receptions;
     -- PGlite crypto port: same PostgreSQL sha256 bytes, not an admission verdict.
     create function extensions.digest(bytea,text) returns bytea language sql immutable as 'select sha256($1)';
     -- Declared finite native permission service. Real current actor/profile/
@@ -307,6 +307,7 @@ beforeEach(async () => {
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
+  await db.exec(readFileSync('supabase/migrations/20261123195200_inbound_mailbox_bytes_digest.sql', 'utf8'))
   // Install genuine empty private receipt readers used by current source guards.
   // These fixtures create no assigned negative birth or header authority.
   await db.exec('create schema gridex_ediel_header_negative_birth')

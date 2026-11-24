@@ -69,6 +69,42 @@ describe('#4 charset-correct decoding', () => {
     expect(decodeMimePart('V=E4ster=E5s', 'quoted-printable', 'iso-8859-1')).toBe('Västerås')
   })
 
+  it.each(['application/pkcs7-mime', 'application/x-pkcs7-mime', 'application/octet-stream'])(
+    'ediel: %s S/MIME ciphertext is never projected as attachment text',
+    (mediaType) => {
+      const encrypted = Buffer.from([0x30, 0x03, 0x02, 0x01, 0x00])
+      const raw = [
+        'Content-Type: multipart/mixed; boundary="outer"',
+        '',
+        '--outer',
+        'Content-Type: text/plain',
+        '',
+        'See encrypted attachment.',
+        '--outer',
+        `Content-Type: ${mediaType}`,
+        'Content-Disposition: attachment; filename="smime.p7m"',
+        'Content-Transfer-Encoding: base64',
+        '',
+        encrypted.toString('base64'),
+        '--outer--',
+        '',
+      ].join(CRLF)
+
+      expect(splitMimeParts(Buffer.from(raw))).toMatchObject({
+        bodyText: 'See encrypted attachment.',
+        rawEdifactPayload: null,
+        physicalEdifactCandidateCount: 0,
+        attachments: [{
+          filename: 'smime.p7m',
+          mimeType: mediaType,
+          sizeBytes: encrypted.length,
+          rawText: null,
+          isEdifactCandidate: false,
+        }],
+      })
+    },
+  )
+
   it('ediel: an 8-bit UNOC EDIFACT attachment keeps ÅÄÖ and its byte size', () => {
     const edifact = "UNA:+.? 'UNB+UNOC:3+7350000000001:14+7365560000000:14+261009:1000+1'UNH+1+UTILMD:D:02B:UN:E5SE1B'NAD+DP++ÅÄÖ Gatan 1'UNT+3+1'UNZ+1+1'"
     const head = [

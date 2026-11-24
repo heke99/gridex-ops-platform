@@ -8,6 +8,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listAllBillingUnderlays, listAllPartnerExports } from '@/lib/cis/db'
 import { updatePartnerExportStatusAction } from '@/app/admin/cis/actions'
+import { canChangePartnerExportHandling } from '@/lib/cis/partnerExportHandling'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
@@ -140,6 +141,7 @@ export default async function AdminPartnerExportsPage({
  const site = exportRow.site_id ? siteById.get(exportRow.site_id) : null
  const customerLabel = [text(customer?.company_name) ?? text(customer?.full_name) ?? [text(customer?.first_name), text(customer?.last_name)].filter(Boolean).join(' '), text(customer?.customer_number)].filter(Boolean).join(' · ') || (canReadCustomers ? 'Kunduppgifter saknas i denna vy' : 'Kunduppgifter kräver kundläsbehörighet')
  const siteLabel = site?.customer_id === exportRow.customer_id ? [text(site.site_name), text(site.street), text(site.facility_id)].filter(Boolean).join(' · ') || 'Anläggningsuppgifter saknas' : 'Anläggningsuppgifter saknas'
+ const canChangeHandling = canChangePartnerExportHandling(exportRow)
  const relatedUnderlay = exportRow.billing_underlay_id
  ? underlayMap.get(exportRow.billing_underlay_id) ?? null
  : null
@@ -194,7 +196,7 @@ export default async function AdminPartnerExportsPage({
  {showTechnicalDetails ? <details className="mt-3 rounded-xl border border-slate-200 p-3 text-xs"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-2 break-all">Export: {exportRow.id} · Kund: {exportRow.customer_id} · Anläggning: {exportRow.site_id} · Mätpunkt: {exportRow.metering_point_id} · Underlag: {exportRow.billing_underlay_id} · Källbegäran: {relatedUnderlay?.source_request_id} · System: {exportRow.target_system} · Typ: {exportRow.export_kind}</p><p className="mt-2 break-words">{exportRow.failure_reason}</p></details> : null}
  </div>
 
- {canWrite && writableCompanies.get(exportRow.company_id ?? companyId ?? '') ? <details className="min-w-0 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer font-semibold text-slate-800">Uppdatera exportstatus</summary><form
+ {canWrite && writableCompanies.get(exportRow.company_id ?? companyId ?? '') ? <details className="min-w-0 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer font-semibold text-slate-800">{canChangeHandling ? 'Uppdatera exportstatus' : 'Spara notering'}</summary><form
  action={updatePartnerExportStatusAction}
  className="rounded-2xl border border-slate-200 p-4"
  >
@@ -203,25 +205,28 @@ export default async function AdminPartnerExportsPage({
  <input type="hidden" name="export_id" value={exportRow.id} />
  <input type="hidden" name="customer_id" value={exportRow.customer_id} />
 
+ <input type="hidden" name="original_status" value={exportRow.status} />
+ <input type="hidden" name="original_external_reference" value={exportRow.external_reference ?? ''} />
+ <input type="hidden" name="original_response_payload_note" value="" />
+ {showTechnicalDetails ? (
+ <input type="hidden" name="original_failure_reason" value={exportRow.failure_reason ?? ''} />
+ ) : null}
+
  <div className="mt-4 grid gap-3">
- <select
- name="status" aria-label="Exportstatus"
- defaultValue={exportRow.status}
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
- >
+ {canChangeHandling ? <>
+ <select name="status" aria-label="Exportstatus" defaultValue={exportRow.status}
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm">
  <option value="queued">Köad</option>
- <option value="sent">Skickad</option>
- <option value="acknowledged">Kvitterad</option>
  <option value="failed">Kräver åtgärd</option>
  <option value="cancelled">Avbruten</option>
  </select>
-
- <input
- name="external_reference" aria-label="Extern referens"
- defaultValue={exportRow.external_reference ?? ''}
- placeholder="Extern referens"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
- />
+ <input name="external_reference" aria-label="Extern referens"
+ defaultValue={exportRow.external_reference ?? ''} placeholder="Extern referens"
+ className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ </> : <>
+ <input type="hidden" name="status" value={exportRow.status} />
+ <p className="text-sm text-slate-600">Leveransstatus och extern referens hämtas från partnerintegrationen.</p>
+ </>}
 
  <input
  name="response_payload_note" aria-label="Svar eller intern notering"
@@ -229,7 +234,7 @@ export default async function AdminPartnerExportsPage({
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm"
  />
 
- {showTechnicalDetails ? <textarea
+ {showTechnicalDetails && canChangeHandling ? <textarea
  name="failure_reason" aria-label="Felorsak"
  defaultValue={exportRow.failure_reason ?? ''}
  placeholder="Felorsak"
@@ -238,7 +243,7 @@ export default async function AdminPartnerExportsPage({
  /> : null}
 
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">
- Spara exportstatus
+ {canChangeHandling ? 'Spara exportstatus' : 'Spara notering'}
  </button>
  </div>
  </form></details> : null}

@@ -123,6 +123,7 @@ export type CustomerOperationTaskType =
 
 export type CustomerOperationTaskRow = {
   id: string;
+  company_id?: string | null;
   customer_id: string;
   site_id: string | null;
   metering_point_id: string | null;

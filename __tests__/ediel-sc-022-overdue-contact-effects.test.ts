@@ -41,6 +41,16 @@ function definition(source: string, anchor: string) {
 }
 
 async function rpc(name: string, args: Row) {
+  if (name === 'gridex_record_inbound_overdue_task_v1') {
+    await db().exec('SET LOCAL ROLE service_role')
+    try {
+      const result = await db().query<{ result: boolean }>(
+        'SELECT public.gridex_record_inbound_overdue_task_v1($1,$2,$3,$4,$5) result',
+        [args.p_company_id,args.p_request_id,args.p_monitor,args.p_checked_at,args.p_deadline_minutes],
+      )
+      return { data: result.rows[0].result, error: null }
+    } finally { await db().exec('RESET ROLE') }
+  }
   const input = args.p_input as Row
   wirePort.calls.push({ name, input: structuredClone(input) })
   // Independent Z09 owner has no declared watches in this fixture. This is an
@@ -70,6 +80,7 @@ function query(table: string) {
     eq(column: string, value: unknown) { predicates.push(`${identifier(column)}=${parameter(value)}`); return q },
     in(column: string, selected: unknown[]) { predicates.push(`${identifier(column)} IN (${selected.map(parameter).join(',')})`); return q },
     not(column: string, operator: string, value: unknown) { if (operator !== 'is' || value !== null) throw Error('Unexpected NOT port'); predicates.push(`${identifier(column)} IS NOT NULL`); return q },
+    is(column: string, value: unknown) { if (value !== null) throw Error('Unexpected IS port'); predicates.push(`${identifier(column)} IS NULL`); return q },
     lt(column: string, value: unknown) { predicates.push(`${identifier(column)}<${parameter(value)}`); return q },
     contains(column: string, value: Row) { predicates.push(`${identifier(column)} @> ${parameter(JSON.stringify(value))}::jsonb`); return q },
     order(column: string, options?: { ascending?: boolean }) { ordering = ` ORDER BY ${identifier(column)} ${options?.ascending === false ? 'DESC' : 'ASC'}`; return q },
@@ -121,6 +132,8 @@ beforeAll(async () => {
     -- Unrelated national Z08 authority remains closed. Its function signature
     -- is planned in the current shared owner even for a Z13 short-circuit.
     CREATE FUNCTION gridex_supply_rescission.sender_v1(uuid,uuid) RETURNS boolean LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'SC022 unrelated Z08 authority must not execute';END$$;`)
+  await db().exec('GRANT SELECT,INSERT,UPDATE ON public.outbound_requests,public.customer_operation_tasks TO service_role')
+  await db().exec(migration('20261123204700_register_atomic_ediel_overdue_task.sql'))
   const decoder = migration('20260930144205_ediel_permission_source_atomic_transitions.sql')
   await db().exec(decoder.slice(decoder.indexOf('CREATE FUNCTION gridex_received_sources.wire_tokens_bounded_v1'), decoder.indexOf('-- Keep the existing closure budget')))
   await db().exec(migration('20260930154712_ediel_source_bound_business_expectations_v1.sql'))

@@ -15,16 +15,25 @@ export default function CustomerResourceSelects({
   meteringPoints,
   showSiteAndMeter = true,
   initialCustomerId = '',
+  initialSiteId = '',
+  initialMeteringPointId = '',
 }: {
   customers: CustomerOption[]
   sites: SiteOption[]
   meteringPoints: MeteringPointOption[]
   showSiteAndMeter?: boolean
   initialCustomerId?: string
+  initialSiteId?: string
+  initialMeteringPointId?: string
 }) {
   const [customerId, setCustomerId] = useState(() => customers.some(customer => customer.id === initialCustomerId) ? initialCustomerId : '')
-  const [siteId, setSiteId] = useState('')
-  const [meteringPointId, setMeteringPointId] = useState('')
+  const [siteId, setSiteId] = useState(() =>
+    customerId && sites.some(site => site.id === initialSiteId && site.customerId === customerId) ? initialSiteId : '',
+  )
+  const [meteringPointId, setMeteringPointId] = useState(() =>
+    siteId && meteringPoints.some(point => point.id === initialMeteringPointId && point.customerId === customerId && point.siteId === siteId)
+      ? initialMeteringPointId : '',
+  )
 
   const visibleSites = customerId ? sites.filter((site) => site.customerId === customerId) : []
   const visibleMeteringPoints = customerId

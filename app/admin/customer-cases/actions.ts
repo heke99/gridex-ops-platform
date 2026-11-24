@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess, type GuardResult } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
-import { getCustomerCaseById, updateCustomerCaseStatus } from '@/lib/customer-cases/db'
+import { updateCustomerCaseStatus } from '@/lib/customer-cases/db'
+import { readTenantSupportCase } from '@/lib/customer-cases/supportScope'
 import {
   PHONE_VERIFICATION_METHODS,
   addInternalNote,
@@ -39,15 +40,18 @@ function assertFormTenant(formData: FormData, companyId: string) {
   }
 }
 
-async function supportCaseScope(formData: FormData, permission: 'cases.write') {
+async function supportCaseAccess(formData: FormData, permission: 'cases.write') {
   const admin = await requireAdminActionAccess([permission])
   const companyId = await companyIdFor(admin)
   assertFormTenant(formData, companyId)
   const caseId = value(formData, 'case_id')
   if (!caseId) throw new Error('Ärende saknas.')
-  const supportCase = await getCustomerCaseById(caseId, companyId)
+  const supportCase = await readTenantSupportCase(caseId, companyId)
   if (!supportCase) throw new Error('Ärendet hittades inte för aktuell organisation.')
-  return { companyId, customerId: supportCase.customer_id, caseId: supportCase.id, actorUserId: admin.userId }
+  return {
+    scope: { companyId, customerId: supportCase.customer_id, caseId: supportCase.id, actorUserId: admin.userId },
+    source: supportCase.source,
+  }
 }
 
 function revalidate() {
@@ -80,26 +84,24 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
 }
 
 export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> {
-  const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin)
-  assertFormTenant(formData, companyId)
-  const caseId = value(formData, 'case_id')
+  const { scope, source } = await supportCaseAccess(formData, 'cases.write')
   const status = value(formData, 'status')
-  if (!caseId || !ALLOWED_STATUSES.has(status)) throw new Error('Ogiltig supportåtgärd.')
+  if (!ALLOWED_STATUSES.has(status)) throw new Error('Ogiltig supportåtgärd.')
 
   await updateCustomerCaseStatus({
-    caseId,
-    companyId,
+    caseId: scope.caseId,
+    companyId: scope.companyId,
     status,
     message: `Supportstatus uppdaterad till ${status}.`,
-    actorUserId: admin.userId,
+    actorUserId: scope.actorUserId,
+    expectedSource: source ?? undefined,
   })
   revalidate()
 }
 
 /** Reply visible to the customer, written under the employee's own identity. */
 export async function replyToCustomerAction(formData: FormData): Promise<void> {
-  const scope = await supportCaseScope(formData, 'cases.write')
+  const { scope } = await supportCaseAccess(formData, 'cases.write')
   await replyToCustomer({
     ...scope,
     message: value(formData, 'message'),
@@ -110,14 +112,14 @@ export async function replyToCustomerAction(formData: FormData): Promise<void> {
 
 /** Internal note; never shown to the customer. */
 export async function addInternalNoteAction(formData: FormData): Promise<void> {
-  const scope = await supportCaseScope(formData, 'cases.write')
+  const { scope } = await supportCaseAccess(formData, 'cases.write')
   await addInternalNote({ ...scope, message: value(formData, 'message') })
   revalidate()
 }
 
 /** Logs a phone call on the case; the summary is internal until explicitly published as a reply. */
 export async function recordPhoneInteractionAction(formData: FormData): Promise<void> {
-  const scope = await supportCaseScope(formData, 'cases.write')
+  const { scope } = await supportCaseAccess(formData, 'cases.write')
   const method = value(formData, 'verification_method')
   if (!(method in PHONE_VERIFICATION_METHODS)) throw new Error('Välj hur kunden identifierades.')
   await recordPhoneInteraction({
@@ -135,7 +137,7 @@ export async function recordPhoneInteractionAction(formData: FormData): Promise<
 
 /** Staff attaches a file to a support case. It is quarantined and inspected before it can be opened. */
 export async function uploadSupportAttachmentAction(formData: FormData): Promise<void> {
-  const scope = await supportCaseScope(formData, 'cases.write')
+  const { scope } = await supportCaseAccess(formData, 'cases.write')
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) throw new Error('Välj en fil att bifoga.')
   if (file.size > SUPPORT_ATTACHMENT_OPS_MAX_BYTES) throw new Error('Filen är större än 4 MB.')

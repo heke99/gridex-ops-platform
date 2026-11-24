@@ -6,6 +6,10 @@ import { calculatePricingPreviewForUnderlay } from "@/lib/pricing/engine";
 const fixture = vi.hoisted(() => ({
   underlay: {} as Record<string, unknown>,
   contract: {} as Record<string, unknown>,
+  contractSnapshot: {} as Record<string, unknown>,
+  sourceBasis: null as Record<string, unknown> | null,
+  storedSnapshot: vi.fn(),
+  copiesAvailable: vi.fn(),
   baseComponents: [] as Array<Record<string, unknown>>,
   priceComponents: [] as Array<Record<string, unknown>>,
   sourceValues: {} as Record<string, unknown>,
@@ -16,11 +20,13 @@ const fixture = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/service", () => ({
   supabaseService: {
     from: (table: string) => {
-      if (!["billing_underlays", "customer_contracts"].includes(table))
+      if (!["billing_underlays", "customer_contracts", "contract_price_snapshots"].includes(table))
         throw new Error(`Unexpected unit read: ${table}`);
       const predicates: Array<[string, unknown]> = [];
       const row = () => {
-        const data = table === "billing_underlays" ? fixture.underlay : fixture.contract;
+        const data = table === "billing_underlays"
+          ? fixture.underlay
+          : table === "customer_contracts" ? fixture.contract : fixture.contractSnapshot;
         return predicates.some(([k, v]) => data[k] !== v) ? null : data;
       };
       const query = {
@@ -32,12 +38,27 @@ vi.mock("@/lib/supabase/service", () => ({
       };
       return query;
     },
-    rpc: async (name: string) => {
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === "gridex_read_billing_underlay_source_basis_v1" && fixture.sourceBasis) {
+        expect(args).toEqual({ p_company_id: "unit-company", p_underlay_ids: ["unit-underlay"] });
+        return { data: [fixture.sourceBasis], error: null };
+      }
+      if (name === "ediel_require_invoice_source_copies_available_v1") {
+        fixture.copiesAvailable(args);
+        return { data: null, error: null };
+      }
+      if (name === "gridex_persist_pricing_run") {
+        fixture.storedSnapshot(args.p_pricing_snapshot);
+        return { data: "unit-pricing-run", error: null };
+      }
       if (name !== "gridex_read_interval_pricing_snapshot_v1" || !fixture.intervalSnapshot)
         throw new Error("Unexpected unit command");
       return { data: fixture.intervalSnapshot, error: null };
     },
   },
+}));
+vi.mock("@/lib/billing/invoiceReadiness", () => ({
+  assertBillingPeriodOpen: async () => undefined,
 }));
 vi.mock("@/lib/pricing/priceSourceResolver", () => ({
   resolvePricingConfiguration: async () => ({
@@ -64,9 +85,9 @@ const markup = {
   amount: 5, unit: "ore_per_kwh", vatApplicable: true,
 };
 
-function preview() {
+function preview(persist = false) {
   return calculatePricingPreviewForUnderlay({
-    companyId: "unit-company", billingUnderlayId: "unit-underlay", persist: false,
+    companyId: "unit-company", billingUnderlayId: "unit-underlay", persist,
   });
 }
 
@@ -86,6 +107,10 @@ beforeEach(() => {
   fixture.sourceValues = { fixedSekPerKwh: 1 };
   fixture.externalCalls = [];
   fixture.intervalSnapshot = null;
+  fixture.sourceBasis = null;
+  fixture.contractSnapshot = {};
+  fixture.storedSnapshot.mockClear();
+  fixture.copiesAvailable.mockClear();
 });
 
 // September 2026 in Europe/Stockholm, two metered hours with real interval code.
@@ -187,5 +212,45 @@ describe("zero-energy period with a contracted monthly fee", () => {
     // 1000 kWh x 1 SEK + 50 SEK markup + 49 SEK fee = 1099 ex VAT.
     expect(result.totalExVat).toBeCloseTo(1099, 2);
     expect(result.totalIncVat).toBeCloseTo(1373.75, 2);
+  });
+});
+
+describe("persisting the price for a source-bound underlay", () => {
+  beforeEach(() => {
+    fixture.underlay.contract_price_snapshot_id = "unit-price-snapshot";
+    fixture.contractSnapshot = {
+      id: "unit-price-snapshot", company_id: "unit-company", contract_id: "unit-contract",
+      pricing_model: "fixed", snapshot_json: { contract_type: "fixed", vat_rate: 0.25 },
+    };
+    fixture.sourceBasis = {
+      id: "unit-underlay", sourceBasisHash: "e".repeat(64), qualified: true, correctionRequired: false,
+    };
+  });
+
+  it("passes the exact stored JSON to native persistence without changing the calculated fee", async () => {
+    const result = await preview(true);
+
+    expect(result).toMatchObject({ status: "success", totalIncVat: 61.25, pricingRunId: "unit-pricing-run" });
+    expect(fixture.storedSnapshot).toHaveBeenCalledExactlyOnceWith(fixture.underlay.pricing_snapshot);
+    expect(fixture.copiesAvailable).not.toHaveBeenCalled();
+  });
+
+  it("keeps the derived pricing snapshot for an unbound historical underlay", async () => {
+    fixture.sourceBasis = { ...fixture.sourceBasis, sourceBasisHash: null, qualified: false };
+
+    await expect(preview(true)).resolves.toMatchObject({ status: "success", totalIncVat: 61.25 });
+    expect(fixture.copiesAvailable).toHaveBeenCalledTimes(1);
+    expect(fixture.storedSnapshot).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      contract_price_snapshot_id: "unit-price-snapshot",
+      pricing_model: "fixed",
+      vat_rate: 0.25,
+    }));
+  });
+
+  it("keeps a corrected source from creating a successful stored price", async () => {
+    fixture.sourceBasis = { ...fixture.sourceBasis, correctionRequired: true };
+
+    await expect(preview(true)).rejects.toThrow("pricing_source_basis_unavailable");
+    expect(fixture.storedSnapshot).not.toHaveBeenCalled();
   });
 });

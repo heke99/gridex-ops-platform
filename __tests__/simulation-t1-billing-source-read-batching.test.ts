@@ -8,12 +8,16 @@ const io = vi.hoisted(() => ({
   calls: [] as Call[],
   reply: null as null | ((ids: string[]) => unknown),
   error: null as unknown,
+  maxIdsBeforeTimeout: Number.POSITIVE_INFINITY,
 }))
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   rpc: async (name: string, args: { p_company_id: string; p_value_ids: string[] }) => {
     expect(name).toBe('gridex_read_billing_source_values_v1')
     io.calls.push({ company: args.p_company_id, ids: [...args.p_value_ids] })
+    if (args.p_value_ids.length > io.maxIdsBeforeTimeout) {
+      return { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }
+    }
     return { data: io.reply ? io.reply(args.p_value_ids) : args.p_value_ids.map(row), error: io.error }
   },
 } }))
@@ -29,7 +33,7 @@ function row(id: string) {
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `value-${String(i).padStart(5, '0')}`)
 
-beforeEach(() => { io.calls = []; io.reply = null; io.error = null })
+beforeEach(() => { io.calls = []; io.reply = null; io.error = null; io.maxIdsBeforeTimeout = Number.POSITIVE_INFINITY })
 
 describe('T1/010 bounded qualified billing-source reads', () => {
   it.each([0, 1, 250, 251, 1001, 2688])('reads all %i values without an RPC larger than 250', async n => {
@@ -98,8 +102,25 @@ describe('T1/010 bounded qualified billing-source reads', () => {
       .rejects.toThrow('billing_source_basis_value_missing')
   })
 
-  it('propagates the original RPC failure without masking its SQLSTATE', async () => {
+  it('reduces a timed-out read and keeps the smaller chunk size until every exact ID is qualified', async () => {
+    io.maxIdsBeforeTimeout = 70
+    const requested = ids(251)
+    const rows = await loadQualifiedBillingValues('tenant-a', requested)
+    expect(io.calls.map(call => call.ids.length)).toEqual([250, 125, 62, 62, 62, 62, 3])
+    expect(io.calls.slice(2).flatMap(call => call.ids)).toEqual(requested)
+    expect([...rows.keys()]).toEqual(requested)
+    expect(io.calls.every(call => call.company === 'tenant-a')).toBe(true)
+  })
+
+  it('stops at a timed-out singleton and preserves the original database failure', async () => {
     const error = { code: '57014', message: 'canceling statement due to statement timeout', details: 'original detail' }
+    io.error = error
+    await expect(loadQualifiedBillingValues('tenant-a', ids(20))).rejects.toBe(error)
+    expect(io.calls.map(call => call.ids.length)).toEqual([20, 10, 5, 2, 1])
+  })
+
+  it('keeps non-timeout cancellations visible without retrying', async () => {
+    const error = { code: '57014', message: 'canceling statement due to user request', details: 'original detail' }
     io.error = error
     await expect(loadQualifiedBillingValues('tenant-a', ids(251))).rejects.toBe(error)
     expect(io.calls).toHaveLength(1)

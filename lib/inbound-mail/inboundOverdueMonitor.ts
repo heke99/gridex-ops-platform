@@ -4,66 +4,25 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
-async function openTaskExists(params: {
+async function recordOverdueTask(input: {
   companyId: string
-  taskType: string
   sourceId: string
+  monitor: 'ack_overdue' | 'z04_overdue' | 'z14_overdue'
+  checkedAt: string
+  deadlineMinutes: number
 }): Promise<boolean> {
-  const { count, error } = await supabaseService
-    .from('customer_operation_tasks')
-    .select('id', { count: 'exact', head: true })
-    .eq('company_id', params.companyId)
-    .eq('task_type', params.taskType)
-    .eq('status', 'open')
-    .contains('metadata', { sourceId: params.sourceId })
-
-  if (error) {
-    console.warn('[inbound-overdue] Kunde inte kontrollera befintlig task', error)
-    return false
-  }
-
-  return (count ?? 0) > 0
-}
-
-async function createOverdueTask(input: {
-  companyId: string
-  customerId?: string | null
-  siteId?: string | null
-  meteringPointId?: string | null
-  taskType: string
-  title: string
-  description: string
-  sourceId: string
-  metadata: Record<string, unknown>
-}): Promise<boolean> {
-  const exists = await openTaskExists({ companyId: input.companyId, taskType: input.taskType, sourceId: input.sourceId })
-  if (exists) return false
-
-  const { error } = await supabaseService.from('customer_operation_tasks').insert({
-    company_id: input.companyId,
-    customer_id: input.customerId ?? null,
-    site_id: input.siteId ?? null,
-    metering_point_id: input.meteringPointId ?? null,
-    task_type: input.taskType,
-    status: 'open',
-    priority: 'high',
-    title: input.title,
-    description: input.description,
-    metadata: { ...input.metadata, sourceId: input.sourceId, createdBy: 'batch_7a_overdue_monitor' },
+  const { data, error } = await supabaseService.rpc('gridex_record_inbound_overdue_task_v1', {
+    p_company_id: input.companyId,
+    p_request_id: input.sourceId,
+    p_monitor: input.monitor,
+    p_checked_at: input.checkedAt,
+    p_deadline_minutes: input.deadlineMinutes,
   })
-
   if (error) {
-    console.warn('[inbound-overdue] Kunde inte skapa overdue task', error)
+    console.warn('[inbound-overdue] Kunde inte spara ärende och begäransstatus', error)
     return false
   }
-
-  await supabaseService
-    .from('outbound_requests')
-    .update({ status: 'waiting_attention', updated_at: nowIso(), failure_reason: input.title })
-    .eq('id', input.sourceId)
-    .eq('company_id', input.companyId)
-
-  return true
+  return data === true
 }
 
 export async function createInboundOverdueTasks(input: {
@@ -77,9 +36,9 @@ export async function createInboundOverdueTasks(input: {
   const z14Deadline = input.z14DeadlineMinutes ?? 24 * 60
   const limit = input.limit ?? 100
   const now = nowIso()
-  const ackCutoff = new Date(Date.now() - ackDeadline * 60_000).toISOString()
-  const z04Cutoff = new Date(Date.now() - z04Deadline * 60_000).toISOString()
-  const z14Cutoff = new Date(Date.now() - z14Deadline * 60_000).toISOString()
+  const ackCutoff = new Date(Date.parse(now) - ackDeadline * 60_000).toISOString()
+  const z04Cutoff = new Date(Date.parse(now) - z04Deadline * 60_000).toISOString()
+  const z14Cutoff = new Date(Date.parse(now) - z14Deadline * 60_000).toISOString()
 
   let ackOverdue = 0
   let z04Overdue = 0
@@ -87,8 +46,9 @@ export async function createInboundOverdueTasks(input: {
 
   const { data: ackRows, error: ackError } = await supabaseService
     .from('outbound_requests')
-    .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
+    .select('id, company_id')
     .in('status', ['sent', 'prepared', 'queued'])
+    .is('acknowledged_at', null)
     .not('company_id', 'is', null)
     .lt('sent_at', ackCutoff)
     .limit(limit)
@@ -99,16 +59,8 @@ export async function createInboundOverdueTasks(input: {
       const sourceId = typeof row.id === 'string' ? row.id : null
       if (!companyId || !sourceId) continue
 
-      const created = await createOverdueTask({
-        companyId,
-        customerId: typeof row.customer_id === 'string' ? row.customer_id : null,
-        siteId: typeof row.site_id === 'string' ? row.site_id : null,
-        meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : null,
-        taskType: 'ediel_ack_overdue',
-        title: 'Ediel-kvittens saknas',
-        description: `Utskick ${sourceId} har varit skickat längre än ${ackDeadline} minuter utan säker inbound-kvittens.`,
-        sourceId,
-        metadata: { monitor: 'ack_overdue', checkedAt: now, outboundRequest: row },
+      const created = await recordOverdueTask({
+        companyId, sourceId, monitor: 'ack_overdue', checkedAt: now, deadlineMinutes: ackDeadline,
       })
       if (created) ackOverdue += 1
     }
@@ -118,7 +70,7 @@ export async function createInboundOverdueTasks(input: {
 
   const { data: z04Rows, error: z04Error } = await supabaseService
     .from('outbound_requests')
-    .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
+    .select('id, company_id')
     .in('status', ['syntax_accepted', 'application_accepted', 'acknowledged'])
     .eq('message_code', 'Z03')
     .not('company_id', 'is', null)
@@ -131,16 +83,8 @@ export async function createInboundOverdueTasks(input: {
       const sourceId = typeof row.id === 'string' ? row.id : null
       if (!companyId || !sourceId) continue
 
-      const created = await createOverdueTask({
-        companyId,
-        customerId: typeof row.customer_id === 'string' ? row.customer_id : null,
-        siteId: typeof row.site_id === 'string' ? row.site_id : null,
-        meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : null,
-        taskType: 'ediel_z04_overdue',
-        title: 'Z04-svar saknas',
-        description: `Leverantörsbyte ${sourceId} har kvitterats tekniskt men saknar Z04 efter ${z04Deadline} minuter.`,
-        sourceId,
-        metadata: { monitor: 'z04_overdue', checkedAt: now, outboundRequest: row },
+      const created = await recordOverdueTask({
+        companyId, sourceId, monitor: 'z04_overdue', checkedAt: now, deadlineMinutes: z04Deadline,
       })
       if (created) z04Overdue += 1
     }
@@ -150,7 +94,7 @@ export async function createInboundOverdueTasks(input: {
 
   const { data: z14Rows, error: z14Error } = await supabaseService
     .from('outbound_requests')
-    .select('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
+    .select('id, company_id')
     .in('status', ['syntax_accepted', 'application_accepted', 'acknowledged'])
     .eq('message_code', 'Z13')
     .not('company_id', 'is', null)
@@ -163,16 +107,8 @@ export async function createInboundOverdueTasks(input: {
       const sourceId = typeof row.id === 'string' ? row.id : null
       if (!companyId || !sourceId) continue
 
-      const created = await createOverdueTask({
-        companyId,
-        customerId: typeof row.customer_id === 'string' ? row.customer_id : null,
-        siteId: typeof row.site_id === 'string' ? row.site_id : null,
-        meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : null,
-        taskType: 'ediel_z14_overdue',
-        title: 'Z14-svar saknas',
-        description: `Mätvärdesåtkomst ${sourceId} har kvitterats tekniskt men saknar Z14 efter ${z14Deadline} minuter.`,
-        sourceId,
-        metadata: { monitor: 'z14_overdue', checkedAt: now, outboundRequest: row },
+      const created = await recordOverdueTask({
+        companyId, sourceId, monitor: 'z14_overdue', checkedAt: now, deadlineMinutes: z14Deadline,
       })
       if (created) z14Overdue += 1
     }

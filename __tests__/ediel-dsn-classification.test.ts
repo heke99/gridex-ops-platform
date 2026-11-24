@@ -119,13 +119,13 @@ describe('DSN classification before EDIFACT extraction', () => {
           order: vi.fn((column: string, options: unknown) => { call.order = [column, options]; return query }),
           then: (resolve: (value: unknown) => unknown) => {
             const rows = table === 'inbound_email_messages' ? [
-              { id: 'safe', raw_email: edi },
+              { id: 'safe', environment: 'test', raw_email: edi },
               { id: 'dsn', match_status: 'dsn_transport_review' },
               { id: 'raw-dsn', raw_email: report() },
               { id: 'body-dsn', body_text: report() },
             ] : [
-              { id: 'newest', inbound_email_message_id: 'safe' },
-              { id: 'older', inbound_email_message_id: 'safe' },
+              { id: 'newest', inbound_email_message_id: 'safe', environment: 'test', direction: 'inbound' },
+              { id: 'older', inbound_email_message_id: 'safe', environment: 'test', direction: 'inbound' },
               { id: null, inbound_email_message_id: 'safe' },
             ]
             const data = rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => columns.split(',').includes(key))))
@@ -163,11 +163,11 @@ describe('DSN classification before EDIFACT extraction', () => {
         insert: vi.fn((rows: Array<Record<string, unknown>>) => { inserting = true; inserted.push(...rows); return query }),
         then: (resolve: (value: unknown) => unknown) => {
           let data: Array<Record<string, unknown>>
-          if (table === 'inbound_email_messages') data = [{ id: 'existing', raw_email: edi }, { id: 'new', raw_email: edi }, { id: 'dsn', raw_email: report() }]
+          if (table === 'inbound_email_messages') data = [{ id: 'existing', environment: 'test', raw_email: edi }, { id: 'new', environment: 'production', raw_email: edi }, { id: 'dsn', raw_email: report() }]
           else if (table === 'inbound_ediel_parse_results') data = [{ id: 'parse-new', inbound_email_message_id: 'new', company_id: 'company-a', raw_payload: edi, message_family: 'PRODAT' }].filter((row) => values.includes(row.inbound_email_message_id))
           else if (table === 'ediel_messages') data = inserting ? [{ id: 'created' }] : [
-            { id: 'newest-existing', inbound_email_message_id: 'existing' },
-            { id: 'older-existing', inbound_email_message_id: 'existing' },
+            { id: 'newest-existing', inbound_email_message_id: 'existing', environment: 'test', direction: 'inbound' },
+            { id: 'older-existing', inbound_email_message_id: 'existing', environment: 'test', direction: 'inbound' },
           ]
           else throw new Error(`Unexpected query: ${table}`)
           return Promise.resolve({ data, error: null }).then(resolve)
@@ -182,7 +182,33 @@ describe('DSN classification before EDIFACT extraction', () => {
       ['inbound_ediel_parse_results', ['new']],
     ])
     expect(inserted).toHaveLength(1)
-    expect(inserted[0]).toMatchObject({ inbound_email_message_id: 'new', company_id: 'company-a', raw_payload: edi })
+    expect(inserted[0]).toMatchObject({ inbound_email_message_id: 'new', company_id: 'company-a', raw_payload: edi, environment: 'production' })
+  })
+  it('holds unscoped or conflicting parent environments before creating a diagnostic', async () => {
+    const parents = [
+      {id: 'legacy', environment: null, raw_email: edi},
+      {id: 'conflict', environment: 'production', ediel_mailboxes: {environment: 'test'}, raw_email: edi},
+    ]
+    mocks.from.mockImplementation((table: string) => {
+      if (table !== 'inbound_email_messages') throw new Error(`Unexpected diagnostic query: ${table}`)
+      return {select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({data: parents, error: null})}
+    })
+    await expect(ensureDiagnosticEdielMessagesForInboundEmails(['legacy', 'conflict'])).resolves.toEqual([])
+    expect(mocks.from.mock.calls).toEqual([['inbound_email_messages']])
+  })
+  it('preserves an already mislabelled historical diagnostic without reusing or replacing it', async () => {
+    mocks.from.mockImplementation((table: string) => {
+      const rows = table === 'inbound_email_messages' ? [{id: 'parent', environment: 'production', raw_email: edi}]
+        : table === 'ediel_messages' ? [{id: 'historic', inbound_email_message_id: 'parent', environment: 'test', direction: 'inbound'}] : null
+      if (!rows) throw new Error(`Unexpected diagnostic query: ${table}`)
+      return {
+        select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
+        then: (resolve: (value: unknown) => unknown) => Promise.resolve({data: rows, error: null}).then(resolve),
+      }
+    })
+    await expect(listEdielMessageIdsForInboundEmails(['parent'])).resolves.toEqual([])
+    await expect(ensureDiagnosticEdielMessagesForInboundEmails(['parent'])).resolves.toEqual([])
+    expect(mocks.from.mock.calls).toEqual([['inbound_email_messages'], ['ediel_messages'], ['inbound_email_messages'], ['ediel_messages']])
   })
   it.each([listEdielMessageIdsForInboundEmails, ensureDiagnosticEdielMessagesForInboundEmails])(
     'propagates existing-message lookup errors without attempting diagnostic creation (%#)', async (lookup) => {
@@ -190,7 +216,7 @@ describe('DSN classification before EDIFACT extraction', () => {
       mocks.from.mockImplementation((table: string) => ({
         select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
         then: (resolve: (value: unknown) => unknown) => Promise.resolve(table === 'inbound_email_messages'
-          ? { data: [{ id: 'safe', raw_email: edi }], error: null }
+          ? { data: [{ id: 'safe', environment: 'test', raw_email: edi }], error: null }
           : { data: null, error: failure }).then(resolve),
       }))
       await expect(lookup(['safe'])).rejects.toBe(failure)

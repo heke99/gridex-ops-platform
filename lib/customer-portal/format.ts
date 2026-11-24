@@ -1,3 +1,5 @@
+import type { CustomerConsumptionReviewReason } from '@/lib/customer-portal/types'
+
 /** Established customer-visible invoice statuses shared by web and API readers. */
 export const PORTAL_PUBLISHED_INVOICE_STATUSES = [
   'issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited',
@@ -10,6 +12,15 @@ export function formatSek(value: number | null | undefined): string {
     currency: 'SEK',
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+export const PORTAL_CONSUMPTION_BOUNDARY_NOTICE =
+  'Ett mätvärde sträcker sig över ett månadsskifte eller en leveransgräns. Finare mätvärden behövs för att beräkna summan.'
+
+export const PORTAL_CONSUMPTION_REVIEW_NOTICES: Record<CustomerConsumptionReviewReason, string> = {
+  coverage_gap: 'Mätvärden saknas för delar av månaden.',
+  reading_overlap: 'Mätvärden överlappar. Förbrukningssumman behöver kontrolleras.',
+  supply_unconfirmed: 'Alla leveransperioder kunde inte verifieras. Endast mätvärden från verifierade leveranser visas.',
 }
 
 export function formatKwh(value: number | null | undefined): string {

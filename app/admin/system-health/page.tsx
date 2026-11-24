@@ -5,7 +5,7 @@ import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
 import { getOpsHealth } from '@/lib/ops/health'
-import { requeueUncertainEmailAction } from './actions'
+import { reconcileWithdrawalEmailAcceptanceAction, requeueUncertainEmailAction } from './actions'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
@@ -43,37 +43,31 @@ type UncertainEmailRow = {
   to_email?: string | null
   recipient_email?: string | null
   subject?: string | null
+  email_type?: string | null
+  withdrawal_uncertain_attempt_id?: string | null
   delivery_uncertain_at?: string | null
-  last_error?: string | null
+  review_state?: 'unknown' | 'unknown_retention' | 'accepted_ready' | 'accepted_review'
+  accepted_at?: string | null
+  acceptance_token?: string | null
 }
 
-// Platform-operator recovery list: delivery_uncertain rows have no automatic
-// retry by design (the provider may already have accepted the interrupted
-// send) — an operator reviews and requeues them here.
-async function loadUncertainEmails(): Promise<Array<UncertainEmailRow & { kind: 'tenant' | 'manual' }>> {
+async function loadUncertainEmails(actorUserId: string) {
   const [tenant, manual] = await Promise.all([
-    supabaseService
-      .from('tenant_email_outbox')
-      .select('id,company_id,to_email,subject,delivery_uncertain_at,last_error')
-      .eq('status', 'delivery_uncertain')
-      .order('delivery_uncertain_at', { ascending: true })
-      .limit(20)
-      .then((result) => (result.error ? [] : ((result.data ?? []) as UncertainEmailRow[]))),
+    supabaseService.rpc('gridex_read_system_health_tenant_email_review_v1', { p_actor_user_id: actorUserId }),
     supabaseService
       .from('manual_email_outbox')
-      // Schema truth: the manual outbox recipient column is to_email
-      // (recipient_email does not exist on this table and made this health
-      // query fail silently).
       .select('id,company_id,to_email,subject,delivery_uncertain_at,last_error')
       .eq('status', 'delivery_uncertain')
       .order('delivery_uncertain_at', { ascending: true })
-      .limit(20)
-      .then((result) => (result.error ? [] : ((result.data ?? []) as UncertainEmailRow[]))),
+      .limit(20),
   ])
-  return [
-    ...tenant.map((row) => ({ ...row, kind: 'tenant' as const })),
-    ...manual.map((row) => ({ ...row, kind: 'manual' as const })),
-  ]
+  return {
+    tenantReadFailed: Boolean(tenant.error),
+    emails: [
+      ...((tenant.data ?? []) as UncertainEmailRow[]).map((row) => ({ ...row, kind: 'tenant' as const })),
+      ...((manual.data ?? []) as UncertainEmailRow[]).map((row) => ({ ...row, kind: 'manual' as const })),
+    ],
+  }
 }
 
 async function loadErrors(companyId: string | null, isPlatformAdmin: boolean) {
@@ -145,7 +139,9 @@ export default async function SystemHealthPage() {
     getOpsHealth().catch(() => ({ rows: [], schemaReady: false })),
   ])
 
-  const uncertainEmails = isPlatformAdmin ? await loadUncertainEmails() : []
+  const { emails: uncertainEmails, tenantReadFailed } = isPlatformAdmin
+    ? await loadUncertainEmails(context.userId)
+    : { emails: [], tenantReadFailed: false }
   const marketPriceHealth = opsHealth.rows.filter((row) => row.check_key.startsWith('spot_'))
 
   return (
@@ -214,31 +210,63 @@ export default async function SystemHealthPage() {
         </div>
       </section>
 
-      {isPlatformAdmin && uncertainEmails.length > 0 ? (
+      {isPlatformAdmin && (uncertainEmails.length > 0 || tenantReadFailed) ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Osäkra e-postleveranser</h2>
-          <p className="mt-1 text-sm text-amber-900">
-            Utskick som avbröts efter att transporten kan ha accepterat dem. Granska transportloggen och köa om — providerns idempotensnyckel förhindrar dubbelutskick.
-          </p>
+          <h2 className="text-lg font-semibold text-slate-950">Avstämning av e-postleveranser</h2>
+          {tenantReadFailed ? <p role="alert" className="mt-1 text-sm text-amber-900">Kundmejlens avstämningsunderlag kunde inte läsas.</p> : null}
           <div className="mt-3 divide-y divide-amber-200/60">
             {uncertainEmails.map((row) => (
               <div key={`${row.kind}:${row.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-                <div>
-                  <div className="font-medium text-slate-900">
-                    {row.subject ?? '(utan ämne)'} · {row.to_email ?? row.recipient_email ?? 'okänd mottagare'}
+                {row.review_state === 'accepted_ready' || row.review_state === 'accepted_review' ? (
+                  <>
+                    <div>
+                      <div className="font-medium text-slate-900">Leverantören har tagit emot ångerbekräftelsen</div>
+                      <div className="text-xs text-slate-600">
+                        Lokal avstämning återstår · {row.accepted_at ?? 'okänd tidpunkt'} · köpost {row.id}
+                      </div>
+                    </div>
+                    {row.review_state === 'accepted_ready' ? (
+                      <form action={reconcileWithdrawalEmailAcceptanceAction}>
+                        <input type="hidden" name="outbox_id" value={row.id} />
+                        <input type="hidden" name="company_id" value={row.company_id ?? ''} />
+                        <input type="hidden" name="acceptance_token" value={row.acceptance_token ?? ''} />
+                        <input type="hidden" name="reviewed_withdrawal_attempt_id" value={row.withdrawal_uncertain_attempt_id ?? ''} />
+                        <button type="submit" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
+                          Stäm av mottagningskvittot
+                        </button>
+                      </form>
+                    ) : <p className="text-xs text-slate-600">Transportunderlaget kräver fortsatt manuell granskning.</p>}
+                  </>
+                ) : row.review_state === 'unknown_retention' ? (
+                  <div>
+                    <div className="font-medium text-slate-900">Transportutfallet är okänt</div>
+                    <div className="text-xs text-slate-600">
+                      Omsändning är spärrad efter gallring · köpost {row.id}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-600">
-                    {row.kind === 'tenant' ? 'Kundmail' : 'Manuell nätägarmail'} · osäker sedan {row.delivery_uncertain_at ?? 'okänt'}
-                  </div>
-                </div>
-                <form action={requeueUncertainEmailAction}>
-                  <input type="hidden" name="outbox_id" value={row.id} />
-                  <input type="hidden" name="outbox_kind" value={row.kind} />
-                  <input type="hidden" name="company_id" value={row.company_id ?? ''} />
-                  <button type="submit" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
-                    Köa om efter granskning
-                  </button>
-                </form>
+                ) : (
+                  <>
+                    <div>
+                      <div className="font-medium text-slate-900">
+                        {row.subject ?? '(utan ämne)'} · {row.to_email ?? row.recipient_email ?? 'okänd mottagare'}
+                      </div>
+                      <div className="text-xs text-slate-600">
+                        {row.kind === 'tenant' ? 'Kundmail' : 'Manuell nätägarmail'} · okänt transportutfall sedan {row.delivery_uncertain_at ?? 'okänt'}
+                      </div>
+                    </div>
+                    <form action={requeueUncertainEmailAction}>
+                      <input type="hidden" name="outbox_id" value={row.id} />
+                      <input type="hidden" name="outbox_kind" value={row.kind} />
+                      <input type="hidden" name="company_id" value={row.company_id ?? ''} />
+                      {row.kind === 'tenant' && row.email_type === 'withdrawal_received' ? (
+                        <input type="hidden" name="reviewed_withdrawal_attempt_id" value={row.withdrawal_uncertain_attempt_id ?? ''} />
+                      ) : null}
+                      <button type="submit" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
+                        Köa om efter granskning
+                      </button>
+                    </form>
+                  </>
+                )}
               </div>
             ))}
           </div>

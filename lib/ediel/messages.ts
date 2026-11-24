@@ -17,6 +17,7 @@ type BuildEdifactEnvelopeInput = {
   testFlag?: 0 | 1 | number | null
   interchangeReference?: string
   messageReference?: string
+  createdAt?: Date
   messageTypeToken: string
   segments: string[]
   companyId?: string | null
@@ -48,6 +49,7 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     receiverSubAddress: input.receiverSubAddress,
     applicationReference: input.applicationReference,
     acknowledgementRequest: input.acknowledgementRequest,
+    createdAt: input.createdAt,
     interchangeReference,
     environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testFlag),
     messages: [{

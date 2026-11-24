@@ -8,10 +8,11 @@ import {runUtiltsRuntimeForMessage,takeUtiltsRuntimeOwner} from '@/lib/ediel/uti
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {parseCanonicalMessageRow} from '@/lib/ediel/core/canonicalMessage'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {retainDeclaredUtiltsReceipt} from './helpers/utiltsCanonicalOwnerIo'
 const company='11111111-1111-4111-8111-111111111111',id='22222222-2222-4222-8222-222222222222',review1='33333333-3333-4333-8333-333333333333',review2='44444444-4444-4444-8444-444444444444'
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
 function source(reason='E23'){
- const row=energyHandoffMessage('2026-10-01',company);return {...row,id,application_reference:'23-DGI-E66-T',raw_payload:row.raw_payload!.replaceAll('23-DDQ-E66-T','23-DGI-E66-T').replace('NAD+DDQ','NAD+DGI').replace('STS+7++E88::260',`STS+7++${reason}::260`)}
+ const row=energyHandoffMessage('2026-10-01',company);return retainDeclaredUtiltsReceipt({...row,id,application_reference:'23-DGI-E66-T',raw_payload:row.raw_payload!.replaceAll('23-DDQ-E66-T','23-DGI-E66-T').replace('NAD+DDQ','NAD+DGI').replace('STS+7++E88::260',`STS+7++${reason}::260`)})
 }
 function policy(row:ReturnType<typeof source>){const selected=resolveCanonicalMessagePolicy(row,parseCanonicalMessageRow(row));if(!selected)throw Error('fixture selected policy missing');return selected}
 function native(row:ReturnType<typeof source>,reason='E23',changes:Record<string,unknown>={}){

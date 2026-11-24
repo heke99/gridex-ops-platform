@@ -46,15 +46,18 @@ describe('dedicated Ediel case route', () => {
     io.customerCompany = 'company-a'
   })
 
-  it('reads exact ID independently of the list window and shows typed intent, full instructions and events', async () => {
+  it('reads exact ID independently of the list window and shows the company-safe reason, action state and event', async () => {
     const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
     expect(io.calls).toContain(`case:${caseA.id}:company-a`)
     expect(io.calls).toContain(`events:${caseA.id}:company-a`)
-    expect(html).toContain('ediel_unexpected_direction')
-    expect(html).toContain(caseA.description)
-    expect(html).toContain(caseA.next_action)
-    expect(html).toContain('Granskning skapad')
+    expect(html).toContain('Meddelandets avsändare behöver granskas')
+    expect(html).toContain('Processens tidsgrund kan inte verifieras mot källmeddelandet')
+    expect(html).toContain('En händelse har registrerats i ärendet')
+    expect(html).not.toContain('ediel_unexpected_direction')
+    expect(html).not.toContain(caseA.description)
+    expect(html).not.toContain(caseA.next_action)
+    expect(html).not.toContain('Granskning skapad')
     expect(html).toContain(`/admin/customers/${caseA.customer_id}`)
     expect(html).not.toContain(`/admin/ediel/messages/${caseA.metadata.source_ediel_message_id}`)
   })
@@ -78,6 +81,8 @@ describe('dedicated Ediel case route', () => {
     io.context.isPlatformAdmin = true
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
     expect(html).toContain(caseA.description)
+    expect(html).toContain(caseA.next_action)
+    expect(html).toContain('Granskning skapad')
     expect(html).toContain(`/admin/ediel/messages/${caseA.metadata.source_ediel_message_id}`)
     expect(html).not.toContain('name="status"')
   })
@@ -108,7 +113,7 @@ describe('dedicated Ediel case route', () => {
     io.context.permissions = ['cases.read', 'cases.write']
     io.cases[0] = { ...caseA, status: 'billing_blocked' }
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
-    expect(html).toContain('Aktuell status: billing_blocked')
+    expect(html).toContain('Aktuell status: Fakturering blockerad')
     expect(html).toContain('<option value="" disabled="" selected="">Välj ny status</option>')
   })
 
@@ -117,10 +122,11 @@ describe('dedicated Ediel case route', () => {
     io.cases = Array.from({ length: 202 }, (_, index) => ({ ...caseA, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`, title: `Ediel cohort ${index + 1}` }))
     const first = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions' }) }))
     expect(first).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=2')
-    expect(first).not.toContain('Ediel cohort 202')
+    expect(first).not.toContain(`caseId=${io.cases[201].id}`)
     const second = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '2', caseId: io.cases[201].id }) }))
     expect(io.calls.some((entry) => entry.includes('"offset":200') && entry.includes('"limit":201'))).toBe(true)
-    expect(second).toContain('Ediel cohort 202')
+    expect(second).toContain('Sida 2')
+    expect(second).not.toContain(`caseId=${io.cases[199].id}`)
     expect(second).toContain(`caseId=${io.cases[201].id}&amp;view=exceptions&amp;page=2`)
     expect(second).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=1')
     await expect(Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '0' }) })).rejects.toThrow('not-found')

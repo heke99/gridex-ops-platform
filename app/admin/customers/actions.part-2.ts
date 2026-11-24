@@ -1047,6 +1047,7 @@ export async function createCustomerGraph(
           updated_by: params.actorUserId,
         }
       : null,
+    // The separate data request action owns authorization and request creation.
     application: {
       source_record_type: "admin_customer_intake",
       source_record_id: idempotencyKey,
@@ -1064,20 +1065,6 @@ export async function createCustomerGraph(
           priority: duplicateWarnings.length > 0 ? "high" : "normal",
           title: duplicateWarnings.length > 0 ? "Granska möjlig dubblett" : "Komplettera kundintag",
           description: duplicateWarnings.join("; ") || "Kundintaget skapades blockerat och behöver granskas.",
-          created_by: params.actorUserId,
-          updated_by: params.actorUserId,
-        }
-      : null,
-    info_request: params.postCreateAction === "request_data"
-      ? {
-          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract_check" : "z01_customer_masterdata",
-          target_party_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier" : "grid_owner",
-          grid_owner_id: normalizedGridOwnerId,
-          current_supplier_name: params.currentSupplierUnknown ? "Okänd nuvarande leverantör" : normalizeOptionalString(params.currentSupplierName),
-          status: signedScopes.length > 0 ? "ready_to_send" : "missing_authorization",
-          requested_data_categories: params.postCreateRequestTarget === "both"
-            ? ["grid_owner_data", "metering_data", "current_supplier_contract"]
-            : signedScopes,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
         }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { confirmedSwitchMarketStart } from './fixtures/supplier-switch-market-start'
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   rows: [] as Row[], reads: [] as URLSearchParams[], readHeaders: [] as Array<string | null>, effects: [] as string[], audit: [] as Row[],
@@ -6,14 +7,21 @@ const io = vi.hoisted(() => ({
   platform: false, permission: true, signedIn: true, cap: Infinity,
   countMissing: false, failure: null as null | { code: string; message: string },
   moveSeenPriority: false,
+  deniedActivation: new Set<string>(),
+  companyStatuses: {} as Record<string, string>, pauseAtFinalize: null as string | null,
+  periods: [] as Row[], periodReads: [] as URLSearchParams[], periodFailure: null as null | { code: string; message: string },
 }))
 const company = '11111111-1111-4111-8111-111111111111'
 const foreign = '22222222-2222-4222-8222-222222222222'
 const id = (n: number) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0')
 function request(n: number, patch: Row = {}): Row {
-  return { id: id(n), company_id: company, customer_id: id(9001), site_id: id(9002), metering_point_id: null,
+  const row = { id: id(n), company_id: company, customer_id: id(9001), site_id: id(9002), metering_point_id: null,
     status: 'accepted', inbound_z04_message_id: id(9003), confirmed_start_date: '2026-10-01', requested_start_date: '2026-10-01',
     created_at: `2026-10-01T00:00:00.${String(n).padStart(6, '0')}Z`, ...patch }
+  if (row.status === 'accepted' && row.inbound_z04_message_id) {
+    io.periods.push(confirmedSwitchMarketStart(row))
+  }
+  return row
 }
 function parts(text: string): string[] {
   let depth = 0, start = 0
@@ -34,6 +42,15 @@ function matches(row: Row, filter: string): boolean {
   if (op === 'gt') return String(row[field]) > value
   throw new Error('Unsupported bulk candidate transport filter: ' + filter)
 }
+vi.mock('server-only', () => ({}))
+vi.mock('@/lib/ediel/services/authorization', async () => {
+  const { EdielExecutionFailure } = await import('@/lib/ediel/core/failureDisposition')
+  return { assertEdielTenantActor: async ({ actorUserId, companyId, permission }: { actorUserId: string; companyId: string; permission: string }) => {
+    expect(actorUserId).toBe(id(9004))
+    expect(permission).toBe('metering.write')
+    if (io.deniedActivation.has(companyId)) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_TENANT_PERMISSION_FORBIDDEN' }, 'ediel_tenant_permission_forbidden')
+  } }
+})
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }))
 vi.mock('@/lib/admin/guards', () => ({
   requireAdminActionAccess: async () => {
@@ -45,9 +62,15 @@ vi.mock('@/lib/admin/guards', () => ({
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => { throw new Error('Legacy company must not redirect the canonical guard') } }))
 vi.mock('@/lib/cis/db', () => ({ getOutboundRequestById: () => { throw new Error('Unexpected sender read') }, resetOutboundRequestForRetry: () => { throw new Error('Unexpected sender effect') } }))
 vi.mock('@/lib/operations/db', () => ({
-  finalizeSupplierSwitchExecution: async (_client: unknown, input: { requestId: string }) => {
-    io.effects.push(input.requestId)
+  finalizeSupplierSwitchExecution: async (_client: unknown, input: { requestId: string; authorizeTargetCompany?: (companyId: string) => Promise<void> }) => {
     const row = io.rows.find(row => row.id === input.requestId)!
+    const target = String(row.company_id)
+    await input.authorizeTargetCompany?.(target)
+    if (io.pauseAtFinalize === target) io.companyStatuses[target] = 'paused'
+    if (io.companyStatuses[target] === 'paused') {
+      throw { code: '42501', message: 'supplier_switch_write_not_allowed' }
+    }
+    io.effects.push(input.requestId)
     const before = { ...row }
     row.status = 'completed'
     const site = { id: row.site_id, customer_id: row.customer_id }
@@ -61,15 +84,32 @@ vi.mock('@/lib/supabase/service', async () => {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { fetch: async (input, init) => {
       const url = new URL(input instanceof Request ? input.url : String(input)), table = url.pathname.split('/').at(-1)!
+      if (table === 'gridex_can_write_company') {
+        const { p_company_id: companyId } = JSON.parse(String(init?.body))
+        return Response.json(io.companyStatuses[companyId] !== 'paused')
+      }
       if (table === 'audit_logs' && init?.method === 'POST') {
         io.audit.push(JSON.parse(String(init.body)) as Row)
         return new Response(null, { status: 201 })
       }
-      if (table !== 'supplier_switch_requests') throw new Error('Unexpected bulk read/effect: ' + table)
-      io.reads.push(url.searchParams)
-      io.readHeaders.push(new Headers(init?.headers).get('prefer'))
-      if (io.failure) return new Response(JSON.stringify(io.failure), { status: 500 })
-      let rows = [...io.rows]
+      if (table === 'companies') {
+        const filter = url.searchParams.get('id')
+        if (!filter?.startsWith('in.(')) throw new Error('Missing bounded company filter')
+        const rows = filter.slice(4, -1).split(',').flatMap(id => io.companyStatuses[id] ? [{ id, status: io.companyStatuses[id] }] : [])
+        return Response.json(rows)
+      }
+      const isProof = table === 'customer_supply_periods'
+      if (!isProof && table !== 'supplier_switch_requests') throw new Error('Unexpected bulk read/effect: ' + table)
+      if (isProof) {
+        if (io.effects.length) throw new Error('Market start evidence must finish before any effect')
+        io.periodReads.push(url.searchParams)
+      } else {
+        io.reads.push(url.searchParams)
+        io.readHeaders.push(new Headers(init?.headers).get('prefer'))
+      }
+      const failure = isProof ? io.periodFailure : io.failure
+      if (failure) return new Response(JSON.stringify(failure), { status: 400 })
+      let rows = [...(isProof ? io.periods : io.rows)]
       for (const [key, value] of url.searchParams) {
         if (['select', 'order', 'limit'].includes(key)) continue
         rows = rows.filter(row => key === 'or' ? parts(value.slice(1, -1)).some(f => matches(row, f)) : matches(row, key + '.' + value))
@@ -91,7 +131,7 @@ vi.mock('@/lib/supabase/service', async () => {
       // The first response snapshot still has the old accepted priority. The
       // stored source changes before the next query, as a concurrent date edit
       // can do; its ID now appears again at a strictly later keyset tuple.
-      if (io.moveSeenPriority && io.reads.length === 1) {
+      if (!isProof && io.moveSeenPriority && io.reads.length === 1) {
         io.rows[0].confirmed_start_date = '2026-10-02'
         io.rows[0].requested_start_date = '2026-10-02'
       }
@@ -109,12 +149,12 @@ vi.mock('@/lib/supabase/server', async () => {
     return supabaseService
   } }
 })
-import { bulkFinalizeReadySupplierSwitchesAction as run } from '@/app/admin/operations/actions'
+import { bulkFinalizeReadySupplierSwitchesAction as run, finalizeSupplierSwitchExecutionAction as finalize } from '@/app/admin/operations/actions'
 
 beforeEach(() => {
   io.rows = []; io.reads = []; io.readHeaders = []; io.effects = []; io.audit = []; io.company = company; io.platform = false
   io.permission = true; io.signedIn = true; io.cap = Infinity; io.countMissing = false; io.failure = null
-  io.moveSeenPriority = false
+  io.deniedActivation.clear(); io.moveSeenPriority = false; io.companyStatuses = { [company]: 'active', [foreign]: 'active' }; io.pauseAtFinalize = null; io.periods = []; io.periodReads = []; io.periodFailure = null
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-14T10:00:00Z'))
 })
 afterEach(() => vi.useRealTimers())
@@ -145,6 +185,14 @@ describe('actual bulk action candidate composition before effects', () => {
     expect(io.audit).toEqual([])
     expect(io.rows.every(row => row.status === 'accepted')).toBe(true)
   })
+  it('fails before any writes when the scoped market-start read cannot complete', async () => {
+    io.rows = [request(1)]
+    io.periodFailure = { code: '42501', message: 'Private market-start read error' }
+    await expect(run()).rejects.toThrow(/individuell aktivering/i)
+    expect(io.periodReads).toHaveLength(1)
+    expect(io.effects).toEqual([])
+    expect(io.audit).toEqual([])
+  })
   it('retains all old ordering prefixes and NULL tails, with ID as stable tie breaker', async () => {
     io.cap = 2
     io.rows = [request(5, { confirmed_start_date: null, requested_start_date: '2026-09-01' }),
@@ -163,7 +211,51 @@ describe('actual bulk action candidate composition before effects', () => {
     io.rows = [request(1), request(2, { company_id: foreign })]
     await run(); expect(io.effects).toEqual([id(1)])
     expect(io.reads.every(q => q.get('company_id') === 'eq.' + company)).toBe(true)
+    expect(io.periodReads[0].get('or')).toBe(`(and(company_id.eq.${company},source_switch_request_id.eq.${id(1)},source_message_id.eq.${id(9003)}))`)
   })
+  it('counts a paused company as blocked before finalization and keeps independent active work', async () => {
+    io.platform = true
+    io.companyStatuses[foreign] = 'paused'
+    io.rows = [request(1, { company_id: foreign }), request(2)]
+    await run()
+    expect(io.rows.map(row => row.status)).toEqual(['accepted', 'completed'])
+    expect(io.effects).toEqual([id(2)])
+    expect(io.audit.at(-1)?.metadata).toMatchObject({ readyCount: 1, completedCount: 1, blockedCount: 1, blockedByCompanyCount: 1 })
+  })
+
+  it('keeps independent work for a platform actor and blocks a company without the native activation right', async () => {
+    io.platform = true
+    io.deniedActivation.add(foreign)
+    io.rows = [request(1, { company_id: foreign }), request(2)]
+    await run()
+    expect(io.effects).toEqual([id(2)])
+    expect(io.audit.at(-1)?.metadata).toMatchObject({ readyCount: 1, completedCount: 1, blockedByCompanyCount: 1 })
+  })
+
+  it('requires the native activation right for the single command before effects and reuses the exact authenticated actor', async () => {
+    io.rows = [request(1)]
+    const input = new FormData()
+    input.set('request_id', id(1))
+    io.deniedActivation.add(company)
+    await expect(finalize(input)).rejects.toThrow('Du saknar behörighet att aktivera leverans för detta bolag.')
+    expect(io.effects).toEqual([])
+    expect(io.audit).toEqual([])
+    io.deniedActivation.clear()
+    await finalize(input)
+    expect(io.effects).toEqual([id(1)])
+    expect(io.audit[0]).toMatchObject({ actor_user_id: id(9004), entity_id: id(1) })
+  })
+
+  it('continues independent work if the exact native writer rejects a company paused after discovery', async () => {
+    io.platform = true
+    io.pauseAtFinalize = foreign
+    io.rows = [request(1, { company_id: foreign }), request(2)]
+    await run()
+    expect(io.rows[0].status).toBe('accepted')
+    expect(io.effects).toEqual([id(2)])
+    expect(io.audit.at(-1)?.metadata).toMatchObject({ readyCount: 1, completedCount: 1, blockedCount: 1, blockedByCompanyCount: 1 })
+  })
+
   it('preserves authorized platform-global selection', async () => {
     io.platform = true; io.rows = [request(1), request(2, { company_id: foreign })]
     await run(); expect(io.effects).toEqual([id(1), id(2)])

@@ -7,12 +7,13 @@ import { segmentComposite,segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/edi
 import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
 import {utiltsDecimalGuideIssues,utiltsPrecisionFunctionalIssues} from '@/lib/ediel/utilts/quantityPrecision'
 import {takeQualifiedUtiltsRuntimeOwner} from '@/lib/ediel/utilts/qualifyReceivedStructure'
-import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {evidenceHash, isEvidenceRecord, isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
-import { hasQualifiedUtiltsOctoberIdentityRules } from '@/lib/ediel/rulebook/utilts25A5'
+import { hasQualifiedUtiltsOctoberIdentityRules, UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { evaluateUtiltsFieldMatrix } from '@/lib/ediel/utilts/fieldMatrixProjection'
 import { resolveUtiltsFieldConditions, type UtiltsConditionResult } from '@/lib/ediel/utilts/fieldMatrixConditions'
@@ -763,6 +764,81 @@ function applyUtiltsProductConditionHolds(result: UtiltsRuntimeResult, condition
       reason: 'Okvalificerad tidsserieprodukt hålls lokalt; kvalificerade syskon behåller sina egna utfall.' } }
 }
 
+export const E66_INVALID_REGISTRATION_DATE_ISSUE = 'UTILTS_E66_REGISTRATION_DATE_INVALID'
+export const E66_REGISTRATION_RECEIPT_UNAVAILABLE = 'UTILTS_E66_REGISTRATION_RECEIPT_UNAVAILABLE'
+
+function retainedE66Receipt(message: EdielMessageRow): bigint | null {
+  const snapshot = message.execution_context_snapshot
+  const context = isEvidenceRecord(snapshot) ? snapshot.receivedUtiltsContext : undefined
+  const received = parseSourceReceiptInstant(message.message_received_at)
+  if (received === null || !message.raw_payload || !isEvidenceUuid(message.id) || !isEvidenceUuid(message.company_id)
+    || !['test', 'production'].includes(message.environment) || !isEvidenceRecord(context) || Object.keys(context).length !== 9
+    || context.version !== 1 || context.contextOrigin !== 'database_insert' || context.sourceMessageId !== message.id
+    || context.companyId !== message.company_id || context.environment !== message.environment || context.messageCode !== 'E66'
+    || context.payloadHash !== evidenceHash(message.raw_payload) || parseSourceReceiptInstant(context.sourceReceivedAt) !== received
+    || parseSourceReceiptInstant(context.capturedAt) === null) return null
+  return received
+}
+
+function isE66ReceiptProfile(message: EdielMessageRow, policy: CanonicalEdielPolicy | null | undefined): boolean {
+  return message.direction === 'inbound' && message.message_standard === 'edifact' && message.message_code === 'E66'
+    && policy?.guide.guideRevision === UTILTS_25_A_5_SOURCE.guideRevision
+    && policy.guide.primarySource?.sha256 === UTILTS_25_A_5_SOURCE.sha256
+}
+
+export function hasUnavailableE66RegistrationReceipt(message: EdielMessageRow, policy: CanonicalEdielPolicy | null): boolean {
+  return isE66ReceiptProfile(message, policy) && retainedE66Receipt(message) === null
+}
+
+function applyE66RegistrationReceiptGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, policy: CanonicalEdielPolicy | undefined, requireBinding: boolean): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'E66' || !isE66ReceiptProfile(message, policy)) return result
+
+  const receipt = retainedE66Receipt(message)
+  if (receipt === null) {
+    if (!requireBinding) return result
+    const issue: UtiltsValidationIssue = {
+      severity: 'warning', kind: 'application', code: E66_REGISTRATION_RECEIPT_UNAVAILABLE,
+      title: 'Mottagningstid kan inte verifieras',
+      description: 'Första mottagningen för detta E66-original saknar ett kvalificerat källkvitto.',
+    }
+    return {
+      ...result,
+      transactionDispositions: result.transactionDispositions.map(item => item.disposition === 'accepted'
+        ? { ...item, disposition: 'internal_review', responseType: 'none', issueCodes: [...item.issueCodes, issue.code] }
+        : item),
+      validation: { ...result.validation, ok: false, classification: 'internal_review', issues: [...result.validation.issues, issue] },
+      ackPlan: { ...result.ackPlan, shouldSendAperak: false, aperakOutcome: null, shouldSendUtiltsErr: false, reason: issue.description },
+    }
+  }
+
+  const wire = tokenizeEdifact(message.raw_payload)
+  const physicalSegments = utiltsRuntimeSegments(result.facts)
+  const firstIde = wire.segments.findIndex(segment => segment.tag === 'IDE')
+  const timezone = parseEdifactTimezoneOffsetFromSegments(physicalSegments.slice(0, firstIde))
+  if (!timezone) return result // The existing timestamp/zone guide owns physical field errors.
+
+  const issues = result.transactionDispositions.flatMap((item, index): UtiltsValidationIssue[] => {
+    if (item.disposition !== 'accepted') return []
+    const scope = result.facts.utiltsObservedTransactions?.[index]
+    const transaction = result.facts.transactions[index]
+    if (!scope || scope.transactionId !== transaction.transactionId) return []
+    const firstSeq = scope.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = firstSeq < 0 ? scope.segments : scope.segments.slice(0, firstSeq)
+    const registration = header.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '597')
+    if (!registration || !transaction.registrationTime || segmentComposite(registration, 1, wire.una)[2] !== '203') return []
+    const instant = parseSourceReceiptInstant(localEdifactDateTimeToUtc(transaction.registrationTime, timezone))
+    if (instant === null || instant <= receipt) return []
+    return [{
+      kind: 'application', severity: 'error', code: E66_INVALID_REGISTRATION_DATE_ISSUE,
+      title: 'Registreringstid efter mottagning', description: 'SG5 DTM+597 ligger efter originalets verifierade mottagningstid.',
+      aperakErcCode: '42', aperakFieldCode: '512', aperakText: 'INCORRECT DATA',
+      aperakInvalidOccurrence: { segmentIndex: registration.index, elementIndex: 1, componentIndex: 1 },
+      referenceQualifier: 'ACW', referenceNumber: item.transactionId, lineItemReference: item.transactionId,
+    }]
+  })
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
 function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'S02') return result
   const transactions = result.facts.utiltsObservedTransactions ?? []
@@ -1021,6 +1097,8 @@ function runUtiltsRuntimeForMessageCore(
     ? resolveUtiltsFieldConditions({ policy: canonicalPolicy, rawPayload: message.raw_payload ?? '' }) : undefined
   guided = applyUtiltsCanonicalFieldGuide(message, guided, canonicalPolicy, productConditions)
   if (options?.guideOnly) return applyUtiltsProductConditionHolds(guided, productConditions)
+  guided = applyE66RegistrationReceiptGuide(message, guided, canonicalPolicy, Boolean(options?.canonicalPolicy?.timeAnchors))
+  if (guided.validation.issues.some(issue => issue.code === E66_REGISTRATION_RECEIPT_UNAVAILABLE)) return guided
   if(canonicalPolicy)guided=applyPeriodicReasonGuide({message,policy:canonicalPolicy,result:guided,authority:options?.periodicReasonAuthority,rebuild:rebuildUtiltsRuntimeResult})
   if(options?.issuerIdentityAuthority){
     if(!canonicalPolicy)throw new Error('ediel_utilts_issuer_identity_policy_required')

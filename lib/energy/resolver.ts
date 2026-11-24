@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { recordCanonicalEnergyEvent } from '@/lib/energy/canonicalEnergyEvents'
 import { normaliseSwedishAddress } from '@/lib/energy/address'
@@ -651,8 +652,6 @@ async function lookupPapilitePostalCentroid(input: EnergyResolverInput): Promise
 }
 
 async function currentGeodataVersion(): Promise<{ version: string | null; stale: boolean }> {
-  const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
-  const maxAgeDays = Number.isFinite(maxAgeDaysRaw) ? Math.min(Math.max(maxAgeDaysRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
   const { data, error } = await supabaseService
     .from('energy_geodata_versions')
     .select('version_key,verified_at,completed_at,started_at')
@@ -665,6 +664,12 @@ async function currentGeodataVersion(): Promise<{ version: string | null; stale:
     if (missingSchema(error)) return { version: null, stale: true }
     throw error
   }
+  return classifyGeodataVersion(data)
+}
+
+function classifyGeodataVersion(data: Record<string, unknown> | null): { version: string | null; stale: boolean } {
+  const maxAgeDaysRaw = Number(process.env.ENERGY_GEODATA_MAX_AGE_DAYS ?? DEFAULT_GEODATA_MAX_AGE_DAYS)
+  const maxAgeDays = Number.isFinite(maxAgeDaysRaw) ? Math.min(Math.max(maxAgeDaysRaw, 1), 365) : DEFAULT_GEODATA_MAX_AGE_DAYS
   if (!data) return { version: null, stale: true }
   const timestamp = clean(data.verified_at) ?? clean(data.completed_at) ?? clean(data.started_at)
   const ageMs = timestamp ? Date.now() - Date.parse(timestamp) : Number.POSITIVE_INFINITY
@@ -674,12 +679,63 @@ async function currentGeodataVersion(): Promise<{ version: string | null; stale:
   }
 }
 
-async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordinates): Promise<EnergyResolverResult | null> {
+class PartnerAddressClientUnavailable extends Error {}
+
+async function readPartnerAddressSnapshot(input: EnergyResolverInput, partnerClientId?: string) {
+  const addressKeys = addressAttempts(input).map(attempt => attempt.key)
+  const args = { p_address_keys: addressKeys }
+  const eligible = partnerClientId && input.companyId && addressKeys.length > 0 &&
+    addressKeys.every(key => key.length <= 512)
+  let response
+  if (eligible) {
+    response = await supabaseService.rpc('gridex_reuse_partner_address_grid_snapshot_v2', {
+      ...args,
+      p_company_id: input.companyId,
+      p_client_id: partnerClientId,
+      p_ttl_hours: resolutionTtlHours(),
+    })
+    const error = response.error
+    if (error?.code === '42501' && error.message === 'partner_address_snapshot_client_not_current') {
+      throw new PartnerAddressClientUnavailable()
+    }
+    if (error && !(error.code === 'PGRST202' &&
+        error.message.startsWith('Could not find the function public.gridex_reuse_partner_address_grid_snapshot_v2('))) {
+      throw error
+    }
+    if (error) response = await supabaseService.rpc('gridex_read_address_grid_snapshot_v1', args)
+  } else {
+    response = await supabaseService.rpc('gridex_read_address_grid_snapshot_v1', args)
+  }
+  const { data, error } = response
+  if (error?.code === 'PGRST202' || error?.code === '42883') return undefined
+  if (error) throw error
+  if (!isRecord(data) || !isRecord(data.coordinates)) return undefined
+  const c = data.coordinates
+  const x = numberOrNull(c.sweref99X)
+  const y = numberOrNull(c.sweref99Y)
+  if (x === null || y === null) return undefined
+  return {
+    coordinates: {addressKey: clean(c.addressKey) ?? '', sweref99X: x, sweref99Y: y,
+      latitude: numberOrNull(c.latitude), longitude: numberOrNull(c.longitude),
+      confidence: numberOrNull(c.confidence) ?? 0.7, raw: {}},
+    row: isRecord(data.polygon) ? data.polygon : null,
+    addressEvidence: isRecord(data.addressEvidence) ? data.addressEvidence : null,
+    opsGridOwnerId: clean(data.opsGridOwnerId),
+    geodata: isRecord(data.geodata) ? data.geodata : null,
+  }
+}
+
+async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordinates,
+  snapshot?: Awaited<ReturnType<typeof readPartnerAddressSnapshot>>,
+): Promise<EnergyResolverResult | null> {
   let data: unknown = null
   let error: unknown = null
   let coordinateReferenceSystem: EnergyResolverDiagnostics['coordinateReferenceSystem'] = null
 
-  if (coordinates.sweref99X !== null && coordinates.sweref99Y !== null) {
+  if (snapshot) {
+    coordinateReferenceSystem = 'EPSG:3006'
+    data = snapshot.row
+  } else if (coordinates.sweref99X !== null && coordinates.sweref99Y !== null) {
     coordinateReferenceSystem = 'EPSG:3006'
     const response = await supabaseService.rpc('gridex_point_to_grid_area', { p_x: coordinates.sweref99X, p_y: coordinates.sweref99Y })
     data = response.data
@@ -700,9 +756,9 @@ async function pointToGridArea(input: EnergyResolverInput, coordinates: Coordina
   const status: EnergyResolutionStatus = normalisePriceArea(row.price_area) && clean(row.grid_owner_name)
     ? 'grid_area_master_validated'
     : 'grid_area_resolved'
-  const opsGridOwnerId = await mapPlatformGridOwnerToOpsGridOwner(clean(row.grid_owner_id))
+  const opsGridOwnerId = snapshot ? snapshot.opsGridOwnerId : await mapPlatformGridOwnerToOpsGridOwner(clean(row.grid_owner_id))
   const mappingMissing = Boolean(clean(row.grid_owner_id) && !opsGridOwnerId)
-  const geodata = await currentGeodataVersion()
+  const geodata = snapshot ? classifyGeodataVersion(snapshot.geodata) : await currentGeodataVersion()
   const resolved = await applyGridOwnerVerification(result(input, {
     gridAreaCode: clean(row.grid_area_code),
     gridAreaName: clean(row.grid_area_name),
@@ -1082,11 +1138,67 @@ function priceAreaCanMaterialize(resolved: EnergyResolverResult): boolean {
     && resolved.priceAreaAssurance.confidence >= MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE
 }
 
-async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolverResult): Promise<EnergyResolverResult> {
+type PartnerPostalReuse = { scopeKey: string; revision: string }
+
+class PartnerPostalSourceChanged extends Error {}
+type AddressSnapshotOptions = { freshAddressSnapshot?: boolean; partnerClientId?: string }
+
+function cachedPartnerPostalResult(value: unknown): EnergyResolverResult | null {
+  if (!isRecord(value) || !isRecord(value.snapshot) || typeof value.resolutionId !== 'string' ||
+      typeof value.resolvedAt !== 'string' || typeof value.expiresAt !== 'string' ||
+      value.resolverVersion !== RESOLVER_VERSION || !(Date.parse(value.expiresAt) > Date.now()) ||
+      !isRecord(value.snapshot.priceAreaAssurance) || !Array.isArray(value.snapshot.sourceChain) ||
+      !Array.isArray(value.snapshot.warnings)) return null
+  return {
+    ...(value.snapshot as unknown as EnergyResolverResult),
+    resolutionId: value.resolutionId,
+    resolvedAt: value.resolvedAt,
+    expiresAt: value.expiresAt,
+    resolverVersion: value.resolverVersion,
+  }
+}
+
+function resolutionTtlHours(): number {
+  const ttl = Number(process.env.ENERGY_RESOLUTION_TTL_HOURS ?? DEFAULT_RESOLUTION_TTL_HOURS)
+  return Number.isFinite(ttl) ? Math.min(Math.max(ttl, 1), 168) : DEFAULT_RESOLUTION_TTL_HOURS
+}
+
+export async function resolveReusablePartnerPostalEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
+  const postalCode = normalizePostalCode(input.postalCode)
+  if (!postalCode || input.country !== 'SE' || !input.companyId || input.street != null ||
+      input.customerId || input.customerSiteId || input.customerApplicationId || input.gridAreaCode ||
+      input.streetNumber || input.facilityId || input.meteringPointId || input.requestedStartMode || input.requestedStartDate ||
+      input.metadata?.source_channel !== 'partner_api' || input.metadata?.partner_surface !== 'business_v1') {
+    return resolveEnergyContext(input)
+  }
+  const scopeKey = createHash('sha256')
+    .update(JSON.stringify([RESOLVER_VERSION, postalCode, input.city ?? null, input.country, papiliteConfigured(), resolutionTtlHours()]))
+    .digest('hex')
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const lookup = await Promise.resolve(supabaseService.rpc('gridex_get_partner_postal_resolution_v1', {
+      p_company_id: input.companyId, p_scope_key: scopeKey,
+    })).catch(() => null)
+    if (!lookup || lookup.error || !isRecord(lookup.data) || typeof lookup.data.revision !== 'string') break
+    const cached = cachedPartnerPostalResult(lookup.data.cached)
+    if (cached) return cached
+    try {
+      return await resolveEnergyContextWithReuse(input, { scopeKey, revision: lookup.data.revision })
+    } catch (error) {
+      if (!(error instanceof PartnerPostalSourceChanged)) throw error
+    }
+  }
+  return resolveEnergyContext(input)
+}
+
+async function saveResolution(
+  input: EnergyResolverInput,
+  resolved: EnergyResolverResult,
+  postalReuse?: PartnerPostalReuse,
+  partnerAddress?: { clientId: string; evidence: unknown },
+): Promise<EnergyResolverResult> {
   if (!input.companyId) return resolved
   const now = new Date().toISOString()
-  const ttlRaw = Number(process.env.ENERGY_RESOLUTION_TTL_HOURS ?? DEFAULT_RESOLUTION_TTL_HOURS)
-  const ttlHours = Number.isFinite(ttlRaw) ? Math.min(Math.max(ttlRaw, 1), 168) : DEFAULT_RESOLUTION_TTL_HOURS
+  const ttlHours = resolutionTtlHours()
   const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString()
   const row = {
     company_id: input.companyId,
@@ -1121,15 +1233,64 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
     updated_at: now,
   }
 
-  const { data, error } = await supabaseService
-    .from('customer_site_resolution')
-    .insert(row)
-    .select('id')
-    .single()
+  if (partnerAddress && resolved.resolutionStatus === 'grid_area_master_validated' &&
+      resolved.priceAreaAssurance.status === 'verified' && resolved.priceAreaAssurance.source === 'address_polygon') {
+    const stored = await supabaseService.rpc('gridex_save_fresh_partner_address_resolution_v1', {
+      p_company_id: input.companyId, p_client_id: partnerAddress.clientId,
+      p_ttl_hours: ttlHours, p_address_evidence: partnerAddress.evidence, p_resolution: row,
+    })
+    if (!stored.error) {
+      const receipt = stored.data
+      if (!isRecord(receipt) || typeof receipt.resolutionId !== 'string' ||
+          typeof receipt.resolvedAt !== 'string' || !Number.isFinite(Date.parse(receipt.resolvedAt)) ||
+          typeof receipt.expiresAt !== 'string' || !(Date.parse(receipt.expiresAt) > Date.now())) {
+        throw new Error('partner_address_resolution_receipt_invalid')
+      }
+      return { ...resolved, resolutionId: receipt.resolutionId, resolvedAt: receipt.resolvedAt,
+        expiresAt: receipt.expiresAt, resolverVersion: row.resolver_version }
+    }
+    if (stored.error.code !== 'PGRST202') throw new Error(`partner_address_resolution_persistence_failed:${stored.error.code}`)
+  }
 
-  if (error) {
-    if (missingSchema(error)) requireResolverSchema('customer_site_resolution', error)
-    throw error
+  let data: { id: string } | null = null
+  let auditCommitted = false
+  if (postalReuse && resolved.resolutionStatus === 'postal_suggested' && resolved.priceAreaAssurance.status === 'estimated' &&
+      (resolved.priceAreaAssurance.source === 'postal_consensus' || resolved.priceAreaAssurance.source === 'postal_city_consensus')) {
+    const save = () => supabaseService.rpc('gridex_save_partner_postal_resolution_v1', {
+      p_company_id: input.companyId, p_scope_key: postalReuse.scopeKey,
+      p_expected_revision: postalReuse.revision, p_resolution: row,
+    })
+    let attempted = await save()
+    if (attempted.error && (attempted.status === 0 || attempted.status === 502 || attempted.status === 504)) {
+      attempted = await save()
+    }
+    if (attempted.error && attempted.error.code !== 'PGRST202') throw attempted.error
+    if (!attempted.error) {
+      const cacheResult = isRecord(attempted.data) ? attempted.data : {}
+      const cached = cachedPartnerPostalResult(cacheResult.cached)
+      if (cached) return cached
+      if (typeof cacheResult.resolutionId === 'string') {
+        data = { id: cacheResult.resolutionId }
+        auditCommitted = true
+      } else if (cacheResult.revisionChanged === true) {
+        throw new PartnerPostalSourceChanged()
+      } else {
+        throw new Error('partner_postal_resolution_receipt_missing')
+      }
+    }
+  }
+  if (!data) {
+    const inserted = await supabaseService
+      .from('customer_site_resolution')
+      .insert(row)
+      .select('id')
+      .single()
+    if (inserted.error) {
+      if (missingSchema(inserted.error)) requireResolverSchema('customer_site_resolution', inserted.error)
+      throw inserted.error
+    }
+    if (!inserted.data?.id) throw new Error('energy_resolution_receipt_missing')
+    data = { id: String(inserted.data.id) }
   }
 
   if (input.customerSiteId) {
@@ -1200,32 +1361,34 @@ async function saveResolution(input: EnergyResolverInput, resolved: EnergyResolv
   }
 
   const saved = { ...resolved, resolutionId: data.id as string, resolvedAt: now, expiresAt, resolverVersion: resolved.resolverVersion ?? RESOLVER_VERSION }
-  await recordCanonicalEnergyEvent({
-    eventType: saved.resolutionStatus === 'needs_review' || saved.resolutionStatus === 'failed'
-      ? 'energy_area.needs_review'
-      : 'energy_area.resolved',
-    companyId: input.companyId,
-    customerId: input.customerId ?? null,
-    siteId: input.customerSiteId ?? null,
-    resolutionId: saved.resolutionId,
-    source: 'ops_energy_resolver',
-    payload: {
-      price_area: saved.priceArea,
-      grid_area_code: saved.gridAreaCode,
-      grid_owner_id: saved.gridOwnerId,
-      resolution_status: saved.resolutionStatus,
-      confidence: saved.confidence,
-      price_area_assurance: saved.priceAreaAssurance,
-      automation_allowed: saved.automationAllowed,
-      resolver_version: saved.resolverVersion,
-      geodata_version: saved.geodataVersion,
-      conflict_code: saved.conflictCode ?? null,
-    },
-  })
+  if (!auditCommitted) {
+    await recordCanonicalEnergyEvent({
+      eventType: saved.resolutionStatus === 'needs_review' || saved.resolutionStatus === 'failed'
+        ? 'energy_area.needs_review'
+        : 'energy_area.resolved',
+      companyId: input.companyId,
+      customerId: input.customerId ?? null,
+      siteId: input.customerSiteId ?? null,
+      resolutionId: saved.resolutionId,
+      source: 'ops_energy_resolver',
+      payload: {
+        price_area: saved.priceArea,
+        grid_area_code: saved.gridAreaCode,
+        grid_owner_id: saved.gridOwnerId,
+        resolution_status: saved.resolutionStatus,
+        confidence: saved.confidence,
+        price_area_assurance: saved.priceAreaAssurance,
+        automation_allowed: saved.automationAllowed,
+        resolver_version: saved.resolverVersion,
+        geodata_version: saved.geodataVersion,
+        conflict_code: saved.conflictCode ?? null,
+      },
+    })
+  }
   return saved
 }
 
-export async function resolveEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
+async function resolveEnergyContextWithReuse(input: EnergyResolverInput, postalReuse?: PartnerPostalReuse, options?: AddressSnapshotOptions): Promise<EnergyResolverResult> {
   const warnings: string[] = []
   try {
     const explicitCode = normaliseGridAreaCode(input.gridAreaCode)
@@ -1233,7 +1396,11 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     if (explicitCode && !explicit) warnings.push('grid_area_code_not_found_in_master')
 
     if (hasFullAddress(input) && exactAddressProviderAllowed(input)) {
-      const cached = await cachedAddressCoordinates(input)
+      const snapshot = options?.freshAddressSnapshot
+        ? await readPartnerAddressSnapshot(input,
+            !explicitCode && !input.customerId && !input.customerSiteId && !input.customerApplicationId
+              ? options.partnerClientId : undefined) : undefined
+      const cached = snapshot?.coordinates ?? await cachedAddressCoordinates(input)
       if (cached) {
         const geocode: GeocodeLookup = {
           coordinates: cached,
@@ -1250,7 +1417,7 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
             mappingStatus: 'not_applicable',
           },
         }
-        const polygon = await pointToGridArea(input, cached)
+        const polygon = await pointToGridArea(input, cached, snapshot)
         if (polygon) {
           if (explicitCode && polygon.gridAreaCode && explicitCode !== normaliseGridAreaCode(polygon.gridAreaCode)) {
             return saveResolution(input, {
@@ -1269,7 +1436,10 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
             sourceChain: explicitCode ? [...polygon.sourceChain, 'client_grid_area_claim_validated'] : polygon.sourceChain,
             warnings: [...warnings, ...polygon.warnings],
             diagnostics: { ...geocode.diagnostics, ...polygon.diagnostics, polygonStatus: 'matched' },
-          })
+          }, undefined, snapshot?.addressEvidence && options?.partnerClientId && !explicitCode &&
+              !input.customerId && !input.customerSiteId && !input.customerApplicationId
+            ? { clientId: options.partnerClientId, evidence: snapshot }
+            : undefined)
         }
         warnings.push(cached.sweref99X === null && cached.longitude !== null ? 'polygon_wgs84_transform_unavailable_or_no_match' : 'polygon_no_match')
       } else {
@@ -1295,7 +1465,7 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     }
 
     const postal = await postalSuggestion(input)
-    if (postal) return saveResolution(input, { ...postal, warnings: [...postal.warnings, ...warnings] })
+    if (postal) return saveResolution(input, { ...postal, warnings: [...postal.warnings, ...warnings] }, postalReuse)
 
     const centroidLookup = await lookupPapilitePostalCentroid(input)
     warnings.push(...centroidLookup.warnings)
@@ -1314,6 +1484,7 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
       warnings: [...warnings, 'no_energy_resolution_candidate'],
     }))
   } catch (error) {
+    if (error instanceof PartnerAddressClientUnavailable) throw error
     const code = (error as { code?: string } | null)?.code ?? null
     const schemaResource = error instanceof ResolverSchemaError ? error.resource : null
     const failed = result(input, {
@@ -1338,6 +1509,10 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
     })
     return schemaResource ? failed : saveResolution(input, failed).catch(() => failed)
   }
+}
+
+export function resolveEnergyContext(input: EnergyResolverInput, options?: AddressSnapshotOptions): Promise<EnergyResolverResult> {
+  return resolveEnergyContextWithReuse(input, undefined, options)
 }
 
 export async function publicPriceAreaByPostalCode(postalCodeRaw: string | null) {

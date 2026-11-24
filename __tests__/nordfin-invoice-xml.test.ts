@@ -5,7 +5,6 @@ vi.mock('@/lib/billing/invoiceApprovedDispatch', () => ({
   approval: () => ({}),
   assertItemStillReady: vi.fn(),
   loadItemContext: vi.fn(),
-  maybeLockCompleteMonth: vi.fn(),
   updateLegacyProjection: vi.fn(),
 }))
 import { buildInvoiceFileRow, monthsRemaining, parseInvoiceFileFormat, renderInvoiceFile, type InvoiceFileRow } from '@/lib/billing/invoiceFileExport'

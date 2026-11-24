@@ -5,6 +5,7 @@ type Props = {
   companyId: string | null
   customerId: string
   primarySiteId: string | null
+  focusedSiteId?: string | null
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
   gridOwners: GridOwnerRow[]
@@ -19,7 +20,7 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 /** Server view: accepts only records in the current customer's company/site graph. */
-export default function CustomerSitesBusinessView({ companyId, customerId, primarySiteId, sites, meteringPoints, gridOwners }: Props) {
+export default function CustomerSitesBusinessView({ companyId, customerId, primarySiteId, focusedSiteId, sites, meteringPoints, gridOwners }: Props) {
   if (!companyId) return <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Anläggningsuppgifter kunde inte visas för valt bolag.</p>
   const ownSites = sites.filter(site => site.company_id === companyId && site.customer_id === customerId)
   const ownerName = (id: string | null) => id ? gridOwners.find(owner => owner.id === id)?.name || 'Nätägaruppgifter saknas' : 'Inte angiven'
@@ -34,7 +35,8 @@ export default function CustomerSitesBusinessView({ companyId, customerId, prima
         const siteOwnerId = site.grid_owner_id ?? (pointOwnerIds.length === 1 ? pointOwnerIds[0] : null)
         const ownerMismatch = Boolean(site.grid_owner_id && pointOwnerIds.some(id => id !== site.grid_owner_id)) || (!site.grid_owner_id && pointOwnerIds.length > 1)
         const address = [site.street, site.postal_code, site.city].filter(Boolean).join(', ')
-        return <article key={site.id} className="min-w-0 break-words rounded-xl border border-slate-200 p-3">
+        const focused = site.id === focusedSiteId
+        return <article key={site.id} id={focused ? 'vald-anlaggning' : undefined} tabIndex={focused ? -1 : undefined} className="min-w-0 scroll-mt-4 break-words rounded-xl border border-slate-200 p-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <h3 className="font-semibold text-slate-950">{site.site_name || address || 'Anläggning'}</h3>

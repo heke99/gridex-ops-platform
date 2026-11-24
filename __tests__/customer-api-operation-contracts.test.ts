@@ -125,6 +125,14 @@ beforeEach(() => {
       const data = rows.map(row => ({ id: row.id, notification_reference: publicReference('notification', COMPANY, row.id) }))
       return { data: data.filter(row => (args.p_references as string[]).includes(row.notification_reference!)), error: null }
     }
+    if (name === 'portal_customer_documents_page_v2') {
+      expect(args).toMatchObject({ p_cursor_created_at: null, p_cursor_source_rank: null, p_cursor_id: null })
+      return { data: m.tables.customer_documents
+        .filter(row => row.company_id === args.p_company_id && row.customer_id === args.p_customer_id)
+        .map(row => ({ ...row, public_reference_source: row.id, cursor_created_at: row.created_at, cursor_source_rank: 2, cursor_id: row.id })),
+        error: null,
+      }
+    }
     if (name === 'portal_customer_documents_page_v1') return { data: m.tables.customer_documents, error: null }
     if (name === 'portal_customer_events_page_v1') return { data: m.tables.customer_events, error: null }
     if (name === 'gridex_submit_customer_move_out_v1') return { data: { completion_reference: 'completion_synthetic', customer_reference: 'tenant-customer-subject', facility_reference: ref('facility'), contract_reference: null, requested_move_out_date: '2026-10-13', status: 'submitted', submitted_at: CREATED, replayed: false }, error: null }
@@ -203,15 +211,15 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect(name === 'contracts' ? body.data[0] : body.data.contracts[0]).toMatchObject(dates)
   })
   it.each([
-    ['contracts', 'production', true],
-    ['contracts', 'consumption', false],
-    ['portal-bundle', 'production', true],
-    ['portal-bundle', 'consumption', false],
+    ['contracts', 'production', true, false],
+    ['contracts', 'consumption', false, false],
+    ['portal-bundle', 'production', true, false],
+    ['portal-bundle', 'consumption', false, false],
     ['contracts', 'production', true, true],
     ['portal-bundle', 'production', true, true],
-    ['contracts', undefined, undefined],
-    ['portal-bundle', undefined, undefined],
-  ] as const)('projects stored contract terms through %s (%s, %s)', async (name, direction, renewal, legacy = false) => {
+    ['contracts', undefined, undefined, false],
+    ['portal-bundle', undefined, undefined, false],
+  ] as const)('projects stored contract terms through %s (%s, %s)', async (name, direction, renewal, legacy) => {
     const row = m.tables.customer_contracts[0]
     Object.assign(row, { energy_direction: direction, auto_renew_enabled: renewal })
     m.missingContractColumns = new Set(direction === undefined
@@ -353,27 +361,30 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect((await retired.json()).data.documents[0].secure_url).toBeNull()
   })
   it('looks up a document moved beyond the first owned page by public reference', async () => {
-    const target = { ...m.tables.customer_documents[0], public_url: 'https://files.example.test/document.pdf', source_rank: 2 }
+    const target = { ...m.tables.customer_documents[0], id: RESOURCE, public_url: 'https://files.example.test/document.pdf', source_rank: 2 }
     const newer = Array.from({ length: 100 }, (_, index) => ({
       ...target, id: `00000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
     }))
+    m.tables.customer_documents = [...newer, target, { ...target, company_id: OTHER_COMPANY }]
     m.rpc.mockImplementation(async (name: string, args: Row) => {
-      expect(name).toBe('portal_customer_documents_page_v1')
-      expect(args.p_company_id).toBe(COMPANY)
-      expect(args.p_customer_id).toBe(CUSTOMER)
-      expect(args.p_limit).toBe(101)
-      if (args.p_cursor_id) {
-        expect(args.p_cursor_id).toBe(newer.at(-1)?.id)
-        return { data: [target], error: null }
-      }
-      return { data: [...newer, target], error: null }
+      expect(name).toBe('portal_customer_document_reference_v2')
+      expect(args).toEqual({
+        p_company_id: COMPANY,
+        p_customer_id: CUSTOMER,
+        p_public_reference: expect.stringMatching(/^document_[A-Za-z0-9_-]{32}$/),
+      })
+      const document = m.tables.customer_documents.find(row =>
+        row.company_id === args.p_company_id && row.customer_id === args.p_customer_id
+        && publicReference('document', COMPANY, row.id) === args.p_public_reference,
+      )
+      return { data: document ? { kind: 'matched', document } : { kind: 'unmatched' }, error: null }
     })
     const { GET } = await import('@/app/api/v1/customer/documents/route')
     const request = (reference: string) => new NextRequest(`https://synthetic.example/api/v1/customer/documents?document_reference=${reference}`)
     const targetReference = publicReference('document', COMPANY, target.id)!
     const response = await GET(request(targetReference))
     expect(response.status).toBe(200)
-    expect(m.rpc).toHaveBeenCalledTimes(2)
+    expect(m.rpc).toHaveBeenCalledTimes(1)
     const body = await response.json()
     expect(body.data).toHaveLength(1)
     expect(body.data[0]).toMatchObject({ document_reference: targetReference, secure_url: target.public_url })

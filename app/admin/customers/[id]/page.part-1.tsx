@@ -101,8 +101,10 @@ export type CustomerPageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     editSite?: string;
+    site?: string | string[];
     editMeteringPoint?: string;
     tab?: string;
+    resend?: string | string[];
   }>;
 };
 

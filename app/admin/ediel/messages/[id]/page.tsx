@@ -531,7 +531,7 @@ Konfigurerat transportläge: {sendReadiness.resolvedEncryptionMode === 'smime' ?
  Räkna om ACK / runtime
  </button>
  <div className="mt-1 text-xs text-emerald-700">
- Markerar gamla ej skickade ACK-utkast som superseded och kör om tenant + runtime.
+ Kör om bedömningen och visa aktuell kvittensstatus. När E66 hanteras av den ordinarie arbetskön läses dess status om.
  </div>
  </form>
  ) : null}

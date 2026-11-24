@@ -111,7 +111,20 @@ export type AuthorizationScopeRow = {
   created_at: string;
 };
 
+export type MeteringPermissionReportingSite = {
+  facility_id: string | null
+  status: string
+  start_at: string | null
+  end_at: string | null
+  end_date: string | null
+  permission_end_at: string | null
+  metadata: unknown
+}
+
 export type MeteringPermissionRow = {
+  permission_scope?: string | null
+  metadata?: { marketPermission?: { mode?: string; sourceZ14?: unknown; objects?: unknown } } | null
+  reportingSites?: MeteringPermissionReportingSite[] | null
   id: string;
   company_id: string;
   customer_id: string;
@@ -171,14 +184,16 @@ function customerLabel(row: Record<string, unknown>): string {
 
 export async function listCustomersForInfoRequestSelector(
   companyId: string,
+  selectedCustomerId?: string,
 ): Promise<CustomerOption[]> {
   try {
-    const { data, error } = await supabaseService
+    const customerQuery = () => supabaseService
       .from("customers")
       .select(
         "id, customer_number, first_name, last_name, full_name, company_name, email, personal_number, org_number",
       )
-      .eq("company_id", companyId)
+      .eq("company_id", companyId);
+    const { data, error } = await customerQuery()
       .order("created_at", { ascending: false })
       .limit(80);
 
@@ -187,9 +202,15 @@ export async function listCustomersForInfoRequestSelector(
       throw error;
     }
 
-    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    const rows = data ?? [];
+    if (selectedCustomerId && !rows.some(row => row.id === selectedCustomerId)) {
+      const selected = await customerQuery().eq("id", selectedCustomerId).maybeSingle();
+      if (selected.error && !isMissingRelationError(selected.error)) throw selected.error;
+      if (selected.data) rows.push(selected.data);
+    }
+    return rows.map((row) => ({
       id: String(row.id),
-      label: customerLabel(row as Record<string, unknown>),
+      label: customerLabel(row),
       sublabel:
         [row.customer_number, row.email, row.personal_number, row.org_number]
           .filter(Boolean)
@@ -307,7 +328,26 @@ export async function listMeteringPermissions(
       throw error;
     }
 
-    return (data ?? []) as MeteringPermissionRow[];
+    const permissions = (data ?? []) as MeteringPermissionRow[];
+    const reportedStatuses = ['approved', 'active', 'z14_received', 'partially_approved', 'ended'];
+    const ongoingIds = permissions.filter(row => reportedStatuses.includes(row.status)
+      && (row.permission_scope === 'V' || (row.permission_scope == null && row.metadata?.marketPermission?.mode === 'S17'))).map(row => row.id);
+    const ongoing = new Set(ongoingIds);
+    if (ongoingIds.length === 0) return permissions;
+    const { data: sites, count: siteCount, error: siteError } = await supabaseService
+      .from('metering_permission_sites')
+      .select('metering_permission_id,facility_id,status,start_at,end_at,end_date,permission_end_at,metadata', { count: 'exact' })
+      .eq('company_id', companyId)
+      .in('metering_permission_id', ongoingIds)
+      .limit(1000);
+    // A partial object list may omit an ongoing site. Keep the old market
+    // rows visible and withhold effective reporting state on an incomplete read.
+    if (siteError || !sites || siteCount !== sites.length) {
+      return permissions.map(row => ongoing.has(row.id) ? {...row, reportingSites:null} : row);
+    }
+    return permissions.map(row => ongoing.has(row.id)
+      ? {...row, reportingSites:sites.filter(site => site.metering_permission_id === row.id)}
+      : row);
   } catch (error) {
     if (isMissingRelationError(error)) return [];
     throw error;
@@ -329,26 +369,25 @@ function meteringPointOptionLabel(row: Record<string, unknown>): string {
 
 export async function listCustomerInfoRequestResourceOptions(
   companyId: string,
+  focus?: { customerId: string; siteId: string; meteringPointId?: string },
 ): Promise<CustomerInfoRequestResourceOptions> {
   try {
+    const siteQuery = () => supabaseService
+      .from("customer_sites")
+      .select(
+        "id, customer_id, site_name, facility_id, status, grid_owner_id, street, postal_code, city",
+      )
+      .eq("company_id", companyId);
+    const meterQuery = () => supabaseService
+      .from("metering_points")
+      .select(
+        "id, site_id, meter_point_id, site_facility_id, ediel_reference, status, grid_owner_id, price_area_code",
+      )
+      .eq("company_id", companyId);
     const [sitesResult, meteringPointsResult, gridOwnersResult] =
       await Promise.all([
-        supabaseService
-          .from("customer_sites")
-          .select(
-            "id, customer_id, site_name, facility_id, status, grid_owner_id, street, postal_code, city",
-          )
-          .eq("company_id", companyId)
-          .order("updated_at", { ascending: false })
-          .limit(250),
-        supabaseService
-          .from("metering_points")
-          .select(
-            "id, site_id, meter_point_id, site_facility_id, ediel_reference, status, grid_owner_id, price_area_code",
-          )
-          .eq("company_id", companyId)
-          .order("updated_at", { ascending: false })
-          .limit(250),
+        siteQuery().order("updated_at", { ascending: false }).limit(250),
+        meterQuery().order("updated_at", { ascending: false }).limit(250),
         supabaseService
           .from("grid_owners")
           .select("id, name, owner_code, ediel_id, is_active")
@@ -369,7 +408,25 @@ export async function listCustomerInfoRequestResourceOptions(
         throw gridOwnersResult.error;
     }
 
-    const siteRows = (sitesResult.data ?? []) as Array<Record<string, unknown>>;
+    const siteRows = sitesResult.data ?? [];
+    const meterRows = meteringPointsResult.data ?? [];
+    if (focus) {
+      let selectedSite = siteRows.find(row => row.id === focus.siteId);
+      if (!selectedSite && !sitesResult.error) {
+        const selected = await siteQuery().eq("customer_id", focus.customerId).eq("id", focus.siteId).maybeSingle();
+        if (selected.error && !isMissingRelationError(selected.error)) throw selected.error;
+        if (selected.data) {
+          selectedSite = selected.data;
+          siteRows.push(selectedSite);
+        }
+      }
+      if (selectedSite?.customer_id === focus.customerId && focus.meteringPointId &&
+          !meteringPointsResult.error && !meterRows.some(row => row.id === focus.meteringPointId)) {
+        const selected = await meterQuery().eq("site_id", focus.siteId).eq("id", focus.meteringPointId).maybeSingle();
+        if (selected.error && !isMissingRelationError(selected.error)) throw selected.error;
+        if (selected.data) meterRows.push(selected.data);
+      }
+    }
     const siteCustomerById = new Map(
       siteRows.map((row) => [String(row.id), String(row.customer_id ?? "")]),
     );
@@ -386,9 +443,7 @@ export async function listCustomerInfoRequestResourceOptions(
         gridOwnerId:
           typeof row.grid_owner_id === "string" ? row.grid_owner_id : null,
       })),
-      meteringPoints: (
-        (meteringPointsResult.data ?? []) as Array<Record<string, unknown>>
-      ).map((row) => {
+      meteringPoints: meterRows.map((row) => {
         const siteId = String(row.site_id ?? "");
         return {
           id: String(row.id),
@@ -419,12 +474,13 @@ export async function listCustomerInfoRequestResourceOptions(
   }
 }
 
-async function resolveCustomerInfoRequestAnchors(input: {
+export async function resolveCustomerInfoRequestAnchors(input: {
   companyId: string;
   customerId: string;
   siteId?: string | null;
   meteringPointId?: string | null;
   gridOwnerId?: string | null;
+  requireOwnedMeteringSite?: boolean;
 }): Promise<{
   siteId: string | null;
   meteringPointId: string | null;
@@ -444,22 +500,34 @@ async function resolveCustomerInfoRequestAnchors(input: {
   let site: Record<string, unknown> | null = null;
   let meteringPoint: Record<string, unknown> | null = null;
 
+  const strictMeteringSite = input.requireOwnedMeteringSite === true;
   if (requestedMeteringPointId) {
-    const { data, error } = await supabaseService
-      .from("metering_points")
-      .select("id, site_id, grid_owner_id")
+    const points = supabaseService.from("metering_points");
+    const pointQuery = strictMeteringSite
+      ? points.select("id, site_id, customer_site_id, grid_owner_id").eq("customer_id", customerId)
+      : points.select("id, site_id, grid_owner_id");
+    const { data, error } = await pointQuery
       .eq("company_id", companyId)
       .eq("id", requestedMeteringPointId)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data?.id) throw new Error("Mätpunkten hittades inte för valt bolag.");
-    meteringPoint = data as Record<string, unknown>;
+    if (!data?.id && !strictMeteringSite) throw new Error("Mätpunkten hittades inte för valt bolag.");
+    meteringPoint = data;
   }
 
-  const effectiveSiteId =
-    requestedSiteId ??
-    (typeof meteringPoint?.site_id === "string" ? meteringPoint.site_id : null);
+  const legacySiteId = typeof meteringPoint?.site_id === "string" ? meteringPoint.site_id : null;
+  const customerSiteId = typeof meteringPoint?.customer_site_id === "string" ? meteringPoint.customer_site_id : null;
+  const pointSiteId = strictMeteringSite ? customerSiteId ?? legacySiteId : legacySiteId;
+  if (strictMeteringSite && (
+    !pointSiteId ||
+    (legacySiteId && customerSiteId && legacySiteId !== customerSiteId) ||
+    (requestedSiteId && requestedSiteId !== pointSiteId)
+  )) {
+    throw new Error("billing_history_metering_point_scope_mismatch");
+  }
+
+  const effectiveSiteId = requestedSiteId ?? pointSiteId;
 
   if (effectiveSiteId) {
     const { data, error } = await supabaseService
@@ -471,17 +539,18 @@ async function resolveCustomerInfoRequestAnchors(input: {
       .maybeSingle();
 
     if (error) throw error;
-    if (!data?.id)
-      throw new Error(
-        "Anläggningen hittades inte på vald kund och valt bolag.",
-      );
+    if (!data?.id) {
+      throw new Error(strictMeteringSite
+        ? "billing_history_customer_site_scope_mismatch"
+        : "Anläggningen hittades inte på vald kund och valt bolag.");
+    }
     site = data as Record<string, unknown>;
   }
 
   if (
     meteringPoint &&
     effectiveSiteId &&
-    meteringPoint.site_id !== effectiveSiteId
+    pointSiteId !== effectiveSiteId
   ) {
     throw new Error("Vald mätpunkt tillhör inte vald anläggning.");
   }
@@ -646,6 +715,7 @@ export async function createMeteringPermissionDraft(input: {
   siteId?: string | null;
   meteringPointId?: string | null;
   gridOwnerId?: string | null;
+  requireOwnedMeteringSite?: boolean;
   requestedStartDate?: string | null;
   requestedEndDate?: string | null;
   caseReference?: string | null;
@@ -659,6 +729,7 @@ export async function createMeteringPermissionDraft(input: {
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
     gridOwnerId: input.gridOwnerId ?? null,
+    requireOwnedMeteringSite: input.requireOwnedMeteringSite,
   });
 
   const { data, error } = await supabaseService
@@ -760,7 +831,7 @@ function hasAuthorizationForRequest(
   return { ok: true, reason: null };
 }
 
-async function getCustomerInfoRequestById(params: {
+export async function getCustomerInfoRequestById(params: {
   companyId: string;
   requestId: string;
 }): Promise<CustomerInfoRequestRow | null> {

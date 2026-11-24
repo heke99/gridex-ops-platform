@@ -1,3 +1,4 @@
+import { readPortalInvoiceReviewMonths } from '@/lib/billing/readInvoiceEdielReview'
 import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { getCustomerPortalContext, listPortalInvoices } from '@/lib/customer-portal/db'
@@ -12,9 +13,14 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+const reviewMonthFormat = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
 export default async function PortalInvoicesPage() {
   const context = await getCustomerPortalContext()
-  const invoices = await listPortalInvoices(context)
+  const [invoices, reviewMonths] = await Promise.all([
+    listPortalInvoices(context),
+    readPortalInvoiceReviewMonths(context.companyId, context.customerIds),
+  ])
 
   return (
     <div className="space-y-6">
@@ -22,9 +28,19 @@ export default async function PortalInvoicesPage() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-950">Mina fakturor</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
           Här visas fakturor som har skapats och bekräftats hos {context.branding.brandName}.
-          Fakturaunderlag som ännu inte blivit faktura visas inte här.
+          Fakturaunderlag som ännu inte blivit faktura visas inte i fakturalistan.
         </p>
       </section>
+
+      {reviewMonths.length > 0 ? (
+        <section aria-label="Fakturaunderlag som behöver granskas" className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-950">
+          {reviewMonths.map((month) => (
+            <p key={month.toISOString()}>
+              Fakturaunderlaget för {reviewMonthFormat.format(month)} behöver granskas.
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">

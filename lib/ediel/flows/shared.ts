@@ -16,7 +16,8 @@ import {
   createOutboundRequest,
   findOpenOutboundBySource,
   repairOutboundRequestCommunicationRoute,
-  updateOutboundRequestStatus,
+  getOutboundRequestById,
+  applyEdielOutboundProviderStatus,
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
@@ -304,12 +305,15 @@ export async function queuePreparedEdielMessage(params: {
   }
 
   if (params.outboundRequestId) {
-    await updateOutboundRequestStatus({
+    const companyId = outboxMessage?.company_id ?? (await getOutboundRequestById(params.outboundRequestId))?.company_id
+    if (!companyId) throw new Error('Utskickets bolag saknas för Ediel-kön.')
+    await applyEdielOutboundProviderStatus({
       actorUserId: params.actorUserId,
       outboundRequestId: params.outboundRequestId,
+      companyId,
       status: 'prepared',
       externalReference: params.externalReference ?? null,
-      responsePayload: {
+      responsePatch: {
         edielMessageId: params.messageId,
         edielOutboxQueued: Boolean(outboxMessage),
         ...(params.payload ?? {}),

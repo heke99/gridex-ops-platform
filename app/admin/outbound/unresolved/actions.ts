@@ -7,10 +7,8 @@ import { supabaseService } from '@/lib/supabase/service'
 import {
   getOutboundRequestById,
   listUnresolvedOutboundRequests,
-  resetOutboundRequestForRetry,
-  refreshOutboundRequestRouteResolution,
+  resolveLegacyOutboundRoute,
 } from '@/lib/cis/db'
-import { createSupplierSwitchEvent } from '@/lib/operations/db'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -33,6 +31,12 @@ function assertOutboundTenantAccess(params: {
   if (!companyId) {
     throw new Error('Outbound-raden saknar company_id och kan inte hanteras av tenant-användare.')
   }
+}
+
+function cannotResolveOutboundRoute(reason: string): Error {
+  if (reason === 'stale') return new Error('Utskicket har ändrats. Ladda om sidan innan du försöker igen.')
+  if (reason === 'route_unavailable') return new Error('Vald route är inte tillgänglig för utskicket.')
+  return new Error('Kontrollera utskickets transporthistorik innan du ändrar routen.')
 }
 
 async function getActor() {
@@ -73,49 +77,6 @@ async function insertAuditLog(params: {
   if (error) throw error
 }
 
-async function syncSwitchRouteEvent(params: {
-  outboundRequestId: string
-  routeResolved: boolean
-  channelType: string
-  actorUserId: string
-  mode: 'rerun' | 'manual_assign'
-}) {
-  const outbound = await getOutboundRequestById(params.outboundRequestId)
-
-  if (
-    !outbound ||
-    outbound.request_type !== 'supplier_switch' ||
-    outbound.source_type !== 'supplier_switch_request' ||
-    !outbound.source_id
-  ) {
-    return
-  }
-
-  const supabase = await createSupabaseServerClient()
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: outbound.source_id,
-    eventType: params.routeResolved
-      ? params.mode === 'manual_assign'
-        ? 'outbound_route_assigned'
-        : 'outbound_route_resolved'
-      : 'outbound_route_still_unresolved',
-    eventStatus: params.channelType,
-    message: params.routeResolved
-      ? params.mode === 'manual_assign'
-        ? `Outbound ${outbound.id} fick manuellt vald route ${outbound.communication_route_id ?? 'okänd'} och kan gå vidare.`
-        : `Outbound ${outbound.id} fick route ${outbound.communication_route_id ?? 'okänd'} och är inte längre unresolved.`
-      : `Outbound ${outbound.id} är fortfarande unresolved efter ny route-upplösning.`,
-    payload: {
-      outboundRequestId: outbound.id,
-      channelType: params.channelType,
-      communicationRouteId: outbound.communication_route_id,
-      actorUserId: params.actorUserId,
-      mode: params.mode,
-    },
-  })
-}
-
 async function revalidateAll(customerId: string) {
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/unresolved')
@@ -143,8 +104,8 @@ export async function rerunUnresolvedRouteResolutionAction(
 
   const before = await getOutboundRequestById(outboundRequestId)
 
-  if (!before) {
-    throw new Error('Outbound request hittades inte')
+  if (!before || before.customer_id !== customerId) {
+    throw new Error('Utskicket hittades inte för vald kund.')
   }
 
   const scopedCompanyId = await resolveActionCompanyScope(access)
@@ -153,53 +114,8 @@ export async function rerunUnresolvedRouteResolutionAction(
   }
   assertOutboundTenantAccess({ access, companyId: before.company_id })
 
-  const refreshed = await refreshOutboundRequestRouteResolution({
-    actorUserId: actor.id,
-    outboundRequestId,
-  })
-
-  let saved = refreshed
-  let requeued = false
-
-  if (
-    refreshed.channel_type !== 'unresolved' &&
-    (before.status === 'failed' || before.status === 'cancelled')
-  ) {
-    saved = await resetOutboundRequestForRetry({
-      actorUserId: actor.id,
-      outboundRequestId: refreshed.id,
-      reason:
-        'Route löstes från unresolved-sidan och requesten återköades för nytt försök.',
-    })
-    requeued = true
-  }
-
-  await syncSwitchRouteEvent({
-    outboundRequestId: saved.id,
-    routeResolved: saved.channel_type !== 'unresolved',
-    channelType: saved.channel_type,
-    actorUserId: actor.id,
-    mode: 'rerun',
-  })
-
-  await insertAuditLog({
-    actorUserId: actor.id,
-    companyId: before.company_id ?? saved.company_id ?? null,
-    entityType: 'outbound_request',
-    entityId: saved.id,
-    action: 'outbound_request_route_resolution_reran',
-    oldValues: before,
-    newValues: saved,
-    metadata: {
-      customerId,
-      beforeChannelType: before.channel_type,
-      afterChannelType: saved.channel_type,
-      beforeRouteId: before.communication_route_id,
-      afterRouteId: saved.communication_route_id,
-      requeued,
-    },
-  })
-
+  const result = await resolveLegacyOutboundRoute({ actorUserId: actor.id, request: before, mode: 'rerun' })
+  if (result.status === 'held') throw cannotResolveOutboundRoute(result.reason)
   await revalidateAll(customerId)
 }
 
@@ -223,8 +139,8 @@ export async function assignRouteToUnresolvedOutboundAction(
 
   const before = await getOutboundRequestById(outboundRequestId)
 
-  if (!before) {
-    throw new Error('Outbound request hittades inte')
+  if (!before || before.customer_id !== customerId) {
+    throw new Error('Utskicket hittades inte för vald kund.')
   }
 
   const scopedCompanyId = await resolveActionCompanyScope(access)
@@ -233,115 +149,10 @@ export async function assignRouteToUnresolvedOutboundAction(
   }
   assertOutboundTenantAccess({ access, companyId: before.company_id })
 
-  let routeBuilder = supabaseService
-    .from('communication_routes')
-    .select('*')
-    .eq('id', communicationRouteId)
-    .eq('is_active', true)
-
-  if (!isPlatformAdminContext(access)) {
-    routeBuilder = routeBuilder.or(`company_id.eq.${scopedCompanyId},company_id.is.null`)
-  }
-
-  const routeQuery = await routeBuilder.maybeSingle()
-
-  if (routeQuery.error) throw routeQuery.error
-
-  const route = routeQuery.data
-
-  if (!route) {
-    throw new Error('Vald route hittades inte eller är inte aktiv')
-  }
-
-  const allowedScope =
-    before.request_type === 'supplier_switch'
-      ? 'supplier_switch'
-      : before.request_type === 'customer_masterdata'
-        ? 'customer_masterdata'
-        : before.request_type === 'meter_values'
-          ? 'meter_values'
-          : 'billing_underlay'
-
-  if (route.route_scope !== allowedScope) {
-    throw new Error('Vald route har fel scope för denna outbound request')
-  }
-
-  const updateQuery = await supabaseService
-    .from('outbound_requests')
-    .update({
-      communication_route_id: route.id,
-      channel_type: route.route_type,
-      updated_by: actor.id,
-    })
-    .eq('id', outboundRequestId)
-    .select('*')
-    .single()
-
-  if (updateQuery.error) throw updateQuery.error
-
-  let saved = updateQuery.data
-  let requeued = false
-
-  if (before.status === 'failed' || before.status === 'cancelled') {
-    saved = await resetOutboundRequestForRetry({
-      actorUserId: actor.id,
-      outboundRequestId: saved.id,
-      reason:
-        'Manuell route kopplades från unresolved-sidan och requesten återköades.',
-    })
-    requeued = true
-  }
-
-  const { error: eventError } = await supabaseService
-    .from('outbound_dispatch_events')
-    .insert({
-      outbound_request_id: saved.id,
-      event_type: 'queued',
-      event_status: saved.status,
-      message: requeued
-        ? `Manuell route ${route.route_name} valdes och requesten återköades.`
-        : `Manuell route ${route.route_name} valdes från unresolved-sidan.`,
-      payload: {
-        communicationRouteId: route.id,
-        routeName: route.route_name,
-        routeType: route.route_type,
-        manuallyAssigned: true,
-        requeued,
-      },
-      created_by: actor.id,
-    })
-
-  if (eventError) throw eventError
-
-  await syncSwitchRouteEvent({
-    outboundRequestId: saved.id,
-    routeResolved: true,
-    channelType: saved.channel_type,
-    actorUserId: actor.id,
-    mode: 'manual_assign',
+  const result = await resolveLegacyOutboundRoute({
+    actorUserId: actor.id, request: before, mode: 'manual_assign', routeId: communicationRouteId,
   })
-
-  await insertAuditLog({
-    actorUserId: actor.id,
-    companyId: before.company_id ?? saved.company_id ?? null,
-    entityType: 'outbound_request',
-    entityId: saved.id,
-    action: 'outbound_request_route_assigned_manually',
-    oldValues: before,
-    newValues: saved,
-    metadata: {
-      customerId,
-      communicationRouteId: route.id,
-      routeName: route.route_name,
-      routeType: route.route_type,
-      beforeChannelType: before.channel_type,
-      afterChannelType: saved.channel_type,
-      beforeRouteId: before.communication_route_id,
-      afterRouteId: saved.communication_route_id,
-      requeued,
-    },
-  })
-
+  if (result.status === 'held') throw cannotResolveOutboundRoute(result.reason)
   await revalidateAll(customerId)
 }
 
@@ -359,28 +170,17 @@ export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> 
   let resolvedCount = 0
   let stillUnresolvedCount = 0
   let requeuedCount = 0
+  let heldCount = 0
 
   for (const row of unresolved) {
-    const refreshed = await refreshOutboundRequestRouteResolution({
-      actorUserId: actor.id,
-      outboundRequestId: row.id,
-    })
-
-    let saved = refreshed
-    let requeued = false
-
-    if (
-      refreshed.channel_type !== 'unresolved' &&
-      (row.status === 'failed' || row.status === 'cancelled')
-    ) {
-      saved = await resetOutboundRequestForRetry({
-        actorUserId: actor.id,
-        outboundRequestId: refreshed.id,
-        reason: 'Bulk route resolution löste route och återköade requesten.',
-      })
-      requeued = true
-      requeuedCount += 1
+    const result = await resolveLegacyOutboundRoute({ actorUserId: actor.id, request: row, mode: 'bulk' })
+    if (result.status === 'held') {
+      heldCount += 1
+      continue
     }
+
+    const { request: saved, requeued } = result
+    if (requeued) requeuedCount += 1
 
     if (saved.channel_type === 'unresolved') {
       stillUnresolvedCount += 1
@@ -388,31 +188,7 @@ export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> 
       resolvedCount += 1
     }
 
-    await syncSwitchRouteEvent({
-      outboundRequestId: saved.id,
-      routeResolved: saved.channel_type !== 'unresolved',
-      channelType: saved.channel_type,
-      actorUserId: actor.id,
-      mode: 'rerun',
-    })
 
-    await insertAuditLog({
-      actorUserId: actor.id,
-      companyId: row.company_id ?? saved.company_id ?? null,
-      entityType: 'outbound_request',
-      entityId: saved.id,
-      action: 'outbound_request_route_resolution_reran_bulk',
-      oldValues: row,
-      newValues: saved,
-      metadata: {
-        customerId: row.customer_id,
-        beforeChannelType: row.channel_type,
-        afterChannelType: saved.channel_type,
-        beforeRouteId: row.communication_route_id,
-        afterRouteId: saved.communication_route_id,
-        requeued,
-      },
-    })
   }
 
   await insertAuditLog({
@@ -426,6 +202,7 @@ export async function rerunAllUnresolvedRouteResolutionsAction(): Promise<void> 
       resolvedCount,
       stillUnresolvedCount,
       requeuedCount,
+      heldCount,
     },
   })
 

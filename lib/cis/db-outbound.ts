@@ -489,6 +489,7 @@ export async function listOutboundRequests(options: {
   requestType?: string | null
   channelType?: string | null
   query?: string | null
+  exactRequestId?: string
   companyId?: string | null
   limit?: number
 } = {}): Promise<OutboundRequestRow[]> {
@@ -496,6 +497,13 @@ export async function listOutboundRequests(options: {
     .from('outbound_requests')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (options.exactRequestId !== undefined) {
+    if (!options.companyId || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(options.exactRequestId)) return []
+    const { data, error } = await requestQuery.eq('company_id', options.companyId).eq('id', options.exactRequestId).limit(1)
+    if (error) throw error
+    return (data ?? []) as OutboundRequestRow[]
+  }
 
   if (options.status && options.status !== 'all') {
     requestQuery = requestQuery.eq('status', options.status)
@@ -637,6 +645,55 @@ export async function updateOutboundRequestStatus(input: {
   return row
 }
 
+export async function updateOutboundRequestBusiness(input: {
+  actorUserId: string
+  companyId: string
+  customerId: string
+  outboundRequestId: string
+  originalStatus: string
+  changes: Partial<Record<'status' | 'external_reference' | 'failure_reason' | 'admin_note' | 'dispatch_step' | 'manual_delivery_reference', string | null>>
+}): Promise<OutboundRequestRow> {
+  const { data, error } = await supabaseService.rpc('gridex_update_outbound_request_business_v1', {
+    p_outbound_request_id: input.outboundRequestId,
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_actor_id: input.actorUserId,
+    p_original_status: input.originalStatus,
+    p_changes: input.changes,
+  })
+  if (error) throw error
+  return data as OutboundRequestRow
+}
+
+export async function applyEdielOutboundProviderStatus(input: {
+  actorUserId: string
+  companyId: string
+  outboundRequestId: string
+  status: 'prepared' | 'failed' | 'acknowledged'
+  externalReference: string | null
+  failureReason?: string | null
+  responsePatch: Record<string, unknown>
+  gridOwnerRequestId?: string
+  sentAtBackfill?: { sourceMessageId: string; ackMessageId: string }
+}): Promise<OutboundRequestRow> {
+  if (input.status === 'prepared') await requireCompanyOperationalForWrites(input.companyId)
+
+  const { data, error } = await supabaseService.rpc('gridex_apply_ediel_outbound_provider_status_v1', {
+    p_outbound_request_id: input.outboundRequestId,
+    p_company_id: input.companyId,
+    p_actor_id: input.actorUserId,
+    p_status: input.status,
+    p_external_reference: input.externalReference,
+    p_failure_reason: input.failureReason ?? null,
+    p_response_patch: input.responsePatch,
+    p_grid_owner_request_id: input.gridOwnerRequestId ?? null,
+    p_source_message_id: input.sentAtBackfill?.sourceMessageId ?? null,
+    p_ack_message_id: input.sentAtBackfill?.ackMessageId ?? null,
+  })
+  if (error) throw error
+  return data as OutboundRequestRow
+}
+
 // Repairs an existing outbound that was created before an operational route
 // existed. Only repairs when the new route is active and belongs to the SAME
 // company and environment as the outbound — never crosses tenant or test/prod
@@ -722,88 +779,44 @@ export async function getOutboundRequestById(
   return (data as OutboundRequestRow | null) ?? null
 }
 
-export async function refreshOutboundRequestRouteResolution(input: {
-  actorUserId: string
-  outboundRequestId: string
-}): Promise<OutboundRequestRow> {
-  const current = await getOutboundRequestById(input.outboundRequestId)
-
-  if (!current) {
-    throw new Error('Outbound request hittades inte')
-  }
-
-  if (current.company_id) {
-    await requireCompanyOperationalForWrites(current.company_id)
-  }
-
-  const route = await findBestCommunicationRoute({
-    requestType: current.request_type,
-    gridOwnerId: current.grid_owner_id,
-  })
-
-  const nextChannelType = route?.route_type ?? 'unresolved'
-
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .update({
-      communication_route_id: route?.id ?? null,
-      channel_type: nextChannelType,
-      payload: mergeJsonObjects(current.payload, buildRoutePayload(route)),
-      updated_by: input.actorUserId,
-    })
-    .eq('id', current.id)
-    .select('*')
-    .single()
-
-  if (error) throw error
-
-  return data as OutboundRequestRow
+function storedOutboundRouteEnvironment(request: OutboundRequestRow): 'test' | 'production' | null {
+  const environment = request.payload?.environment
+  return environment === 'test' || environment === 'production' ? environment : null
 }
 
-export async function resetOutboundRequestForRetry(input: {
+type LegacyOutboundRouteResult =
+  | { status: 'resolved'; request: OutboundRequestRow; requeued: boolean }
+  | { status: 'held'; request: OutboundRequestRow; reason: 'stale' | 'source_history' | 'transport_history' | 'route_unavailable' }
+
+export async function resolveLegacyOutboundRoute(input: {
   actorUserId: string
-  outboundRequestId: string
-  reason?: string | null
-}): Promise<OutboundRequestRow> {
-  const current = await getOutboundRequestById(input.outboundRequestId)
-  if (current?.company_id) {
-    await requireCompanyOperationalForWrites(current.company_id)
-  }
-
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .update({
-      status: 'queued',
-      failure_reason: null,
-      failed_at: null,
-      prepared_at: null,
-      sent_at: null,
-      acknowledged_at: null,
-      updated_by: input.actorUserId,
-    })
-    .eq('id', input.outboundRequestId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-
-  const row = data as OutboundRequestRow
-
-  await createOutboundDispatchEvent({
-    actorUserId: input.actorUserId,
-    outboundRequestId: row.id,
-    eventType: 'queued',
-    eventStatus: row.status,
-    message:
-      input.reason ??
-      'Outbound request återköad av automation för nytt dispatch-försök.',
-    payload: {
-      retry: true,
-      attemptsCount: row.attempts_count,
-    },
+  request: OutboundRequestRow
+  mode: 'rerun' | 'manual_assign' | 'bulk'
+  routeId?: string
+}): Promise<LegacyOutboundRouteResult> {
+  const { request, actorUserId, mode } = input
+  if (!request.company_id || !request.customer_id) throw new Error('Utskickets bolag eller kund kunde inte verifieras.')
+  const routeId = mode === 'manual_assign' ? input.routeId : (await findBestCommunicationRoute({
+    companyId: request.company_id,
+    requestType: request.request_type,
+    gridOwnerId: request.grid_owner_id,
+    environment: storedOutboundRouteEnvironment(request),
+  }))?.id
+  const { data, error } = await supabaseService.rpc('gridex_resolve_legacy_outbound_route_v1', {
+    p_company_id: request.company_id,
+    p_customer_id: request.customer_id,
+    p_request_id: request.id,
+    p_actor_id: actorUserId,
+    p_expected_status: request.status,
+    p_expected_updated_at: request.updated_at,
+    p_route_id: routeId ?? null,
+    p_mode: mode,
   })
-
-  return row
+  if (error) throw error
+  if (!data?.request || (data.status !== 'resolved' && data.status !== 'held')) {
+    throw new Error('Utskickets routebeslut kunde inte bekräftas.')
+  }
+  return data as LegacyOutboundRouteResult
 }
 
 export async function findOpenOutboundBySource(params: {

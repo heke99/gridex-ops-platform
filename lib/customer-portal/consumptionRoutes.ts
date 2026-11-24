@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { ApiInputError } from '@/lib/api/strictRequest'
-import type { supabaseService } from '@/lib/supabase/service'
+import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { customerPortalJson, handleCustomerPortalRouteError, logCustomerPortalSuccess, requireCustomerPortalApiContext } from '@/lib/customer-portal/externalApi'
 import { publicPageInput, publicPortalMeteringPoint, publicPortalMeteringValue, publicPortalSite } from '@/lib/customer-portal/publicDto'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { strictIsoDate } from '@/lib/time/stockholm'
-import { CONSUMPTION_VERSION, consumptionWindows, meterValueWithinSupply, type ConsumptionRow, type ConsumptionScope } from './consumptionAccess'
+import { CONSUMPTION_VERSION, consumptionWindows, meterValueWithinSupply, needsVerifiedSupplyEnd, type ConsumptionRow, type ConsumptionScope } from './consumptionAccess'
 
 type ScopedSelect = ReturnType<ReturnType<typeof supabaseService.from>['select']>
 function select(scope: ConsumptionScope, table: string, columns: string, options?: { count: 'exact' }): ScopedSelect {
@@ -34,8 +34,6 @@ async function readMeterRevision(scope: ConsumptionScope, facility: string, sign
   return typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value) ? value : null
 }
 
-const POINT_SELECT = 'id,company_id,customer_id,site_id,customer_site_id,metering_point_id,site_facility_id,status'
-const PERIOD_SELECT = 'id,company_id,customer_id,metering_point_id,status,actual_start_date,actual_end_date,end_date,market_start_at,market_end_at'
 function validateQuery(request: NextRequest, allowed: string[]) {
   for (const key of request.nextUrl.searchParams.keys()) if (!allowed.includes(key) || request.nextUrl.searchParams.getAll(key).length !== 1) throw new ApiInputError('Ogiltig frågeparameter.', 'invalid_query_parameter', 400, key)
   const limit = request.nextUrl.searchParams.get('limit')
@@ -43,17 +41,69 @@ function validateQuery(request: NextRequest, allowed: string[]) {
   const cursor = request.nextUrl.searchParams.get('cursor')
   if (cursor !== null && (!cursor || cursor.length > 2048)) throw new ApiInputError('Ogiltig sidmarkör.', 'invalid_cursor', 400)
 }
-function rows(result: { data: unknown; error: unknown; count: number | null }): ConsumptionRow[] {
-  if (result.error || !Array.isArray(result.data) || result.count === null || result.count > 1000 || result.count !== result.data.length) throw new PlatformSchemaNotReadyError('Consumption authority is unavailable or incomplete.')
-  return result.data as ConsumptionRow[]
+function authorityRows(data: unknown, count: unknown): ConsumptionRow[] {
+  if (!Array.isArray(data) || data.length > 1000 || count !== data.length
+    || data.some(row => !row || typeof row !== 'object' || Array.isArray(row))) {
+    throw new PlatformSchemaNotReadyError('Consumption authority is unavailable or incomplete.')
+  }
+  return data
 }
 async function authority(scope: ConsumptionScope, sites: ConsumptionRow[], signal: AbortSignal) {
   if (!sites.length) return { points: [], windows: [] }
-  const ids = sites.map(site => String(site.id))
-  const points = rows(await readConsumptionQuery(select(scope, 'metering_points', POINT_SELECT, { count: 'exact' }).or(`site_id.in.(${ids.join(',')}),customer_site_id.in.(${ids.join(',')})`).limit(1001), signal))
-  if (!points.length) return { points, windows: [] }
-  const periods = rows(await readConsumptionQuery(select(scope, 'customer_supply_periods', PERIOD_SELECT, { count: 'exact' }).eq('customer_id', scope.customerId).in('metering_point_id', points.map(point => String(point.id))).limit(1001), signal))
-  return { points, windows: consumptionWindows(scope, sites, points, periods) }
+  const siteIds = new Set<string>()
+  for (const site of sites) {
+    if (site.company_id !== scope.companyId || site.customer_id !== scope.customerId
+      || typeof site.id !== 'string' || siteIds.has(site.id)) {
+      throw new PlatformSchemaNotReadyError('Invalid consumption site scope.')
+    }
+    siteIds.add(site.id)
+  }
+
+  type AuthorityRpc = (name: 'gridex_portal_consumption_authority_v1', params: {
+    p_company_id: string; p_customer_id: string; p_site_ids: string[]
+  }) => PromiseLike<{ data: unknown; error: unknown }>
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as AuthorityRpc
+  const { data, error } = await readConsumptionQuery(rpc('gridex_portal_consumption_authority_v1', {
+    p_company_id: scope.companyId, p_customer_id: scope.customerId, p_site_ids: [...siteIds],
+  }), signal)
+  if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new PlatformSchemaNotReadyError('Consumption authority is unavailable or incomplete.')
+  }
+  const snapshot = data as Record<string, unknown>
+  const points = authorityRows(snapshot.points, snapshot.point_count)
+  const periods = authorityRows(snapshot.periods, snapshot.period_count)
+  const pointIds = new Set<string>()
+  for (const point of points) {
+    const siteId = point.customer_site_id ?? point.site_id
+    if (point.company_id !== scope.companyId || (point.customer_id != null && point.customer_id !== scope.customerId)
+      || typeof siteId !== 'string' || !siteIds.has(siteId) || typeof point.id !== 'string' || pointIds.has(point.id)) {
+      throw new PlatformSchemaNotReadyError('Invalid consumption point scope.')
+    }
+    pointIds.add(point.id)
+  }
+
+  const periodIds = new Set<string>()
+  for (const period of periods.filter(needsVerifiedSupplyEnd)) {
+    if (period.company_id !== scope.companyId || period.customer_id !== scope.customerId
+      || typeof period.metering_point_id !== 'string' || !pointIds.has(period.metering_point_id) || typeof period.id !== 'string' || periodIds.has(period.id)) {
+      throw new PlatformSchemaNotReadyError('Invalid supply-end scope.')
+    }
+    periodIds.add(period.id)
+  }
+
+  let projection: ConsumptionRow[] = []
+  if (periodIds.size) {
+    type VerifiedEndRpc = (name: 'gridex_portal_verified_supply_ends_v1', params: {
+      p_company_id: string; p_customer_id: string; p_period_ids: string[]
+    }) => PromiseLike<{ data: unknown; error: unknown }>
+    const rpc = supabaseService.rpc.bind(supabaseService) as unknown as VerifiedEndRpc
+    const result = await readConsumptionQuery(rpc('gridex_portal_verified_supply_ends_v1', {
+      p_company_id: scope.companyId, p_customer_id: scope.customerId, p_period_ids: [...periodIds],
+    }), signal)
+    if (result.error || !Array.isArray(result.data)) throw new PlatformSchemaNotReadyError('Verified supply end is unavailable.')
+    projection = result.data
+  }
+  return { points, windows: consumptionWindows(scope, sites, points, periods, projection) }
 }
 function respond(body: Record<string, unknown>) {
   return customerPortalJson(body, { headers: { 'Cache-Control': 'private, no-store', 'X-Gridex-Consumption-Version': CONSUMPTION_VERSION } })

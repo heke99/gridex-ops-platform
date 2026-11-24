@@ -1,13 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getVerifiedAuthUser } from '@/lib/auth/currentUser'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { isPlatformAdminRole } from '@/lib/rbac/roleKeys'
+import { getDashboardAccess } from './access'
 
 export const dynamic = 'force-dynamic'
-
-type RpcRoleRow = string | { role_key?: string | null; key?: string | null; code?: string | null; name?: string | null }
 
 function DashboardCard({
   title,
@@ -50,35 +46,35 @@ function DashboardCard({
   )
 }
 
-async function userHasPlatformRole(userId: string) {
-  const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.rpc('gridex_get_user_roles', {
-    p_user_id: userId,
-  })
-
-  if (error) return false
-
-  return (Array.isArray(data) ? (data as RpcRoleRow[]) : []).some((row) => {
-    const roleKey =
-      typeof row === 'string'
-        ? row
-        : row.role_key ?? row.key ?? row.code ?? row.name ?? null
-    if (typeof roleKey !== 'string') return false
-    const normalized = roleKey.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
-    return isPlatformAdminRole(normalized)
-  })
-}
-
 export default async function DashboardPage() {
   const user = await getVerifiedAuthUser()
 
   if (!user) redirect('/login')
 
-  const [isPlatformAdmin, companyScope] = await Promise.all([
-    userHasPlatformRole(user.id),
-    getOperationalCompanyScope(user.id),
-  ])
-  const companyName = companyScope.companyName ?? 'ditt elbolag'
+  const access = await getDashboardAccess(user.id)
+  if (access.status !== 'allowed') {
+    const denied = access.status === 'denied'
+    return (
+      <section className="mx-auto max-w-xl rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-950">
+          {denied ? 'Du har inte tillgång till administrationen' : 'Arbetsytans åtkomst kunde inte kontrolleras'}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-slate-700">
+          {denied
+            ? 'Om du är elkund hittar du dina uppgifter på Mina sidor. Kontakta din administratör om du behöver tillgång till arbetsytan.'
+            : 'Ett tillfälligt fel uppstod. Försök igen om en stund.'}
+        </p>
+        {denied && (
+          <Link href="/portal" className="mt-6 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">
+            Till Mina sidor
+          </Link>
+        )}
+      </section>
+    )
+  }
+
+  const { isPlatformAdmin } = access
+  const companyName = access.companyName ?? 'ditt elbolag'
 
   const valueCards = isPlatformAdmin
     ? [

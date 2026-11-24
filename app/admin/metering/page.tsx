@@ -1,7 +1,7 @@
-import { loadMeteringBusinessData, filterMeteringBusinessRows } from '@/lib/admin/meteringBusinessData'
+import { loadMeteringBusinessData, filterMeteringBusinessRows, readMeteringCustomerCardIds, METERING_REQUEST_ROW_LIMIT } from '@/lib/admin/meteringBusinessData'
 import MeteringBusinessView from '@/components/admin/customers/MeteringBusinessView'
 import { isPlatformAdminContext } from '@/lib/admin/guards'
-import { hasPermissionRequirement } from '@/lib/admin/accessModel'
+import { canOpenCustomerDetail } from '@/lib/admin/accessModel'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -53,9 +53,13 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  ])
 
  if (!isPlatformAdmin) {
-   const businessData = await loadMeteringBusinessData(companyId, requests, values)
-   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView canReadCustomer={hasPermissionRequirement(context.permissions, { anyOf: ['customers.read', 'masterdata.read'] })} requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} /></div>
+   const businessData = await loadMeteringBusinessData(companyId, requests, values, {
+     includeCustomerCardTargets: canOpenCustomerDetail(context.permissions),
+   })
+   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} /></div>
  }
+
+ const customerCardIds = await readMeteringCustomerCardIds(companyId, requests.slice(0, METERING_REQUEST_ROW_LIMIT).map(row => row.customer_id))
 
  return (
  <div className="min-h-screen">
@@ -70,7 +74,7 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  <MeteringOperationalSummary requests={requests} values={values} />
 
  <section className="space-y-4">
- <MeteringRequestsSection requests={requests} />
+ <MeteringRequestsSection requests={requests} customerCardIds={customerCardIds} />
  <AdminDisclosurePanel id="metering-register-value" title="Registrera mätvärde manuellt" className="rounded-2xl border border-slate-200 bg-white p-4"><MeteringIngestForm /></AdminDisclosurePanel>
  </section>
 

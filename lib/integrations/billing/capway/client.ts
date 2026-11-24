@@ -54,8 +54,11 @@ export class CapwayApticClient {
     return { Authorization: `Bearer ${token}` }
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    path: string, init: RequestInit = {}, beforeEntry?: () => Promise<void>, onAccepted?: (status: number) => void,
+  ): Promise<T> {
     const authHeaders = await this.authorizationHeaders()
+    if (beforeEntry) await beforeEntry()
     const controller = new AbortController()
     const timeout = setTimeout(
       () => controller.abort(new Error('Capway request timeout')),
@@ -97,6 +100,7 @@ export class CapwayApticClient {
           responseExcerpt: text ? text.slice(0, 2000) : null,
         })
       }
+      onAccepted?.(response.status)
       return payload as T
     } catch (error) {
       if (error instanceof CapwayApiError) throw error
@@ -177,6 +181,8 @@ export class CapwayApticClient {
   async createInvoices(
     invoices: CapwayPutInvoice[],
     idempotencyKey: string,
+    beforeEntry?: (wireBody?: string) => Promise<void>,
+    onAccepted?: (status: number) => void,
   ): Promise<CapwayPutInvoiceResult> {
     if (!idempotencyKey.trim()) {
       throw new Error('Provider-idempotensnyckel krävs.')
@@ -193,14 +199,15 @@ export class CapwayApticClient {
     const existing = await this.reconcileCreatedInvoice(externalReferenceCode)
     if (existing) return existing
 
+    const wireBody = JSON.stringify(invoices)
     try {
       return await this.request<CapwayPutInvoiceResult>('/v1/Invoices', {
         method: 'PUT',
         // Keep the internal provider request id for gateways that support a
         // custom idempotency header, but correctness does not depend on it.
         headers: { 'Idempotency-Key': idempotencyKey },
-        body: JSON.stringify(invoices),
-      })
+        body: wireBody,
+      }, beforeEntry ? () => beforeEntry(wireBody) : undefined, onAccepted)
     } catch (error) {
       const uncertain =
         error instanceof CapwayApiError &&
@@ -247,14 +254,19 @@ export class CapwayApticClient {
     )
   }
 
-  postPurchase(invoiceGuid: string, payload: CapwayPurchaseRequest) {
-    return this.request<Record<string, unknown>>(
+  async postPurchase(invoiceGuid: string, payload: CapwayPurchaseRequest, beforeEntry?: () => Promise<void>) {
+    const receipt = await this.request<Record<string, unknown>>(
       `/v1/Invoices/${encodeURIComponent(invoiceGuid)}/Purchase`,
       {
         method: 'POST',
         body: JSON.stringify(payload),
       },
+      beforeEntry,
     )
+    if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt) || Object.keys(receipt).length === 0) {
+      throw new CapwayApiError({ message: 'Capway/Aptic returnerade inget läsbart köpkvitto.' })
+    }
+    return receipt
   }
 
   getRecourse(invoiceGuid: string) {

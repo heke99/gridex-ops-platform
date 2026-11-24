@@ -1,8 +1,10 @@
+import { readFacilityRequestDiagnostics } from '@/lib/customers/facilityRequestDiagnostics'
 import { workQueueCustomerHref } from './customerHref'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getAdminPageRequirement, hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import { InvalidReadModelResponseError, readResult, type ReadResult } from '@/lib/read-models/readResult'
@@ -224,6 +226,23 @@ function taskTypeLabel(value: unknown): string {
   return operationTypeLabel(value)
 }
 
+function requestQueueDescription(status: string, fallback: string): string {
+  switch (status) {
+    case 'missing_authorization':
+    case 'route_missing':
+    case 'negative_aperak':
+    case 'missing_binding_info':
+    case 'missing_termination_info':
+    case 'blocked_missing_poa':
+    case 'blocked_missing_grid_owner_contact':
+    case 'blocked_missing_manual_mailbox':
+    case 'delivery_uncertain':
+      return `${operationActionStatusLabel(status)}.`
+    default:
+      return fallback
+  }
+}
+
 async function loadActiveCustomers(supabase: SupabaseClient, companyId: string | null, isPlatformAdmin: boolean): Promise<ActiveCustomer[]> {
   let query = supabase
     .from('customers')
@@ -314,7 +333,10 @@ export default async function AdminWorkQueuePage() {
     customerId: row.customerId,
     customerLabel: row.customerLabel,
     title: row.title,
-    description: row.description,
+    description: isPlatformAdmin ? row.description
+      : row.source === 'Uppgiftsbegäran' ? requestQueueDescription(row.status, 'Uppgiftsbegäran behöver granskas.')
+      : row.source === 'Nätägare' ? 'Kontrollera nätägarbegäran innan du går vidare.'
+      : row.description,
     status: row.status,
     priority: row.priority,
     createdAt: row.createdAt,
@@ -381,7 +403,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_info_requests',
       companyId,
-      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, ediel_message_id, created_at',
+      `id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, ediel_message_id, created_at${isPlatformAdmin ? ', blocker_reason, notes' : ''}`,
       [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
@@ -390,7 +412,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'grid_owner_data_requests',
       companyId,
-      'id, customer_id, operation_id, request_scope, status, failure_reason, notes, created_at',
+      `id, customer_id, operation_id, request_scope, status, created_at${isPlatformAdmin ? ', failure_reason, notes' : ''}`,
       [{ column: 'status', op: 'in', value: ['pending', 'sent', 'failed'] }],
       customerIds,
       50,
@@ -399,7 +421,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'grid_owner_information_requests',
       companyId,
-      'id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, dispatch_error_message, channel, outbound_request_id, ediel_message_id, created_at, updated_at',
+      `id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, channel, outbound_request_id, ediel_message_id, created_at, updated_at`,
       [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
@@ -467,6 +489,7 @@ export default async function AdminWorkQueuePage() {
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
     const processState = infoRequestProcessQueueState({ status: textValue(row.status), edielMessageId: textValue(row.ediel_message_id), processDecisions })
     const status = processState?.status ?? String(row.status ?? '')
+    const diagnostic = isPlatformAdmin ? textValue(row.blocker_reason) ?? textValue(row.notes) : null
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -474,7 +497,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: processState?.title ?? (isOperationActionRequired({ status }) ? 'Uppgiftsbegäran behöver åtgärd' : `Väntar på ${target}`),
-      description: processState?.description ?? textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
+      description: processState?.description ?? diagnostic ?? requestQueueDescription(status, 'Uppgiftsbegäran behöver granskas.'),
       status,
       priority: processState?.priority ?? (['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal'),
       createdAt: dateValue(row.created_at),
@@ -486,6 +509,7 @@ export default async function AdminWorkQueuePage() {
   for (const row of gridOwnerRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
     if (!customer) continue
+    const diagnostic = isPlatformAdmin ? textValue(row.failure_reason) ?? textValue(row.notes) : null
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -493,7 +517,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: 'Begäran till nätägare',
-      description: textValue(row.failure_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_scope),
+      description: diagnostic ?? 'Kontrollera nätägarbegäran innan du går vidare.',
       status: String(row.status ?? 'pending'),
       priority: row.status === 'failed' ? 'high' : 'normal',
       createdAt: dateValue(row.created_at),
@@ -501,6 +525,10 @@ export default async function AdminWorkQueuePage() {
       actionLabel: 'Öppna kundkort',
     })
   }
+
+  const facilityDiagnostics = isPlatformAdmin
+    ? await readFacilityRequestDiagnostics(supabase, facilityRequests.map(row => String(row.id)))
+    : new Map()
 
   for (const row of facilityRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
@@ -510,6 +538,14 @@ export default async function AdminWorkQueuePage() {
     const failed = status === 'failed' || dispatchStatus === 'failed'
     const reviewRequired = isOperationActionRequired({ status }) && !['draft', 'ready_to_send'].includes(status)
     const waiting = status === 'waiting_response' || dispatchStatus === 'queued' || dispatchStatus === 'sent' || Boolean(row.outbound_request_id || row.ediel_message_id)
+    const diagnostic = facilityDiagnostics.get(String(row.id))?.dispatch_error_message ?? null
+    const description = failed || reviewRequired
+      ? row.dispatch_error_code === 'grid_owner_verification_required'
+        ? 'Verifiera nätägaren innan begäran skickas.'
+        : requestQueueDescription(status, 'Begäran behöver granskas.')
+      : waiting
+        ? 'Begäran är skickad eller köad via Ediel och svar inväntas.'
+        : 'Kontrollera uppgifterna innan begäran skickas.'
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -517,7 +553,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: failed || reviewRequired ? 'Nätägarbegäran behöver granskning' : waiting ? 'Väntar på anläggningssvar' : 'Nätägarbegäran redo att skickas',
-      description: textValue(row.dispatch_error_message) ?? (waiting ? 'Begäran är skickad eller köad via Ediel och svar inväntas.' : 'Begäran kan skickas via godkänd Ediel-route eller behöver manuell granskning.'),
+      description: diagnostic ?? description,
       status: failed ? 'failed' : reviewRequired ? status : waiting ? 'waiting_response' : status,
       priority: failed || reviewRequired ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
       createdAt: dateValue(row.updated_at) ?? dateValue(row.created_at),
@@ -563,7 +599,58 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
-  const actionItems = consolidateActionItems(items)
+  const candidateTasks = items.filter((item) => item.source === 'Ärende')
+  const qualifiedTasks = new Map<string, { customer_id: string; request_id: string; answered: boolean }>()
+  if (companyId && candidateTasks.length > 0) {
+    const ids = [...new Set(candidateTasks.map((item) => item.id))]
+    await readRows(async () => {
+      const { data, error } = await supabase.from('gridex_ediel_ack_deadline_task_context_v1')
+        .select('id, customer_id, request_id, answered')
+        .eq('company_id', companyId)
+        .in('id', ids)
+      if (error) throw error
+      for (const row of operationRows<{ id: string; customer_id: string; request_id: string; answered: boolean }>(data)) {
+        if (!ids.includes(row.id) || typeof row.request_id !== 'string' || typeof row.answered !== 'boolean') {
+          throw new InvalidReadModelResponseError()
+        }
+        qualifiedTasks.set(row.id, row)
+      }
+      return data
+    }, 'WORK_QUEUE_ACK_CONTEXT_UNAVAILABLE')
+  }
+  const canOpenOutbound = isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('outbound.queue'))
+  const currentItems = items.filter((item) => {
+    if (item.source !== 'Ärende') return true
+    const scope = qualifiedTasks.get(item.id)
+    if (!scope || scope.customer_id !== item.customerId) return true
+    if (scope.answered) return false
+    if (canOpenOutbound) {
+      item.href = `/admin/outbound?requestId=${encodeURIComponent(scope.request_id)}`
+      item.actionLabel = 'Öppna utskick'
+    }
+    return true
+  })
+  const taskIds = [...new Set(currentItems.filter((item) => item.source === 'Ärende').map((item) => item.id))]
+  const canOpenMeterRequest = isPlatformAdmin || hasPermissionRequirement(
+    context.permissions, getAdminPageRequirement('operations.grid_owner_request_detail'))
+  if (companyId && canOpenMeterRequest && taskIds.length > 0) {
+    const links = await readRows(async () => {
+      const { data, error } = await supabase.from('gridex_operator_meter_request_links_v1')
+        .select('id, customer_id, request_id').eq('source', 'operation_task')
+        .eq('company_id', companyId).in('id', taskIds)
+      if (error) throw error
+      return operationRows<{ id: string; customer_id: string; request_id: string }>(data)
+    }, 'WORK_QUEUE_METER_REQUEST_LINKS_UNAVAILABLE')
+    const byTaskId = new Map(links.map((row) => [row.id, row]))
+    for (const item of currentItems) {
+      const link = item.source === 'Ärende' ? byTaskId.get(item.id) : undefined
+      if (link?.customer_id === item.customerId && typeof link.request_id === 'string') {
+        item.href = `/admin/operations/grid-owner-requests/${encodeURIComponent(link.request_id)}`
+        item.actionLabel = 'Öppna nätägarbegäran'
+      }
+    }
+  }
+  const actionItems = consolidateActionItems(currentItems)
   const sortedItems = actionItems.sort((a, b) => {
     const byPriority = rankPriority(b.priority) - rankPriority(a.priority)
     if (byPriority !== 0) return byPriority

@@ -20,6 +20,7 @@ vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from(table: string) {
       let patch: Record<string, unknown> | null = null
+      let single = false
       const filters: Record<string, unknown> = {}
       const run = async () => {
         if (table === 'webhook_subscriptions') {
@@ -31,7 +32,7 @@ vi.mock('@/lib/supabase/service', () => ({
           const matches = (!filters.status || s.status === filters.status)
             && (!filters.company_id || s.company_id === filters.company_id)
             && (!('api_client_id' in filters) || s.api_client_id === filters.api_client_id)
-          return { data: matches ? [{ ...s }] : [], error: null }
+          return { data: single ? matches ? { ...s } : null : matches ? [{ ...s }] : [], error: null }
         }
         if (table === 'webhook_deliveries') {
           if (patch?.status === 'processing') { Object.assign(m.delivery, patch); return { data: [{ ...m.delivery }], error: null } }
@@ -45,8 +46,9 @@ vi.mock('@/lib/supabase/service', () => ({
         then: (a: (v: unknown) => unknown, b: (e: unknown) => unknown) => run().then(a, b),
         update: (p: Record<string, unknown>) => { patch = p; return q },
         eq: (k: string, v: unknown) => { filters[k] = v; return q },
+        maybeSingle: () => { single = true; return q },
       }
-      for (const name of ['select', 'in', 'lt', 'lte', 'order', 'limit', 'maybeSingle']) q[name] = () => q
+      for (const name of ['select', 'in', 'lt', 'lte', 'order', 'limit']) q[name] = () => q
       return q
     },
   },

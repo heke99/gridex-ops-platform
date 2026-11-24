@@ -6,14 +6,16 @@ const root = process.cwd()
 const read = (path: string) => readFileSync(join(root, path), 'utf8')
 
 describe('canonical billing chain regression', () => {
-  it('routes every customer-card meter request entrypoint through E73 preparation', () => {
+  it('keeps E73 preparation separate from the customer information request package', () => {
     const source = read('app/admin/customers/[id]/actions.ts')
 
     expect(source).toContain("utiltsCode: 'E73'")
     expect(source).toContain('runCustomerActionWithMeterValuePreparation')
     expect(source).toMatch(/createGridOwnerDataRequestAction[\s\S]*runCustomerActionWithMeterValuePreparation/)
     expect(source).toMatch(/createAuthorizationRequestPackageAction[\s\S]*runCustomerActionWithMeterValuePreparation/)
-    expect(source).toMatch(/createCustomerDataRequestPackageAction[\s\S]*runCustomerActionWithMeterValuePreparation/)
+    const packageAction = source.match(/export async function createCustomerDataRequestPackageAction\b[\s\S]*?\n}/)?.[0]
+    expect(packageAction).toContain('await implementation3.createCustomerDataRequestPackageAction(...args)')
+    expect(packageAction).not.toContain('runCustomerActionWithMeterValuePreparation')
   })
 
   it('runs metering autopilot before underlays, then prepares per-customer invoice drafts and never sends from monthly automation', () => {
@@ -46,12 +48,15 @@ describe('canonical billing chain regression', () => {
     const source = read('lib/billing/invoiceApprovedDispatch.ts')
     const approvalGate = source.indexOf("itemApproval.status !== 'approved'")
     const readinessGate = source.indexOf('await assertItemStillReady(context)', approvalGate)
-    const providerSend = source.indexOf('client.createInvoices([payload], providerKey)')
+    const providerSend = source.indexOf('client.createInvoices([payload], providerKey, async () => {')
+    const createReservation = source.indexOf("createEntry = await getEntry({ phase: 'create'", providerSend)
 
     expect(approvalGate).toBeGreaterThan(-1)
     expect(source).toContain("invoiceApproval.status !== 'approved'")
     expect(readinessGate).toBeGreaterThan(approvalGate)
     expect(providerSend).toBeGreaterThan(readinessGate)
+    expect(createReservation).toBeGreaterThan(providerSend)
+    expect(source).toContain("rpc('gridex_reserve_capway_dispatch_entry_v1'")
     expect(source).toContain(".eq('status', 'failed_retryable')")
     expect(source).toContain("approval(item.metadata).status !== 'approved'")
   })

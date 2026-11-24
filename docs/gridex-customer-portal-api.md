@@ -6,7 +6,7 @@ The structured `power_of_attorney` consent in organization customer sync uses `i
 
 BankID is optional. A form click and a client-supplied `method`/metadata value do not prove BankID verification. No live BankID integration is enabled. API intake remains compatible with older payloads; external email is held when signer IP or verification evidence is missing. Completing evidence for an existing acceptance cannot change its signer, original timestamp, legal document or scopes. Existing uploaded PDFs are copied byte-for-byte into the private archive. See the [manual POA mail runbook](manual-poa-mail-runbook.md) for routing, rejections and follow-up behavior.
 
-Current documentation: **2026-11-10.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-11-23.1**. Default response contract: **2026-10-09.1**.
 
 Documentation-only revisions leave the default wire contract unchanged. Business requests need no documentation-version header. An older supported representation can be pinned on the credential in OPS; the tenant does not need to copy the latest documentation to keep using the API.
 
@@ -18,6 +18,8 @@ Release 2026-10-02.4 corrected the contradictory closed support-case detail sche
 
 The 2026-11-10.1 documentation corrects invoice detail path parameters to use the canonical public `invoice_reference` returned by invoice lists. The business response revision remains unchanged.
 
+For `GET /api/v1/events` with `events.read`, start with an ordinary GET and follow the relative HTTP `Link` with `rel="next"` until it is absent. The link sends the opaque `cursor` and keeps the existing filters. Use the same credential and keep the filters for the whole traversal. The JSON `next_before` remains an ISO timestamp for older clients. A timestamp alone can skip other events at the same instant, so use the link when reading every event. Use either `before` or `cursor` in a request.
+
 The 2026-10-12.1 documentation records pagination on resource envelopes and the existing `submitted_at` field on move-out results. `authenticated_user_reference` is your tenant login account/user subject. It resolves an existing active same-organization portal account; it is not a central database resource UUID and never creates an implicit email-based grant. Customer support always requires that active account binding, including on reads. Customer assertions require integer `iat`, a short permitted lifetime and a fresh `jti`.
 
 The attachment download headers introduced by 2026-10-02.3 are retained: binary responses send `X-Gridex-Contract-Version` and `X-Request-ID`. Both the 2026-10-02.2 and 2026-10-02.3 immutable releases remain unchanged.
@@ -25,6 +27,16 @@ The attachment download headers introduced by 2026-10-02.3 are retained: binary 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
 Customer portal access is server-to-server. Gridex resolves the organization from the API credential and limits customer data to the verified linked customer identity. Internal database identifiers are not part of the public integration contract.
+
+## Customer documents and pagination
+
+`GET /api/v1/customer/documents` returns the opaque continuation in the JSON field `page.next_cursor`. Send it as the `cursor` query parameter while `page.has_more` is true, using the same linked customer.
+
+A new traversal on the current profile uses one stable `document_reference` for each linked power of attorney. Its position follows the stored power of attorney while titles and displayed timestamps describe the visible copy. A source change updates that copy without moving the power of attorney across pages. New documents inserted ahead of an issued cursor appear in the next traversal.
+
+Issued older cursors keep their earlier ordering and may show another physical copy during a source change. For a stable list, use the current profile, start without a cursor and replace the list once the traversal completes. An older physical reference can resolve metadata when its original source still proves the current link. A changed copy cannot inherit a download URL from that reference.
+
+The [archived powers of attorney guide](/developers/customer-portal-api#poa-archive-heading) describes how to retrieve a verified original PDF.
 
 ## Customer support (2026-10-01.1)
 

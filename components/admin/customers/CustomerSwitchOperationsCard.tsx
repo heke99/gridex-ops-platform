@@ -130,6 +130,7 @@ export default function CustomerSwitchOperationsCard({
  sites,
  meteringPoints,
  switchRequests,
+ activationByRequestId,
  switchEvents,
  outboundRequests,
  edielMessages,
@@ -218,41 +219,16 @@ export default function CustomerSwitchOperationsCard({
  return validation.isReady === false
  })
 
- const readyToExecute = switchRequests.filter((request) => {
- const outbound = getLatestOutboundForRequest(request.id, switchOutboundRequests)
-
- const lifecycle = getSwitchLifecycle({
+ const lifecycles = switchRequests.map(request => getSwitchLifecycle({
  request,
+ activation: activationByRequestId?.[request.id],
  readiness: null,
- outboundRequest: outbound ?? null,
- })
-
- return lifecycle.stage === 'ready_to_execute'
- })
-
- const awaitingDispatch = switchRequests.filter((request) => {
- const outbound = getLatestOutboundForRequest(request.id, switchOutboundRequests)
-
- const lifecycle = getSwitchLifecycle({
- request,
- readiness: null,
- outboundRequest: outbound ?? null,
- })
-
- return lifecycle.stage === 'awaiting_dispatch'
- })
-
- const awaitingResponse = switchRequests.filter((request) => {
- const outbound = getLatestOutboundForRequest(request.id, switchOutboundRequests)
-
- const lifecycle = getSwitchLifecycle({
- request,
- readiness: null,
- outboundRequest: outbound ?? null,
- })
-
- return lifecycle.stage === 'awaiting_response'
- })
+ outboundRequest: getLatestOutboundForRequest(request.id, switchOutboundRequests),
+ }))
+ const readyToExecute = lifecycles.filter(lifecycle => lifecycle.stage === 'ready_to_execute').length
+ const awaitingDispatch = lifecycles.filter(lifecycle => lifecycle.stage === 'awaiting_dispatch')
+ const awaitingResponse = lifecycles.filter(lifecycle => lifecycle.stage === 'awaiting_response')
+ const marketStartUnavailable = Object.values(activationByRequestId ?? {}).some(activation => activation?.code === 'market_start_unavailable')
 
  const autoQueuedOutbound = switchOutboundRequests.filter(
  (request) =>
@@ -284,12 +260,14 @@ export default function CustomerSwitchOperationsCard({
  const siteLifecycleSummaries = buildSiteLifecycleSummaries({
  sites,
  switchRequests,
+ activationByRequestId,
  switchEvents,
  switchOutboundRequests,
  })
 
  const recommendation = buildSwitchRecommendationSummary({
  switchRequests,
+ activationByRequestId,
  switchEvents,
  switchOutboundRequests,
  })
@@ -409,10 +387,10 @@ export default function CustomerSwitchOperationsCard({
  <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm ">
  <div className="text-sm text-slate-700 ">Redo att slutföra</div>
  <div className="mt-2 text-3xl font-semibold text-slate-950 ">
- {readyToExecute.length}
+ {marketStartUnavailable ? '—' : readyToExecute}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Kvitterade leverantörsbyten där nästa steg är intern slutförande.
+ {marketStartUnavailable ? 'Marknadsstarten kunde inte kontrolleras. Läs om kundkortet.' : 'Leverantörsbyten där nätägarens bekräftade marknadsstart har uppnåtts.'}
  </div>
  </div>
 
@@ -507,6 +485,7 @@ export default function CustomerSwitchOperationsCard({
  const outbound = getLatestOutboundForRequest(request.id, switchOutboundRequests)
  const reason = explainWhySwitchIsStuck({
  request,
+ activation: activationByRequestId?.[request.id],
  readiness: null,
  outboundRequest: outbound ?? null,
  })

@@ -159,9 +159,16 @@ describe('original underlay operation observation without business interference'
     io.denied = status; const response = await POST(request()); expect(response.status).toBe(status); expect(await response.text()).toBe('denied')
     expect(io.calls).toEqual([]); expect(events().at(-1)).toMatchObject({ engineState: 'not_entered', status })
   })
-  it.each(['{}', '{invalid'])('preserves invalid month400 for %s', async body => {
+  it.each(['{}', '{invalid', 'null'])('preserves invalid month400 for %s', async body => {
     const response = await POST(request(correlation, undefined, body)); expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'billing_month måste anges som YYYY-MM.' }); expect(io.calls).toEqual([])
+  })
+  it.each(['2026-00', '2026-13', '1999-12', '2201-01'])('rejects a disallowed calendar month %s before the engine', async billingMonth => {
+    const response = await POST(request(correlation, undefined, JSON.stringify({ billing_month: billingMonth })))
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: 'Fakturamånad är ogiltig.' })
+    expect(io.calls).toEqual([])
+    expect(events().at(-1)).toMatchObject({ engineState: 'not_entered', status: 400 })
   })
   it('preserves billingMonth alias and ignores diagnostic metadata in engine args', async () => {
     await successful(request(correlation, undefined, JSON.stringify({ billingMonth: '2026-09', extra: 'do-not-log' })))

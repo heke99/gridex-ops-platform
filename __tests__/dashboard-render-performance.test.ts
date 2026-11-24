@@ -25,12 +25,17 @@ describe('authenticated shell performance invariants', () => {
     expect(page).toContain('await getVerifiedAuthUser()')
   })
 
-  it('starts independent dashboard role and company-scope reads together', () => {
+  it('shares canonical access between the dashboard layout and page before tenant reads', () => {
+    const access = read('app/dashboard/access.ts')
+    const layout = read('app/dashboard/layout.tsx')
     const page = read('app/dashboard/page.tsx')
 
-    expect(page).toMatch(
-      /const \[isPlatformAdmin, companyScope\] = await Promise\.all\(\[\s*userHasPlatformRole\(user\.id\),\s*getOperationalCompanyScope\(user\.id\),\s*\]\)/,
-    )
+    expect(access).toContain('getDashboardAccess = cache(')
+    expect(access).toContain('await requireAdminApiAccess()')
+    expect(access).toContain(".eq('id', guard.companyId)")
+    expect(layout).toContain('await getDashboardAccess(user.id)')
+    expect(page).toContain('await getDashboardAccess(user.id)')
+    expect(page).not.toContain('gridex_get_user_roles')
   })
 
   it('starts independent admin-shell cookie, scope, and live-access reads together', () => {

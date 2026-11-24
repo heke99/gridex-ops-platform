@@ -1,8 +1,9 @@
+import { includeRequestedCaseSite } from "@/lib/customer-portal/caseProjection";
 import { CustomerNewContractLink } from "@/components/admin/customers/CustomerContractCreatePanel";
 // Extracted from page.tsx; keep public imports on the facade module.
 import { platformWorkspaceGroups, tenantWorkspaceGroups } from "./workspaceGroups";
 import CustomerWorkspaceNav from "@/components/admin/customers/CustomerWorkspaceNav";
-import { hasPermissionRequirement } from "@/lib/admin/accessModel";
+import { CUSTOMER_DETAIL_PAGE_READ, getAdminPageRequirement, hasPermissionRequirement } from "@/lib/admin/accessModel";
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { resolveCustomerCardLookup } from "./customer-lookup-outcome"
@@ -12,6 +13,9 @@ import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { resolveAdminTenantReadScope } from "@/lib/tenant/adminScope"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { readResult } from "@/lib/read-models/readResult"
+import { readSwitchActivationPresentation } from "@/lib/operations/switchActivationPresentation"
+import { canPresentAdminLink } from "@/lib/admin/actionPresentation"
+import CustomerDeliveryCaseLinks from "@/components/admin/customers/CustomerDeliveryCaseLinks"
 import CustomerEdielOperationsCard from "@/components/admin/customers/CustomerEdielOperationsCard"
 import { getCustomerSiteById, getMeteringPointById, listCustomerInternalNotesByCustomerId, listCustomerSitesByCustomerId, listGridOwners, listMasterdataAuditLogsForCustomer, listMeteringPointsBySiteIds, listPriceAreas } from "@/lib/masterdata/db"
 import { listContractOffers, listCustomerContractsByCustomerId } from "@/lib/customer-contracts/db"
@@ -25,6 +29,7 @@ import type { CustomerSiteRow } from "@/lib/masterdata/types"
 
 import type { PowerOfAttorneyRow, CustomerAuthorizationDocumentRow, CustomerBlockerRow } from "@/lib/operations/types"
 import type { CustomerAddressRow, CustomerContactRow } from "@/types/customers"
+import { readCustomerMeterImportOutcomes } from "@/lib/billing/readCustomerMeterImportOutcomes"
 import CustomerBillingMeteringCard from "@/components/admin/customers/CustomerBillingMeteringCard"
 import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerSwitchOperationsCard"
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard"
@@ -68,7 +73,7 @@ import { buildAdminDataChain } from "@/lib/customer-portal/status"
 import { buildCustomerCardSnapshot, buildCustomerReadinessItems } from "@/lib/customers/customerCardSnapshot"
 import { buildCustomerCardSitePoaReadiness, type SitePoaReadContext } from "@/lib/customers/sitePoaReadiness.server"
 import type { CustomerPageProps, CustomerWorkspaceTab, PowerOfAttorneyScopeRow } from './page.part-1'
-import { CUSTOMER_WORKSPACE_TABS, CustomerLookupProblem, SectionAnchor, buildCustomerLifecycleSummary, canShowCustomerWorkspaceTab, customerTabHref, customerTypeLabel, formatCustomerName, getBestContactEmail, getBestContactPhone, getCustomer, identityPrimaryLabel, identityPrimaryValue, identitySecondaryLabel, identitySecondaryValue, normalizeCustomerType, normalizeWorkspaceTab, statusTone } from './page.part-1'
+import { CUSTOMER_WORKSPACE_TABS, CustomerLookupProblem, SectionAnchor, canShowCustomerWorkspaceTab, customerTabHref, customerTypeLabel, formatCustomerName, getBestContactEmail, getBestContactPhone, getCustomer, identityPrimaryLabel, identityPrimaryValue, identitySecondaryLabel, identitySecondaryValue, normalizeCustomerType, normalizeWorkspaceTab, statusTone } from './page.part-1'
 import { AuditSection, CustomerBlockersBanner, CustomerWebsiteTraceabilityCard, LifecycleDecisionSection, NotesSection, PowerOfAttorneyScopesSection } from './page.part-2'
 import { CustomerCommunicationSection } from './page.part-3'
 
@@ -76,12 +81,11 @@ export async function CustomerAdminDetailPage({
   params,
   searchParams,
 }: CustomerPageProps) {
-  const access = await requireAdminPageAccess({
-    anyOf: ["customers.read", MASTERDATA_PERMISSIONS.READ],
-  });
+  const access = await requireAdminPageAccess(CUSTOMER_DETAIL_PAGE_READ);
   const isPlatformAdmin = isPlatformAdminContext(access);
+  const canReadBilling = isPlatformAdmin || access.permissions.includes("billing_underlay.read");
   const canReadContracts = isPlatformAdmin || access.permissions.includes("contracts.read");
-  const canResendCustomerEmail = isPlatformAdmin || hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] });
+  const canResendCustomerEmail = isPlatformAdmin || access.permissions.includes("customers.write");
   const canWriteContracts = isPlatformAdmin || access.permissions.includes("contracts.write");
 
   const { id } = await params;
@@ -160,7 +164,7 @@ export async function CustomerAdminDetailPage({
   const [
     gridOwners,
     priceAreas,
-    sites,
+    listedSites,
     notes,
     dataRequests,
     meteringValues,
@@ -285,6 +289,10 @@ export async function CustomerAdminDetailPage({
   if (contactsResponse.error) throw contactsResponse.error;
   if (addressesResponse.error) throw addressesResponse.error;
 
+  const sites = !isPlatformAdmin && activeTab === "sites"
+    ? await includeRequestedCaseSite(supabase, customerCompanyId, id, resolvedSearchParams.site, listedSites)
+    : listedSites;
+
   const contacts = (contactsResponse.data ?? []) as CustomerContactRow[];
   const addresses = (addressesResponse.data ?? []) as CustomerAddressRow[];
   const poaRows = powersOfAttorney as PowerOfAttorneyRow[];
@@ -396,11 +404,10 @@ export async function CustomerAdminDetailPage({
     (point) => point.status === "active",
   ).length;
 
-  const lifecycleSummary = buildCustomerLifecycleSummary({
-    sites,
-    switchRequests,
-    outboundRequests,
-  });
+  const visibleSwitchRequests = isPlatformAdmin && activeTab === "switch-operations"
+    ? switchRequests.filter(request => request.company_id === customerCompanyId && request.customer_id === id)
+    : [];
+  const switchActivation = await readSwitchActivationPresentation(supabase, visibleSwitchRequests, { companyId: customerCompanyId, customerId: id });
 
   const isReadyEdielRouteForGridOwner = (gridOwnerId: string) =>
     edielData.recommendationRoutes.some((route) => {
@@ -714,6 +721,16 @@ export async function CustomerAdminDetailPage({
     ].includes(String(request.status ?? "").toLowerCase()),
   );
   const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
+  const meterImportOutcomes = activeTab === "billing-metering" && canReadBilling && customerCompanyId
+    ? await readCustomerMeterImportOutcomes({
+        companyId: customerCompanyId,
+        customerId: id,
+        actorUserId: access.userId,
+        requestIds: dataRequests.filter((request) => request.company_id === customerCompanyId && request.customer_id === id &&
+          (request.request_scope === "meter_values" || request.request_scope === "billing_underlay")).map((request) => request.id),
+      })
+    : undefined;
+
   const workspaceGroups = (isPlatformAdmin ? platformWorkspaceGroups : tenantWorkspaceGroups)((tab) => canShowCustomerWorkspaceTab(tab, isPlatformAdmin, canReadContracts));
   const canRegisterContact = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["cases.write"] });
   const canEditCustomer = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["masterdata.write"] });
@@ -878,6 +895,14 @@ export async function CustomerAdminDetailPage({
             isTestData={customer.is_test_data === true}
           />
 
+          <CustomerDeliveryCaseLinks
+            canReadSwitches={canPresentAdminLink(access, getAdminPageRequirement("operations.switches"))}
+            companyId={customerCompanyId}
+            customerId={id}
+            sites={sites}
+            requests={switchRequests}
+          />
+
         </SectionAnchor>
       ) : null}
 
@@ -1024,9 +1049,10 @@ export async function CustomerAdminDetailPage({
         >
           <CustomerSwitchOperationsCard
             customerId={id}
+            activationByRequestId={switchActivation.byRequestId}
             sites={sites}
             meteringPoints={meteringPoints}
-            switchRequests={switchRequests}
+            switchRequests={visibleSwitchRequests}
             switchEvents={switchEvents}
             outboundRequests={outboundRequests}
             edielMessages={edielData.edielMessages}
@@ -1068,7 +1094,8 @@ export async function CustomerAdminDetailPage({
         >
           <CustomerBillingMeteringCard
             customerId={id}
-            canReadBilling={isPlatformAdmin || access.permissions.includes('billing_underlay.read')}
+            canReadBilling={canReadBilling}
+            meterImportOutcomes={meterImportOutcomes}
             sites={sites}
             meteringPoints={meteringPoints}
             gridOwners={gridOwners}
@@ -1215,6 +1242,7 @@ export async function CustomerAdminDetailPage({
             companyId={customerCompanyId}
             customerId={id}
             primarySiteId={customerCardSnapshot.primarySite?.id ?? null}
+            focusedSiteId={typeof resolvedSearchParams.site === "string" ? resolvedSearchParams.site : null}
             sites={sites}
             meteringPoints={meteringPoints}
             gridOwners={gridOwners}
@@ -1331,6 +1359,7 @@ export async function CustomerAdminDetailPage({
           <CustomerCommunicationSection
             logs={communicationLogs as CommunicationLog[]}
             canResend={canResendCustomerEmail}
+            resend={resolvedSearchParams.resend}
             isPlatformAdmin={isPlatformAdmin}
           />
         </SectionAnchor>

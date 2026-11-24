@@ -10,6 +10,7 @@ import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { repairAcceptedEdielMessageProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
+import { CANCELLED_APERAK_TRANSPORT, EDIEL_WORKER_FENCE_LOST, isCancelledAperakTransport, isEdielWorkerFenceLost, LocalTestTransportWaitError, LocalTestTransportWaitUnconfirmedError, SmtpPermanentRejectionError } from '@/lib/ediel/transport/outboundAttempt'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -84,6 +85,7 @@ async function updateOutboxStatus(params: {
   outboxItemId: string
   sendAttemptId?: string | null
   workerId?: string | null
+  requireActiveLease?: boolean
   payload: Database['public']['Tables']['ediel_outbox']['Update']
 }): Promise<void> {
   let query = supabaseService
@@ -91,6 +93,9 @@ async function updateOutboxStatus(params: {
     .update(params.payload)
     .eq('id', params.outboxItemId)
 
+  if (params.requireActiveLease && params.workerId) {
+    query = query.eq('status', 'sending').eq('locked_by', params.workerId)
+  }
   if (params.sendAttemptId) query = query.eq('current_send_attempt_id', params.sendAttemptId)
   else if (params.workerId) query = query.eq('locked_by', params.workerId)
   else throw new Error('ediel_outbox_status_update_requires_claim_identity')
@@ -100,6 +105,10 @@ async function updateOutboxStatus(params: {
   if (!data) throw new Error('ediel_outbox_claim_lost_before_status_update')
 }
 
+export class EdielOutboxPreTransportProjectionError extends Error {
+  constructor() { super('ediel_outbox_local_projection_held') }
+}
+
 export async function sendOutboxItem(params: {
   actorUserId: string
   outboxItemId: string
@@ -107,7 +116,10 @@ export async function sendOutboxItem(params: {
   workerId?: string | null
   sendAttemptId?: string | null
   alreadyClaimed?: boolean
-}): Promise<{ status: 'sent' | 'failed' | 'blocked' | 'delivery_uncertain'; messageId: string | null; error?: string | null }> {
+}): Promise<
+  | { status: 'sent'; messageId: string | null; delivery: 'new_acceptance' | 'repaired_projection' }
+  | { status: 'failed' | 'blocked' | 'delivery_uncertain'; messageId: string | null; error?: string | null; persistenceFailed?: boolean }
+> {
   const workerId = clean(params.workerId) ?? `ediel-outbox-direct-${params.actorUserId}`
   let sendAttemptId = clean(params.sendAttemptId)
   let item: Record<string, unknown> | null = null
@@ -173,12 +185,16 @@ export async function sendOutboxItem(params: {
     return { status: 'blocked', messageId: null, error: 'missing_company_scope' }
   }
   const operation = environment === 'production' ? 'ediel.production.send' : 'ediel.test.process'
+  let missingCanonicalMessage = false
   let providerAccepted = false
   let providerMessageId: string | null = null
 
   try {
     const message = await getEdielMessageById(edielMessageId, { companyId })
-    if (!message) throw new Error('ediel_message_not_found')
+    if (!message) {
+      missingCanonicalMessage = true
+      throw new Error('ediel_message_not_found')
+    }
     if (message.company_id !== companyId || message.environment !== environment || !['test','production'].includes(String(environment))) {
       throw new Error('ediel_outbox_message_scope_mismatch')
     }
@@ -209,7 +225,7 @@ export async function sendOutboxItem(params: {
           updated_at: new Date().toISOString(),
         },
       })
-      return { status: 'sent', messageId: providerMessageId }
+      return { status: 'sent', messageId: providerMessageId, delivery: 'repaired_projection' }
     }
     if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
       await updateOutboxStatus({ outboxItemId: params.outboxItemId, sendAttemptId, workerId,
@@ -332,9 +348,47 @@ export async function sendOutboxItem(params: {
         updated_at: new Date().toISOString(),
       },
     })
-    return { status: 'sent', messageId: providerMessageId }
+    return { status: 'sent', messageId: providerMessageId, delivery: result.delivery }
   } catch (error) {
+    if (!providerAccepted && isEdielWorkerFenceLost(error)) {
+      // The journal rejected this claimant before SMTP. Leave the newer queue state intact.
+      return { status: 'blocked', messageId: null, error: EDIEL_WORKER_FENCE_LOST }
+    }
+    if (!providerAccepted && error instanceof LocalTestTransportWaitError) {
+      return { status: 'blocked', messageId: null, error: error.code }
+    }
     const errorMessage = describeOutboxError(error)
+
+    const cancelled = isCancelledAperakTransport(error)
+    const permanentRejection = error instanceof SmtpPermanentRejectionError
+    if (!providerAccepted && sendAttemptId && environment && (cancelled || permanentRejection)) {
+      const finalStatus = cancelled ? 'superseded' : 'failed'
+      const lastError = cancelled ? CANCELLED_APERAK_TRANSPORT : errorMessage
+      const updatedAt = new Date().toISOString()
+      const { data: updated, error: updateError, status } = await supabaseService.from('ediel_outbox').update({
+        status: finalStatus, last_error: lastError,
+        locked_at: null, locked_by: null, updated_by: params.actorUserId, updated_at: updatedAt,
+      }).eq('id', params.outboxItemId)
+        .eq('company_id', companyId).eq('environment', environment).eq('ediel_message_id', edielMessageId)
+        .eq('status', 'sending').eq('current_send_attempt_id', sendAttemptId).eq('locked_by', workerId)
+        .is('sent_at', null).select('id').maybeSingle()
+      const commitUncertain = status === 0 || (!updateError?.code && [502, 503, 504].includes(status))
+      if (updateError && !commitUncertain) throw updateError
+
+      if (updateError || !updated) {
+        // A lost response can leave the exact disposition committed.
+        // Match the old attempt and full outcome before acknowledging it.
+        const { data: saved, error: readError } = await supabaseService
+          .from('ediel_outbox').select('id')
+          .eq('id', params.outboxItemId)
+          .eq('company_id', companyId).eq('environment', environment).eq('ediel_message_id', edielMessageId)
+          .eq('status', finalStatus).eq('current_send_attempt_id', sendAttemptId)
+          .eq('last_error', lastError).is('sent_at', null)
+          .is('locked_at', null).is('locked_by', null).maybeSingle()
+        if (readError || !saved) throw updateError ?? readError ?? new Error('ediel_outbox_claim_lost_before_status_update')
+      }
+      return { status: cancelled ? 'blocked' : 'failed', messageId: null, error: lastError }
+    }
 
     if (providerAccepted || isSmtpDeliveryUncertain(error)) {
       if (error instanceof SmtpDeliveryUncertainError) providerMessageId = error.smtpMessageId ?? providerMessageId
@@ -343,6 +397,7 @@ export async function sendOutboxItem(params: {
           outboxItemId: params.outboxItemId,
           sendAttemptId,
           workerId,
+          requireActiveLease: error instanceof LocalTestTransportWaitUnconfirmedError,
           payload: {
             status: 'delivery_uncertain',
             last_error: `delivery_uncertain_after_smtp_send: ${errorMessage}`,
@@ -353,29 +408,52 @@ export async function sendOutboxItem(params: {
           },
         })
       } catch (uncertainError) {
+        // The native wait can commit while its response is lost. Recover its
+        // exact settled row without writing over the released or newer lease.
+        if (error instanceof LocalTestTransportWaitUnconfirmedError && sendAttemptId && environment === 'test') {
+          const waitCode = 'ediel_local_test_retry_wait'
+          try {
+            const { data, error: readError } = await supabaseService.from('ediel_outbox').select('id')
+              .eq('id', params.outboxItemId).eq('company_id', companyId).eq('environment', 'test')
+              .eq('ediel_message_id', edielMessageId).eq('current_send_attempt_id', sendAttemptId)
+              .eq('status', 'queued').eq('last_error', waitCode).is('sent_at', null)
+              .is('locked_at', null).is('locked_by', null).maybeSingle()
+            if (!readError && data) return { status: 'blocked', messageId: null, error: waitCode }
+          } catch { /* Preserve uncertainty when the read also fails. */ }
+        }
         const uncertainMessage = describeOutboxError(uncertainError)
         return {
           status: 'delivery_uncertain',
           messageId: providerMessageId,
+          persistenceFailed: true,
           error: `${errorMessage}; delivery_uncertain_persistence_failed: ${uncertainMessage}`,
         }
       }
       return { status: 'delivery_uncertain', messageId: providerMessageId, error: errorMessage }
     }
 
-    await updateOutboxStatus({
-      outboxItemId: params.outboxItemId,
-      sendAttemptId,
-      workerId,
-      payload: {
-        status: 'failed',
-        last_error: errorMessage,
-        locked_at: null,
-        locked_by: null,
-        updated_by: params.actorUserId,
-        updated_at: new Date().toISOString(),
-      },
-    })
+    try {
+      await updateOutboxStatus({
+        outboxItemId: params.outboxItemId,
+        sendAttemptId,
+        workerId,
+        payload: {
+          status: 'failed',
+          last_error: errorMessage,
+          locked_at: null,
+          locked_by: null,
+          updated_by: params.actorUserId,
+          updated_at: new Date().toISOString(),
+        },
+      })
+    } catch (projectionError) {
+      const rowConstraint = typeof projectionError === 'object' && projectionError !== null
+        && 'code' in projectionError && projectionError.code === '23514'
+      // Only a positive row-local defect before entry qualifies continuation.
+      // The existing lease and any prior send evidence remain untouched.
+      if (missingCanonicalMessage && rowConstraint) throw new EdielOutboxPreTransportProjectionError()
+      throw projectionError
+    }
     return { status: 'failed', messageId: null, error: errorMessage }
   }
 }

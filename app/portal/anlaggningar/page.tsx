@@ -1,11 +1,18 @@
+import Link from 'next/link'
 import { portalSiteStatusLabel } from '@/lib/customer-portal/labels'
-import { getCustomerPortalContext, listPortalMeteringPoints, listPortalSites } from '@/lib/customer-portal/db'
+import { getCustomerPortalContext, getPortalSelectedSite, listPortalMeteringPoints, listPortalSites } from '@/lib/customer-portal/db'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PortalSitesPage() {
+export default async function PortalSitesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ site_id?: string | string[] }>
+} = {}) {
   const context = await getCustomerPortalContext()
-  const sites = await listPortalSites(context)
+  const selection = (await searchParams)?.site_id
+  const selectedSite = await getPortalSelectedSite(context, selection)
+  const sites = selectedSite ? [selectedSite] : selection === undefined ? await listPortalSites(context) : []
   const meteringPoints = await listPortalMeteringPoints(sites.map((site) => site.id))
   const pointsBySite = new Map<string, typeof meteringPoints>()
 
@@ -23,6 +30,11 @@ export default async function PortalSitesPage() {
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
           Här visas de anläggningar och mätpunkter som är kopplade till ditt kundkonto.
         </p>
+        {selection !== undefined ? (
+          <Link href="/portal/anlaggningar" className="mt-4 inline-block text-sm font-semibold text-slate-900 underline underline-offset-4">
+            Visa alla anläggningar
+          </Link>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -49,6 +61,10 @@ export default async function PortalSitesPage() {
                 <div>Årsförbrukning: <strong>{site.annual_consumption_kwh ?? '—'} kWh</strong></div>
               </div>
 
+              <Link href={`/portal/avtal?site_id=${encodeURIComponent(site.id)}`} prefetch={false} className="mt-4 inline-block text-sm font-semibold text-slate-900 underline underline-offset-4">
+                Visa anläggningens avtal
+              </Link>
+
               <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-sm font-semibold text-slate-950">Mätpunkter</div>
                 <div className="mt-3 space-y-2">
@@ -70,7 +86,9 @@ export default async function PortalSitesPage() {
 
         {sites.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga anläggningar är kopplade till ditt konto ännu. När vi har fått uppgifterna från din nätägare visas de här. Saknar du en anläggning kan du skicka in anläggnings-ID under Komplettera.
+            {selection !== undefined
+              ? 'Anläggningen kunde inte öppnas. Välj en anläggning från listan.'
+              : 'Inga anläggningar är kopplade till ditt konto ännu. När vi har fått uppgifterna från din nätägare visas de här. Saknar du en anläggning kan du skicka in anläggnings-ID under Komplettera.'}
           </div>
         ) : null}
       </section>

@@ -73,7 +73,8 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     mocks.send.mockRejectedValue(new SmtpDeliveryUncertainError(new Error('DB unavailable'), '<smtp1@example.test>'))
     const result = await send()
     expect(result).toMatchObject({ status: 'delivery_uncertain', messageId: '<smtp1@example.test>' })
-    expect(result.error).toContain('delivery_uncertain_persistence_failed: ediel_outbox_claim_lost_before_status_update')
+    const error = 'error' in result ? result.error : undefined
+    expect(error).toContain('delivery_uncertain_persistence_failed: ediel_outbox_claim_lost_before_status_update')
     expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id', 'attempt1'])
   })
 })

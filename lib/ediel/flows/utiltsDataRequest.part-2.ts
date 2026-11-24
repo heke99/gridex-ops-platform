@@ -1,14 +1,18 @@
+import { createHash } from 'node:crypto'
+import { supabaseService } from '@/lib/supabase/service'
+import { E66RequestDeferred, submitPolledE66Request, type PolledE66RequestScope } from '@/lib/inbound-mail/e66RequestRetry'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
 import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
+import { captureEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
-import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
+import { E66_INVALID_REGISTRATION_DATE_ISSUE, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
@@ -25,13 +29,13 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
+import { validateUtiltsPersistenceResults, buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, storedUtiltsConsumptionVersionState, prepareUtiltsPersistenceRpcArguments, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { createUtiltsRepliesAfterStore } from '@/lib/ediel/utilts/utiltsReplyAfterStore'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
-import { allUtiltsTransactionMeteringPointsMatched, createUtiltsRuntimeAcks, ensureJson, linkInboundUtiltsMessageCanonically, markDataRequestOutboundAcknowledged, matchUtiltsTransactionsForTenant, maybeCreateBillingUnderlay, maybeIngestMeteringValue, resolveUtiltsRuntimeTestCaseCode, stringOrNull } from './utiltsDataRequest.part-1'
+import { type E66RequestCorrelationReview, allUtiltsTransactionMeteringPointsMatched, createUtiltsRuntimeAcks, ensureJson, linkInboundUtiltsMessageCanonically, markDataRequestOutboundAcknowledged, matchUtiltsTransactionsForTenant, maybeCreateBillingUnderlay, maybeIngestMeteringValue, resolveUtiltsRuntimeTestCaseCode, stringOrNull } from './utiltsDataRequest.part-1'
 
 export async function prepareAndQueueUtiltsE73(params: {
   actorUserId: string
@@ -359,12 +363,51 @@ export async function prepareAndQueueUtiltsE66(params: {
   return message
 }
 
+export type DurableE66RequestBasis = {
+  requestId: string
+  normalizedMeteringPayload: Record<string, unknown>
+  utiltsRuntime: {
+    validation: ReturnType<typeof runUtiltsRuntimeForMessage>['validation']
+    ackPlan: ReturnType<typeof runUtiltsRuntimeForMessage>['ackPlan']
+    testCaseCode: Awaited<ReturnType<typeof resolveUtiltsRuntimeTestCaseCode>>
+  }
+  billingUnderlayCandidate: ReturnType<typeof e66BillingUnderlayCandidate>
+}
+
+function e66BillingUnderlayCandidate(requestScope: string | null, created: boolean) {
+  if (requestScope !== 'billing_underlay') return null
+  return {
+    status: created ? 'created' : 'not_created',
+    reason: created
+      ? 'billing_underlay_created_from_inbound_utilts'
+      : 'missing_customer_or_quantity_or_existing_underlay',
+  }
+}
+
+function e66RequestPayload(
+  normalizedMeteringPayload: DurableE66RequestBasis['normalizedMeteringPayload'],
+  utiltsRuntime: DurableE66RequestBasis['utiltsRuntime'],
+  requestScope: string | null,
+  underlayCreated: boolean,
+) {
+  return {
+    normalizedMeteringPayload, utiltsRuntime,
+    billingUnderlayCandidate: e66BillingUnderlayCandidate(requestScope, underlayCreated),
+  }
+}
+
 export async function processInboundUtiltsMessage(params: {
   actorUserId: string
   edielMessageId: string
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
   canonicalDecision?: CanonicalRuntimeDecision | null
+  polledE66RequestScope?: PolledE66RequestScope
+  holdDurableE66RequestReview?: (review: E66RequestCorrelationReview) => Promise<void>
+  commitDurableE66Qualification?: (
+    command: ReturnType<typeof prepareUtiltsPersistenceRpcArguments> & { matchedRequestBasis?: DurableE66RequestBasis },
+  ) => Promise<void>
+  persistDurableE66RegistrationRejection?: (command: ReturnType<typeof prepareUtiltsPersistenceRpcArguments>) => Promise<unknown>
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -410,6 +453,7 @@ export async function processInboundUtiltsMessage(params: {
     actorUserId,
     message,
     transactionMatches,
+    provisionalRuntime,
   })
 
   const permissionProbeMessage: EdielMessageRow = {
@@ -418,7 +462,9 @@ export async function processInboundUtiltsMessage(params: {
     site_id: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest?.site_id ?? message.site_id,
     metering_point_id: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest?.metering_point_id ?? message.metering_point_id,
     grid_owner_id: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest?.grid_owner_id ?? message.grid_owner_id,
-    grid_owner_data_request_id: canonicalLinks.matchedDataRequest?.id ?? message.grid_owner_data_request_id,
+    grid_owner_data_request_id: canonicalLinks.requestReview
+      ? null
+      : canonicalLinks.matchedDataRequest?.id ?? message.grid_owner_data_request_id,
     parsed_payload: {
       ...(message.parsed_payload ?? {}),
       normalizedMeteringPayload: provisionalNormalizedPayload,
@@ -477,6 +523,53 @@ export async function processInboundUtiltsMessage(params: {
   }
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)
+  const persistRegistrationRejection = messageCode === 'E66' && !structuralDecisionRequired &&
+    runtime.validation.classification === 'application_rejected' &&
+    ackPlan.contrlOutcome !== 'negative' && !ackPlan.shouldSendUtiltsErr &&
+    transactionDispositions.length === 1 &&
+    transactionDispositions[0].disposition === 'guide_rejected' &&
+    transactionDispositions[0].responseType === 'negative_aperak' &&
+    (transactionDispositions[0].issueCodes.includes(E66_INVALID_REGISTRATION_DATE_ISSUE) ||
+      (transactionDispositions[0].issueCodes.includes('UTILTS_TIMEZONE_INVALID') &&
+        ackPlan.utiltsHeaderRejection?.applicationErrors.some(issue => issue.ercCode === '42' && issue.fieldCode === '206')))
+    ? params.persistDurableE66RegistrationRejection
+    : undefined
+  const requestReview = canonicalLinks.requestReview
+  if (requestReview && !persistRegistrationRejection &&
+      (requestReview.reason !== 'missing_reference' || !matchedPermission) &&
+      ackPlan.contrlOutcome !== 'negative' && !ackPlan.shouldSendUtiltsErr &&
+      (!ackPlan.shouldSendAperak || ackPlan.aperakOutcome === 'positive')) {
+    if (params.holdDurableE66RequestReview) {
+      await params.holdDurableE66RequestReview(requestReview)
+    } else {
+      await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'warning',
+        message:'Kontrollera vilket E73 som E66-svaret gäller.',
+        payload:{code:'e66_request_correlation_review',...requestReview}})
+    }
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,
+      outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
+  if (params.commitDurableE66Qualification && !persistRegistrationRejection && (
+    !companyId || messageCode !== 'E66' || structuralDecisionRequired || !runtime.validation.ok ||
+    ackPlan.contrlOutcome === 'negative' || ackPlan.shouldSendUtiltsErr ||
+    (ackPlan.shouldSendAperak && ackPlan.aperakOutcome !== 'positive') ||
+    transactionDispositions.length !== 1 || transactionDispositions[0].disposition !== 'accepted' ||
+    transactionDispositions[0].responseType !== 'positive_aperak'
+  )) throw new Error('e66_durable_qualification_scope_unsupported')
+  if (persistRegistrationRejection && ackPlan.shouldSendContrl && ackPlan.contrlOutcome === 'positive') {
+    // Durable intake owns the source before the general inbound command can
+    // capture syntax. Use the same physical authority for its technical ACK.
+    const execution = { actorUserId, phase: 'prepare' as const }
+    const endpoint = await readEdielTechnicalSourceEndpoint(message.id, execution)
+    const sourceHash = createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex')
+    if (!endpoint || endpoint.companyId !== companyId || endpoint.environment !== message.environment || endpoint.sourceHash !== sourceHash) {
+      throw new Error('technical_source_wire_scope_mismatch')
+    }
+    await assertEdielTenantActor({ companyId: endpoint.companyId, actorUserId, permission: 'communication.write' })
+    await recordEdielTechnicalSyntaxDecision({ companyId: endpoint.companyId, sourceMessageId: message.id, sourceHash,
+      syntaxDecision: 'accepted', reasonCodes: [], execution })
+    await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId, message.id, execution)
+  }
   if (companyId && messageCode && transactionDispositions.length > 0) {
     const dataRequest = canonicalLinks.matchedDataRequest
     const fallback = {
@@ -486,8 +579,8 @@ export async function processInboundUtiltsMessage(params: {
       gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
     }
     const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
-      matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
-    transactionPersistenceResults = await persistUtiltsTransactionResults({
+      matches: transactionMatches, dataRequest, sentRequestPeriod: canonicalLinks.sentRequestPeriod, fallback, allowConsumption: true })
+    const command: Parameters<typeof persistUtiltsTransactionResults>[0] = {
       actorUserId,
       companyId,
       environment: runtimeSourceMessage.environment,
@@ -498,11 +591,56 @@ export async function processInboundUtiltsMessage(params: {
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
-        rawSegments: utiltsRuntimeSegments(runtime.facts),
+        rawPayload: runtimeSourceMessage.raw_payload,
         dispositions: transactionDispositions,
         matches: transactionMatches,
       }),
-    })
+    }
+    if (params.commitDurableE66Qualification && !persistRegistrationRejection) {
+      if (contracts.length !== 1 || contracts[0].metering.capability !== 'write' ||
+          contracts[0].observations.length === 0 ||
+          (contracts[0].billing.capability === 'write' && (
+            contracts[0].billing.requestScope !== 'billing_underlay' ||
+            !dataRequest || contracts[0].billing.sourceRequestId !== dataRequest.id
+          ))) {
+        throw new Error('e66_durable_qualification_scope_unsupported')
+      }
+      let basis: DurableE66RequestBasis | null = null
+      if (dataRequest) {
+        if (contracts[0].metering.sourceRequestId !== dataRequest.id) {
+          throw new Error('e66_durable_request_scope_invalid')
+        }
+        basis = {
+          requestId: dataRequest.id,
+          ...e66RequestPayload(
+            {
+              ...normalizedPayload,
+              utiltsTransactionDispositions: transactionDispositions.map(item => ({
+                ...item, transactionId: resolveUtiltsTransactionId(item.transactionId, 0),
+              })),
+            },
+            { validation: runtime.validation, ackPlan, testCaseCode: runtimeTestCaseCode },
+            dataRequest.request_scope,
+            contracts[0].billing.capability === 'write',
+          ),
+        }
+      }
+      const prepared = prepareUtiltsPersistenceRpcArguments(command)
+      await params.commitDurableE66Qualification(basis ? { ...prepared, matchedRequestBasis: basis } : prepared)
+      return {
+        message,
+        matchedDataRequest: canonicalLinks.matchedDataRequest,
+        ackIds: [],
+        outboundRequestId: null,
+        ingestedMeterValueId: null,
+        ingestedMeterValueIds: [],
+        billingUnderlayId: null,
+        durableQualificationCommitted: true,
+      }
+    }
+    transactionPersistenceResults = persistRegistrationRejection
+      ? validateUtiltsPersistenceResults(command, await persistRegistrationRejection(prepareUtiltsPersistenceRpcArguments(command)))
+      : await persistUtiltsTransactionResults(command)
     // An RPC array is not evidence unless every requested transaction has one
     // coherent outcome. Stop internally before ACKs or request completion;
     // missing/ambiguous evidence must not fabricate a national rejection.
@@ -645,7 +783,7 @@ export async function processInboundUtiltsMessage(params: {
       },
     })
 
-    await createEdielMessageEvent({
+    if (!persistRegistrationRejection) await createEdielMessageEvent({
       actorUserId,
       edielMessageId: message.id,
       eventType: 'validated',
@@ -877,13 +1015,18 @@ export async function processInboundUtiltsMessage(params: {
   const meteringPointId = canonicalLinks.meteringPointId ?? dataRequest.metering_point_id ?? null
   const gridOwnerId = canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest.grid_owner_id ?? null
 
-  const acknowledgedOutbound = await markDataRequestOutboundAcknowledged({
+  const isE66 = runtime.facts.messageCode === 'E66'
+  let historicalOnly = isE66 && transactionPersistenceResults.length > 0 &&
+    transactionPersistenceResults.every(result => result.disposition === 'accepted' &&
+      result.persistenceStatus === 'persisted' && storedUtiltsConsumptionVersionState(result, message.id) === 'late_older_history')
+  const acknowledgeOutbound = () => markDataRequestOutboundAcknowledged({
     actorUserId,
     dataRequestId: dataRequest.id,
     externalReference: message.external_reference ?? null,
     edielMessageId: message.id,
     normalizedPayload,
   })
+  let outboundRequestId = isE66 ? null : (await acknowledgeOutbound())?.id ?? null
 
   const ingestedMeterValues = await maybeIngestMeteringValue({
     boundOutcomes: transactionPersistenceResults,
@@ -912,35 +1055,73 @@ export async function processInboundUtiltsMessage(params: {
     normalizedPayload,
   })
 
-  await syncGridOwnerDataRequestReceivedFromEdiel({
-    actorUserId,
-    requestId: dataRequest.id,
-    edielMessageId: message.id,
-    externalReference: message.external_reference ?? dataRequest.external_reference ?? null,
-    parsedPayload: message.parsed_payload ?? {},
-    ingestedMeterValueId: ingestedMeterValue?.id ?? null,
-    notes: dataRequest.notes ?? null,
-    extraResponsePayload: {
-      normalizedMeteringPayload: normalizedPayload,
+  if (!historicalOnly) {
+    const response = {
+      ...e66RequestPayload(
+        normalizedPayload,
+        { validation: runtime.validation, ackPlan, testCaseCode: runtimeTestCaseCode },
+        dataRequest.request_scope,
+        billingUnderlay !== null,
+      ),
       ingestedMeterValueIds,
-      utiltsRuntime: {
-        validation: runtime.validation,
-        ackPlan: ackPlan,
-          testCaseCode: runtimeTestCaseCode,
-        },
-      outboundRequestId: acknowledgedOutbound?.id ?? null,
       billingUnderlayId: billingUnderlay?.id ?? null,
-      billingUnderlayCandidate:
-        dataRequest.request_scope === 'billing_underlay'
-          ? {
-              status: billingUnderlay ? 'created' : 'not_created',
-              reason: billingUnderlay
-                ? 'billing_underlay_created_from_inbound_utilts'
-                : 'missing_customer_or_quantity_or_existing_underlay',
-            }
-          : null,
-    },
-  })
+    }
+    if (isE66 && ingestedMeterValue) {
+      if (!companyId) throw new Error('e66_current_request_source_scope_required')
+      // Advance the outbound acknowledgement and the request together only
+      // while the stored original is still the currently applied revision.
+      const meterValueIds = [...new Set(ingestedMeterValueIds)]
+      const responsePatch = {
+        ...response,
+        edielMessageId: message.id,
+        parsedPayload: message.parsed_payload ?? {},
+        receivedVia: 'inbound_ediel',
+        ingestedMeterValueId: ingestedMeterValue.id,
+        ingestedMeterValueIds: meterValueIds,
+      }
+      const { data, error } = params.polledE66RequestScope
+        ? await submitPolledE66Request(params.polledE66RequestScope, {
+          companyId,
+          requestId: dataRequest.id,
+          actorUserId,
+          sourceMessageId: message.id,
+          meterValueIds,
+          responsePatch,
+        })
+        : await supabaseService.rpc('gridex_sync_current_e66_request_v1', {
+          p_company_id: companyId,
+          p_request_id: dataRequest.id,
+          p_actor_id: actorUserId,
+          p_source_message_id: message.id,
+          p_meter_value_ids: meterValueIds,
+          p_response_patch: responsePatch,
+        })
+      if (error?.code === '55P03') {
+        throw Object.assign(new Error('e66_current_request_database_lock_contended', { cause: error }), { code: error.code })
+      }
+      if (error) throw error
+      const outcome = ensureJson(data)
+      if (params.polledE66RequestScope && outcome.sourceId !== message.id) {
+        throw new Error('e66_current_request_invalid_result')
+      }
+      if (outcome.status === 'deferred' && params.polledE66RequestScope) throw new E66RequestDeferred()
+      if (outcome.status === 'replaced') historicalOnly = true
+      else if (outcome.status === 'cancelled') throw new Error('e66_current_request_cancelled')
+      else if (outcome.status === 'received' || outcome.status === 'partial') outboundRequestId = stringOrNull(outcome.outboundRequestId)
+      else throw new Error('e66_current_request_invalid_result')
+    } else if (!isE66) {
+      if (!companyId) throw new Error('UTILTS-meddelandet saknar bolag för nätägarbegäran.')
+      await syncGridOwnerDataRequestReceivedFromEdiel({
+        actorUserId,
+        companyId,
+        requestId: dataRequest.id,
+        edielMessageId: message.id,
+        parsedPayload: message.parsed_payload ?? {},
+        ingestedMeterValueId: ingestedMeterValue?.id ?? null,
+        extraResponsePayload: { ...response, outboundRequestId },
+      })
+    }
+  }
 
   const ackIds = await createUtiltsRepliesAfterStore({ actorUserId, sourceMessageId: message.id,
     storedMeterValueIds: ingestedMeterValueIds, billingUnderlayId: billingUnderlay?.id ?? null }, () => createUtiltsRuntimeAcks({
@@ -978,12 +1159,14 @@ export async function processInboundUtiltsMessage(params: {
     edielMessageId: message.id,
     eventType: 'validated',
     eventStatus: 'success',
-    message:
-      'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och kvitterat av produktionsruntime.',
+    message: historicalOnly
+      ? 'Historiskt E66-källkvitto verifierat. Befintliga mottagna uppgifter för nätägarbegäran bevarades.'
+      : 'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och kvitterat av produktionsruntime.',
     payload: {
       matchedGridOwnerDataRequestId: dataRequest.id,
+      ...(historicalOnly ? { historicalOnly: true } : {}),
       createdAckMessageIds: ackIds,
-      outboundRequestId: acknowledgedOutbound?.id ?? null,
+      outboundRequestId,
       ingestedMeterValueId: ingestedMeterValue?.id ?? null,
       ingestedMeterValueIds,
       billingUnderlayId: billingUnderlay?.id ?? null,
@@ -997,7 +1180,7 @@ export async function processInboundUtiltsMessage(params: {
     message,
     matchedDataRequest: dataRequest,
     ackIds,
-    outboundRequestId: acknowledgedOutbound?.id ?? null,
+    outboundRequestId,
     ingestedMeterValueId: ingestedMeterValue?.id ?? null,
     ingestedMeterValueIds,
     billingUnderlayId: billingUnderlay?.id ?? null,

@@ -13,7 +13,12 @@ export function resetUtiltsCanonicalOwnerIo() { committed.clear() }
  * These modeled insert/witness/COMMITTED receipts grant no native/legal proof.
  * The protocol engine and opaque initial/final owner ports remain real. */
 export function receivedUtiltsOwnerFixture(message:EdielMessageRow):EdielMessageRow {
- return {...message,id:sourceId,company_id:utiltsOwnerCompany,execution_context_snapshot:{receivedUtiltsContext:{version:1,contextOrigin:'database_insert',sourceMessageId:sourceId,companyId:utiltsOwnerCompany,environment:message.environment,messageCode:message.message_code,payloadHash:hash(message.raw_payload!),sourceReceivedAt:message.message_received_at,capturedAt:message.message_received_at}}}
+ return retainDeclaredUtiltsReceipt({...message,id:sourceId,company_id:utiltsOwnerCompany})
+}
+
+/** Model an insert for the actual synthetic bytes, scope and first receipt clock. */
+export function retainDeclaredUtiltsReceipt(message:EdielMessageRow):EdielMessageRow {
+ return {...message,execution_context_snapshot:{receivedUtiltsContext:{version:1,contextOrigin:'database_insert',sourceMessageId:message.id,companyId:message.company_id,environment:message.environment,messageCode:message.message_code,payloadHash:hash(message.raw_payload!),sourceReceivedAt:message.message_received_at,capturedAt:message.message_received_at}}}
 }
 export function utiltsNamedOwnerWitness({canonicalPolicy:policy}:{canonicalPolicy:CanonicalEdielPolicy}) {
  const revision=policy.guide.guideRevision,number=revision.split('-').at(-1)!,databaseProfileKey=`UTILTS:${policy.code}:E5SE5A:${number}`

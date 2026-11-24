@@ -3,6 +3,11 @@ import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { supabaseService } from '@/lib/supabase/service'
 import { processPendingInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import {
+  automaticPurchaseCheckpointGuid,
+  automaticPurchaseHeldStatuses,
+  hasAutomaticPurchaseCheckpoint,
+} from '@/lib/billing/automaticPurchaseCheckpoint'
 
 type JsonRecord = Record<string, unknown>
 
@@ -129,9 +134,9 @@ type ResolvedTarget = {
  *   but cannot be routed yet, so a retryable 503 (409 for an ambiguous GUID)
  *   makes the provider redeliver instead of dropping it permanently.
  *
- * At most two indexed lookups run before verification (the per-tenant secret
- * design makes a pre-DB check impossible); their results are not reflected in
- * any unauthenticated response.
+ * The held-purchase lookup runs only when no published invoice matched and
+ * an active connection already authenticated the sender. Its own tenant
+ * connection must still verify the signature.
  */
 async function resolveVerifiedTarget(input: {
   provider: string
@@ -149,34 +154,30 @@ async function resolveVerifiedTarget(input: {
     .limit(3)
   if (itemResult.error) throw itemResult.error
   const items = (itemResult.data ?? []) as JsonRecord[]
-  let unroutable: { status: 409 | 503; code: string; message: string } | null = null
-  if (items.length === 0) {
-    unroutable = { status: 503, code: 'billing_webhook_target_pending', message: 'Providerfakturan är ännu inte kopplad; försök igen senare.' }
-  } else if (items.length !== 1) {
-    unroutable = { status: 409, code: 'billing_webhook_ambiguous_target', message: 'Providerfakturan matchar flera mål; händelsen kräver avstämning.' }
-  } else {
-    const item = items[0]
+  async function verifiedConnection(item: JsonRecord): Promise<ResolvedTarget | null> {
     const companyId = text(item.company_id)
     const itemId = text(item.id)
     const environment = text(item.environment)
-    if (companyId && itemId && (environment === 'test' || environment === 'production')) {
-      const connectionResult = await supabaseService
-        .from('billing_provider_connections')
-        .select('id,company_id,provider,environment,status,settings,secret_reference')
-        .eq('company_id', companyId)
-        .eq('provider', input.provider)
-        .eq('environment', environment)
-        .eq('status', 'active')
-        .limit(2)
-      if (connectionResult.error) throw connectionResult.error
-      const connections = (connectionResult.data ?? []) as JsonRecord[]
-      const secret = connections.length === 1 ? connectionSecret(connections[0]) : null
-      if (secret) {
-        if (!verify(secret)) throw new BillingProviderWebhookAuthError(UNVERIFIED_MESSAGE)
-        return { itemId, companyId, environment, connectionId: String(connections[0].id), secret }
-      }
-    }
-    unroutable = { status: 503, code: 'billing_webhook_target_pending', message: 'Providerfakturans tenantanslutning är inte redo; försök igen senare.' }
+    if (!companyId || !itemId || (environment !== 'test' && environment !== 'production')) return null
+    const connectionResult = await supabaseService
+      .from('billing_provider_connections')
+      .select('id,company_id,provider,environment,status,settings,secret_reference')
+      .eq('company_id', companyId)
+      .eq('provider', input.provider)
+      .eq('environment', environment)
+      .eq('status', 'active')
+      .limit(2)
+    if (connectionResult.error) throw connectionResult.error
+    const connections = (connectionResult.data ?? []) as JsonRecord[]
+    const secret = connections.length === 1 ? connectionSecret(connections[0]) : null
+    if (!secret) return null
+    if (!verify(secret)) throw new BillingProviderWebhookAuthError(UNVERIFIED_MESSAGE)
+    return { itemId, companyId, environment, connectionId: String(connections[0].id), secret }
+  }
+
+  if (items.length === 1) {
+    const target = await verifiedConnection(items[0])
+    if (target) return target
   }
 
   // Unroutable: authenticate against any active connection of this provider
@@ -193,6 +194,33 @@ async function resolveVerifiedTarget(input: {
     return secret ? verify(secret) : false
   })
   if (!authentic) throw new BillingProviderWebhookAuthError(UNVERIFIED_MESSAGE)
+  let ambiguous = items.length > 1
+  let waitingForTenantConnection = items.length === 1
+  if (items.length === 0 && input.provider === 'capway_aptic') {
+    const heldResult = await supabaseService
+      .from('invoice_export_items')
+      .select('id,company_id,environment,provider,provider_invoice_guid,provider_invoice_id,status,export_run_id,provider_idempotency_key,idempotency_key,attempt_count,response_payload')
+      .eq('provider', input.provider)
+      .is('provider_invoice_guid', null)
+      .is('provider_invoice_id', null)
+      .in('status', automaticPurchaseHeldStatuses)
+      .eq(automaticPurchaseCheckpointGuid, input.invoiceGuid)
+      .limit(2)
+    if (heldResult.error) throw heldResult.error
+    const held = (heldResult.data ?? []) as JsonRecord[]
+    ambiguous = held.length > 1
+    if (held.length === 1 && hasAutomaticPurchaseCheckpoint(held[0], input.invoiceGuid)) {
+      waitingForTenantConnection = true
+      const target = await verifiedConnection(held[0])
+      if (target) return target
+    }
+  }
+  const pendingMessage = waitingForTenantConnection
+    ? 'Providerfakturans tenantanslutning är inte redo; försök igen senare.'
+    : 'Providerfakturan är ännu inte kopplad; försök igen senare.'
+  const unroutable = ambiguous
+    ? { status: 409 as const, code: 'billing_webhook_ambiguous_target', message: 'Providerfakturan matchar flera mål; händelsen kräver avstämning.' }
+    : { status: 503 as const, code: 'billing_webhook_target_pending', message: pendingMessage }
   console.warn('[billing-webhook] verified event is not routable yet; provider will retry', {
     provider: input.provider,
     code: unroutable.code,

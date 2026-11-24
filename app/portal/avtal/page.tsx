@@ -1,9 +1,14 @@
+import Link from "next/link";
 import { portalContractTypeLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
+  getPortalSelectedSite,
   listPortalContracts,
+  listPortalSites,
 } from "@/lib/customer-portal/db";
+import { listPortalContractNoticeDates } from "@/lib/customer-portal/contractNoticeDates";
 import { formatDate, formatSek } from "@/lib/customer-portal/format";
+import type { CustomerPortalSiteRow } from "@/lib/customer-portal/types";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +26,34 @@ function contractStatusLabel(status: string | null) {
   return map[String(status ?? "")] ?? "Under handläggning";
 }
 
-export default async function PortalContractsPage() {
+function siteLabel(site: CustomerPortalSiteRow) {
+  return [site.street, site.postal_code, site.city].filter(Boolean).join(", ")
+    || site.site_name || site.facility_id || "Anläggning";
+}
+
+export default async function PortalContractsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ site_id?: string | string[] }>;
+} = {}) {
   const context = await getCustomerPortalContext();
-  const contracts = await listPortalContracts(context);
+  const selection = (await searchParams)?.site_id;
+  const selectedSite = await getPortalSelectedSite(context, selection);
+  const contracts = selection === undefined || selectedSite
+    ? await listPortalContracts(context, selectedSite ?? undefined)
+    : [];
+  const [noticeDates, sites] = await Promise.all([
+    listPortalContractNoticeDates(context, contracts).catch(() => null),
+    selectedSite ? [selectedSite] : listPortalSites(
+      context,
+      Array.from(new Set(contracts.flatMap((contract) => contract.site_id ? [contract.site_id] : []))),
+    ),
+  ]);
+  const siteById = new Map(sites.map((site) => [site.id, site]));
+  const cards = contracts.map((contract) => {
+    const site = contract.site_id ? siteById.get(contract.site_id) : undefined;
+    return { contract, site: site?.customer_id === contract.customer_id ? site : null, notice: noticeDates?.get(contract.id) };
+  });
 
   return (
     <div className="space-y-6">
@@ -35,10 +65,21 @@ export default async function PortalContractsPage() {
           Här ser du elavtal som är kopplade till ditt kundkonto. Statusen
           uppdateras löpande och kan användas som underlag vid frågor till kundtjänst.
         </p>
+        {selectedSite ? (
+          <p className="mt-3 text-sm font-semibold text-slate-900">{siteLabel(selectedSite)}</p>
+        ) : null}
+        {selection !== undefined ? (
+          <Link href={selectedSite ? "/portal/avtal" : "/portal/anlaggningar"} className="mt-4 inline-block text-sm font-semibold text-slate-900 underline underline-offset-4">
+            {selectedSite ? "Visa alla avtal" : "Visa alla anläggningar"}
+          </Link>
+        ) : null}
       </section>
 
       <section className="space-y-4">
-        {contracts.map((contract) => (
+        {noticeDates === null ? (
+          <p role="status" className="text-sm text-slate-600">Uppsägningsuppgifterna kunde inte hämtas. Försök igen.</p>
+        ) : null}
+        {cards.map(({ contract, site, notice }) => (
           <article
             key={contract.id}
             className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -50,9 +91,20 @@ export default async function PortalContractsPage() {
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   {portalContractTypeLabel(contract.contract_type)} · Start{" "}
-                  {formatDate(contract.starts_at)} · Slut{" "}
-                  {formatDate(contract.ends_at)}
+                  {formatDate(contract.starts_at)}
+                  {contract.ends_at ? <> · Avtalat slut {formatDate(contract.ends_at)}</> : null}
                 </p>
+                {notice ? (
+                  <div className="mt-1 text-sm text-slate-600">
+                    <p>Uppsägning mottagen {formatDate(notice.receivedOn)}</p>
+                    {notice.plannedEndOn ? <p>Planerat avtalsavslut {formatDate(notice.plannedEndOn)}</p> : null}
+                  </div>
+                ) : null}
+                {site ? (
+                  <Link href={`/portal/anlaggningar?site_id=${encodeURIComponent(site.id)}`} prefetch={false} className="mt-2 inline-block text-sm font-semibold text-slate-900 underline underline-offset-4">
+                    {siteLabel(site)}
+                  </Link>
+                ) : null}
               </div>
               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                 {contractStatusLabel(contract.status)}
@@ -103,7 +155,11 @@ export default async function PortalContractsPage() {
 
         {contracts.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga avtal är kopplade till ditt kundkonto ännu. Har du nyss tecknat ett avtal kan det ta en liten stund innan det syns här.
+            {selectedSite
+              ? "Inga avtal visas för den valda anläggningen."
+              : selection !== undefined
+                ? "Anläggningen kunde inte öppnas. Välj en anläggning från listan."
+                : "Inga avtal är kopplade till ditt kundkonto ännu. Har du nyss tecknat ett avtal kan det ta en liten stund innan det syns här."}
           </div>
         ) : null}
       </section>

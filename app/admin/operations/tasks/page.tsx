@@ -5,9 +5,10 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { resolveAdminSelectedCompanyReadScope, resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { readWritableSwitchCompanyIds as readWritableCompanyIds } from '@/lib/operations/switchCompanyWriteScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
-import { listAllOperationTasks } from '@/lib/operations/db'
+import { canWriteOperationTaskCompany, listAllOperationTasks } from '@/lib/operations/db'
 import {
  runOperationsTaskAutoResolutionSweepAction,
  updateOperationTaskStatusFromAdminAction,
@@ -144,7 +145,6 @@ export default async function AdminOperationsTasksPage({
  const context = await requireAdminPageKeyAccess('operations.tasks')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
- const canWrite = await canPresentAdminAction(['masterdata.write'])
  const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
 
  const resolvedSearchParams = await searchParams
@@ -163,6 +163,17 @@ export default async function AdminOperationsTasksPage({
  query,
  companyId,
  })
+
+ const selectedCompany = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true })
+ const canEditTasks = await canPresentAdminAction(['masterdata.write'])
+ let writableCompanyIds = new Set<string>()
+ if (canEditTasks && tenantScope.isPlatformAdmin) {
+   writableCompanyIds = await readWritableCompanyIds(supabase, [selectedCompany.companyId, ...tasks.map(task => task.company_id)])
+ } else if (canEditTasks && companyId && await canWriteOperationTaskCompany(supabase, companyId)) {
+   writableCompanyIds.add(companyId)
+ }
+ const canWriteTask = (task: CustomerOperationTaskRow) => Boolean(task.company_id && writableCompanyIds.has(task.company_id))
+ const canSweep = Boolean(selectedCompany.companyId && writableCompanyIds.has(selectedCompany.companyId))
 
  let sitesQueryBuilder = supabase
  .from('customer_sites')
@@ -291,7 +302,8 @@ export default async function AdminOperationsTasksPage({
  </p>
  </div>
 
- {canWrite ? <form action={runOperationsTaskAutoResolutionSweepAction}>
+ {canEditTasks && !selectedCompany.companyId ? <p className="text-sm text-slate-600">Välj ett bolag innan du kör automatisk uppföljning.</p> : null}
+ {canSweep ? <form action={runOperationsTaskAutoResolutionSweepAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
  Kör automatisk uppföljning
  </button>
@@ -389,24 +401,24 @@ export default async function AdminOperationsTasksPage({
 
  <div className="mt-4 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton canWrite={canWrite} taskId={task.id} status="open" label="Öppen" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="open" label="Öppen" />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="blocked"
  label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Klar" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="done" label="Klar" />
  ) : null}
  </div>
  </div>
@@ -467,9 +479,9 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="mt-4 flex flex-wrap gap-2">
- <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Markera klar" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="done" label="Markera klar" />
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
@@ -606,30 +618,30 @@ export default async function AdminOperationsTasksPage({
  </td>
 
  <td className="px-6 py-4">
- {canWrite ? <details><summary className="cursor-pointer text-sm font-semibold text-slate-700">Hantera uppgift</summary><div className="mt-2 flex flex-wrap gap-2">
+ {canWriteTask(task) ? <details><summary className="cursor-pointer text-sm font-semibold text-slate-700">Hantera uppgift</summary><div className="mt-2 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="open"
  label="Öppen"
  />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="blocked"
  label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="done"
  label={likelyResolved ? 'Stäng som löst' : 'Klar'}

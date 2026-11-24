@@ -30,6 +30,8 @@ vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () =
         result = ambiguous || absent
           ? { data: null, error: { code: ambiguous ? 'PGRST201' : 'PGRST200' } }
           : { data: [call.select?.includes('customer:') ? row : { ...row, customer: null, site: null }], error: null }
+      } else if (table === 'companies') {
+        result = { data: [{ id: 'company-a', status: 'active' }], error: null }
       } else {
         result = state.failOwners
           ? { data: null, error: { code: 'unavailable' } }
@@ -52,6 +54,8 @@ it('keeps customer, site and grid-owner names with the actual relationship catal
   const requestCalls = state.calls.filter(call => call.table === 'grid_owner_information_requests')
   expect(requestCalls).toHaveLength(1)
   expect(requestCalls[0].filters).toContainEqual(['company_id', 'company-a'])
+  const companyCall = state.calls.find(call => call.table === 'companies')
+  expect(companyCall?.filters).toContainEqual(['id', ['company-a']])
   const ownerCall = state.calls.find(call => call.table === 'grid_owners')
   expect(ownerCall?.filters).toContainEqual(['id', ['owner-a']])
 })

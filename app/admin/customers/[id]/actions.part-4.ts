@@ -1,5 +1,6 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -31,6 +32,7 @@ import { emitCustomerOperationEvent } from "@/lib/customers/customerOperationEve
 import { normalizeUuidOrNull } from "@/lib/validation/uuid"
 
 import { createCustomerCase } from "@/lib/customer-cases/db"
+import { assessWithdrawal } from "@/lib/customer-cases/engine"
 import { formValue, insertAuditLog, normalizeDateOrNull, normalizePartnerExportKind, normalizePriceAreaOrNull, toBoolean } from './actions.part-1'
 
 export async function createPartnerExportAction(
@@ -381,28 +383,37 @@ export async function savePowerOfAttorneyScopeAction(
   revalidatePath(`/admin/customers/${customerId}`);
 }
 
+function matchingCurrentOrLegacyReference(column: string, legacyColumn: string, id: string) {
+  return `and(${column}.eq.${id},or(${legacyColumn}.eq.${id},${legacyColumn}.is.null)),and(${column}.is.null,${legacyColumn}.eq.${id})`;
+}
+
 export async function registerCustomerLifecycleDecisionAction(
   formData: FormData,
 ): Promise<void> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const customerId = formValue(formData, "customer_id") ?? "";
-  const requestedDecision = formValue(formData, "decision_type");
-  const decisionType: "withdrawal" | "cancelled" | "rejected" =
-    requestedDecision === "cancelled"
-      ? "cancelled"
-      : requestedDecision === "rejected"
-        ? "rejected"
-        : "withdrawal";
+  const decisionType = formValue(formData, "decision_type");
+  if (decisionType !== "withdrawal" && decisionType !== "cancelled" && decisionType !== "rejected") {
+    throw new Error("Välj vilken typ av beslut som ska registreras.");
+  }
+
   const encodedTarget = formValue(formData, "scope_target");
-  const [encodedScope, encodedScopeId] = encodedTarget?.split(":", 2) ?? [];
-  const requestedScope = encodedScope || formValue(formData, "scope_type") || "customer";
-  const scopeType = ["customer", "contract", "site", "metering_point"].includes(
-    requestedScope,
-  )
-    ? requestedScope
-    : "customer";
-  const scopeId = (encodedScopeId || formValue(formData, "scope_id"))?.trim() || null;
+  const [encodedScope, encodedId, extraScopePart] = encodedTarget?.split(":") ?? [];
+  const legacyScope = formValue(formData, "scope_type")?.trim() || null;
+  const legacyId = formValue(formData, "scope_id")?.trim() || null;
+  const scopeType = encodedScope ?? legacyScope;
+  const scopeId = encodedTarget === null ? legacyId : encodedId?.trim() || null;
+  if (
+    (encodedTarget !== null && (encodedId === undefined || extraScopePart !== undefined)) ||
+    (encodedTarget !== null && legacyScope !== null && legacyScope !== scopeType) ||
+    (encodedTarget !== null && legacyId !== null && legacyId !== scopeId) ||
+    (scopeType !== "customer" && scopeType !== "contract" && scopeType !== "site" && scopeType !== "metering_point") ||
+    (scopeType === "customer" && scopeId !== null)
+  ) {
+    throw new Error("Välj uttryckligen vilken kundprocess, vilket avtal, vilken anläggning eller mätpunkt beslutet gäller.");
+  }
+
   const receivedAt =
     normalizeDateOrNull(formValue(formData, "received_at")) ??
     new Date().toISOString();
@@ -436,6 +447,7 @@ export async function registerCustomerLifecycleDecisionAction(
   );
 
   let contractContext: Record<string, unknown> | null = null;
+  let selectedContractId: string | null = null;
   if (scopeType === "site") {
     await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId });
   } else if (scopeType === "metering_point") {
@@ -445,16 +457,95 @@ export async function registerCustomerLifecycleDecisionAction(
       meteringPointId: scopeId,
     });
   } else if (scopeType === "contract") {
-    await assertContractTenant({ companyId, customerId, contractId: scopeId });
+    const contract = await assertContractTenant({ companyId, customerId, contractId: scopeId });
+    if (!contract) throw new Error("Avtalet tillhör inte kunden eller bolaget.");
+    selectedContractId = contract.id;
     const { data, error } = await supabaseService
       .from("customer_contracts")
       .select("*")
       .eq("company_id", companyId)
       .eq("customer_id", customerId)
-      .eq("id", scopeId!)
+      .eq("id", selectedContractId)
       .maybeSingle();
-    if (error && !isDatabaseShapeError(error)) throw error;
-    contractContext = (data as Record<string, unknown> | null) ?? null;
+    if (error) throw error;
+    if (!data) throw new Error("Avtalet tillhör inte kunden eller bolaget.");
+    contractContext = data;
+  }
+
+  const stringField = (row: Record<string, unknown> | null, ...keys: string[]) => {
+    for (const key of keys) {
+      const value = row?.[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+    return null;
+  };
+  const primaryContractSite = stringField(contractContext, "site_id");
+  const legacyContractSite = stringField(contractContext, "customer_site_id");
+  const contractSite = primaryContractSite ?? legacyContractSite;
+  const contractMeter = stringField(contractContext, "metering_point_id");
+  const conflictingContractSites = primaryContractSite && legacyContractSite && primaryContractSite !== legacyContractSite;
+  const reviewTab = guard.isPlatformAdmin || guard.permissions.includes("contracts.read") ? "contracts" : "legal-readiness";
+  const contractReviewPath = `/admin/customers/${encodeURIComponent(customer.id)}?tab=${reviewTab}#${reviewTab}`;
+  if (selectedContractId && (conflictingContractSites || !contractSite || !contractMeter)) {
+    // The case stop code may otherwise broaden an incomplete location to site or customer scope.
+    redirect(contractReviewPath);
+  }
+  if (selectedContractId && contractSite && contractMeter) {
+    try {
+      await Promise.all([
+        assertCustomerSiteTenant({ companyId, customerId, siteId: contractSite }),
+        assertMeteringPointTenant({ companyId, customerId, siteId: contractSite, meteringPointId: contractMeter }),
+      ]);
+    } catch {
+      redirect(contractReviewPath);
+    }
+  }
+
+  if (selectedContractId && contractSite && contractMeter && decisionType === "withdrawal") {
+    const intentId = normalizeUuidOrNull(formValue(formData, "decision_intent_id"));
+    if (!intentId) throw new Error("Ladda om kundkortet innan du registrerar avtalsstoppet.");
+    const agreementChannel = stringField(contractContext, "agreement_channel", "source_type");
+    const agreementCreatedAt = stringField(contractContext, "signed_at", "created_at");
+    const isDistanceAgreement = Boolean(agreementChannel && /website|web|online|digital|distance/i.test(agreementChannel));
+    const assessment = assessWithdrawal({
+      caseType: "withdrawal",
+      agreementChannel,
+      agreementCreatedAt,
+      isDistanceAgreement,
+      withdrawalRequestedAt: receivedAt,
+    });
+    const { data, error } = await supabaseService.rpc(
+      "gridex_register_contract_withdrawal_case_v1",
+      {
+        p_company_id: companyId,
+        p_customer_id: customerId,
+        p_contract_id: selectedContractId,
+        p_site_id: contractSite,
+        p_meter_id: contractMeter,
+        p_actor_id: actor.id,
+        p_intent_id: intentId,
+        p_received_at: receivedAt,
+        p_channel: receivedChannel,
+        p_reason: reason,
+        p_notes: notes,
+        p_assessment: { ...assessment, contractUpdatedAt: contractContext?.updated_at, agreementChannel, agreementCreatedAt, isDistanceAgreement },
+      },
+    );
+    if (error?.code === "23514" && error.message === "contract_withdrawal_scope_changed") {
+      redirect(contractReviewPath);
+    }
+    if (error?.code === "23514" && error.message === "contract_withdrawal_followup_required") {
+      throw new Error("Avtalet har en ansluten leverantörsprocess. Granska ärendet innan du registrerar ett avtalsstopp.");
+    }
+    if (error) throw error;
+    const receipt = data as { caseId?: unknown; heldUnderlays?: unknown; existing?: unknown } | null;
+    if (receipt?.caseId !== intentId || typeof receipt.heldUnderlays !== "number" || typeof receipt.existing !== "boolean") {
+      throw new Error("Avtalsstoppets kvitto kunde inte verifieras.");
+    }
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath("/admin/customer-cases");
+    revalidatePath("/admin/billing/export-center");
+    return;
   }
 
   let switchContext: Record<string, unknown> | null = null;
@@ -470,30 +561,29 @@ export async function registerCustomerLifecycleDecisionAction(
     if (scopeType === "metering_point" && scopeId) {
       query = query.eq("metering_point_id", scopeId);
     }
+    if (selectedContractId && contractSite && contractMeter) {
+      // These IDs come from the tenant-verified PostgreSQL UUID columns.
+      const contractMatch = matchingCurrentOrLegacyReference("contract_id", "customer_contract_id", selectedContractId);
+      const siteMatch = matchingCurrentOrLegacyReference("site_id", "customer_site_id", contractSite);
+      query = query.or(`and(or(${contractMatch}),or(${siteMatch}))`)
+        .eq("metering_point_id", contractMeter)
+        .order("id", { ascending: false });
+    }
     const { data, error } = await query.maybeSingle();
-    if (error && !isDatabaseShapeError(error)) throw error;
-    switchContext = (data as Record<string, unknown> | null) ?? null;
+    if (error) throw error;
+    switchContext = data;
   } catch (error) {
-    if (!isDatabaseShapeError(error)) throw error;
+    if (selectedContractId || !isDatabaseShapeError(error)) throw error;
   }
 
-  const stringField = (row: Record<string, unknown> | null, ...keys: string[]) => {
-    for (const key of keys) {
-      const value = row?.[key];
-      if (typeof value === "string" && value.trim()) return value;
-    }
-    return null;
-  };
   const siteId =
     scopeType === "site"
       ? scopeId
-      : stringField(contractContext, "site_id", "customer_site_id") ??
-        stringField(switchContext, "site_id");
+      : selectedContractId ? contractSite : stringField(switchContext, "site_id");
   const meteringPointId =
     scopeType === "metering_point"
       ? scopeId
-      : stringField(contractContext, "metering_point_id") ??
-        stringField(switchContext, "metering_point_id");
+      : selectedContractId ? contractMeter : stringField(switchContext, "metering_point_id");
   const agreementChannel = stringField(
     contractContext,
     "agreement_channel",
@@ -535,7 +625,7 @@ export async function registerCustomerLifecycleDecisionAction(
     customerId,
     siteId,
     meteringPointId,
-    customerContractId: scopeType === "contract" ? scopeId : null,
+    customerContractId: selectedContractId,
     supplierSwitchRequestId: stringField(switchContext, "id"),
     caseType,
     priority: "high",
@@ -576,7 +666,7 @@ export async function registerCustomerLifecycleDecisionAction(
       p_actor_user_id: actor.id,
       p_decision_type: decisionType,
       p_scope_type: scopeType,
-      p_scope_id: scopeType === "customer" ? null : scopeId,
+      p_scope_id: scopeType === "customer" ? null : selectedContractId ?? scopeId,
       p_received_at: receivedAt,
       p_reason: reason,
     },

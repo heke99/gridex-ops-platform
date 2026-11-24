@@ -33,7 +33,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     const response = () => {
       if (table === 'metering_points') return { data: [{
         id: '22222222-2222-4222-8222-222222222222', customer_id: null, site_id: null,
-        grid_owner_id: null, bidding_zone_code: 'SE3', source_customer: null,
+        grid_owner_id: null, bidding_zone_code: 'SE3', lifecycle_supply_fraction: null, source_customer: null,
         estimated_annual_consumption_kwh: 0, consumption_profile_id: null,
         start_date: null, end_date: null, customer_sites: null,
       }], error: null }
@@ -62,9 +62,9 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     return query
   },
   async rpc(name: string, args: Record<string, string>) {
-    if (name === 'gridex_forecast_point_inventory_v1') return { data: [{ points: [
+    if (name === 'gridex_forecast_point_inventory_v2') return { data: [{ points: [
       { id: '22222222-2222-4222-8222-222222222222', customer_id: null, site_id: null,
-        grid_owner_id: null, bidding_zone_code: 'SE3', source_customer: null },
+        grid_owner_id: null, bidding_zone_code: 'SE3', lifecycle_supply_fraction: null, source_customer: null },
     ], total_count: 1 }], error: null }
     if (name !== 'gridex_forecast_metering_period_totals_v1') throw new Error('unexpected_rpc:' + name)
     io.rpcCalls.push({ name, args })

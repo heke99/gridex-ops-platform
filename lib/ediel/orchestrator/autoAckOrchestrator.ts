@@ -122,7 +122,17 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     sourceMessage: params.sourceMessage,
     desiredFamily,
     desiredOutcome,
+  }).catch((error: unknown) => {
+    if (desiredFamily === 'APERAK' && error && typeof error === 'object'
+      && 'code' in error && error.code === '23514'
+      && 'message' in error && error.message === 'ediel_aperak_cancellation_transport_started') return null
+    throw error
   })
+
+  if (!supersedeResult) {
+    return { status: 'blocked', ackMessageId: null, lifecycleStatus: 'blocked_transport_started',
+      reason: 'Motstridig APERAK har redan gått in i transporten. Kontrollera transportjournalen innan ett nytt beslut.' }
+  }
 
   if (supersedeResult.blockedFinalAckId) {
     return { status: 'blocked', ackMessageId: supersedeResult.blockedFinalAckId, lifecycleStatus: 'blocked_final_ack_exists', reason: 'Opposite final ACK exists.' }

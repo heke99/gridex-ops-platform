@@ -303,6 +303,8 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
   const blockedUnderlayIds = new Set<string>()
+  const terminatedSupplyByUnderlay = new Map<string, { contractId: string; supplyPeriodId: string }>()
+  const endingSupplyByUnderlay = new Map<string, { contractId: string; supplyPeriodId: string }>()
 
   const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
@@ -337,6 +339,19 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       const basis = bases.get(String(row.id))
       if (!basis || (basis.totalKwh !== null && !isCanonicalUtiltsDecimal(basis.totalKwh))) throw new Error('invoice_underlay_source_basis_invalid')
       row.total_kwh = basis.totalKwh
+      if (basis.qualified === true && basis.correctionRequired !== true
+        && typeof basis.terminatedContractId === 'string'
+        && typeof basis.terminatedSupplyPeriodId === 'string') {
+        terminatedSupplyByUnderlay.set(String(row.id), {
+          contractId: basis.terminatedContractId, supplyPeriodId: basis.terminatedSupplyPeriodId,
+        })
+      }
+      if (basis.qualified === true && basis.correctionRequired !== true
+        && typeof basis.endingContractId === 'string' && typeof basis.endingSupplyPeriodId === 'string') {
+        endingSupplyByUnderlay.set(String(row.id), {
+          contractId: basis.endingContractId, supplyPeriodId: basis.endingSupplyPeriodId,
+        })
+      }
       if (basis.qualified !== true || basis.correctionRequired === true) {
         blockedUnderlayIds.add(String(row.id))
         issues.push({ code: basis.correctionRequired === true ? 'billing_source_correction_required' : 'billing_source_basis_unavailable', message: `Underlag ${String(row.id)} saknar aktuellt låst källunderlag eller kräver rättelseprövning.`, severity: 'blocked' })
@@ -609,6 +624,8 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         actual_start_date?: string | null
         actual_end_date?: string | null
       }>,
+      qualifiedTerminatedSupply: terminatedSupplyByUnderlay.get(underlayId),
+      qualifiedEndingSupply: endingSupplyByUnderlay.get(underlayId),
       billingPeriod: {
         start: typeof underlay.billing_period_start === 'string' ? underlay.billing_period_start : bounds.start,
         end: typeof underlay.billing_period_end === 'string' ? underlay.billing_period_end : bounds.end,

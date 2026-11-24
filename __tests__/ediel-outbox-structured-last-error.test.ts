@@ -40,7 +40,8 @@ async function failWith(thrown: unknown) {
   const result = await send()
   expect(result.status).toBe('failed')
   expect(queued).toMatchObject({ status: 'failed', attempts: 2, locked_at: null, locked_by: null })
-  expect(result.error).toBe(queued.last_error)
+  const error = 'error' in result ? result.error : undefined
+  expect(error).toBe(queued.last_error)
   return String(queued.last_error)
 }
 

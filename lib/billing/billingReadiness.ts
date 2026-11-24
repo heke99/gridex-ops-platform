@@ -133,6 +133,10 @@ export type BillingReadinessInput = {
     actual_start_date?: string | null
     actual_end_date?: string | null
   }> | null
+  /** Issued by the native source read for this specific qualified underlay. */
+  qualifiedTerminatedSupply?: { contractId: string; supplyPeriodId: string }
+  /** Issued by the native source read after it revalidates this exact underlay. */
+  qualifiedEndingSupply?: { contractId: string; supplyPeriodId: string }
   billingPeriod?: { start: string; end: string } | null
   priceArea?: string | null
   meterValues?: {
@@ -369,7 +373,10 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
         code: 'delivery_not_started',
         message: 'Avtalet är signerat men ännu inte aktiverat för leverans och fakturering.',
       })
-    } else if (!BILLABLE_CONTRACT_STATUSES.has(status)) {
+    } else if (!BILLABLE_CONTRACT_STATUSES.has(status) && !(
+      status === 'terminated' && Boolean(clean(contract.id))
+      && input.qualifiedTerminatedSupply?.contractId === contract.id
+    )) {
       blockers.push({
         code: 'contract_not_approved',
         message: `Avtalet har status "${status || 'okänd'}" och är inte aktivt för fakturering.`,
@@ -403,8 +410,14 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   }
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
     const status = clean(period.status)?.toLowerCase() ?? ''
-    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(status)) return false
+    const qualifiedEnding = status === 'ending' && Boolean(clean(period.end_date))
+      && Boolean(clean(period.id)) && clean(period.id) === input.qualifiedEndingSupply?.supplyPeriodId
+      && Boolean(clean(input.contract?.id)) && clean(input.contract?.id) === input.qualifiedEndingSupply?.contractId
+    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(status) && !qualifiedEnding) return false
     if (status === 'ended' && !clean(period.end_date)) return false
+    if (clean(input.contract?.status)?.toLowerCase() === 'terminated' && !(
+      status === 'ended' && clean(period.id) === input.qualifiedTerminatedSupply?.supplyPeriodId
+    )) return false
     if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
     if (
       clean(period.customer_id) &&

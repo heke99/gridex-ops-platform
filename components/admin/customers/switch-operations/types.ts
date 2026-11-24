@@ -8,13 +8,15 @@ import type {
   EdielRecommendationRouteRow,
 } from '@/lib/ediel/recommendations'
 import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
-import { getSwitchLifecycle } from '@/lib/operations/controlTower'
+import type { SwitchActivationByRequest } from '@/lib/operations/switchActivationPresentation'
+import type { getSwitchLifecycle } from '@/lib/operations/controlTower'
 
 export type CustomerSwitchOperationsCardProps = {
   customerId: string
   sites: CustomerSiteRow[]
   meteringPoints: MeteringPointRow[]
   switchRequests: SupplierSwitchRequestRow[]
+  activationByRequestId?: SwitchActivationByRequest
   switchEvents: SupplierSwitchEventRow[]
   outboundRequests: OutboundRequestRow[]
   edielMessages: CustomerEdielMessageRow[]

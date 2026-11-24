@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -15,16 +16,15 @@ type QualityIssueRow = {
   issue_key: string
   severity: string
   message: string
-  evidence: Record<string, unknown>
 }
 
 type WebhookIssueRow = {
   id: string
   company_id: string
-  event_type: string
+  event_type?: string
   status: string
-  attempts: number
-  failure_reason: string | null
+  attempts?: number
+  failure_reason?: string | null
   created_at: string
 }
 
@@ -33,10 +33,10 @@ type EmailDomainRow = {
   company_id: string
   domain: string
   status: string
-  spf_status: string
-  dkim_status: string
-  dmarc_status: string
-  failure_reason: string | null
+  spf_status?: string
+  dkim_status?: string
+  dmarc_status?: string
+  failure_reason?: string | null
 }
 
 async function safeRows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
@@ -77,22 +77,25 @@ export default async function DataQualityPage() {
   const admin = await requireAdminPageKeyAccess('operations.integrity')
   const scope = await resolveAdminTenantReadScope(admin)
   const isPlatformAdmin = isPlatformAdminContext(admin)
-  const canReadCustomers = isPlatformAdmin || admin.permissions.some(permission => ['customers.read', 'masterdata.read'].includes(permission))
+  const canReadCustomers = canPresentAdminLink(admin, { anyOf: ['customers.read', 'masterdata.read'] })
+    && canPresentAdminLink(admin, { anyOf: ['customers.read', 'contracts.read', 'contracts.write'] })
 
   let qualityQuery = supabaseService
     .from('customer_data_quality_open_issues')
-    .select('*')
+    .select('company_id, entity_id, customer_id, entity_type, issue_key, severity, message')
     .order('severity', { ascending: true })
     .limit(100)
-  let webhookQuery = supabaseService
-    .from('webhook_deliveries')
-    .select('id, company_id, event_type, status, attempts, failure_reason, created_at')
+  const webhookTable = supabaseService.from('webhook_deliveries')
+  let webhookQuery = (isPlatformAdmin
+    ? webhookTable.select('id, company_id, status, created_at, event_type, attempts, failure_reason')
+    : webhookTable.select('id, company_id, status, created_at'))
     .in('status', ['failed', 'dead_letter'])
     .order('created_at', { ascending: false })
     .limit(50)
-  let emailQuery = supabaseService
-    .from('tenant_email_domains')
-    .select('id, company_id, domain, status, spf_status, dkim_status, dmarc_status, failure_reason')
+  const emailTable = supabaseService.from('tenant_email_domains')
+  let emailQuery = (isPlatformAdmin
+    ? emailTable.select('id, company_id, domain, status, spf_status, dkim_status, dmarc_status, failure_reason')
+    : emailTable.select('id, company_id, domain, status'))
     .neq('status', 'verified')
     .order('created_at', { ascending: false })
     .limit(50)

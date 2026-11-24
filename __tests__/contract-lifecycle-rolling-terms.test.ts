@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getContractLifecycleSummary } from "@/lib/customer-contracts/lifecycle";
+import { deriveContractEndsAt, getContractLifecycleSummary } from "@/lib/customer-contracts/lifecycle";
 
 const monthlyFromMonthEnd = {
   startsAt: "2026-01-31",
@@ -10,6 +10,23 @@ const monthlyFromMonthEnd = {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("termination notice follows the Swedish day of receipt", () => {
+  it.each([
+    ["2026-01-31T22:59:59.999Z", "2026-02-28"],
+    ["2026-01-31T23:00:00.000Z", "2026-03-01"],
+    ["2026-01-31T23:00:00.001Z", "2026-03-01"],
+    ["2026-02-01T00:00:00+01:00", "2026-03-01"],
+    ["2026-02-01", "2026-03-01"],
+  ])("records the local one-month period for %s", (terminationNoticeDate, expected) => {
+    const input = { terminationNoticeDate, noticeMonths: 1, status: "active" as const };
+    expect(deriveContractEndsAt(input)).toBe(expected);
+    expect(getContractLifecycleSummary(input, "2026-02-15")).toMatchObject({
+      noticeEffectiveEndDate: expected,
+      terminationPending: true,
+    });
+  });
 });
 
 describe("rolling contract terms are anchored to the start date", () => {

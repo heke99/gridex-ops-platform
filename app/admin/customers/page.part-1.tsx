@@ -8,6 +8,7 @@ import { isMissingRelationError } from '@/lib/tenant/scope'
 import { type CustomerListRow, type CustomerStatusFilter, type CustomerTypeFilter, type CustomerFlagFilter } from '@/lib/customers/getCustomers'
 
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
+import type { SwitchActivationByRequest } from '@/lib/operations/switchActivationPresentation'
 import { listLatestCustomerContractsByCustomerIds, type LatestCustomerContractSummary } from '@/lib/customer-contracts/db'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
@@ -178,6 +179,7 @@ export function buildCustomerOperationsSummary(params: {
  customerId: string
  companyId?: string | null
  readKind?: OperationsSummaryReadKind
+ activationByRequestId?: SwitchActivationByRequest
  sites: CustomerSiteRow[]
  switchRequests: SupplierSwitchRequestRow[]
  outboundRequests: OutboundRequestRow[]
@@ -199,6 +201,7 @@ export function buildCustomerOperationsSummary(params: {
  .filter((request): request is SupplierSwitchRequestRow => Boolean(request))
 
  let blocked = 0
+ let marketStartNeedsReview = false
  let queuedForOutbound = 0
  let awaitingDispatch = 0
  let awaitingResponse = 0
@@ -212,8 +215,12 @@ export function buildCustomerOperationsSummary(params: {
  const outbound = getLatestOutboundForRequest(request.id, outboundRequests.filter(row => row.company_id === request.company_id
  && row.customer_id === request.customer_id && row.site_id === request.site_id))
 
+ const activation = params.activationByRequestId?.[request.id]
+ if (activation?.code === 'market_start_unavailable') return unknownCustomerOperationsSummary(customerId, 'unavailable')
+ if (activation?.code === 'market_start_unverified') marketStartNeedsReview = true
  const lifecycle = getSwitchLifecycle({
  request,
+ activation,
  readiness: null,
  outboundRequest: outbound,
  })
@@ -280,11 +287,12 @@ export function buildCustomerOperationsSummary(params: {
  failed,
  completed,
  activeOpen,
- primaryLabel: 'Blockerad',
+ primaryLabel: marketStartNeedsReview ? 'Marknadsstarten behöver kontrolleras' : 'Blockerad',
  primaryHref: `/admin/customers/${customerId}#switch-operations`,
  primaryTone: lifecycleTone('blocked'),
- primaryDescription:
- 'Minst en anläggning saknar uppgifter. Öppna kundkortet för att komplettera.',
+ primaryDescription: marketStartNeedsReview
+ ? 'En entydig marknadsstart från nätägarens bekräftelse saknas.'
+ : 'Minst en anläggning saknar uppgifter. Öppna kundkortet för att komplettera.',
  priorityRank: 1,
  priorityLabel: 'Högst prioritet',
  }
@@ -307,7 +315,7 @@ export function buildCustomerOperationsSummary(params: {
  primaryHref: '/admin/operations/ready-to-execute',
  primaryTone: lifecycleTone('ready_to_execute'),
  primaryDescription:
- 'Bekräftade leverantörsbyten har nått startdatumet och kan slutföras.',
+ 'Nätägarens bekräftade marknadsstart har uppnåtts.',
  priorityRank: 2,
  priorityLabel: 'Slutför nu',
  }

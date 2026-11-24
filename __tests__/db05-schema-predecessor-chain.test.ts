@@ -3,11 +3,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,patchPr1266:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-pr1266-20261122.patch.json')){
+   injected.reads.push('pr1266Schema')
+   if(injected.patchPr1266!==null)return injected.patchPr1266
+  }
   if(name.endsWith('db05-schema-predecessor-pr949-contrl-20261101.patch.json')){
    injected.reads.push('pr949Contrl')
    if(injected.patchPr949!==null)return injected.patchPr949
@@ -50,15 +54,19 @@ vi.mock('node:fs',async original=>{
 })
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
-const rawCapture=readFileSync('supabase/schema.sql','utf8')
+const checkedInCapture=readFileSync('supabase/schema.sql','utf8')
+const pr1266Sha='e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
 const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
 const pr949Sha='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+const pr1266Patch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-pr1266-20261122.patch.json','utf8')) as CapturePatch
+const rawCapture=sha(checkedInCapture)===pr1266Sha?exactPatchFixture(pr1266Patch,pr949Sha,pr1266Sha,checkedInCapture,false):checkedInCapture
 const pr949PatchBytes=readFileSync('__tests__/fixtures/db05-schema-predecessor-pr949-contrl-20261101.patch.json','utf8')
 const pr949Patch=JSON.parse(pr949PatchBytes) as CapturePatch
 // Preserve all historical oracles on exact PR973 bytes. The fixture can also
 // reconstruct the authentic PR949 bytes before that GEN is merged into main.
 const pr973Capture=sha(rawCapture)===pr949Sha?exactPatchFixture(pr949Patch,pr973Sha,pr949Sha,rawCapture,false):rawCapture
 const pr949Capture=sha(rawCapture)===pr949Sha?rawCapture:exactPatchFixture(pr949Patch,pr973Sha,pr949Sha,pr973Capture,true)
+const pr1266Capture=sha(checkedInCapture)===pr1266Sha?checkedInCapture:exactPatchFixture(pr1266Patch,pr949Sha,pr1266Sha,pr949Capture,true)
 const pr973Patch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-pr973-audit19-20261030.patch.json','utf8')) as CapturePatch
 function exactPatchFixture(patch:CapturePatch,preSha:string,postSha:string,schema:string,forward:boolean):string{
  expect(patch.preSha256).toBe(preSha);expect(patch.postSha256).toBe(postSha)
@@ -135,7 +143,7 @@ const capture=sha(actualCapture)===successorSha?exactSuccessorFixture(actualCapt
 const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit27.patch.json','utf8')) as {
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
-afterEach(()=>{injected.patchPr949=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
+afterEach(()=>{injected.patchPr949=null;injected.patchPr1266=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -510,4 +518,32 @@ it('keeps older PR973 entrypoints independent of the new PR949 fixture',()=>{
  expect(sha(prePr973Audit19Schema(pr973Capture))).toBe(pr932Sha)
  expect(sha(prePr932UnsignedEditSchema(pr973Capture))).toBe(pr932PreSha)
  expect(injected.reads).not.toContain('pr949Contrl')
+})
+
+
+it('rebuilds the exact PR949 input from the authenticated PR1266 capture',()=>{
+ expect(sha(pr1266Capture)).toBe(pr1266Sha)
+ expect(exactPatchFixture(pr1266Patch,pr949Sha,pr1266Sha,pr1266Capture,false)).toBe(pr949Capture)
+ expect(exactPatchFixture(pr1266Patch,pr949Sha,pr1266Sha,pr949Capture,true)).toBe(pr1266Capture)
+})
+it.each([
+ ['pre-DB05',db05PredecessorSchema,'c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823'],
+ ['pre-PR973',prePr973Audit19Schema,'20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'],
+ ['pre-PR932',prePr932UnsignedEditSchema,'aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'],
+] as const)('accepts the PR1266 capture through the %s entrypoint',(_name,convert,expected)=>{
+ expect(sha(convert(pr1266Capture))).toBe(expected)
+ expect(injected.reads.slice(0,2)).toEqual(['pr1266Schema','pr949Contrl'])
+})
+it.each(['preSha256','postSha256'] as const)('rejects altered PR1266 fixture %s',field=>{
+ const changed=structuredClone(pr1266Patch);changed[field]='f'.repeat(64);injected.patchPr1266=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr1266Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('rejects an altered PR1266 postimage hunk and unchanged-schema suffix drift',()=>{
+ const changed=structuredClone(pr1266Patch);changed.hunks[0].postSha256='f'.repeat(64);injected.patchPr1266=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr1266Capture)).toThrow('db05_schema_predecessor_hunk_changed:')
+ expect(()=>prePr973Audit19Schema(pr1266Capture+'\n')).toThrow('db05_schema_predecessor_unknown:')
+})
+it('rejects a PR1266 inverse that cannot rebuild the verified predecessor',()=>{
+ const changed=structuredClone(pr1266Patch);changed.hunks[0].preLines.push('-- unqualified');injected.patchPr1266=JSON.stringify(changed)
+ expect(()=>prePr932UnsignedEditSchema(pr1266Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
 })

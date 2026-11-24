@@ -204,7 +204,7 @@ async function intake(p:ProfileInput,original:EdielMessageRow,raw:string){
  // Raw custody is born prospectively under the actual service_role INSERT
  // owner, before real parsing/canonical source admission. No custody backfill.
  const mail=await seedOriginalMailboxNative(<T>(statement:string)=>sql<T>(`BEGIN; SET LOCAL ROLE service_role; ${statement} COMMIT;`),literal,{companyId:p.companyId,environment:'test',raw,smtpFrom:'synthetic@example.invalid'})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:p.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:p.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const id=await createInboundEdielMessage({companyId:p.companyId,actorUserId:p.reviewActor.id,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch})
  requireInput(id,'actual_physical_intake_required')
  const message=await getEdielMessageById(id);requireInput(message,'admitted_message_read_required')

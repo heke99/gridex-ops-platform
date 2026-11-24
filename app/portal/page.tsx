@@ -1,6 +1,7 @@
 import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { getPortalOverviewData } from '@/lib/customer-portal/db'
+import { switchPortalAccountAction } from './actions'
 import {
   formatDate,
   formatKwh,
@@ -8,11 +9,13 @@ import {
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
+  PORTAL_CONSUMPTION_BOUNDARY_NOTICE,
+  PORTAL_CONSUMPTION_REVIEW_NOTICES,
 } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
 
-function EmptyPortalState({ brandName }: { brandName: string }) {
+function EmptyPortalState({ brandName, accountSwitchFailed }: { brandName: string; accountSwitchFailed: boolean }) {
   return (
     <section className="rounded-[32px] border border-amber-200 bg-amber-50 p-8">
       <h2 className="text-xl font-semibold text-amber-950">Ingen kundkoppling hittades</h2>
@@ -20,6 +23,11 @@ function EmptyPortalState({ brandName }: { brandName: string }) {
         Ditt login är aktivt, men det är ännu inte kopplat till ett kundkonto hos {brandName}.
         Koppla kontot säkert med personnummer, e-post, namn och anläggnings-ID.
       </p>
+      {accountSwitchFailed ? (
+        <p role="alert" className="mt-3 max-w-3xl text-sm leading-6 text-amber-900">
+          Det gick inte att avsluta din inloggning. Försök igen.
+        </p>
+      ) : null}
       <div className="mt-5 flex flex-wrap gap-3">
         <Link
           href="/portal/koppla-kund"
@@ -27,12 +35,14 @@ function EmptyPortalState({ brandName }: { brandName: string }) {
         >
           Koppla mitt kundkonto
         </Link>
-        <Link
-          href="/login"
-          className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
-        >
-          Byt inloggning
-        </Link>
+        <form action={switchPortalAccountAction}>
+          <button
+            type="submit"
+            className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+          >
+            Byt inloggning
+          </button>
+        </form>
       </div>
     </section>
   )
@@ -41,13 +51,20 @@ function EmptyPortalState({ brandName }: { brandName: string }) {
 export default async function CustomerPortalPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ kopplad?: string }>
+  searchParams?: Promise<{ kopplad?: string; konto?: string }>
 }) {
   const params = searchParams ? await searchParams : {}
   const { context, invoices, sites, meteringPoints, consumptionMonths, customerStatus, portalDisplayName } =
     await getPortalOverviewData()
 
-  if (context.customerIds.length === 0) return <EmptyPortalState brandName={context.branding.brandName} />
+  if (context.customerIds.length === 0) {
+    return (
+      <EmptyPortalState
+        brandName={context.branding.brandName}
+        accountSwitchFailed={params.konto === 'byte-misslyckades'}
+      />
+    )
+  }
 
   const brandName = context.branding.brandName
   const latestInvoice = invoices[0] ?? null
@@ -106,11 +123,17 @@ export default async function CustomerPortalPage({
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-slate-500">Senaste förbrukning</p>
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            {formatKwh(latestConsumption?.totalKwh ?? null)}
+            {latestConsumption?.totalKwh === null ? 'Summa otillgänglig' : formatKwh(latestConsumption?.totalKwh)}
           </p>
           <p className="mt-2 text-sm text-slate-600">
             {latestConsumption?.label ?? 'Inga mätvärden ännu'}
           </p>
+          {latestConsumption?.reviewReasons?.map((reason) => (
+            <p key={reason} className="mt-2 text-sm text-slate-600">{PORTAL_CONSUMPTION_REVIEW_NOTICES[reason]}</p>
+          ))}
+          {latestConsumption?.needsFinerIntervals ? (
+            <p className="mt-2 text-sm text-slate-600">{PORTAL_CONSUMPTION_BOUNDARY_NOTICE}</p>
+          ) : null}
         </article>
 
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

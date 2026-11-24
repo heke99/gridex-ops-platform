@@ -17,6 +17,15 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: stri
     return resolve(state.result.shift() ?? { data: [], count: 0, error: null })
   }
   return methods
+}, rpc: (name: string, params: Record<string, unknown>) => {
+  const call = { table: name, filters: [['rpc', params]] as Array<[string, unknown]> }; state.calls.push(call)
+  const methods: Record<string, unknown> = {}
+  if (state.supportsAbort) methods.abortSignal = (signal: AbortSignal) => { call.filters.push(['abortSignal', signal]); return methods }
+  methods.then = (resolve: (result: unknown) => unknown) => {
+    state.onRead?.(name)
+    return resolve(state.result.shift() ?? { data: null, error: { code: 'PGRST202' } })
+  }
+  return methods
 } } }))
 vi.mock('@/lib/customer-portal/externalApi', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/customer-portal/externalApi')>()
@@ -29,6 +38,10 @@ const point = { id: 'point-a', company_id: 'company-a', customer_site_id: site.i
 const period = { id: 'period-a', company_id: 'company-a', customer_id: 'customer-a', metering_point_id: point.id, status: 'active', market_start_at: '2026-10-31T23:00:00Z', actual_start_date: '2026-11-01' }
 const value = { id: '00000000-0000-4000-8000-000000000001', company_id: 'company-a', customer_id: 'customer-a', metering_point_id: point.id, period_start: '2026-11-02T00:00:00Z', period_end: '2026-11-02T01:00:00Z', quantity_kwh: 7.5, revision_status: 'current', direction: 'consumption', unit: 'kWh', status: 'stored' }
 const ok = (data: unknown[], count = data.length) => ({ data, count, error: null })
+const snapshotRpc = 'gridex_portal_consumption_authority_v1'
+const authority = (points: unknown[], periods: unknown[], pointCount = points.length) => ({
+  data: { points, periods, point_count: pointCount, period_count: periods.length }, error: null,
+})
 const captured: Array<{ path: string; body: unknown }> = []
 afterAll(() => { if (process.env.GRIDEX_CONSUMPTION_COMPONENT_CAPTURE) writeFileSync(process.env.GRIDEX_CONSUMPTION_COMPONENT_CAPTURE, JSON.stringify(captured), { mode: 0o600 }) })
 function assertPageContract(page: Record<string, unknown>) {
@@ -41,7 +54,7 @@ const meterPath = 'metering-values?facility_id=FAC-A&from=2026-11-01T00:00:00Z&t
 beforeEach(() => { state.result = []; state.calls = []; state.authenticated = true; state.customer = 'customer-a'; state.supportsAbort = false; state.principal = null; state.revision = null; state.onRead = undefined; vi.clearAllMocks() })
 describe('customer consumption supplement routes', () => {
   it('returns confirmed windows and only public references, with both read scopes and strict binding', async () => {
-    state.result = [ok([site]), ok([point]), ok([period])]
+    state.result = [ok([site]), authority([point], [period])]
     const response = await customerConsumptionSites(request('sites')); expect(response.status).toBe(200)
     const body = await response.json(); captured.push({ path: '/api/v1/customer/consumption/sites', body }); assertPageContract(body.page.sites); expect(body.data.delivery_access.complete).toBe(true); expect(body.data.delivery_access.windows).toHaveLength(1)
     expect(body.data.delivery_access.windows[0].facility_reference).toBe(body.data.sites[0].facility_reference)
@@ -49,19 +62,39 @@ describe('customer consumption supplement routes', () => {
     expect(JSON.stringify(body)).not.toContain('customer-a'); expect(JSON.stringify(body)).not.toContain('company-a')
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect(requireCustomerPortalApiContext).toHaveBeenCalledWith(expect.anything(), ['customer_sites.read', 'customer_metering.read'], { enforceBinding: true })
-    for (const call of state.calls) expect(call.filters).toContainEqual(['eq', ['company_id', 'company-a']])
-    expect(state.calls[2].filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
+    expect(state.calls[0].filters).toContainEqual(['eq', ['company_id', 'company-a']])
+    expect(state.calls[0].filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
+    expect(state.calls[1]).toEqual({ table: snapshotRpc, filters: [['rpc', { p_company_id: 'company-a', p_customer_id: 'customer-a', p_site_ids: [site.id] }]] })
+  })
+  it.each([
+    [true, '2024-07-31T22:30:00.000Z'],
+    [false, '2024-07-31T22:00:00.000Z'],
+  ] as const)('asks for the exact pending market end on the same scope (verified=%s)', async (verified, cutoff) => {
+    const pending = {
+      ...period, status: 'ending', actual_start_date: '2024-07-01', actual_end_date: null,
+      market_start_at: '2024-06-30T22:00:00Z', end_date: '2024-07-31',
+      market_end_at: '2024-07-31T22:30:00Z', market_state_version: 2,
+    }
+    state.result = [ok([site]), authority([point], [pending]), ok(verified ? [{
+      period_id: period.id, market_state_version: 2, effective_end_at: pending.market_end_at,
+    }] : [])]
+    const response = await customerConsumptionSites(request('sites'))
+    expect(response.status).toBe(200)
+    expect((await response.json()).data.delivery_access.windows[0].to).toBe(cutoff)
+    expect(state.calls[2]).toEqual({ table: 'gridex_portal_verified_supply_ends_v1', filters: [[
+      'rpc', { p_company_id: 'company-a', p_customer_id: 'customer-a', p_period_ids: [period.id] },
+    ]] })
   })
   it.each([true, false])('stops after an aborted authority read (driver signal support: %s)', async supportsAbort => {
     state.supportsAbort = supportsAbort
     const controller = new AbortController()
     const incoming = request(meterPath, controller.signal)
-    state.result = [ok([site]), ok([point]), ok([period]), ok([value])]
-    state.onRead = table => { if (table === 'metering_points') controller.abort() }
+    state.result = [ok([site]), authority([point], [period]), ok([value])]
+    state.onRead = table => { if (table === snapshotRpc) controller.abort() }
     const response = await customerConsumptionMeteringValues(incoming)
     expect(response.status).toBe(499)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', 'metering_points'])
+    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', snapshotRpc])
     for (const call of state.calls) {
       expect(call.filters.filter(([method]) => method === 'abortSignal')).toEqual(supportsAbort ? [['abortSignal', incoming.signal]] : [])
     }
@@ -79,7 +112,7 @@ describe('customer consumption supplement routes', () => {
     state.revision = '00000000-0000-4000-8000-000000000051'
     const read = async (supplyPeriod = period, quantity = 7.5) => {
       state.calls = []
-      state.result = [ok([site]), ok([point]), ok([supplyPeriod]), ok([{ ...value, quantity_kwh: quantity }])]
+      state.result = [ok([site]), authority([point], [supplyPeriod]), ok([{ ...value, quantity_kwh: quantity }])]
       const response = await customerConsumptionMeteringValues(request(meterPath))
       expect(response.status).toBe(200)
       expect(response.headers.get('cache-control')).toBe('private, no-store')
@@ -90,7 +123,7 @@ describe('customer consumption supplement routes', () => {
     const repeat = await read()
     expect(repeat.queried).toBe(false)
     expect(repeat.body.data[0].quantity_kwh).toBe(7.5)
-    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', 'metering_points', 'customer_supply_periods', 'customer_consumption_cache_revisions'])
+    expect(state.calls.map(call => call.table)).toEqual(['customer_sites', snapshotRpc, 'customer_consumption_cache_revisions'])
 
     state.principal = 'auth-b'
     expect((await read()).queried).toBe(true)
@@ -110,29 +143,31 @@ describe('customer consumption supplement routes', () => {
     expect((await read()).queried).toBe(true)
   })
   it('never treats a truncated authority query as complete', async () => {
-    state.result = [ok([site]), ok([point], 1001)]
+    state.result = [ok([site]), authority([point], [], 1001)]
     const response = await customerConsumptionSites(request('sites')); expect(response.status).toBe(503)
     expect(JSON.stringify(await response.json())).not.toContain('FAC-A'); expect(state.calls).toHaveLength(2)
   })
   it('does not publish another customers meter metadata on a shared site', async () => {
-    state.result = [ok([site]), ok([point]), ok([])]
+    state.result = [ok([site]), authority([point], [])]
     const body = await (await customerConsumptionSites(request('sites'))).json()
     expect(body.data.metering_points).toEqual([]); expect(body.data.delivery_access.windows).toEqual([])
   })
   it('returns actual revision fields and quantity only inside confirmed supply', async () => {
-    state.result = [ok([site]), ok([point]), ok([period]), ok([value])]
+    state.result = [ok([site]), authority([point], [period]), ok([value])]
     const response = await customerConsumptionMeteringValues(request(meterPath)); expect(response.status).toBe(200)
     const body = await response.json(); captured.push({ path: '/api/v1/customer/consumption/metering-values', body }); assertPageContract(body.page); expect(body.data[0]).toMatchObject({ quantity_kwh: 7.5, revision_status: 'current', direction: 'consumption', unit: 'kWh' })
-    expect(state.calls[3].filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
-    expect(state.calls[3].filters).toContainEqual(['eq', ['direction', 'consumption']])
+    const values = state.calls.find(call => call.table === 'normalized_metering_values')
+    expect(values?.filters).toContainEqual(['eq', ['company_id', 'company-a']])
+    expect(values?.filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
+    expect(values?.filters).toContainEqual(['eq', ['direction', 'consumption']])
   })
   it('drops out-of-supply values without incorrectly marking a scanned page complete', async () => {
-    state.result = [ok([site]), ok([point]), ok([{ ...period, actual_start_date: '2026-11-05' }]), ok([value, { ...value, id: '00000000-0000-4000-8000-000000000002' }])]
+    state.result = [ok([site]), authority([point], [{ ...period, actual_start_date: '2026-11-05' }]), ok([value, { ...value, id: '00000000-0000-4000-8000-000000000002' }])]
     const body = await (await customerConsumptionMeteringValues(request(`${meterPath}&limit=1`))).json()
     expect(body.data).toEqual([]); expect(body.page.returned).toBe(0); expect(body.page.has_more).toBe(true); expect(body.page.next_cursor).toBeTypeOf('string')
   })
   it('never returns foreign tenant/customer rows even after a malformed database result', async () => {
-    state.result = [ok([site]), ok([point]), ok([period]), ok([{ ...value, customer_id: 'customer-b' }])]
+    state.result = [ok([site]), authority([point], [period]), ok([{ ...value, customer_id: 'customer-b' }])]
     const response = await customerConsumptionMeteringValues(request(meterPath)); expect(response.status).toBe(503)
     expect(JSON.stringify(await response.json())).not.toContain('customer-b')
   })
@@ -144,7 +179,7 @@ describe('customer consumption supplement routes', () => {
     const response = await customerConsumptionSites(request('sites')); expect(response.status).toBe(401); expect(response.headers.get('cache-control')).toBe('private, no-store'); expect(state.calls).toHaveLength(0)
   })
   it('binds site cursors to the original customer', async () => {
-    state.result = [ok([site, { ...site, id: '00000000-0000-4000-8000-000000000002' }]), ok([point]), ok([period])]
+    state.result = [ok([site, { ...site, id: '00000000-0000-4000-8000-000000000002' }]), authority([point], [period])]
     const first = await (await customerConsumptionSites(request('sites?limit=1'))).json()
     expect(first.page.sites.has_more).toBe(true)
     state.customer = 'customer-b'; state.calls = []

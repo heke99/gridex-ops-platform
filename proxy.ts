@@ -174,6 +174,16 @@ export async function proxy(request: NextRequest) {
     }
 
     if (sessionAllowed === false) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('next', `${pathname}${search}`)
+      loginUrl.searchParams.set('reason', 'account_disabled')
+      try {
+        const { data, error } = await supabase.rpc('gridex_current_session_expiry_reason_v1')
+          .abortSignal(AbortSignal.timeout(1500))
+        if (!error && data === 'session_expired') loginUrl.searchParams.set('reason', data)
+      } catch {
+        // A denial is already authoritative. Keep the existing message if the reason is unavailable.
+      }
       try {
         await supabase.auth.signOut()
       } catch (error) {
@@ -182,9 +192,6 @@ export async function proxy(request: NextRequest) {
           ...safeAuthInfrastructureError(error),
         })
       }
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('next', `${pathname}${search}`)
-      loginUrl.searchParams.set('reason', 'account_disabled')
       return NextResponse.redirect(loginUrl)
     }
   }

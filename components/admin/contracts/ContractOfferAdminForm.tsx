@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
 } from "react";
 import type { ContractOfferRow, ContractType } from "@/lib/customer-contracts/types";
@@ -28,6 +29,11 @@ const INITIAL_SAVE_STATE: SaveContractOfferState = {
   status: "idle",
   message: null,
 };
+
+// The server-rendered form has no native submission action.
+const subscribeToHydration = () => () => undefined;
+const getClientHydration = () => true;
+const getServerHydration = () => false;
 
 function RequiredMark({ conditional = false }: { conditional?: boolean }) {
   return (
@@ -198,6 +204,11 @@ export default function ContractOfferAdminForm({
   offer: ContractOfferRow | null;
   portfolios: PortfolioOption[];
 }) {
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydration,
+    getServerHydration,
+  );
   const [saveState, submitAction, isSaving] = useActionState(
     saveContractOfferAction,
     INITIAL_SAVE_STATE,
@@ -303,6 +314,8 @@ export default function ContractOfferAdminForm({
 
   function submitWithoutReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isHydrated || isSaving) return;
+
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
 
@@ -932,7 +945,7 @@ export default function ContractOfferAdminForm({
 
       <button
         type="submit"
-        disabled={isSaving || priceAreas.length === 0}
+        disabled={!isHydrated || isSaving || priceAreas.length === 0}
         className="w-full rounded-2xl bg-emerald-700 px-5 py-4 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
       >
         {isSaving

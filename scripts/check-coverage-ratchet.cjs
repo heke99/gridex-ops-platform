@@ -21,12 +21,15 @@ const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
 const metrics = ['lines', 'branches', 'functions', 'statements']
 const failures = []
 const observed = {}
+function isCoveragePercentage(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 100
+}
 for (const metric of metrics) {
-  const current = Number(summary?.[metric]?.pct)
-  const floor = Number(baseline?.[metric])
+  const current = summary?.[metric]?.pct
+  const floor = baseline?.[metric]
   observed[metric] = current
-  if (!Number.isFinite(current) || !Number.isFinite(floor)) {
-    failures.push(`${metric}: missing numeric current/baseline value`)
+  if (!isCoveragePercentage(current) || !isCoveragePercentage(floor)) {
+    failures.push(`${metric}: current and baseline percentages must be numbers between 0 and 100`)
     continue
   }
   if (current + 1e-9 < floor) failures.push(`${metric}: ${current}% is below measured baseline ${floor}%`)

@@ -105,6 +105,7 @@ const fixtureSchema: Record<string, string[]> = {
         "site_id",
         "snapshot_hash",
         "status",
+        "updated_at",
         "vat_rate"
     ],
     "customers": [
@@ -384,7 +385,8 @@ beforeEach(() => {
                 customer_site_id: 'site-A',
                 site_id: 'site-A',
                 metering_point_id: 'meter-A',
-                billing_address_same_as_site: true
+                billing_address_same_as_site: true,
+                updated_at: '2026-11-01T12:00:00Z'
             }],
         customers: [{
                 id: 'customer-A',
@@ -421,6 +423,62 @@ beforeEach(() => {
             }]
     };
 });
+describe('invoice review for a held price timeline', () => {
+    const reason = 'price_timeline_invoice_review_required';
+    const runMonth = () => prepareInvoiceDraftsForReview({
+        companyId: 'company-A', billingMonth: '2026-11', environment: 'test',
+        provider: 'file_export', actorUserId: 'actor-A'
+    });
+
+    it('keeps the two price intervals out of invoice preparation and lets the standard customer continue', async () => {
+        const ordinary = state.tables.billing_underlays[0];
+        state.tables.customers.push({ ...state.tables.customers[0], id: 'customer-held' });
+        state.tables.customer_sites.push({ ...state.tables.customer_sites[1], id: 'site-held', customer_id: 'customer-held' });
+        state.tables.metering_points.push({ ...state.tables.metering_points[0], id: 'meter-held',
+            customer_id: 'customer-held', customer_site_id: 'site-held', site_id: 'site-held' });
+        state.tables.customer_contracts.push({ ...state.tables.customer_contracts[0], id: 'contract-held',
+            customer_id: 'customer-held', customer_site_id: 'site-held', site_id: 'site-held', metering_point_id: 'meter-held' });
+        state.tables.contract_price_snapshots.push({ ...state.tables.contract_price_snapshots[0],
+            id: 'price-held', contract_id: 'contract-held', customer_id: 'customer-held' });
+        const held = { ...ordinary, customer_id: 'customer-held', billing_block_reason: reason,
+            customer_contract_id: 'contract-held', customer_site_id: 'site-held', metering_point_id: 'meter-held',
+            contract_price_snapshot_id: 'price-held' };
+        state.tables.billing_underlays.push(
+            { ...held, id: 'split-first' },
+            { ...held, id: 'split-second' }
+        );
+
+        await expect(runMonth()).resolves.toMatchObject({ underlays: 3, candidates: 1, blocked: 2, created: 1, failed: 0 });
+        expect(state.calls).toHaveLength(1);
+        expect(state.calls[0].args.p_items[0].billing_underlay_id).toBe('underlay-A');
+
+        state.calls = [];
+        await expect(prepareInvoiceDraftsForReview({
+            companyId: 'company-A', billingMonth: '2026-11', environment: 'test', provider: 'file_export',
+            actorUserId: 'actor-A', customerId: 'customer-held', billingUnderlayId: 'split-first'
+        })).resolves.toMatchObject({ underlays: 1, candidates: 0, blocked: 1, created: 0, failed: 0 });
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it('keeps all members of an explicit group when one member is held for review', async () => {
+        const ordinary = state.tables.billing_underlays[0];
+        state.tables.customer_contracts.push({
+            ...state.tables.customer_contracts[0], id: 'contract-held', customer_id: 'customer-held',
+            consolidated_invoice: true
+        });
+        state.tables.billing_underlays.push(
+            { ...ordinary, id: 'held-member', customer_id: 'customer-held', customer_contract_id: 'contract-held',
+                billing_block_reason: reason },
+            { ...ordinary, id: 'other-site', customer_id: 'customer-held', customer_contract_id: 'contract-held',
+                customer_site_id: 'site-B' }
+        );
+
+        await expect(runMonth()).resolves.toMatchObject({ underlays: 3, candidates: 1, blocked: 2, created: 1, failed: 0 });
+        expect(state.calls).toHaveLength(1);
+        expect(state.calls[0].args.p_items[0].billing_underlay_id).toBe('underlay-A');
+    });
+});
+
 describe('DELIVERY01.04 public prepare with projection-correct reads and real shared resolver', () => {
     it('loads same-as-site intent into draft contract snapshot independently of site availability', async () => {
         await run();

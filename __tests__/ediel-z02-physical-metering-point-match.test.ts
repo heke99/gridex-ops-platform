@@ -260,12 +260,12 @@ describe('unchanged legacy candidate and P-APERAK ACW boundaries', () => {
   })
   it('preserves literal P-APERAK ACW original selection and diagnostic only', async () => {
     port.messages = [
-      { id: 'original-document', company_id: company, direction: 'outbound', message_family: 'PRODAT', external_reference: 'DOCUMENT', bgm_reference: 'DOCUMENT' },
-      { id: 'wrong-own-unb', company_id: company, direction: 'outbound', message_family: 'PRODAT', external_reference: 'I', bgm_reference: 'I' },
-      { id: 'foreign-document', company_id: foreignCompany, direction: 'outbound', message_family: 'PRODAT', external_reference: 'DOCUMENT', bgm_reference: 'DOCUMENT' },
+      { id: 'original-document', company_id: company, direction: 'outbound', environment: 'test', message_family: 'PRODAT', external_reference: 'DOCUMENT', bgm_reference: 'DOCUMENT' },
+      { id: 'wrong-own-unb', company_id: company, direction: 'outbound', environment: 'test', message_family: 'PRODAT', external_reference: 'I', bgm_reference: 'I' },
+      { id: 'foreign-document', company_id: foreignCompany, direction: 'outbound', environment: 'test', message_family: 'PRODAT', external_reference: 'DOCUMENT', bgm_reference: 'DOCUMENT' },
     ]
     const parsed = parseEdifactPayload("UNA:+.? 'UNB+UNOC:3+54321:14+12345:14+260927:1200+I++23-DDQ-PRODAT'UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+++27'RFF+ACW:DOCUMENT'ERC+42::260'FTX+AAO++314::260+Synthetic'UNT+6+1'UNZ+1+I'")
-    expect(await matchOutboundRequestForInbound({ companyId: company, parsed }))
+    expect(await matchOutboundRequestForInbound({ companyId: company, environment: 'test', parsed }))
       .toMatchObject({ status: 'matched', entityType: 'ediel_message', entityId: 'original-document' })
     expect(port.queries.every(query => query.table === 'ediel_messages' && query.or === null && query.equals.some(([key]) => key === 'company_id'))).toBe(true)
     expect(port.writes).toHaveLength(1)

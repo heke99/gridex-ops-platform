@@ -3,7 +3,9 @@ import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParti
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
+import { buildEdielInterchangeReference } from '@/lib/ediel/references'
+import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import {
   ensureActorUserId,
@@ -11,18 +13,21 @@ import {
   findOrCreateDataRequestOutbound,
   getGridOwnerDataRequestById,
   makeServerClient,
-  queuePreparedEdielMessage,
   resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
-import { updateGridOwnerDataRequestStatus } from '@/lib/cis/db'
-import type { EdielEnvironment } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   assertCanonicalSupplierUtiltsOutboundAllowed,
   canonicalSupplierUtiltsApplicationReference,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
+import { CUSTOMER_CALENDAR_E73_ORIGIN, customerCalendarE73Period } from '@/lib/ediel/flows/e73CustomerCalendar'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -50,6 +55,113 @@ function requestedMessageForDataRequest(input: {
   // values. Forecast/planning requests must explicitly state S02 in request_payload.
   if (input.requestScope === 'meter_values') return 'E66'
   throw new Error('utilts_e73_requested_message_required')
+}
+
+function requestedDeliveryPeriod(request: GridOwnerDataRequestRow, requestedCode: UtiltsRequestedMessageCode) {
+  if (request.automation_origin === CUSTOMER_CALENDAR_E73_ORIGIN) {
+    const period = customerCalendarE73Period(request.requested_period_start, request.requested_period_end)
+    const payload = record(request.request_payload)
+    if (requestedCode !== 'E66' || request.request_scope !== 'meter_values' || !request.authorization_document_id
+      || period.start !== payload.delivery_period_start || period.end !== payload.delivery_period_end) {
+      throw new Error('utilts_e73_customer_period_source_mismatch')
+    }
+    return period
+  }
+  if (request.automation_origin !== 'metering_market_data_autopilot_v1'
+    && request.automation_origin !== 'staff_bulk_metering_v1') {
+    return { start: request.requested_period_start, end: request.requested_period_end }
+  }
+
+  // The monthly producer saves its original UTC instants in request_payload.
+  // The sibling DATE columns keep their existing lookup and duplicate keys.
+  const payload = record(request.request_payload)
+  const month = typeof payload.billing_month === 'string' ? payload.billing_month : ''
+  const sourceMismatch = 'utilts_e73_monthly_period_source_mismatch'
+  if (requestedCode !== 'E66' || request.request_scope !== 'meter_values' || !request.metering_point_id
+    || request.automation_key !== `meter-values:${request.company_id}:${request.metering_point_id}:${month}`) {
+    throw new Error(sourceMismatch)
+  }
+
+  let bounds: ReturnType<typeof stockholmMonthBounds>
+  try {
+    bounds = stockholmMonthBounds(month)
+  } catch {
+    throw new Error(sourceMismatch)
+  }
+
+  if (payload.time_zone !== bounds.timeZone || payload.requested_period_start !== bounds.start
+    || payload.requested_period_end !== bounds.end
+    || request.requested_period_start !== bounds.start.slice(0, 10)
+    || request.requested_period_end !== bounds.end.slice(0, 10)) {
+    throw new Error(sourceMismatch)
+  }
+
+  return { start: payload.requested_period_start, end: payload.requested_period_end }
+}
+
+async function enqueueSealedE73(input: {
+  companyId: string
+  actorUserId: string
+  environment: EdielEnvironment
+  requestId: string
+  messageId?: string
+}): Promise<EdielMessageRow> {
+  const { data, error } = await supabaseService.rpc('gridex_queue_prepared_supplier_e73_v1', {
+    p_company_id: input.companyId,
+    p_actor_user_id: input.actorUserId,
+    p_request_id: input.requestId,
+    p_environment: input.environment,
+    p_message_id: input.messageId ?? null,
+  })
+  if (error) throw error
+  const receipt = data as { message?: EdielMessageRow } | null
+  if (!receipt?.message?.id || (input.messageId && receipt.message.id !== input.messageId)) {
+    throw new Error('supplier_e73_queue_receipt_required')
+  }
+  return receipt.message
+}
+
+async function readCustomerCalendarOriginal(input: {
+  companyId: string
+  actorUserId: string
+  environment: EdielEnvironment
+  dataRequest: GridOwnerDataRequestRow
+  routeId: string | null
+  period: { start: string; end: string }
+}): Promise<EdielMessageRow | null> {
+  await assertEdielTenantActor({ companyId: input.companyId, actorUserId: input.actorUserId, permission: 'communication.write' })
+  const { data, error } = await supabaseService.rpc('gridex_read_customer_calendar_e73_original_v1', {
+    p_company_id: input.companyId,
+    p_actor_user_id: input.actorUserId,
+    p_request_id: input.dataRequest.id,
+    p_environment: input.environment,
+    p_expected_route_id: input.routeId,
+  })
+  if (error?.code === 'PT409' && error.message === 'utilts_e73_original_queue_recovery_required') {
+    return enqueueSealedE73({
+      companyId: input.companyId, actorUserId: input.actorUserId, environment: input.environment,
+      requestId: input.dataRequest.id,
+    })
+  }
+  if (error) throw error
+  if (!data) return null
+  const message = data as EdielMessageRow
+  if (!message.raw_payload) throw new Error('utilts_e73_original_scope_mismatch')
+
+  const wire = tokenizeEdifact(message.raw_payload)
+  const timestamps = wire.segments.filter(segment => segment.tag === 'DTM').map(segment => segmentComposite(segment, 1, wire.una))
+  const periods = timestamps.filter(parts => parts[0] === '324')
+  const offsets = timestamps.filter(parts => parts[0] === '735')
+  const documentCode = wire.segments.find(segment => segment.tag === 'BGM')
+  const start = prodatDate203(input.period.start)
+  const end = prodatDate203(input.period.end)
+  if (!documentCode || segmentComposite(documentCode, 1, wire.una)[0] !== 'E73'
+    || !start || !end || periods.length !== 1 || periods[0][1] !== start + end || periods[0][2] !== '719'
+    || offsets.length !== 1 || offsets[0][1] !== '+0100' || offsets[0][2] !== '406') {
+    throw new Error('utilts_e73_original_period_mismatch')
+  }
+
+  return message
 }
 
 async function requireBilateralE73Capability(input: {
@@ -91,6 +203,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   gridOwnerDataRequestId: string
   communicationRouteId?: string | null
   environment?: EdielEnvironment | null
+  staffBulkDispatchToken?: string | null
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
@@ -105,6 +218,33 @@ export async function prepareAndQueueUtiltsE73(params: {
     preferredRouteId: params.communicationRouteId ?? null,
     explicitEnvironment: params.environment ?? null,
   })
+  const customerCalendar = dataRequest.automation_origin === CUSTOMER_CALENDAR_E73_ORIGIN
+  if (customerCalendar) {
+    if (params.environment !== environment || record(dataRequest.request_payload).ediel_environment !== environment) {
+      throw new Error('utilts_e73_customer_environment_source_mismatch')
+    }
+    const { start, end } = requestedDeliveryPeriod(dataRequest, 'E66')
+    if (!start || !end) throw new Error('utilts_e73_customer_period_source_mismatch')
+    const original = await readCustomerCalendarOriginal({
+      companyId, actorUserId, environment, dataRequest, period: { start, end }, routeId: params.communicationRouteId ?? null,
+    })
+    if (original) return original
+  }
+  if (dataRequest.automation_origin === 'staff_bulk_metering_v1') {
+    if (record(dataRequest.request_payload).ediel_environment !== environment) {
+      throw new Error('utilts_e73_staff_environment_source_mismatch')
+    }
+    if (!params.staffBulkDispatchToken) throw new Error('utilts_e73_staff_dispatch_claim_required')
+    const claim = await supabaseService.rpc('gridex_check_staff_bulk_metering_e73_claim_v1', {
+      p_company_id: companyId,
+      p_actor_user_id: actorUserId,
+      p_request_id: dataRequest.id,
+      p_environment: environment,
+      p_token: params.staffBulkDispatchToken,
+    })
+    if (claim.error) throw claim.error
+    if (claim.data !== true) throw new Error('utilts_e73_staff_dispatch_claim_required')
+  }
   const bilateralCapabilityId = await requireBilateralE73Capability({ companyId, environment })
   const requestedMessageCode = requestedMessageForDataRequest({
     requestScope: dataRequest.request_scope,
@@ -167,12 +307,54 @@ export async function prepareAndQueueUtiltsE73(params: {
     applicationReference: routeContext.applicationReference,
   })
 
+  const legalParties = dataRequestLegalParties({ companyId, environment, route: routeContext, networkEdielId: gridOwner?.ediel_id })
+  const period = requestedDeliveryPeriod(dataRequest, requestedMessageCode)
+  // Validate at the minute precision the builder uses for DTM+324/719.
+  // Distinct input instants can still render as the same market minute.
+  const startMinute = prodatDate203(period.start)
+  const endMinute = prodatDate203(period.end)
+  if (!startMinute || !endMinute || startMinute >= endMinute) {
+    throw new Error('utilts_e73_delivery_period_invalid')
+  }
+
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
-    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
+    periodStart:period.start,periodEnd:period.end,...legalParties})
+  const operationId = dataRequest.operation_id ?? dataRequest.id
+  const requestReference = `E73${dataRequest.id.replaceAll('-', '').toUpperCase()}`
+  const routeProfileId = text(routeContext.routeRuntime?.route_profile_id)
+  const facilityId = text(site?.facility_id)
+  const meterIdentifier = text(meteringPoint?.meter_point_id)
+  const createdAt = new Date(dataRequest.requested_at)
+  if (!routeProfileId || !meterIdentifier || !dataRequest.site_id || !Number.isFinite(createdAt.getTime())) {
+    throw new Error('utilts_e73_intent_source_required')
+  }
+  const intent = await createEdielMessageIntent({
+    supplierE73InsertOnly: true,
+    actorUserId, companyId, environment, market: 'electricity', messageFamily: 'UTILTS', messageCode: 'E73',
+    businessProcess: 'metering_values', direction: 'outbound',
+    senderEdielId: routeContext.senderEdielId, senderSubaddress: routeContext.senderSubAddress,
+    receiverEdielId: routeContext.receiverEdielId, receiverSubaddress: routeContext.receiverSubAddress,
+    applicationReference, routeProfileId, communicationRouteId: routeContext.route.id,
+    customerId: dataRequest.customer_id, customerSiteId: dataRequest.site_id, operationId,
+    facilityId, meteringPointId: meterIdentifier, interchangeReference: buildEdielInterchangeReference(),
+    messageReference: '1', transactionReference: requestReference, idempotencyKey: `utilts-e73:${dataRequest.id}`,
+    payload: {
+      grid_owner_data_request_id: dataRequest.id,
+      authorization_document_id: dataRequest.authorization_document_id ?? null,
+      requestedMessageCode,
+      periodStart: period.start,
+      periodEnd: period.end,
+    },
+  })
+  if (intent.validationStatus !== 'validated') throw new Error(intent.blockingReasons?.[0]?.code ?? 'utilts_e73_intent_not_validated')
+
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
     communicationRouteId: routeContext.route.id,
+    environment,
+    failOnMissingEnvironment: true,
+    operationId,
     dataRequest,
     payload: {
       edielCode: 'E73',
@@ -182,8 +364,8 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       applicationReference,
       requestScope: dataRequest.request_scope,
-      requestedPeriodStart: dataRequest.requested_period_start,
-      requestedPeriodEnd: dataRequest.requested_period_end,
+      requestedPeriodStart: period.start,
+      requestedPeriodEnd: period.end,
       communicationRouteId: routeContext.route.id,
     },
   })
@@ -209,6 +391,11 @@ export async function prepareAndQueueUtiltsE73(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     applicationReference,
+    externalReference: requestReference,
+    transactionReference: requestReference,
+    interchangeReference: intent.interchangeReference,
+    messageReference: intent.messageReference,
+    createdAt,
     payload: {
       legalSenderEdielId: sourceStructure.legalSupplier,
       legalReceiverEdielId: sourceStructure.legalNetwork,
@@ -220,10 +407,10 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       applicationReferencePolicyKey: applicationReference,
       marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
-      requestedPeriodStart: dataRequest.requested_period_start,
-      requestedPeriodEnd: dataRequest.requested_period_end,
-      periodStart: dataRequest.requested_period_start,
-      periodEnd: dataRequest.requested_period_end,
+      requestedPeriodStart: period.start,
+      requestedPeriodEnd: period.end,
+      periodStart: period.start,
+      periodEnd: period.end,
       transactionReason: `Request missing ${requestedMessageCode}`,
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
@@ -235,6 +422,9 @@ export async function prepareAndQueueUtiltsE73(params: {
       requestedResolution: contractRequestedResolution,
     },
   })
+
+  draft.sourceOperationId = operationId
+  draft.intentId = intent.id
 
   const message = await finalizeOutboundDraft({
     actorUserId,
@@ -254,67 +444,9 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    outboundRequestId: outbound.id,
-    gridOwnerDataRequestId: dataRequest.id,
-    customerId: dataRequest.customer_id,
-    siteId: dataRequest.site_id,
-    meteringPointId: dataRequest.metering_point_id,
-    gridOwnerId: dataRequest.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
+  return enqueueSealedE73({
+    actorUserId, companyId, environment, requestId: dataRequest.id, messageId: message.id,
   })
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference: message.external_reference ?? dataRequest.external_reference,
-    payload: {
-      edielCode: 'E73',
-      requestedMessageCode,
-      bilateralCapabilityVerified: true,
-      bilateralCapabilityId,
-      applicationReference,
-      routeId: routeContext.route.id,
-      gridOwnerDataRequestId: dataRequest.id,
-    },
-  })
-
-  await updateGridOwnerDataRequestStatus({
-    actorUserId,
-    requestId: dataRequest.id,
-    status: 'sent',
-    externalReference: message.external_reference ?? dataRequest.external_reference,
-    responsePayload: {
-      ...record(dataRequest.response_payload),
-      edielMessageId: message.id,
-      outboundRequestId: outbound.id,
-      preparedVia: 'prepareAndQueueUtiltsE73',
-      requestedVia: 'UTILTS_E73',
-      requestedMessageCode,
-      bilateralCapabilityId,
-      applicationReference,
-    },
-    notes: dataRequest.notes ?? null,
-  })
-
-  await createEdielMessageEvent({
-    actorUserId,
-    edielMessageId: message.id,
-    eventType: 'validated',
-    eventStatus: 'success',
-    message: 'UTILTS E73 skapades med verifierad bilateral capability och explicit canonical Application Reference för efterfrågat meddelande.',
-    payload: {
-      requestedMessageCode,
-      bilateralCapabilityId,
-      applicationReference,
-      marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
-    },
-  })
-
-  return message
 }
 
 type BlockedSupplierE66Params = {

@@ -37,6 +37,7 @@ export type UnderlayCoreIntervalEvidence = {
   priceSekPerKwh: number;
   amountExVat: number;
   priceSourceId: string | null;
+  priceSourceIds?: string[];
   priceArea: string | null;
   evidenceSha256: string | null;
 };
@@ -168,6 +169,37 @@ function numberValue(value: unknown): number | null {
   return null;
 }
 
+async function loadLockedIntervalEvidence(companyId: string, runId: string) {
+  const pageSize = 500;
+  const evidence: Record<string, unknown>[] = [];
+  let expectedCount = 0;
+  // query-loop-budget: paginated-scan page=500
+  // Advance by the verified rows of one tenant's locked pricing run.
+  do {
+    const offset = evidence.length;
+    const { data, count, error } = await supabaseService
+      .from("pricing_interval_evidence")
+      .select("*", offset === 0 ? { count: "exact" } : undefined)
+      .eq("company_id", companyId)
+      .eq("pricing_run_id", runId)
+      .order("metering_interval_start", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    if (offset === 0) {
+      if (count === null || !Number.isSafeInteger(count) || count < 0) {
+        throw new Error("Antalet sparade prisintervall kunde inte verifieras.");
+      }
+      expectedCount = count;
+    }
+    if (!data || data.length + offset > expectedCount || (data.length === 0 && offset < expectedCount)) {
+      throw new Error("Det sparade prisunderlaget kunde inte läsas fullständigt.");
+    }
+    evidence.push(...data);
+  } while (evidence.length < expectedCount);
+  return evidence;
+}
+
 export async function loadLockedUnderlayPricingWithCore(input: {
   companyId: string;
   billingUnderlayId: string;
@@ -186,7 +218,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
 
   const [
     { data: lines, error: lineError },
-    { data: evidence, error: evidenceError },
+    evidence,
     { data: underlay, error: underlayError },
   ] = await Promise.all([
     supabaseService
@@ -195,12 +227,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       .eq("company_id", input.companyId)
       .eq("pricing_run_id", run.id)
       .order("sort_order", { ascending: true }),
-    supabaseService
-      .from("pricing_interval_evidence")
-      .select("*")
-      .eq("company_id", input.companyId)
-      .eq("pricing_run_id", run.id)
-      .order("metering_interval_start", { ascending: true }),
+    loadLockedIntervalEvidence(input.companyId, run.id),
     supabaseService
       .from("billing_underlays")
       .select("energy_direction,settlement_type")
@@ -209,7 +236,6 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       .single(),
   ]);
   if (lineError) throw lineError;
-  if (evidenceError) throw evidenceError;
   if (underlayError) throw underlayError;
 
   const warnings = Array.isArray(run.warnings) ? run.warnings.map(String) : [];
@@ -257,7 +283,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
       underlay.settlement_type === "self_billing"
         ? underlay.settlement_type
         : "invoice",
-    intervalEvidence: ((evidence ?? []) as Record<string, unknown>[]).map(
+    intervalEvidence: evidence.map(
       (row) => ({
         id: String(row.id),
         billingUnderlayItemId: row.billing_underlay_item_id
@@ -270,6 +296,7 @@ export async function loadLockedUnderlayPricingWithCore(input: {
         priceSekPerKwh: numberValue(row.price_sek_per_kwh) ?? 0,
         amountExVat: numberValue(row.amount_ex_vat) ?? 0,
         priceSourceId: row.price_source_id ? String(row.price_source_id) : null,
+        ...(Array.isArray(row.price_source_ids) ? { priceSourceIds: row.price_source_ids.map(String) } : {}),
         priceArea: row.price_area ? String(row.price_area) : null,
         evidenceSha256: row.evidence_sha256
           ? String(row.evidence_sha256)
