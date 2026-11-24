@@ -423,6 +423,12 @@
     "20261124055000_wait_for_qualified_supply_end.sql": "d5ba5256c91d5414c6636d4ea24f28b58f4d6bc04d7b5d6a9f31ba09f35a7298",
     "20261124055100_prefer_qualified_supply_end_cutoff.sql": "11e85faa5ef33d2a0187ca66a32c3e0493aa3157f6be908696423f2376d7716b",
     "20261124055200_accelerate_ediel_wire_ingest.sql": "d7bbfa968657ddd0b7aca402a9661428afc5ab9e99e58c5755c1848a0975af95",
-    "20261124081552_freeze_single_invoice_file_customer_identity.sql": "b0a497d60474fce7005d19dbbe1320fa1ff4c9d812bd00c01dc259410c4b07ee"
+    "20261124081552_freeze_single_invoice_file_customer_identity.sql": "b0a497d60474fce7005d19dbbe1320fa1ff4c9d812bd00c01dc259410c4b07ee",
+    "20261124091012_guard_ordinary_invoice_artifact_source_retention.sql": "08ddf311f408aded2b047cf4b2aeb251c471bba3c9f32f46516758d1f739a798",
+    "20261124091844_scope_billing_price_timeline_conflicts.sql": "78ebfa5749606fef166daf51e1803344372ad6e3f46346de283bf3df2d94677a",
+    "20261124093012_guard_ordinary_invoice_price_timeline.sql": "9cbe5c572450dd5da0100acf46ab8b30d9e403a8a58298daf758936ff1f51167",
+    "20261124094259_recheck_price_timeline_before_first_invoice_approval.sql": "bdf23e6f3be07a59dc84877e63ce2e6a259a95ae84b593f234d4e2e370d23e8a",
+    "20261124095453_bind_contract_withdrawal_to_reviewed_impact.sql": "72fbdc12d5281e130fa409523825e19229383297e84f08c34425b5b12b331f5b",
+    "20261124095718_recheck_selected_provider_before_first_invoice_approval.sql": "c8b4832f30dbc8790ae60f4231f666f45d53a81f6c0b9f464fa8d7186a59e126"
   }
 }
