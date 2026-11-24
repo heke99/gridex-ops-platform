@@ -44,7 +44,7 @@ function database(currentSite: CustomerSiteRow | null, proofFloor: string | null
   const snapshotProofCalls: Row[] = []
   const callerPrivateCalls: string[] = []
   const operations: string[] = []
-  const reads: Array<{ table: string; filters: Record<string, unknown> }> = []
+  const reads: Array<{ table: string; filters: Record<string, unknown>; lifecycleScope?: string }> = []
   servicePort.rpc.mockReset().mockImplementation(async (name: string, args: Row) => {
     if (name === 'gridex_manual_supplier_start_floor_v1') {
       operations.push('service:floor-proof')
@@ -62,7 +62,8 @@ function database(currentSite: CustomerSiteRow | null, proofFloor: string | null
     auth: { getUser: async () => ({ data: { user: { id: '10000000-0000-4000-8000-000000000006' } }, error: null }) },
     from(table: string) {
       const filters: Record<string, unknown> = {}
-      reads.push({ table, filters })
+      const read: (typeof reads)[number] = { table, filters }
+      reads.push(read)
       const result = () => {
         if (table === 'electricity_suppliers') return { data: { id: 'own', name: 'Synthetic tenant supplier', company_id: companyId, org_number: null }, error: null }
         if (table === 'customer_sites') {
@@ -75,7 +76,13 @@ function database(currentSite: CustomerSiteRow | null, proofFloor: string | null
       const query = {
         select() { return query },
         eq(field: string, value: unknown) { filters[field] = value; return query },
-        in() { return query }, order() { return query }, limit() { return query },
+        in() { return query },
+        or(scope: string) {
+          if (table !== 'customer_lifecycle_decisions') throw new Error(`Undeclared OR filter on ${table}`)
+          read.lifecycleScope = scope
+          return query
+        },
+        order() { return query }, limit() { return query },
         maybeSingle: async () => result(),
         then(resolve: (value: ReturnType<typeof result>) => unknown) { return Promise.resolve(result()).then(resolve) },
       }
@@ -111,6 +118,14 @@ describe('supplier-mail floors at actual switch creation', () => {
     const db = database(site({ metadata: { manual_supplier_terms: snapshot() } }))
     const result = await create(db)
     expect(result.requested_start_date).toBe('2027-04-01')
+    expect(db.reads.find((read) => read.table === 'customer_lifecycle_decisions')).toMatchObject({
+      filters: { company_id: companyId, customer_id: customerId },
+      lifecycleScope: [
+        'scope_type.eq.customer',
+        `and(scope_type.eq.site,scope_id.eq.${siteId})`,
+        `and(scope_type.eq.metering_point,scope_id.eq.${pointId})`,
+      ].join(','),
+    })
     expect(db.reads.find((read) => read.table === 'customer_sites')?.filters).toEqual({ id: siteId, company_id: companyId, customer_id: customerId })
     expect(db.proofCalls).toEqual([{ p_company_id: companyId, p_customer_id: customerId, p_site_id: siteId }])
     expect(db.snapshotProofCalls).toHaveLength(0)

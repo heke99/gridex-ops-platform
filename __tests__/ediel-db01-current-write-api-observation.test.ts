@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 
+import { readPr1266SchemaCapture } from './helpers/db05PredecessorSchema'
+
 const currentSchema = 'e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
 const post949Schema = 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
 
@@ -278,8 +280,11 @@ def run(args,**kwargs):
  return types.SimpleNamespace(returncode=17 if case.get('ddlFailure') else 0)
 with tempfile.TemporaryDirectory(prefix='db01-current-contrl-unit-') as folder:
  root=pathlib.Path(folder);private=root/'private';private.mkdir();receipt_path=private/'receipt.json'
- for name in [donor,'supabase/schema.sql',*[item['path'] for item in forward_items]]:
+ for name in [donor,*[item['path'] for item in forward_items]]:
   target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((repo/name).read_bytes())
+ schema_file=root/'supabase/schema.sql'
+ schema_file.parent.mkdir(parents=True,exist_ok=True)
+ schema_file.write_bytes(sys.stdin.buffer.read())
  blobs={donor:{'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':digest},'supabase/schema.sql':{'sha256':schema}}
  if case.get('fileDrift'):(root/donor).write_bytes((root/donor).read_bytes()+b'\n-- unqualified drift\n')
  if case.get('manifestDrift'):blobs[donor]['sha256']='0'*64
@@ -305,10 +310,14 @@ type ContrlResult = {
   error: string | null; runs: number; executions: Array<{sqlSha256: string; timeout: number}>; queries: string[]; events: string[];
   receipt: {current_contrl_source_install?: {status: string; exit_code?: number; native_or_approval_credit: boolean}};
 }
+const contrlFixtureSchema = readPr1266SchemaCapture()
+
 function contrlProbe(input: Record<string, unknown> = {}): ContrlResult {
-  return JSON.parse(execFileSync('python3', ['-c', contrlHarness, JSON.stringify(input), currentSchema], {encoding: 'utf8', timeout: 10_000}))
+  return JSON.parse(execFileSync('python3', ['-c', contrlHarness, JSON.stringify(input), currentSchema], {
+    input: contrlFixtureSchema, encoding: 'utf8', timeout: 10_000,
+  }))
 }
-describe('DB01 current CONTRL source installation', () => {
+describe('DB01 current CONTRL source installation on the qualified PR1266 capture', () => {
   it('runs the preserved sixteen forwards and API/S01 sources before the exact current CONTRL installation', () => {
     const result = contrlProbe({phase: true})
     expect(result.error).toBeNull()

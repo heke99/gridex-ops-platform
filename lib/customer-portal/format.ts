@@ -40,6 +40,10 @@ export function formatPeriod(start?: string | null, end?: string | null): string
   return `${formatDate(start)} – ${formatDate(end)}`
 }
 
+export function isCancelledOrCreditedInvoice(status: string): boolean {
+  return status === 'cancelled' || status === 'credited'
+}
+
 export function invoiceStatusLabel(status: string): string {
   if (status === 'draft') return 'Utkast'
   if (status === 'issued') return 'Utfärdad'
@@ -54,7 +58,7 @@ export function invoiceStatusLabel(status: string): string {
 export function invoiceStatusTone(status: string): string {
   if (status === 'paid') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'overdue') return 'border-red-200 bg-red-50 text-red-700'
-  if (status === 'cancelled' || status === 'credited') {
+  if (isCancelledOrCreditedInvoice(status)) {
     return 'border-slate-200 bg-slate-50 text-slate-600'
   }
   return 'border-emerald-200 bg-emerald-50 text-emerald-700'

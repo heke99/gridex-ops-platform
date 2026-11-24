@@ -46,6 +46,10 @@ const statusStyle: Record<InvoiceReviewStatus, string> = {
 }
 
 const FILE_ERRORS: Record<string, string> = {
+  invoice_distribution_paper_address_missing: 'Pappersfaktura har valts men den frysta fakturaadressen är ofullständig. Ingen fil skapades.',
+  invoice_distribution_email_missing: 'Faktura via e-post har valts men en bekräftad fryst faktura-e-post saknas. Ingen fil skapades.',
+  invoice_file_delivery_unverified: 'Det valda leveranssättet kan inte verifieras i det godkända fakturaunderlaget. Ingen fil skapades.',
+  invoice_file_delivery_unsupported: 'Filexporten stöder inte fakturans valda leveranssätt. Ingen fil skapades.',
   invoice_distribution_missing: 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress. Ingen fil skapades.',
   invoice_file_intent_scope_mismatch: 'Begäran hör till en annan fakturaperiod, leverantör eller miljö. Ladda om sidan för att skapa en ny fil.',
   invoice_file_intent_invalid: 'Begäran att skapa fakturafil är ogiltig. Ladda om sidan och försök igen.',

@@ -102,6 +102,13 @@ describe('Nordfin invoice XML', () => {
     expect(out).toContain('<OrganizationNumber>5566778899</OrganizationNumber>')
   })
 
+  it('keeps an explicit paper choice even when the row also carries an email', () => {
+    const out = renderNordfinInvoiceXml([row({ delivery_method: 'paper', email: 'retained@example.invalid' })])
+    expect(out).toContain('<Delivery>PRINT</Delivery>')
+    expect(out).toContain('<CustomerEmail />')
+    expect(out).not.toContain('retained@example.invalid')
+  })
+
   it('renders a Nordfin file as XML by default and is deterministic', () => {
     expect(parseInvoiceFileFormat(null, 'nordfin')).toBe('nordfin_xml')
     expect(parseInvoiceFileFormat(null, 'file_export')).toBe('csv')

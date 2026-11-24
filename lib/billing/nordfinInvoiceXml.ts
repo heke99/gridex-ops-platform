@@ -56,6 +56,7 @@ export function renderNordfinInvoiceXml(rows: InvoiceFileRow[]) {
   ]
   for (const row of rows) {
     const e = row.electricity
+    const deliveryMethod = row.delivery_method ?? (row.email ? 'email' : 'paper')
     out.push('  <Inv>')
     out.push('    <Customer>')
     out.push(el('Customername', row.customer_name, '      '))
@@ -64,7 +65,7 @@ export function renderNordfinInvoiceXml(rows: InvoiceFileRow[]) {
     out.push(el('ZipCode', row.postal_code, '      '))
     out.push(el('City', row.city, '      '))
     out.push(el('OrganizationNumber', digits(row.identity_number), '      '))
-    out.push(el('CustomerEmail', row.email, '      '))
+    out.push(el('CustomerEmail', deliveryMethod === 'email' ? row.email : null, '      '))
     out.push(el('CustomerType', row.customer_type === 'business' ? 'FTG' : 'PRV', '      '))
     out.push(el('CoName', row.recipient && row.recipient !== row.customer_name ? row.recipient : null, '      '))
     out.push(el('ClientId', row.nordfin_client_id, '      '))
@@ -76,7 +77,7 @@ export function renderNordfinInvoiceXml(rows: InvoiceFileRow[]) {
     out.push(el('InvoiceVATAmount', amount(row.vat_amount), '      '))
     out.push(el('BillDate', row.invoice_date, '      '))
     out.push(el('DueDate', row.due_date, '      '))
-    out.push(el('Delivery', row.email ? 'EMAIL' : 'PRINT', '      '))
+    out.push(el('Delivery', deliveryMethod === 'email' ? 'EMAIL' : 'PRINT', '      '))
     out.push(el('InvoiceNumber', row.invoice_number, '      '))
     // OCR/payment reference is pending a decision on how it is issued.
     out.push(el('PaymentReference', null, '      '))

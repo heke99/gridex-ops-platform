@@ -1,5 +1,5 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
-import type { DispatchProvider } from '@/lib/billing/providers/registry'
+import { isFileProvider, type DispatchProvider } from '@/lib/billing/providers/registry'
 import { invoiceDeliveryMode, resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -306,12 +306,25 @@ async function createDraft(input: {
   const snapshotId = text(input.underlay.contract_price_snapshot_id) ?? text(input.underlay.pricing_snapshot_id) ?? text(input.contract.contract_price_snapshot_id)
   const priceSnapshot = await loadPriceSnapshot(input.companyId, snapshotId)
   if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
-  const calculationSnapshot = buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth })
-  const calculationHash = hash(calculationSnapshot)
   const invoiceCustomer = shared ? shared.customer : await loadInvoiceCustomer(input.companyId, customerId)
   const customerNumber = text(invoiceCustomer?.customer_number)
   // Same effective recipient/delivery as billing readiness and export.
   const delivery = shared?.delivery ?? resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer }, mode)
+  const selectedMethod = priceSnapshot.invoice_delivery_method
+  const deliveryMethod = isFileProvider(input.provider) && (selectedMethod === 'paper' || selectedMethod === 'email')
+    ? selectedMethod
+    : null
+  if (deliveryMethod === 'paper' && !delivery.postalAddress) {
+    throw new Error('Pappersfaktura har valts men en komplett fakturaadress saknas.')
+  }
+  if (deliveryMethod === 'email' && !delivery.email) {
+    throw new Error('Faktura via e-post har valts men en bekräftad faktura-e-post saknas.')
+  }
+  const calculationSnapshot = {
+    ...buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth }),
+    ...(deliveryMethod ? { invoice_delivery_method: deliveryMethod } : {}),
+  }
+  const calculationHash = hash(calculationSnapshot)
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()

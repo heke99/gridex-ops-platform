@@ -38,6 +38,7 @@ export type InvoiceFileRow = {
   identity_number: string | null
   recipient: string | null
   email: string | null
+  delivery_method?: 'paper' | 'email'
   reference: string | null
   street: string | null
   postal_code: string | null
@@ -176,11 +177,16 @@ export function buildInvoiceFileRow(input: {
   contract?: Row | null
   nordfinClientId?: string | null
   provider?: FileProvider
+  qualifiedLegacyDeliveryMethod?: InvoiceFileRow['delivery_method']
 }): InvoiceFileRow {
   const itemId = text(input.item.id)
   if (!itemId) throw new Error('Fakturaposten saknar ID.')
   const business = text(input.customer.customer_type) === 'business' || Boolean(text(input.customer.org_number))
   const address = (input.legacyItem?.invoice_address_snapshot ?? {}) as Row
+  const selectedMethod = input.qualifiedLegacyDeliveryMethod ?? (input.invoice.calculation_snapshot as Row | null)?.invoice_delivery_method
+  const deliveryMethod = selectedMethod === 'paper' || selectedMethod === 'email' ? selectedMethod : null
+  const email = deliveryMethod ? text(address.email) : text(address.email) ?? text(input.legacyItem?.invoice_email)
+  const country = text(address.country)
   const { invoiceDate, dueDate } = invoiceDates(input.now)
   const neutral = input.provider === 'file_export'
   const invoiceReference = text(input.invoice.invoice_reference)
@@ -195,12 +201,13 @@ export function buildInvoiceFileRow(input: {
     customer_type: business ? 'business' : 'private',
     identity_number: business ? text(input.customer.org_number) : text(input.customer.personal_number),
     recipient: text(address.recipient) ?? text(input.legacyItem?.invoice_recipient),
-    email: text(address.email) ?? text(input.legacyItem?.invoice_email),
+    email: deliveryMethod === 'paper' ? null : email,
+    ...(deliveryMethod ? { delivery_method: deliveryMethod } : {}),
     reference: text(address.reference) ?? text(input.legacyItem?.invoice_reference),
     street: text(address.street),
     postal_code: text(address.postal_code),
     city: text(address.city),
-    country: text(address.country) ?? 'SE',
+    country: deliveryMethod === 'paper' ? country : country ?? 'SE',
     billing_month: input.billingMonth,
     period_start: text(input.item.period_start),
     period_end: text(input.item.period_end),
@@ -587,6 +594,54 @@ export async function previewInvoiceFileGroups(input: {
   return data.map(({ invoiceId, reviewHash }) => ({ invoiceId, reviewHash }))
 }
 
+function unverifiedInvoiceFileDelivery() {
+  return new InvoiceProviderConfigError('invoice_file_delivery_unverified', 'Det valda leveranssättet kan inte verifieras i det godkända fakturaunderlaget.')
+}
+
+async function qualifyLegacyInvoiceFileDelivery(
+  companyId: string,
+  context: Awaited<ReturnType<typeof loadItemContext>>,
+): Promise<InvoiceFileRow['delivery_method']> {
+  const calculation = context.invoice.calculation_snapshot as Row | null
+  if (calculation?.schema !== 'gridex_invoice_calculation_v1' || calculation.invoice_delivery_method !== undefined) return
+  const snapshotId = text(calculation.contract_price_snapshot_id)
+  if (!snapshotId) return
+
+  const sourceHash = text(calculation.contract_price_snapshot_hash)
+  const contractId = text(context.item.customer_contract_id)
+  if (!sourceHash || !contractId || contractId !== calculation.customer_contract_id) throw unverifiedInvoiceFileDelivery()
+
+  const { data, error } = await tenantSelect(companyId, 'contract_price_snapshots', 'invoice_delivery_method,snapshot_json')
+    .eq('id', snapshotId)
+    .eq('contract_id', contractId)
+    .eq('snapshot_hash', sourceHash)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw unverifiedInvoiceFileDelivery()
+
+  const snapshot = data as Row
+  const columnMethod = text(snapshot.invoice_delivery_method)
+  const snapshotMethod = text((snapshot.snapshot_json as Row | null)?.invoice_delivery_method)
+  if (columnMethod && snapshotMethod && columnMethod !== snapshotMethod) throw unverifiedInvoiceFileDelivery()
+  const method = snapshotMethod ?? columnMethod
+  if (!method) return
+  const calculationHash = context.invoice.calculation_snapshot_sha256
+  const selectedApproval = approval(context.item.metadata)
+  const mirrorApproval = approval(context.invoice.metadata)
+  // Historic approval hashed the JavaScript payload. Only accept exact stored JSON
+  // that reproduces the same hash and agrees with both retained approval copies.
+  if (context.invoice.status !== 'draft' ||
+      selectedApproval.calculation_snapshot_sha256 !== calculationHash ||
+      stableJson(selectedApproval) !== stableJson(mirrorApproval) ||
+      createHash('sha256').update(stableJson(calculation)).digest('hex') !== calculationHash) {
+    throw unverifiedInvoiceFileDelivery()
+  }
+  if (method !== 'paper' && method !== 'email') {
+    throw new InvoiceProviderConfigError('invoice_file_delivery_unsupported', 'Filexporten stöder inte fakturans valda leveranssätt.')
+  }
+  return method
+}
+
 async function prepareInvoiceFileRows(
   input: CreateInvoiceFileInput,
   selected: Awaited<ReturnType<typeof loadSelection>>,
@@ -617,10 +672,12 @@ async function prepareInvoiceFileRows(
       .eq('id', itemId)
       .maybeSingle()
     if (legacy.error) throw legacy.error
+    const qualifiedLegacyDeliveryMethod = await qualifyLegacyInvoiceFileDelivery(input.companyId, context)
     const facility = await loadFacility(input.companyId, context.underlay)
     const row = buildInvoiceFileRow({
       ...facility,
       provider: selected.provider,
+      qualifiedLegacyDeliveryMethod,
       nordfinClientId,
       item: context.item,
       invoice: context.invoice,
@@ -631,8 +688,15 @@ async function prepareInvoiceFileRows(
       billingMonth: input.billingMonth,
       now,
     })
-    // A frozen approved row must itself carry a usable channel; never backfill live profiles.
-    if (!row.email && !(row.street && row.postal_code && row.city)) {
+    // Use only the chosen transport in the approved draft. Historical drafts may lack that choice.
+    const completePostalAddress = row.street && row.postal_code && row.city && row.country
+    if (row.delivery_method === 'paper' && !completePostalAddress) {
+      throw new InvoiceProviderConfigError('invoice_distribution_paper_address_missing', 'Pappersfaktura har valts men den frysta fakturaadressen är ofullständig.')
+    }
+    if (row.delivery_method === 'email' && !row.email) {
+      throw new InvoiceProviderConfigError('invoice_distribution_email_missing', 'Faktura via e-post har valts men en bekräftad fryst faktura-e-post saknas.')
+    }
+    if (!row.delivery_method && !row.email && !completePostalAddress) {
       throw new InvoiceProviderConfigError('invoice_distribution_missing', 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress.')
     }
     rows.push(row)

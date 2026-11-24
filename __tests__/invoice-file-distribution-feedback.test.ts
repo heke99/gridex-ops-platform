@@ -83,11 +83,14 @@ async function alertFor(code: string) {
 describe('invoice-file distribution validation feedback', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('carries the real action error code to a clear missing-channel alert on the real billing page', async () => {
-    ports.createFile.mockRejectedValueOnce(new InvoiceProviderConfigError(
-      'invoice_distribution_missing',
-      'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress.',
-    ))
+  it.each([
+    ['invoice_file_delivery_unverified', 'Det valda leveranssättet kan inte verifieras i det godkända fakturaunderlaget.'],
+    ['invoice_file_delivery_unsupported', 'Filexporten stöder inte fakturans valda leveranssätt.'],
+    ['invoice_distribution_missing', 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress.'],
+    ['invoice_distribution_paper_address_missing', 'Pappersfaktura har valts men den frysta fakturaadressen är ofullständig.'],
+    ['invoice_distribution_email_missing', 'Faktura via e-post har valts men en bekräftad fryst faktura-e-post saknas.'],
+  ])('carries %s from the real action to the matching alert on the real billing page', async (code, message) => {
+    ports.createFile.mockRejectedValueOnce(new InvoiceProviderConfigError(code, message))
     const form = new FormData()
     form.set('billing_month', '2026-02')
     const intentId = '12710000-0000-4000-8000-000000000001'
@@ -105,8 +108,8 @@ describe('invoice-file distribution validation feedback', () => {
     const [target] = ports.redirect.mock.calls[0]
     const params = new URL(target, 'https://synthetic.invalid').searchParams
     expect(params.get('file')).toBeNull()
-    expect(params.get('file_error')).toBe('invoice_distribution_missing')
-    expect(await alertFor(params.get('file_error')!)).toBe('Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress. Ingen fil skapades.')
+    expect(params.get('file_error')).toBe(code)
+    expect(await alertFor(code)).toBe(`${message} Ingen fil skapades.`)
   })
 
   it('keeps the generic fallback for unknown error codes', async () => {

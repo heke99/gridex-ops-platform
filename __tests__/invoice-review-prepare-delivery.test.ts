@@ -536,9 +536,38 @@ describe('DELIVERY01.04 public prepare with projection-correct reads and real sh
         expect(snapshot().email).toBe('billing@example.invalid');
         expect(state.queries.some(q => ['customer_sites', 'metering_points'].includes(q.table))).toBe(false);
     });
-    it('preserves customer billing country for a complete inherited postal address', async () => {
+    it.each([
+        [undefined, 'paper'],
+        ['shared', 'paper'],
+        [undefined, 'email'],
+        ['shared', 'email']
+    ])('freezes %s resolver choice %s when both delivery channels are configured', async (mode, method) => {
+        vi.stubEnv('GRIDEX_INVOICE_DELIVERY_RESOLVER', mode);
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = method;
+        Object.assign(state.tables.customer_contracts[0], {
+            invoice_recipient: 'Avtalad fakturamottagare',
+            invoice_email: 'faktura@example.invalid',
+            billing_street: 'Fakturagatan 1',
+            billing_postal_code: '11111',
+            billing_city: 'Stockholm',
+            billing_country: 'SE'
+        });
+        const result = await run();
+        expect(result.created).toBe(1);
+        expect(state.calls[0].args.p_enrichment).toMatchObject({
+            calculation_snapshot: { invoice_delivery_method: method }
+        });
+        expect(snapshot()).toMatchObject({
+            email: 'faktura@example.invalid',
+            street: 'Fakturagatan 1',
+            country: 'SE'
+        });
+    });
+    it('freezes explicit paper and the foreign address while retaining billing contact data', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'paper';
         state.tables.customer_contracts[0].billing_address_same_as_site = false;
         Object.assign(state.tables.customers[0], {
+            invoice_email: 'retained-invoice@example.invalid',
             billing_street: 'Norwegian street',
             billing_postal_code: '0123',
             billing_city: 'Oslo',
@@ -546,12 +575,37 @@ describe('DELIVERY01.04 public prepare with projection-correct reads and real sh
         });
         const result = await run();
         expect(result.created).toBe(1);
+        expect(state.calls[0].args.p_enrichment).toMatchObject({
+            calculation_snapshot: { invoice_delivery_method: 'paper' },
+            calculation_snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/)
+        });
         expect(snapshot()).toMatchObject({
+            email: 'retained-invoice@example.invalid',
             street: 'Norwegian street',
             postal_code: '0123',
             city: 'Oslo',
             country: 'NO'
         });
+    });
+    it('refuses explicit paper with only a confirmed email before draft RPC', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'paper';
+        state.tables.customer_contracts[0].billing_address_same_as_site = false;
+        state.tables.customers[0].invoice_email = 'billing@example.invalid';
+        const result = await run();
+        expect(result.errors).toContainEqual({
+            billingUnderlayId: 'underlay-A',
+            error: 'Pappersfaktura har valts men en komplett fakturaadress saknas.'
+        });
+        expect(state.calls).toEqual([]);
+    });
+    it('refuses explicit email with only a complete postal address before draft RPC', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'email';
+        const result = await run();
+        expect(result.errors).toContainEqual({
+            billingUnderlayId: 'underlay-A',
+            error: 'Faktura via e-post har valts men en bekräftad faktura-e-post saknas.'
+        });
+        expect(state.calls).toEqual([]);
     });
     it('refuses shared missing recipient despite complete postal channel before draft RPC', async () => {
         delete state.tables.customers[0].full_name;

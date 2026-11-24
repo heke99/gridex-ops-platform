@@ -11,6 +11,7 @@ import {
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
+  isCancelledOrCreditedInvoice,
 } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
@@ -37,6 +38,8 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
     ? groupedMoney.format(value)
     : formatSek(value)
 
+  const paymentClosed = isCancelledOrCreditedInvoice(invoice.status)
+  const amountLabel = paymentClosed || invoice.status === 'paid' ? 'Fakturabelopp' : 'Att betala'
   const hasRetiredCopy = invoiceFileAvailability === 'retired'
     || documents.some((document) => document.fileAvailability === 'retired')
 
@@ -59,12 +62,13 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               <p className="mt-2 text-sm text-slate-500">Fakturareferens {invoice.invoice_reference}</p>
             ) : null}
             <p className="mt-3 text-sm text-slate-500">
-              Period {formatPeriod(invoice.period_start, invoice.period_end)} · Förfallodatum {formatDate(invoice.due_date)}
+              Period {formatPeriod(invoice.period_start, invoice.period_end)}
+              {paymentClosed ? null : <> · Förfallodatum {formatDate(invoice.due_date)}</>}
             </p>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-right">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Att betala</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{amountLabel}</p>
             <p className="mt-2 text-3xl font-bold text-slate-950">{invoiceMoney(invoice.amount_inc_vat)}</p>
             <p className="mt-1 text-sm text-slate-500">inkl. moms</p>
           </div>

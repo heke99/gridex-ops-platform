@@ -114,7 +114,7 @@ printf '%s\\n' "$FIXTURE_RESPONSE"
   const steps = workflow.jobs.deploy.steps
   return {
     posted: () => existsSync(postedPath) ? JSON.parse(readFileSync(postedPath, 'utf8')) : null,
-    run(name: string, fixture: NodeJS.ProcessEnv = {}) {
+    run(name: string, fixture: Record<string, string | undefined> = {}) {
       const step = steps.find(candidate => candidate.name === name)
       expect(step?.run).toBeTypeOf('string')
       const result = spawnSync('/bin/bash', ['-c', step!.run!], {
@@ -125,7 +125,7 @@ printf '%s\\n' "$FIXTURE_RESPONSE"
           VERCEL_PROJECT_ID: projectId, VERCEL_REPO_ID: '123', DEPLOYMENT_ID: deploymentId,
           FIXTURE_ORIGIN: `${origin}.git`, FIXTURE_CHECKOUT: mainSha,
           FIXTURE_MAIN: `${mainSha}\trefs/heads/main`, FIXTURE_POST: postedPath,
-          FIXTURE_RESPONSE: JSON.stringify(readyDeployment), ...fixture,
+          FIXTURE_RESPONSE: JSON.stringify(readyDeployment), ...fixture, NODE_ENV: 'test',
         },
       })
       expect(result.error).toBeUndefined()

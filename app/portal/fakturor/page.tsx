@@ -9,6 +9,7 @@ import {
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
+  isCancelledOrCreditedInvoice,
 } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
@@ -64,7 +65,9 @@ export default async function PortalInvoicesPage() {
                 </div>
 
                 <div className="text-sm text-slate-600">{formatPeriod(invoice.period_start, invoice.period_end)}</div>
-                <div className="text-sm text-slate-600">Förfallodatum {formatDate(invoice.due_date)}</div>
+                <div className="text-sm text-slate-600">
+                  {isCancelledOrCreditedInvoice(invoice.status) ? null : <>Förfallodatum {formatDate(invoice.due_date)}</>}
+                </div>
                 <div className="text-sm font-semibold text-slate-950">{formatSek(invoice.amount_inc_vat)}</div>
                 <div className="flex items-center gap-3">
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${invoiceStatusTone(invoice.status)}`}>
