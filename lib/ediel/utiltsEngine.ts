@@ -1,8 +1,7 @@
 import {
   diagnoseE66ObservationTimestamp,
   E66_SG11_TIMESTAMP_REVIEW,
-  superfluousE66EnergyTimestampIndices,
-  usesE66SuperfluousEnergyTimestampPolicy,
+  ignoredUtiltsEnergyTimestampIndices,
 } from '@/lib/ediel/utilts/e66ObservationTimestampDiagnostic'
 import {type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
 import {applyPeriodicReasonGuide} from '@/lib/ediel/utilts/periodicReasonGuide'
@@ -1101,9 +1100,7 @@ function runUtiltsRuntimeForMessageCore(
     }
   }
   const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
-  const ignoredEnergyTimestamps = usesE66SuperfluousEnergyTimestampPolicy(canonicalPolicy)
-    ? superfluousE66EnergyTimestampIndices(message.raw_payload ?? '')
-    : undefined
+  const ignoredEnergyTimestamps = ignoredUtiltsEnergyTimestampIndices(message.raw_payload ?? '', canonicalPolicy)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
   // retain their own transaction reference and checks.

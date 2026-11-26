@@ -4,7 +4,7 @@ import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import {
   diagnoseE66ObservationTimestamp,
   E66_SG11_TIMESTAMP_REVIEW,
-  superfluousE66EnergyTimestampIndices,
+  ignoredUtiltsEnergyTimestampIndices,
 } from '@/lib/ediel/utilts/e66ObservationTimestampDiagnostic'
 import { compareUtiltsStructure } from '@/lib/ediel/utilts/structuralComparison'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -15,6 +15,7 @@ import { recountEdifactUnt as reframe } from './helpers/recountEdifactUnt'
 const cleanFixture = () => energyHandoffMessage('2026-11-18', '184d2bcf-1756-440e-ab5e-f17c8cac66a9')
 const printed = "DTM+597:202607010000:203'\n"
 const registration = 'DTM+597:202607010020:203'
+const e66Policy = {family:'UTILTS',code:'E66',direction:'inbound',guide:{guideRevision:'25-A-5'}} as const
 
 function evaluate(raw: string) {
   const template = cleanFixture()
@@ -89,10 +90,9 @@ it('preserves genuine framing validation on the original wire', () => {
 
 it('preserves the separate diagnostic for another quantity and allows 530a and 530b', () => {
   const raw = reframe(clean().replace("QTY+136:500'", "QTY+136:500'\nQTY+135:3'\nDTM+597:202607010000:203'"))
-  const policy = {family:'UTILTS',code:'E66',direction:'inbound',guide:{guideRevision:'25-A-5'}} as const
-  expect(diagnoseE66ObservationTimestamp(raw, policy)).toMatchObject([{code:E66_SG11_TIMESTAMP_REVIEW,quantity:'135'}])
+  expect(diagnoseE66ObservationTimestamp(raw, e66Policy)).toMatchObject([{code:E66_SG11_TIMESTAMP_REVIEW,quantity:'135'}])
   for (const quantity of ['220','42']) {
-    expect(diagnoseE66ObservationTimestamp(raw.replace('QTY+135', `QTY+${quantity}`), policy)).toEqual([])
+    expect(diagnoseE66ObservationTimestamp(raw.replace('QTY+135', `QTY+${quantity}`), e66Policy)).toEqual([])
   }
 })
 
@@ -109,13 +109,13 @@ it('does not borrow an unusable future 136 timestamp for a preceding 530a in the
 it('compares the real 530a even when a sibling QTY136 has a stray timestamp in the same SEQ', () => {
   const clean = utiltsStructureWire().replace("SEQ++5'\nQTY+136:10'", "QTY+136:10'")
   const wire = reframe(clean.replace("QTY+136:10'", "QTY+136:10'\nDTM+597:202602310099:203'"))
-  const ignored = superfluousE66EnergyTimestampIndices(wire)
-  expect(ignored.size).toBe(1)
+  const ignored = ignoredUtiltsEnergyTimestampIndices(wire, e66Policy)
+  expect(ignored?.size).toBe(1)
   expect(compareUtiltsStructure(comparisonInput(reframe(clean)))).toMatchObject({status:'matched'})
   expect(compareUtiltsStructure({...comparisonInput(wire),ignoredEnergyTimestamps:ignored})).toMatchObject({status:'matched'})
   const noReadingDate = reframe(wire.replace(/(QTY\+220:110'\n)DTM\+597:202611010000:203'\nQTY\+136/, "$1QTY+136"))
   expect(compareUtiltsStructure({
     ...comparisonInput(noReadingDate),
-    ignoredEnergyTimestamps:superfluousE66EnergyTimestampIndices(noReadingDate),
+    ignoredEnergyTimestamps:ignoredUtiltsEnergyTimestampIndices(noReadingDate, e66Policy),
   })).toMatchObject({status:'unavailable',reason:'structural_reading_time_unknown'})
 })

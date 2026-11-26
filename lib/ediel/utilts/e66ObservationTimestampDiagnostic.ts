@@ -7,9 +7,9 @@ type ObservationPolicy = Pick<CanonicalEdielPolicy, 'family' | 'code' | 'directi
 }
 
 export const E66_SG11_TIMESTAMP_REVIEW = 'UTILTS_E66_SG11_TIMESTAMP_QUANTITY_NOT_ALLOWED'
-function e66ObservationTimestamps(raw: string) {
+function observationTimestamps(raw: string, messageCode: string) {
   const { una, transactions } = observeUtiltsFieldScopes(raw)
-  return transactions.flatMap(transaction => transaction.messageCode !== 'E66' ? [] :
+  return transactions.flatMap(transaction => transaction.messageCode !== messageCode ? [] :
     transaction.observations.flatMap(observation => {
       let quantity: string | null = null
       return observation.segments.flatMap(segment => {
@@ -31,19 +31,18 @@ function e66ObservationTimestamps(raw: string) {
     }))
 }
 
-export function usesE66SuperfluousEnergyTimestampPolicy(policy?: ObservationPolicy): boolean {
-  return policy?.family === 'UTILTS' && policy.code === 'E66' && policy.direction === 'inbound' &&
-    policy.guide.guideRevision === '25-A-5'
-}
+/** U 25-A-5 and Svk's §7.5 clarification: regular energy has no SG11
+ * timestamp. Keep the original segments and exclude only QTY+136's own dates. */
+export function ignoredUtiltsEnergyTimestampIndices(raw: string, policy?: ObservationPolicy): ReadonlySet<number> | undefined {
+  if (policy?.family !== 'UTILTS' || policy.direction !== 'inbound' ||
+    policy.guide.guideRevision !== '25-A-5' || !['E30', 'E66', 'S07'].includes(policy.code)) return undefined
 
-/** U 25-A-5 p94 and Svk's §7.5 clarification: a QTY+136 timestamp has no
- * semantic effect. Identify the physical segment without rewriting the source. */
-export function superfluousE66EnergyTimestampIndices(raw: string): ReadonlySet<number> {
-  return new Set(e66ObservationTimestamps(raw).filter(timestamp => timestamp.quantity === '136')
+  return new Set(observationTimestamps(raw, policy.code).filter(timestamp => timestamp.quantity === '136')
     .map(timestamp => timestamp.segmentIndex))
 }
 
 export function diagnoseE66ObservationTimestamp(raw: string, policy: ObservationPolicy) {
-  if (!usesE66SuperfluousEnergyTimestampPolicy(policy)) return []
-  return e66ObservationTimestamps(raw).filter(timestamp => !['136', '220', '42'].includes(timestamp.quantity))
+  if (policy.family !== 'UTILTS' || policy.code !== 'E66' || policy.direction !== 'inbound' ||
+    policy.guide.guideRevision !== '25-A-5') return []
+  return observationTimestamps(raw, 'E66').filter(timestamp => !['136', '220', '42'].includes(timestamp.quantity))
 }

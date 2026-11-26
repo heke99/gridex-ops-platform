@@ -4,7 +4,7 @@ import { canonicalUtiltsDecimal, sumUtiltsDecimals, retainedV1NumberDecimal, uti
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { expect, it, vi } from 'vitest'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
-import { buildUtiltsTransactionPersistencePayload, validateUtiltsPersistenceResults } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, prepareUtiltsPersistenceRpcArguments, validateUtiltsPersistenceResults } from '@/lib/ediel/utilts/transactionPersistence'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
@@ -44,6 +44,42 @@ it.each([{ resolution: '15:806', end: '202607010030', second: '202607010015', ut
   expect(result.contracts[0].observations[1].periodStart).toBe(fixture.utcEnd)
   expect(result.contracts[0].observations[0].periodStart).not.toBe(result.contracts[0].observations[1].periodStart)
 })
+it.each([
+  ['E30', '202607010015:203', '202607010000:203'],
+  ['S07', '202607010015:203', '202607010000:203'],
+  ['E30', '202602310099:203', '20260701:204'],
+  ['S07', '202602310099:203', '20260701:204'],
+] as const)('%s ignores unused energy DTM+597 %s and %s through the persistence input', async (code, first, second) => {
+  function twoEnergyValues(raw: string, includeExtraTimes: boolean) {
+    let wire = raw.replace('BGM+S07::260', 'BGM+S07:SVK:260')
+      .replace('202607010000202607010015:719', '202607010000202607010030:719')
+      .replace('DTM+597:202607010020:203', 'DTM+597:202607010040:203')
+      .replace("DTM+597:202607010000:203'\n", '')
+      .replace("STS+7++21::260'\nUNT", "STS+7++21::260'\nSEQ++2'\nQTY+136:7'\nSTS+7++21::260'\nUNT")
+    if (includeExtraTimes) {
+      wire = wire.replace("QTY+136:500'", `QTY+136:500'\nDTM+597:${first}'`)
+        .replace("QTY+136:7'", `QTY+136:7'\nDTM+597:${second}'`)
+    }
+    return recountEdifactUnt(wire)
+  }
+  const clean = await preparedEnergy(code, raw => twoEnergyValues(raw, false))
+  const extra = await preparedEnergy(code, raw => twoEnergyValues(raw, true))
+  expect(clean.runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
+  expect(extra.runtime.transactionDispositions).toEqual(clean.runtime.transactionDispositions)
+  expect(extra.runtime.ackPlan).toEqual(clean.runtime.ackPlan)
+
+  const actorUserId = '56000000-0000-4000-8000-000000000006'
+  const cleanCommand = prepareUtiltsPersistenceRpcArguments({ ...clean.input, actorUserId })
+  const extraCommand = prepareUtiltsPersistenceRpcArguments({ ...extra.input, actorUserId })
+  expect(extraCommand.p_raw_payload).toContain(`DTM+597:${first}'`)
+  expect(extraCommand.p_raw_payload).toContain(`DTM+597:${second}'`)
+  expect(extraCommand.p_transactions[0].quantities).toEqual(cleanCommand.p_transactions[0].quantities)
+  expect(extra.contracts[0].observations).toEqual(clean.contracts[0].observations)
+  expect(extraCommand.p_transactions[0].quantities.map(quantity => 'readingAt' in quantity ? quantity.readingAt : null)).toEqual(
+    code === 'E30' ? ['2026-06-30T23:00:00.000Z', '2026-06-30T23:15:00.000Z'] : [null, null],
+  )
+})
+
 it('E30 projection resolves local interval arithmetic before extraction and S07 cannot consume', async () => {
   const e30 = await preparedEnergy('E30'), s07 = await preparedEnergy('S07')
   expect(e30.contracts[0]).toMatchObject({ messageCode: 'E30', observations: [{ quantity: '500', periodStart: '2026-06-30T23:00:00.000Z', periodEnd: '2026-06-30T23:15:00.000Z', resolution: 'PT15M' }] })

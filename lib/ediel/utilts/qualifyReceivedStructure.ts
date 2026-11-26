@@ -11,7 +11,7 @@ import {parseSourceReceiptInstant} from './receivedSourceInventory'
 import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure,type StructuralComparison} from './structuralComparison'
-import {superfluousE66EnergyTimestampIndices,usesE66SuperfluousEnergyTimestampPolicy} from './e66ObservationTimestampDiagnostic'
+import {ignoredUtiltsEnergyTimestampIndices} from './e66ObservationTimestampDiagnostic'
 import {rebuildUtiltsRuntimeResult,takeUtiltsRuntimeOwner,utiltsRuntimeOwnerFingerprint,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
 import {resolveUtiltsProcessabilityPolicy} from '@/lib/ediel/rulebook/utilts25A4'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -157,8 +157,8 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
   }).map(({disposition,index})=>[index,{transactionId:disposition.transactionId,status:'unavailable' as const,
     reason:'utilts_consumption_identity_unsupported',codes:[],selected:[]}]))
   const comparisonEnabled=resolveUtiltsProcessabilityPolicy(canonicalPolicy.referenceDate).validateMeterAndRegisterAgainstStructuralInformation
-  const ignoredEnergyTimestamps = comparisonEnabled && usesE66SuperfluousEnergyTimestampPolicy(canonicalPolicy)
-    ? superfluousE66EnergyTimestampIndices(raw ?? '')
+  const ignoredEnergyTimestamps = comparisonEnabled
+    ? ignoredUtiltsEnergyTimestampIndices(raw ?? '', canonicalPolicy)
     : undefined
   const compareEligible=eligible.filter(({index})=>!identityFailures.has(index))
   const needsReadset=comparisonEnabled&&compareEligible.some(({index})=>compareUtiltsStructure({raw:raw??'',transactionIndex:index,
