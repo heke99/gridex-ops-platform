@@ -4,9 +4,10 @@ import { expect } from 'vitest'
 
 // Shared by the UTILTS native consumption suite: checksum-bound committed
 // migration bodies and the installed persistence catalog receipt shape.
-export function committedPersistenceBody(revision: string, migration: string, functionName: string) {
+export function committedPersistenceBody(revision: string, migration: string, functionName: string,
+  manifestName = 'migration-history-manifest.json') {
   const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
-  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/${manifestName}`], { encoding: 'utf8' })) as { files: Record<string, string> }
   expect(createHash('sha256').update(source).digest('hex'), migration).toBe(manifest.files[migration])
   // This extracts one specifically named, checksum-bound migration body. It
   // never treats a search of the installed catalog as dependency proof.
@@ -97,6 +98,52 @@ export function committedDurableE66WrapperBody(revision: string, predecessorBody
   const bodies = [...owners[0].matchAll(/public_body constant text := \$body\$([\s\S]*?)\$body\$;/g)]
   expect(bodies, migration).toHaveLength(1)
   return { migration, migrationHash, body: bodies[0][1] }
+}
+export function committedSg11E66WrapperBody(revision: string, baseBody: string) {
+  const migration = '20261124152200_hold_e66_sg11_timestamp_for_review.sql'
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.additions.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const migrationHash = createHash('sha256').update(source).digest('hex')
+  expect(migrationHash, migration).toBe(manifest.files[migration])
+
+  const owner = "owner:='public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)'::regprocedure;"
+  const owners = [...source.matchAll(/DO \$owners\$([\s\S]*?)\$owners\$;/g)]
+  expect(owners, migration).toHaveLength(1)
+  const blocks = owners[0][1].split(owner)
+  expect(blocks, `${migration}:public wrapper`).toHaveLength(2)
+  const block = blocks[1].split("\n owner:=")[0]
+  const guardHash = block.match(/encode\(sha256\(convert_to\(body,'UTF8'\)\),'hex'\)<>'([0-9a-f]{64})'/)?.[1]
+  const prefix = block.match(/prefix:='([^']+)';/)?.[1]
+  const transition = block.match(/transition:=\$write\$([\s\S]+?)\$write\$;/)?.[1]
+  if (!guardHash || !prefix || !transition
+    || !block.includes('EXECUTE replace(definition,body,replace(body,prefix,transition||prefix));')) {
+    throw Error('native_e66_sg11_wrapper_source_chain_conflict')
+  }
+  expect(createHash('sha256').update(baseBody).digest('hex'), `${migration}:predecessor`).toBe(guardHash)
+  expect(baseBody.split(prefix), `${migration}:replacement anchor`).toHaveLength(2)
+  return { migration, migrationHash, body: baseBody.replace(prefix, () => transition + prefix) }
+}
+export function committedMixedE66SealBody(revision: string, baseBody: string) {
+  const migration = '20261125100114_bound_mixed_e66_e73_coverage_revalidation.sql'
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.additions.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const migrationHash = createHash('sha256').update(source).digest('hex')
+  expect(migrationHash, migration).toBe(manifest.files[migration])
+
+  const target = "target regprocedure:='gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(uuid,uuid,uuid)';"
+  const patches = [...source.matchAll(/DO \$patch\$([\s\S]*?)\$patch\$;/g)].map(match => match[1])
+    .filter(block => block.includes(target))
+  expect(patches, migration).toHaveLength(1)
+  const block = patches[0]
+  const guardHash = block.match(/encode\(sha256\(convert_to\(original\.prosrc,'UTF8'\)\),'hex'\) <> '([0-9a-f]{64})'/)?.[1]
+  const previous = block.match(/previous constant text:=\$previous\$([\s\S]+?)\$previous\$;/)?.[1]
+  const replacement = block.match(/replacement constant text:=\$replacement\$([\s\S]+?)\$replacement\$;/)?.[1]
+  if (!guardHash || !previous || !replacement || !block.includes('changed:=replace(original.prosrc,previous,replacement);')) {
+    throw Error('native_mixed_e66_seal_source_chain_conflict')
+  }
+  expect(createHash('sha256').update(baseBody).digest('hex'), `${migration}:predecessor`).toBe(guardHash)
+  expect(baseBody.split(previous), `${migration}:replacement anchor`).toHaveLength(2)
+  return baseBody.replace(previous, () => replacement)
 }
 function s01AreaExpectedPrecisionBody(baseBody: string, source: string) {
   const signature='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'

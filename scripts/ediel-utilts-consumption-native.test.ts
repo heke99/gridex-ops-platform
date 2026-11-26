@@ -24,10 +24,12 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
 import {
   committedDurableE66WrapperBody,
+  committedMixedE66SealBody,
   committedPatchedBody,
   committedPersistenceBody,
   committedS01AreaPrecisionBody,
   committedSc046ReturnStateBody,
+  committedSg11E66WrapperBody,
   type PersistenceCatalogReceipt,
 } from './helpers/utiltsPersistenceCatalog'
 const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
@@ -912,10 +914,40 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   const publicEntry = signatures[0]
   const ownedPersistence = 'gridex_e66_intake.persist_owned_utilts_v1(uuid,text,uuid,text,text,jsonb,uuid)'
   const ownedMetering = 'gridex_e66_intake.consume_owned_e66_meter_v1(uuid,uuid,text,integer,uuid,jsonb)'
+  const scopedMetering = 'gridex_e66_intake.consume_owned_e66_meter_scoped_v1(uuid,uuid,text,integer,uuid,jsonb,uuid[])'
+  const mixedQualification = 'gridex_e66_intake.commit_mixed_qualification_v1(uuid,text,uuid,uuid,uuid,uuid,uuid,jsonb)'
+  const mixedSeal = 'gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(uuid,uuid,uuid)'
   const durableOwners = [ownedPersistence, ownedMetering]
+  const privateE66Owners = [...durableOwners, scopedMetering, mixedQualification]
+  // Each new callsite is paired with the committed migration that defines it.
+  const actorCheck = 'require_execution_actor_v1'
+  const writer = 'persist_owned_utilts_v1'
+  const meter = 'consume_owned_e66_meter_v1'
+  const scopedMeter = 'consume_owned_e66_meter_scoped_v1'
+  const mixedWriter = 'commit_mixed_qualification_v1'
+  const mixedQualificationMigration = '20261124152310_qualify_mixed_e66_per_ide.sql'
+  const mixedMeteringMigration = '20261124152320_normalize_mixed_e66_per_ide.sql'
+  const mixedReplyMigration = '20261124152330_verify_mixed_e66_e73_reply_basis.sql'
+  const laterCallers = [
+    [ownedMetering, mixedMeteringMigration, scopedMeter],
+    [mixedQualification, mixedQualificationMigration, writer],
+    [scopedMetering, mixedMeteringMigration, actorCheck],
+    ['gridex_e66_metering_stage.consume_mixed_chunk_v1(uuid,text,uuid,uuid,uuid,text,integer,integer)', mixedMeteringMigration, scopedMeter],
+    ['public.gridex_commit_mixed_e66_qualification_v1(uuid,text,uuid,uuid,uuid,uuid,uuid,jsonb)', mixedQualificationMigration, mixedWriter],
+    ['gridex_e66_intake.mixed_billing_admission_v1(uuid,uuid,uuid)', '20261124152402_prepare_mixed_e66_billing_in_test.sql', actorCheck],
+    ['gridex_e66_intake.mixed_billing_admission_v2(uuid,uuid,uuid,uuid)', '20261125100112_restore_legacy_mixed_e66_correction_replacement.sql', actorCheck],
+    ['gridex_e66_intake.prepare_mixed_billing_v2(uuid,uuid,uuid)', '20261125100110_project_mixed_e66_multisource_billing_underlays.sql', actorCheck],
+    ['gridex_e66_intake.read_mixed_e73_coverage_v1(uuid,text,uuid,uuid)', mixedReplyMigration, actorCheck],
+    ['gridex_e66_intake.read_mixed_e73_ide_readiness_v1(uuid,text,uuid,uuid,text)', mixedReplyMigration, actorCheck],
+    [mixedSeal, '20261125100109_seal_mixed_e66_multisource_billing_coverage.sql', actorCheck],
+    ['public.gridex_commit_e66_e50_rejection_v1(uuid,text,uuid,uuid,uuid,uuid,jsonb)', '20261125100106_complete_durable_e66_e50_utilts_err.sql', writer],
+    ['public.gridex_read_mixed_e66_billing_readiness_batch_v1(uuid,uuid,uuid,integer,integer)', '20261125100111_read_mixed_e66_billing_readiness_batch.sql', actorCheck],
+    ['public.gridex_requalify_planned_move_out_metering_value_v1(uuid,uuid,text,uuid)', '20261125100129_requalify_single_planned_move_out_metering.sql', actorCheck, 'migration-history-manifest.runtime.additions.json'],
+  ] as const
+  const serviceEntries = new Set<string>([publicEntry, ...laterCallers.map(([signature]) => signature).filter(signature => signature.startsWith('public.'))])
   const baselineOwners = new Set<string>(signatures)
-  const allowed = new Set<string>([...signatures, ...durableOwners])
-  const privateOwners = [...signatures.filter(signature => signature.startsWith('gridex_utilts_binding.')), ...durableOwners]
+  const allowed = new Set<string>([...signatures, ...durableOwners, ...laterCallers.map(([signature]) => signature)])
+  const privateOwners = [...signatures.filter(signature => signature.startsWith('gridex_utilts_binding.')), ...privateE66Owners]
   const catalog = sql<PersistenceCatalogReceipt>(`WITH RECURSIVE
    app_roots AS (SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator')),
    set_roles(root_oid,role_oid,path) AS (
@@ -982,11 +1014,13 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
       : s01Precision ? '20261023201053_ediel_s01_area_aggregate_identity.sql' : patch ? patch[0] : migration, ...installed }
   })
-  // Cutover retained the old public ABI and moved its complete SC046 body into
-  // the one private writer. Keep both byte-for-byte catalog assertions.
+  // Cutover moved the complete SC046 body into the private writer. The public
+  // wrapper retained its ABI and later gained the SG11 compatibility guard.
+  // Both expected bodies come from the committed sources.
   const predecessorBody = expected[0]
+  const durableWrapper = committedDurableE66WrapperBody(revision, predecessorBody.body)
   const installedOwners = [
-    { signature: publicEntry, ...committedDurableE66WrapperBody(revision, predecessorBody.body) },
+    { signature: publicEntry, ...committedSg11E66WrapperBody(revision, durableWrapper.body) },
     { ...predecessorBody, signature: ownedPersistence },
     ...expected.slice(1),
   ]
@@ -1008,13 +1042,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     return [fn.signature, privateNames.filter(name => discoverySource.includes(name))] as const
   }).filter(([, callees]) => callees.length > 0))
   // Keep actor checks and persistence calls explicit for every reviewed E66 caller.
-  const actorCheck = 'require_execution_actor_v1'
-  const writer = 'persist_owned_utilts_v1'
-  const meter = 'consume_owned_e66_meter_v1'
   const reviewedE66Calls = new Map<string, string[]>([
     [publicEntry, [actorCheck, writer]],
     [ownedPersistence, [actorCheck, 'persist_consumption_before_actor_v1']],
-    [ownedMetering, [actorCheck]],
     ['gridex_e66_intake.require_dispatch_scope(uuid,text,uuid,uuid)', [actorCheck]],
     ['gridex_e66_request_retry.require_terminal_lease(uuid,text,uuid,uuid,uuid,uuid)', [actorCheck]],
     ['public.gridex_claim_e66_terminal_handoff_v1(uuid,text,uuid,uuid)', [actorCheck]],
@@ -1025,6 +1055,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     ['public.gridex_commit_e66_registration_rejection_v1(uuid,text,uuid,uuid,uuid,uuid,jsonb)', [writer]],
     ['public.gridex_consume_dispatched_e66_metering_v1(uuid,text,uuid,uuid,uuid,uuid,integer,integer)', [meter]],
     ['public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)', [meter]],
+    ...laterCallers.map(([signature, , callee]): [string, string[]] => [signature, [callee]]),
   ])
   const dynamicDefinitions = catalog.functions.filter(fn => fn.language === 'plpgsql' && /\bEXECUTE\b/i.test(fn.source))
   const preupgradePath = process.env.GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
@@ -1083,6 +1114,17 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     expect(fn.securityDefiner, signature).toBe(true)
     expect(fn.acl, signature).toEqual([{ grantee: fn.owner, privilege: 'EXECUTE', grantable: false }])
   }
+  for (const [signature, migration, , manifest] of laterCallers) {
+    const fn = actual.get(signature)!
+    const { body } = committedPersistenceBody(revision, migration, signature.split('(')[0],
+      manifest ?? 'migration-history-manifest.additions.json')
+    expect(fn.source, signature).toBe(signature === mixedSeal ? committedMixedE66SealBody(revision, body) : body)
+    expect(fn.owner, signature).toBe(actual.get(publicEntry)!.owner)
+    expect(fn.securityDefiner, signature).toBe(serviceEntries.has(signature) || signature === ownedMetering)
+    const acl = [{ grantee: fn.owner, privilege: 'EXECUTE', grantable: false }]
+    if (serviceEntries.has(signature)) acl.push({ grantee: 'service_role', privilege: 'EXECUTE', grantable: false })
+    expect(fn.acl, signature).toEqual(acl)
+  }
   expect(actual.get(publicEntry)!.argumentNames).toEqual(['p_company_id', 'p_environment', 'p_source_message_id', 'p_message_code', 'p_raw_payload', 'p_transactions', 'p_actor_user_id'])
   expect(actual.get(publicEntry)!.defaultCount).toBe(1)
   expect(actual.get(publicEntry)!.defaults).toBe('NULL::uuid')
@@ -1094,9 +1136,11 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     if (role.root === 'anon' || role.root === 'authenticated') expect(role.effectiveRole).not.toBe('service_role')
   }
   for (const row of catalog.roleMatrix.filter(row => allowed.has(row.signature))) {
-    const permitted = row.signature === publicEntry && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
+    const permitted = serviceEntries.has(row.signature) && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
     expect(row.execute, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(permitted)
-    if (durableOwners.includes(row.signature)) expect(row.schemaUsage, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(false)
+    if (privateE66Owners.includes(row.signature)) {
+      expect(row.schemaUsage, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(false)
+    }
   }
   for (const dependency of catalog.dependencies) {
     expect(dependency.functionSignature, `unreviewed tracked dependant: ${dependency.description}`).not.toBeNull()
@@ -1104,7 +1148,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     const targetName = dependency.target.slice(dependency.target.indexOf('.') + 1, dependency.target.indexOf('('))
     const reviewed = reviewedE66Calls.get(caller)
     const permitted = reviewed ? reviewed.includes(targetName)
-      : baselineOwners.has(caller) && !durableOwners.includes(dependency.target)
+      : baselineOwners.has(caller) && !privateE66Owners.includes(dependency.target)
     expect(permitted, `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
   }
   for (const [signature, callees] of reviewedE66Calls) {
@@ -1113,7 +1157,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   for (const [signature, callees] of observedPrivateCalls) {
     if (reviewedE66Calls.has(signature)) continue
     expect(baselineOwners.has(signature), `unreviewed late-bound named producer: ${signature}`).toBe(true)
-    expect(callees.includes(writer) || callees.includes(meter), `unreviewed durable producer: ${signature}`).toBe(false)
+    expect(callees.some(callee => [writer, meter, scopedMeter, mixedWriter].includes(callee)), `unreviewed durable producer: ${signature}`).toBe(false)
   }
   if (before) {
     expect(actual.get(signatures[2])!.oid, 'renamed predecessor must preserve the genuine pre-upgrade public6 OID').toBe(before.oldPublic6Oid)
