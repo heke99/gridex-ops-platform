@@ -76,6 +76,24 @@ describe('private fullmakt PDF storage', () => {
     expect(io.db.storageUploads).toHaveLength(2)
     expect((io.db.tables.powers_of_attorney[0].metadata as Row).document_archive).toMatchObject({ previous_paths: [first.path] })
   })
+  it('rejects readable PDF bytes when they differ from the exact archived original', async () => {
+    const original = await ensurePoaPdfArchive(scope)
+    const key = `customer-documents/${original.path}`
+    const changed = Buffer.from(original.pdf.toString('latin1').replace('Accepted terms', 'Modified terms'), 'latin1')
+    expect(changed.length).toBe(original.pdf.length)
+    expect(changed).not.toEqual(original.pdf)
+    io.db.storageFiles.set(key, changed)
+
+    await expect(ensurePoaPdfArchive(scope)).rejects.toThrow('kontrollsumma')
+    const fingerprint = poaMailEvidenceFingerprint(io.db.tables.powers_of_attorney[0])
+    await expect(savePoaPdfArchive(scope, original.pdf, fingerprint)).rejects.toThrow('kontrollsumma')
+    const request = new NextRequest(`http://localhost/api/admin/powers-of-attorney/${PA}/document`)
+    const response = await GET(request, { params: Promise.resolve({ powerOfAttorneyId: PA }) })
+    expect(response.status).toBe(422)
+    expect(await response.json()).toEqual({ error: 'poa_document_unavailable' })
+    expect(io.db.storageFiles.get(key)).toEqual(changed)
+    expect(io.db.storageUploads).toHaveLength(1)
+  })
   it('cannot archive a customer/POA belonging to another tenant', async () => {
     await expect(ensurePoaPdfArchive({ ...scope, powerOfAttorneyId: PB })).rejects.toThrow('hittades inte')
     expect(io.db.storageUploads).toHaveLength(0)

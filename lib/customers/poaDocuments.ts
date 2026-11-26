@@ -105,6 +105,20 @@ async function download(path: string, scope: PoaDocumentScope, verifiedPartnerOr
   return bytes
 }
 
+export class PoaArchiveChecksumMismatchError extends Error {
+  constructor() {
+    super('Det befintliga fullmaktsarkivets kontrollsumma matchar inte originalet.')
+  }
+}
+
+async function downloadVerifiedArchive(path: string, scope: PoaDocumentScope, sha256: string): Promise<Buffer> {
+  const pdf = await download(path, scope)
+  if (createHash('sha256').update(pdf).digest('hex') !== sha256) {
+    throw new PoaArchiveChecksumMismatchError()
+  }
+  return pdf
+}
+
 // No overwrite: a signed/uploaded original and its bytes survive later edits
 // to the customer, tenant profile or email templates. New consent gets a new POA.
 export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, expectedEvidenceFingerprint: string) {
@@ -113,14 +127,15 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
   const previousPath = clean(poa.document_path)
   const previousArchive = record(record(poa.metadata).document_archive)
   const archivePrefix = `companies/${scope.companyId}/customers/${scope.customerId}/powers-of-attorney/${scope.powerOfAttorneyId}/`
-  const isArchived = previousPath?.startsWith(archivePrefix) && Boolean(previousArchive.sha256)
+  const previousSha256 = clean(previousArchive.sha256)
+  const isArchived = previousPath?.startsWith(archivePrefix) && Boolean(previousSha256)
   const priorOwner = previousPath ? archiveOwner(previousPath, scope) : null
   const movedArchive = Boolean(priorOwner && priorOwner.customerId !== scope.customerId && previousArchive.path === previousPath && previousArchive.sha256 === priorOwner.sha256)
   const originalUpload = Boolean(previousPath && !isArchived && !movedArchive)
   if (previousPath && !isArchived) pdf = await download(previousPath, scope, poa.source === 'partner_api', poa)
   const sha256 = createHash('sha256').update(pdf).digest('hex')
-  if (isArchived && previousPath && previousArchive.sha256 === sha256) {
-    return { path: previousPath, pdf: await download(previousPath, scope) }
+  if (isArchived && previousPath && previousSha256 === sha256) {
+    return { path: previousPath, pdf: await downloadVerifiedArchive(previousPath, scope, sha256) }
   }
   if (!inspectPdfStructure(pdf).ok) throw new Error('Fullmakten kunde inte arkiveras som en läsbar PDF.')
   for (const value of Object.values(scope)) if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('Ogiltig dokumentkoppling.')
@@ -129,8 +144,7 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
   let original = pdf
   if (result.error) {
     if (String((result.error as { statusCode?: unknown }).statusCode) !== '409') throw result.error
-    original = await download(path, scope)
-    if (createHash('sha256').update(original).digest('hex') !== sha256) throw new Error('Det befintliga fullmaktsarkivets kontrollsumma matchar inte originalet.')
+    original = await downloadVerifiedArchive(path, scope, sha256)
   }
   const archive = { storage_bucket: BUCKET, path, sha256: createHash('sha256').update(original).digest('hex'),
     saved_at: new Date().toISOString(), verification_number: poaMailEvidence(poa).verificationReference,
@@ -152,7 +166,7 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
     if (!currentPath || currentPath !== path || evidenceFingerprint(current) !== evidenceFingerprint(poa)) {
       throw new Error('Fullmakten ändrades samtidigt. Läs om underlaget före arkivering eller utskick.')
     }
-    return { path: currentPath, pdf: await download(currentPath, scope) }
+    return { path: currentPath, pdf: await downloadVerifiedArchive(currentPath, scope, sha256) }
   }
   return { path, pdf: original }
 }
@@ -162,9 +176,12 @@ export async function ensurePoaPdfArchive(scope: PoaDocumentScope) {
   const previousPath = clean(poa.document_path)
   const archive = record(record(poa.metadata).document_archive)
   if (previousPath && /\.pdf$/i.test(previousPath)) {
-    const archived = previousPath.startsWith(`companies/${scope.companyId}/customers/${scope.customerId}/powers-of-attorney/${scope.powerOfAttorneyId}/`) && Boolean(archive.sha256)
-    if (!archived) return savePoaPdfArchive(scope, await download(previousPath, scope, poa.source === 'partner_api', poa), evidenceFingerprint(poa))
-    if (archive.original_upload || archive.evidence_sha256 === evidenceFingerprint(poa)) return { path: previousPath, pdf: await download(previousPath, scope) }
+    const sha256 = clean(archive.sha256)
+    const ownArchive = previousPath.startsWith(`companies/${scope.companyId}/customers/${scope.customerId}/powers-of-attorney/${scope.powerOfAttorneyId}/`)
+    if (!ownArchive || !sha256) return savePoaPdfArchive(scope, await download(previousPath, scope, poa.source === 'partner_api', poa), evidenceFingerprint(poa))
+    if (archive.original_upload || archive.evidence_sha256 === evidenceFingerprint(poa)) {
+      return { path: previousPath, pdf: await downloadVerifiedArchive(previousPath, scope, sha256) }
+    }
   }
   if (!['signed', 'active', 'accepted', 'completed', 'expired', 'revoked', 'replaced', 'superseded'].includes(String(poa.status))) {
     throw new Error('Fullmakten har ännu inget registrerat godkännande att skapa PDF från.')
