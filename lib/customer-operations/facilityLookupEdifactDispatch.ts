@@ -350,6 +350,7 @@ export async function dispatchFacilityLookupEdifact(input: {
   const existingOutbound = await findExistingDispatchForRequest(request)
   const operationId = clean(input.operationId) ?? clean(request.operation_id) ?? randomUUID()
   const environment = input.environment ?? await resolveOutboundRuntimeEnvironment({
+    companyId: request.company_id,
     preferredRouteId: routeReadiness.communicationRouteId,
     explicitEnvironment: input.environment ?? null,
   })

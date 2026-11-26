@@ -21,6 +21,7 @@ import {
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
+import { postgrestEq, UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
 import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionTypes'
@@ -40,6 +41,7 @@ function normalizeEdielEnvironment(value?: string | null): EdielEnvironment | nu
 }
 
 export async function resolveOutboundRuntimeEnvironment(params: {
+  companyId: string
   preferredRouteId?: string | null
   explicitEnvironment?: EdielEnvironment | null
 }): Promise<EdielEnvironment> {
@@ -50,11 +52,17 @@ export async function resolveOutboundRuntimeEnvironment(params: {
     throw new Error('environment_not_resolved: route eller explicit miljö krävs innan Ediel-runtime kan väljas.')
   }
 
+  const companyId = params.companyId?.trim()
+  if (!companyId || !UUID_PATTERN.test(companyId)) {
+    throw new Error('environment_not_resolved: giltigt bolag krävs för att läsa vald Ediel-route.')
+  }
+
   const { data, error } = await supabaseService
     .from('communication_routes')
     .select('environment_type,target_system,target_email')
     .eq('id', params.preferredRouteId)
     .eq('is_active', true)
+    .or(`company_id.is.null,${postgrestEq('company_id', companyId)}`)
     .maybeSingle()
 
   if (error) throw error

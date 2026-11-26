@@ -64,6 +64,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     : null
 
   const environment = await resolveOutboundRuntimeEnvironment({
+    companyId,
     preferredRouteId: params.communicationRouteId ?? null,
     explicitEnvironment: params.environment ?? null,
   })
@@ -237,6 +238,7 @@ export async function prepareAndQueueUtiltsE66(params: {
     : null
 
   const environment = await resolveOutboundRuntimeEnvironment({
+    companyId,
     preferredRouteId: params.communicationRouteId ?? null,
     explicitEnvironment: params.environment ?? null,
   })
