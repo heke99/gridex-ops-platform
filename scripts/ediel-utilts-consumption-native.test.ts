@@ -16,12 +16,13 @@ import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptio
 import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
+import { recordInboundReception } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry, seedSentE73ForUtiltsConsumption } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry, receiveObservedUtilts, seedSentE73ForUtiltsConsumption } from './helpers/utiltsConsumptionParties'
 import {
   committedDurableE66WrapperBody,
   committedMixedE66SealBody,
@@ -59,7 +60,7 @@ function sql<T = unknown>(input: string, maxBuffer = 2000000): T {   if (process
   if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
-async function seed({ matchSentRequest = false } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+async function seed({ matchSentRequest = false, withImapReceipt = false } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
   const { ediel, issuer } = seedUtiltsConsumptionParties(sql, lit, ids.actor)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
@@ -104,9 +105,21 @@ async function seed({ matchSentRequest = false } = {}) {   const ids = { source:
     const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw.replace(/(UNB\+[^']*)\+\+1'/, "$1'") /* production: no UNB test flag */), sourceId)
     const { id, parsed } = fixture
     raw = fixture.raw
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,ids.request].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+    const mailbox = withImapReceipt ? await receiveObservedUtilts(sql, lit, {
+      companyId: ids.company, actorUserId: ids.actor, raw, parsed, receivedAt,
+    }) : null
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,inbound_email_message_id,mailbox_message_id)
+     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,ids.request].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,${lit(mailbox?.inboundEmailMessageId ?? null)},${lit(mailbox?.inboundEmailMessageId ?? null)}
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+    if (mailbox) {
+      const receipt = await recordInboundReception({ companyId: ids.company, actorUserId: ids.actor, messageId: id, ...mailbox })
+      expect(receipt.classification).toBe('first_reception')
+      const clock = sql<{ source: string; receivedAt: string }>(`SET ROLE service_role;
+        SELECT public.gridex_read_ediel_inbound_receipt_clock_v1(${lit(ids.company)},${lit(id)});
+        RESET ROLE;`)
+      expect(clock.source).toBe('imap_internal_date')
+      expect(Date.parse(clock.receivedAt)).toBe(Date.parse(receivedAt))
+    }
     seedUtiltsIssuerHistoryGround(sql, lit, id, ids.actor)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
@@ -720,20 +733,15 @@ it('real downstream writers consume database-derived stored values and retry ide
   expect((await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
-it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
-  const f = await seed({ matchSentRequest: true })
-  await realSinks()
-  observeE66Completion()
-  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
-  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+const protectedBillingFields = ['month', 'year', 'currency', 'contributors', 'missing-contributors'] as const
+function simulateHistoricalBillingCorruption(companyId: string, field: typeof protectedBillingFields[number]) {
   const protectedBillingState = () => sql(`SELECT jsonb_build_array(underlay_month,underlay_year,currency,payload->'consumptionContracts')
-    FROM public.billing_underlays WHERE company_id=${lit(f.ids.company)}`)
+    FROM public.billing_underlays WHERE company_id=${lit(companyId)}`)
   const beforeMutation = protectedBillingState()
   const mutation = field === 'month' ? 'underlay_month=underlay_month % 12 + 1' : field === 'year' ? 'underlay_year=underlay_year + 1'
     : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)"
       : "payload=payload-'consumptionContracts'"
-  const update = `UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)};`
+  const update = `UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(companyId)};`
   expect(() => sql(update)).toThrow('e66_billing_calendar_member_immutable')
   expect(protectedBillingState()).toEqual(beforeMutation)
   // Simulate persisted historical corruption in this disposable native fixture.
@@ -744,6 +752,15 @@ it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('
     ALTER TABLE public.billing_underlays ENABLE TRIGGER e66_billing_calendar_member_guard;
     COMMIT;`)
   expect(protectedBillingState()).not.toEqual(beforeMutation)
+}
+it.each(protectedBillingFields)('full processor rejects changed billing %s after insert before completion', async field => {
+  const f = await seed({ matchSentRequest: true })
+  await realSinks()
+  observeE66Completion()
+  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  simulateHistoricalBillingCorruption(f.ids.company, field)
   const afterMutation = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
   e66Completion.mockClear()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
@@ -1266,9 +1283,8 @@ it('R1 environment collision cannot add lineage or overwrite an existing result'
   expect((await sinkRpc(b, 'metering')).error?.message).toContain('existing_metering_environment_conflict')
   expect(sinkState(f.ids.company)).toEqual(before); expect(snapshot(source.id)).toEqual(persisted)
 })
-async function realCompletion() {
-  const db = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')
-  effects.complete.mockImplementation(db.syncGridOwnerDataRequestReceivedFromEdiel)
+async function observeE66CompletionAndStoreStatus() {
+  observeE66Completion()
   const ediel = await vi.importActual<typeof import('@/lib/ediel/db')>('@/lib/ediel/db')
   effects.status.mockImplementation(ediel.updateEdielMessageStatus)
 }
@@ -1276,13 +1292,16 @@ function requestState(request: string) {
   return sql<{ status: string; response_payload: { billingUnderlayId: string } }>(`SELECT to_jsonb(r) FROM public.grid_owner_data_requests r WHERE id=${lit(request)}`)
 }
 it.each(['completed', 'after-real-completion-before-ack', 'foreign-response-id', 'stale-response-id'])('R2 %s reuses verified underlay and preserves request/message/return lineage', async boundary => {
-  const f = await seed()
-  await realSinks(); await realCompletion()
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
+  await realSinks(); await observeE66CompletionAndStoreStatus()
   if (boundary === 'after-real-completion-before-ack') effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
   const first = processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   if (boundary === 'after-real-completion-before-ack') await expect(first).rejects.toThrow('after_real_completion')
   else await first
-  const id = requestState(f.ids.request).response_payload.billingUnderlayId
+  const completed = requestState(f.ids.request)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
+  expect(completed.status).toBe('received')
+  const id = completed.response_payload.billingUnderlayId
   expect(id).toMatch(/^[a-f0-9-]{36}$/)
   if (boundary === 'foreign-response-id') {
     const foreign = await seed(); await persistUtiltsTransactionResults(await foreign.prepare())
@@ -1293,26 +1312,28 @@ it.each(['completed', 'after-real-completion-before-ack', 'foreign-response-id',
   sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE id=${lit(id)}`)
   const billBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)
   effects.bill.mockClear()
+  e66Completion.mockClear()
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(effects.bill).toHaveBeenCalledTimes(1); expect(replay.billingUnderlayId).toBe(id)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(requestState(f.ids.request).response_payload.billingUnderlayId).toBe(id)
   expect(sql(`SELECT to_jsonb(parsed_payload->>'billingUnderlayId') FROM public.ediel_messages WHERE id=${lit(f.original.id)}`)).toBe(id)
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)).toEqual(billBefore)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
-it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('R2 populated response cannot bypass changed existing billing %s', async field => {
-  const f = await seed(); await realSinks(); await realCompletion()
+it.each(protectedBillingFields)('R2 populated response cannot bypass changed existing billing %s', async field => {
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true }); await realSinks(); await observeE66CompletionAndStoreStatus()
   effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('after_real_completion')
   const before = requestState(f.ids.request), persisted = snapshot(f.original.id)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
+  expect(before.status).toBe('received')
   expect(before.response_payload.billingUnderlayId).toBeTruthy()
-  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
-    : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)" : "payload=payload-'consumptionContracts'"
-  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  simulateHistoricalBillingCorruption(f.ids.company, field)
   const billingBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.ack.mockClear(); effects.complete.mockClear(); effects.status.mockClear()
+  effects.ack.mockClear(); e66Completion.mockClear(); effects.status.mockClear()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('existing_billing_conflict')
-  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
   expect(requestState(f.ids.request)).toEqual(before); expect(snapshot(f.original.id)).toEqual(persisted)
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(billingBefore)

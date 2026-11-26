@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } from '@/lib/ediel/flows/utiltsCanonicalValidation'
@@ -7,6 +7,8 @@ import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceiv
 import { captureEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import { edielSmtpConfig } from '@/lib/ediel/mailReadiness'
 import { prepareEdielOutboundOwnerWitness } from '@/lib/ediel/core/outboundOwnerWitness'
+import { storeMailboxFetchMessage } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
+import type { EdielMailboxRow } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 
 type Sql = <T = unknown>(input: string) => T
 type Lit = (value: unknown) => string
@@ -177,4 +179,30 @@ export function receiveUtiltsRetry(sql: Sql, lit: Lit, input: { companyId: strin
     INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,application_reference,interchange_reference,message_family,message_code,parse_status)
     VALUES(${lit(parse)},${lit(mail)},${lit(input.companyId)},${lit(p.rawPayload)},${lit(p.senderEdielId ?? null)},${lit(p.receiverEdielId ?? null)},${lit(p.applicationReference ?? null)},${lit(p.interchangeReference ?? null)},${lit(p.messageFamily ?? null)},${lit(p.messageCode ?? null)},'parsed')`)
   return { inboundEmailMessageId: mail, parseResultId: parse }
+}
+
+/** Feed synthetic retained bytes into the ordinary verified IMAP owner. There
+ * is no IMAP connection. The real owner stores the stable clock and intake job. */
+export async function receiveObservedUtilts(sql: Sql, lit: Lit, input: Parameters<typeof receiveUtiltsRetry>[2] & { receivedAt: string }) {
+  const box = randomUUID()
+  const recipient = edielSmtpConfig().from || 'synthetic-utilts-reception@example.invalid'
+  const mailbox = sql<EdielMailboxRow>(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox)
+    VALUES(${lit(box)},${lit(input.companyId)},'Synthetic UTILTS observed mailbox',${lit(recipient)},'test',true,false);
+    SELECT to_jsonb(b) FROM public.ediel_mailboxes b WHERE id=${lit(box)};`)
+  const source = Buffer.from([
+    'From: synthetic-issuer@example.invalid', `To: ${recipient}`, `Message-ID: <${box}@example.invalid>`,
+    'Content-Type: text/plain; charset=UTF-8', '', input.raw,
+  ].join('\r\n'))
+  const retained = await storeMailboxFetchMessage({
+    mailbox, actorUserId: input.actorUserId, message: { uid: 1, internalDate: new Date(input.receivedAt), source },
+    transport: { accountScope: createHash('sha256').update(box).digest('hex'), folder: 'INBOX', uidValidity: 1 },
+  })
+  if (retained.deduped) throw Error('native_observed_utilts_transport_was_not_new')
+  const parse = randomUUID(), p = input.parsed
+  sql(`INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,
+    application_reference,interchange_reference,message_family,message_code,parse_status)
+    VALUES(${lit(parse)},${lit(retained.id)},${lit(input.companyId)},${lit(p.rawPayload)},${lit(p.senderEdielId ?? null)},
+      ${lit(p.receiverEdielId ?? null)},${lit(p.applicationReference ?? null)},${lit(p.interchangeReference ?? null)},
+      ${lit(p.messageFamily ?? null)},${lit(p.messageCode ?? null)},'parsed');`)
+  return { inboundEmailMessageId: retained.id, parseResultId: parse }
 }
