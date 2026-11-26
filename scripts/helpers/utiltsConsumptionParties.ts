@@ -18,11 +18,12 @@ type Lit = (value: unknown) => string
  * with no SMTP call. */
 export async function seedSentE73ForUtiltsConsumption(sql: Sql, lit: Lit, ids: {
   company: string; actor: string; request: string; customer: string; site: string; point: string;
-  grid: string; ediel: string; issuer: string;
+  grid: string; ediel: string; issuer: string; requestedPeriod?: { from: string; until: string };
 }) {
   const id = randomUUID()
   const reference = `E73${id.replaceAll('-', '').slice(0, 16)}`
   const interchange = id.replaceAll('-', '').slice(0, 14)
+  const requestedPeriod = ids.requestedPeriod ?? { from: '202607010000', until: '202607010015' }
   const raw = [
     "UNA:+.? '",
     `UNB+UNOC:3+${ids.ediel}:ZZ+${ids.issuer}:ZZ+260630:2100+${interchange}++23-DDQ-E66-T+++1+1'`,
@@ -30,7 +31,7 @@ export async function seedSentE73ForUtiltsConsumption(sql: Sql, lit: Lit, ids: {
     "DTM+137:202606302100:203'", "DTM+735:?+0100:406'", "MKS+23+E02::260'", `RFF+TN:${reference}'`,
     `NAD+MS+${ids.ediel}:SVK:260'`, `NAD+MR+${ids.issuer}:SVK:260'`, `IDE+24+${reference}'`,
     "LOC+172+735999260731000007::9'", "LOC+239+TES:SVK:260'", "LIN+++8716867000030:::9'",
-    "DTM+324:202607010000202607010015:719'", "DTM+597:202606302100:203'", "STS+7++E73::260'",
+    `DTM+324:${requestedPeriod.from}${requestedPeriod.until}:719'`, "DTM+597:202606302100:203'", "STS+7++E73::260'",
     "FTX+AAO+++Request missing E66'", "FTX+ZZZ+++Consumption'", "RFF+E66'", "UNT+19+1'", `UNZ+1+${interchange}'`,
   ].join('')
   const registry = sql<{
