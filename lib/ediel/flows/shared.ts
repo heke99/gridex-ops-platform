@@ -52,24 +52,28 @@ export async function resolveOutboundRuntimeEnvironment(params: {
 
   const { data, error } = await supabaseService
     .from('communication_routes')
-    .select('target_system,target_email')
+    .select('environment_type,target_system,target_email')
     .eq('id', params.preferredRouteId)
+    .eq('is_active', true)
     .maybeSingle()
 
   if (error) throw error
+  if (!data) {
+    throw new Error('environment_not_resolved: vald Ediel-route saknas eller är inte aktiv.')
+  }
 
-  const targetSystem = String((data as { target_system?: string | null } | null)?.target_system ?? '').toLowerCase()
-  const targetEmail = String((data as { target_email?: string | null } | null)?.target_email ?? '').toLowerCase()
-
-  if (
-    targetSystem.includes('tgt') ||
-    targetSystem.includes('test') ||
-    targetEmail.endsWith('@ediel.se')
-  ) {
+  const { environment_type: declaredEnvironment, target_system, target_email } = data
+  if (declaredEnvironment === 'tgt_test' || declaredEnvironment === 'agt_test' || declaredEnvironment === 'bilateral_test') {
     return 'test'
   }
 
-  return 'production'
+  const targetSystem = (target_system ?? '').toLowerCase()
+  const targetEmail = (target_email ?? '').toLowerCase()
+  const legacyTestMarkers = targetSystem.includes('tgt') || targetSystem.includes('test') || targetEmail.endsWith('@ediel.se')
+  if (declaredEnvironment === 'production' && legacyTestMarkers) {
+    throw new Error('environment_not_resolved: produktionsrouten har motstridiga testuppgifter.')
+  }
+  return legacyTestMarkers ? 'test' : 'production'
 }
 
 export function ensureActorUserId(value?: string | null): string {
