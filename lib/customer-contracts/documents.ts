@@ -123,22 +123,44 @@ export async function archiveSignedCustomerContractPdf(input: {
   return response.data as CustomerContractDocumentRow;
 }
 
+type CustomerContractDocumentListRow = Pick<
+  CustomerContractDocumentRow,
+  "id" | "customer_contract_id" | "document_type" | "document_sha256" |
+  "storage_path" | "archived_at" | "generated_at"
+>;
+
 export async function listCustomerContractDocuments(
   customerContractIds: string[],
   options: { companyId?: string | null } = {},
-): Promise<CustomerContractDocumentRow[]> {
+): Promise<CustomerContractDocumentListRow[]> {
   if (customerContractIds.length === 0) return [];
 
-  let query = supabaseService
-    .from("customer_contract_documents")
-    .select("*")
-    .in("customer_contract_id", customerContractIds)
-    .order("generated_at", { ascending: false });
-  if (options.companyId) query = query.eq("company_id", options.companyId);
+  const pageSize = 500;
+  const documents: CustomerContractDocumentListRow[] = [];
+  let cursor: CustomerContractDocumentListRow | undefined;
+  // query-loop-budget: paginated-scan page=500
+  while (true) {
+    let query = supabaseService
+      .from("customer_contract_documents")
+      .select("id,customer_contract_id,document_type,document_sha256,storage_path,archived_at,generated_at")
+      .in("customer_contract_id", customerContractIds)
+      .order("generated_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(pageSize);
+    if (options.companyId) query = query.eq("company_id", options.companyId);
+    if (cursor) {
+      query = query.or(
+        `generated_at.lt.${cursor.generated_at},and(generated_at.eq.${cursor.generated_at},id.lt.${cursor.id})`,
+      );
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as CustomerContractDocumentRow[];
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = (data ?? []) as CustomerContractDocumentListRow[];
+    documents.push(...page);
+    if (page.length < pageSize) return documents;
+    cursor = page.at(-1);
+  }
 }
 
 export async function getCustomerContractDocumentById(

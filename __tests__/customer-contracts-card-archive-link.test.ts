@@ -22,6 +22,8 @@ const documentPath = (hash: string) => `${ids.company}/${ids.contract}/signed-co
 const href = (documentId: string) => `/api/admin/customer-contract-documents/${documentId}`
 let documents: CustomerContractDocumentRow[]
 let signedHash: string | null
+const MAX_POSTGREST_ROWS = 1000
+const documentPageSizes: number[] = []
 const download = vi.fn(async (path: string) => {
   const bytes = path === documentPath(digest(signedPdf)) ? signedPdf : originalPdf
   expect(path).toBe(documentPath(digest(bytes)))
@@ -70,15 +72,28 @@ vi.mock('@/lib/supabase/service', () => ({
     from: (table: string) => {
       expect(table).toBe('customer_contract_documents')
       let rows = documents
+      let limit = MAX_POSTGREST_ROWS
+      const orderColumns: ('generated_at' | 'id')[] = []
       const query = {
         select: () => query,
         in: (column: 'customer_contract_id', values: string[]) => {
           expect([column, values]).toEqual(['customer_contract_id', [ids.contract]])
           return query
         },
-        order: (column: string, options: { ascending: boolean }) => {
-          expect([column, options.ascending]).toEqual(['generated_at', false])
-          rows = [...rows].sort((a, b) => b.generated_at.localeCompare(a.generated_at))
+        order: (column: 'generated_at' | 'id', options: { ascending: boolean }) => {
+          expect(options.ascending).toBe(false)
+          orderColumns.push(column)
+          return query
+        },
+        limit: (value: number) => {
+          limit = Math.min(value, MAX_POSTGREST_ROWS)
+          return query
+        },
+        or: (filter: string) => {
+          const match = /^generated_at\.lt\.([^,]+),and\(generated_at\.eq\.\1,id\.lt\.([0-9a-f-]{36})\)$/.exec(filter)
+          if (!match) throw new Error('Unexpected document cursor')
+          const [, generatedAt, id] = match
+          rows = rows.filter((row) => row.generated_at < generatedAt || (row.generated_at === generatedAt && row.id < id))
           return query
         },
         eq: (column: 'company_id' | 'id', value: string) => {
@@ -86,8 +101,18 @@ vi.mock('@/lib/supabase/service', () => ({
           return query
         },
         maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
-        then: (resolve: (result: { data: CustomerContractDocumentRow[]; error: null }) => void) =>
-          resolve({ data: rows, error: null }),
+        then: (resolve: (result: { data: CustomerContractDocumentRow[]; error: null }) => void) => {
+          expect(orderColumns[0]).toBe('generated_at')
+          const page = [...rows].sort((a, b) => {
+            for (const column of orderColumns) {
+              const result = b[column].localeCompare(a[column])
+              if (result) return result
+            }
+            return 0
+          }).slice(0, limit)
+          documentPageSizes.push(page.length)
+          resolve({ data: page, error: null })
+        },
       }
       return query
     },
@@ -139,6 +164,7 @@ beforeEach(() => {
   signedHash = digest(signedPdf)
   documents = [archive(ids.original, originalPdf, '2026-11-01T13:00:00Z'), archive(ids.bound, signedPdf, signedAt)]
   download.mockClear()
+  documentPageSizes.length = 0
 })
 
 describe('signed contract PDF in Staff customer history', () => {
@@ -174,6 +200,29 @@ describe('signed contract PDF in Staff customer history', () => {
   it('refuses an explicitly set invalid digest without falling back to an older archive', async () => {
     signedHash = 'invalid'
     expect(archiveLinks(await card())).toEqual([])
+  })
+
+  function archiveHistory(size: number) {
+    const newerArchiveTimestamp = '2026-11-10T12:00:00.000000Z'
+    return Array.from({ length: size }, (_, index) => archive(
+      `95050000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+      Buffer.from(`Synthetic stored archive ${index}`),
+      newerArchiveTimestamp,
+    ))
+  }
+
+  it('finds the exact bound archive behind the configured PostgREST cap', async () => {
+    documents = [documents[1], ...archiveHistory(MAX_POSTGREST_ROWS)]
+    expect(archiveLinks(await card())).toEqual([href(ids.bound)])
+    expect(documentPageSizes).toEqual([500, 500, 1])
+  })
+
+  it('finishes the archive scan on an empty page after the cap with no bound archive', async () => {
+    documents = archiveHistory(MAX_POSTGREST_ROWS)
+    const html = await card()
+    expect(archiveLinks(html)).toEqual([])
+    expect(html).toContain('Arkiverad avtals-PDF saknas')
+    expect(documentPageSizes).toEqual([500, 500, 0])
   })
 
   it('retains the previous archive presentation for a legacy contract without a bound digest', async () => {
