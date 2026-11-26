@@ -497,6 +497,7 @@
     "20261126040500_read_supplier_switch_status_basis.sql": "0f4cd7b9b58e601cdc80a90e6cc415c3fc36399770ef786cbdb9afdf61c02410",
     "20261126101332_reserve_manual_capway_purchase_under_company_lock.sql": "dc1c5520593670cd6c94bc5e798548a8e520d045721cbd7b2ac1c12770e01ab2",
     "20261126102352_exclude_terminal_technical_e66_imap_retries.sql": "f185fdc1f3d75b83a26939ceaa22ba568a4cf7d2b3232e2871ec6c9039641229",
-    "20261126102500_guard_customer_support_message_source.sql": "aa5b216c011acd36759944fc9264631543f77abce9d8c0531dee4bb7ad779bd0"
+    "20261126102500_guard_customer_support_message_source.sql": "aa5b216c011acd36759944fc9264631543f77abce9d8c0531dee4bb7ad779bd0",
+    "20261126131421_isolate_signed_addendum_snapshot_permission.sql": "246b20a2bdcc70b6f1f04dfda5f04be78021d2c3d0bed62eba85f0c90509690f"
   }
 }
