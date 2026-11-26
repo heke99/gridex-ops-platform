@@ -60,7 +60,7 @@ function sql<T = unknown>(input: string, maxBuffer = 2000000): T {   if (process
   if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
-async function seed({ matchSentRequest = false, withImapReceipt = false } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+async function seed({ matchSentRequest = false, withImapReceipt = false, withDataRequest = true } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
   const { ediel, issuer } = seedUtiltsConsumptionParties(sql, lit, ids.actor)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
@@ -87,7 +87,7 @@ async function seed({ matchSentRequest = false, withImapReceipt = false } = {}) 
    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},${lit(ids.issuer)},'test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
-   INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
+   ${withDataRequest ? `INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');` : ''}`)
   const insertSource = async (raw: string, code = 'E66', environment = 'test', receivedAt = '2026-10-01T20:00:00Z' /* inside the 25-A-3 grace */) => {
     raw=cleanE30SourceFixture(raw,code)
     // Template parties are bound to this fixture's own receiver and issuer.
@@ -109,7 +109,7 @@ async function seed({ matchSentRequest = false, withImapReceipt = false } = {}) 
       companyId: ids.company, actorUserId: ids.actor, raw, parsed, receivedAt,
     }) : null
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,inbound_email_message_id,mailbox_message_id)
-     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,ids.request].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,${lit(mailbox?.inboundEmailMessageId ?? null)},${lit(mailbox?.inboundEmailMessageId ?? null)}
+     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,withDataRequest ? ids.request : null].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,${lit(mailbox?.inboundEmailMessageId ?? null)},${lit(mailbox?.inboundEmailMessageId ?? null)}
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
     if (mailbox) {
       const receipt = await recordInboundReception({ companyId: ids.company, actorUserId: ids.actor, messageId: id, ...mailbox })
@@ -1352,16 +1352,19 @@ it.each(protectedBillingFields)('R2 populated response cannot bypass changed exi
 })
 
 it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as const)('R3 real %s processor holds agency89 text collision with no consumable series or functional ACK', async shape => {
-  const f = await seed()
+  const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
+  // These E66 originals are unsolicited. A pending same-point request would
+  // exercise the separate missing-ACW review before the agency89 disposition.
+  const f = await seed({ withDataRequest: code !== 'E66' })
   const { observationHandoffMessage } = await import('../__tests__/helpers/utiltsObservationHandoff')
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
   let raw = shape.includes('readings') ? observationHandoffMessage('2026-10-01', f.ids.company).raw_payload! : f.original.raw_payload!
   raw = raw.replace('?+0200:406', '?+0100:406').replace('QTY+220:11000', 'QTY+220:10500')
     .replace('735999260731000007::9', '735999260731000007::89')
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : `BGM+${code}::260`)
     .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`).replace(code === 'E30' ? "\nMEA+AAZ++KWH'" : '\u0000', '') // U s85
   const source = await f.insertSource(ownIdentity(raw), code)
+  if (code === 'E66') expect(source.grid_owner_data_request_id).toBeNull()
   await realSinks()
   const result = await (shape === 'S07-policy' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage)({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.internalReviewRequired).toBe(true); expect(result.ingestedMeterValueIds).toEqual([])
@@ -1740,7 +1743,9 @@ it.each([['232', '260c'], ['233', '260b']] as const)('native orphan LOC+%s persi
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it('native mixed IDE consumes only the accepted sibling before separate 260a ACKs and retries identically', async () => {
-  const f = await seed()
+  // A prelinked request row does not establish an E66 billing basis.
+  // The E73 original, sent period and RFF+ACW must qualify on the real path.
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
   const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260').split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const close = lines.findIndex(line => line.startsWith('UNT+'))
@@ -1765,6 +1770,12 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(effects.meter).toHaveBeenCalledTimes(1)
   expect(effects.bill).toHaveBeenCalledTimes(1)
+  expect(effects.bill.mock.calls[0][0]).toMatchObject({
+    sourceRequestId: f.ids.request,
+    boundSourceMessageId: source.id,
+    totalKwh: '7',
+    boundContracts: [{ transactionId: 'GRIDEX2607E66002', billing: { capability: 'write', sourceRequestId: f.ids.request } }],
+  })
   expect(effects.meter.mock.calls[0][0]).toMatchObject({ companyId: f.ids.company, quantityKwh: '7', sourceTransactionReference: 'GRIDEX2607E66002' })
   expect(effects.meter.mock.invocationCallOrder[0]).toBeLessThan(effects.ack.mock.invocationCallOrder[0])
   expect(first.ingestedMeterValueIds).toHaveLength(1)
