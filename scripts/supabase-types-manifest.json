@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-11-26T11:27:55.649070+00:00",
-  "generated_with": "Supabase CLI 2.101.0 canonical replay, GitHub Actions 45810039605",
+  "generated_at": "2026-11-26T13:36:25.597766+00:00",
+  "generated_with": "Supabase CLI 2.101.0 canonical replay, GitHub Actions 45829146151",
   "sha256": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
-  "latest_migration": "20261126102500_guard_customer_support_message_source.sql",
-  "latest_migration_schema_effect": "Official schema and type capture for the Gridex OPS qualification branch. Independent clean-install and upgrade checks are tracked separately.",
+  "latest_migration": "20261126131421_isolate_signed_addendum_snapshot_permission.sql",
+  "latest_migration_schema_effect": "Isolates signed-addendum authority from ordinary snapshot writes. Official schema and types are recorded here. Independent clean and upgrade checks are tracked separately.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -1009,17 +1009,17 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "source_head": "1616806c65b4d09d172e147244e6e82cabc19e1d",
-    "source_tree": "bbcb8b87d9255b27d19b8ba5b9d8c1866a027806",
-    "run": 45810039605,
-    "job": 139875184648,
+    "source_head": "292fa232e1a3ec1453624c8c15709d2f5c6493fa",
+    "source_tree": "6ba3bad6cbedcdeb1baf097d720d2a3893123583",
+    "run": 45829146151,
+    "job": 139940986891,
     "attempt": 1,
-    "artifact": 15113071325,
-    "archive_sha256": "acf3fa6dc7abafb6919fa29943600af18c2ef8ad5b6e89b4900db1dd4f0ec2bd",
-    "original_receipt_sha256": "691091c315b9141c0a72642d70db4c0aacb950d23e17aa5f8dfbd3d6e9eed3f3",
+    "artifact": 15122147580,
+    "archive_sha256": "35ae77fbea775098ad5915b6b9e9de91a49f0e65c46ffc6b63d51fbda332f9dc",
+    "original_receipt_sha256": "4a57cc8f8b8bedd2c777fdd83b5a9db691cd9d1fdfbf33b8b95896316299ad16",
     "types_sha256": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
-    "schema_sha256": "6acaa050c1c60f46b33e8eaa172f06e33ecd55bfa8b813ccdca6bd0165a23ceb",
-    "fingerprint_file_sha256": "42a43eda35b0922bc2f409e6d6014952818fddb179adbd58fc75fe6784eeb09f",
+    "schema_sha256": "0962ddd7da411ffedb981175ed52c906d4acfefe53c792b2eda48e0b83a71204",
+    "fingerprint_file_sha256": "d47371d5422d5ea5e8dce3ec02f26a239edd7543572de09079392d6ca00d31f8",
     "scope": "GENUINE_ORDINARY_CAPTURE_ONLY"
   },
   "inherited_main7edef_current_prefix_verification": {
@@ -2272,24 +2272,24 @@
   },
   "active_generated_outputs_origin": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-    "source_head": "1616806c65b4d09d172e147244e6e82cabc19e1d",
-    "source_tree": "bbcb8b87d9255b27d19b8ba5b9d8c1866a027806",
+    "source_head": "292fa232e1a3ec1453624c8c15709d2f5c6493fa",
+    "source_tree": "6ba3bad6cbedcdeb1baf097d720d2a3893123583",
     "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-    "workflow_run_id": 45810039605,
-    "workflow_job_id": 139875184648,
+    "workflow_run_id": 45829146151,
+    "workflow_job_id": 139940986891,
     "attempt": 1,
-    "artifact_id": 15113071325,
-    "artifact_name": "staff-schema-capture-1616806c65b4d09d172e147244e6e82cabc19e1d",
-    "artifact_archive_sha256": "acf3fa6dc7abafb6919fa29943600af18c2ef8ad5b6e89b4900db1dd4f0ec2bd",
-    "artifact_archive_bytes": 2180344,
-    "capture_receipt_sha256": "691091c315b9141c0a72642d70db4c0aacb950d23e17aa5f8dfbd3d6e9eed3f3",
+    "artifact_id": 15122147580,
+    "artifact_name": "staff-schema-capture-292fa232e1a3ec1453624c8c15709d2f5c6493fa",
+    "artifact_archive_sha256": "35ae77fbea775098ad5915b6b9e9de91a49f0e65c46ffc6b63d51fbda332f9dc",
+    "artifact_archive_bytes": 2180348,
+    "capture_receipt_sha256": "4a57cc8f8b8bedd2c777fdd83b5a9db691cd9d1fdfbf33b8b95896316299ad16",
     "raw_output_sha256": {
       "database.types.ts": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
-      "schema.sql": "6acaa050c1c60f46b33e8eaa172f06e33ecd55bfa8b813ccdca6bd0165a23ceb",
-      "schema.fingerprint.json": "42a43eda35b0922bc2f409e6d6014952818fddb179adbd58fc75fe6784eeb09f"
+      "schema.sql": "0962ddd7da411ffedb981175ed52c906d4acfefe53c792b2eda48e0b83a71204",
+      "schema.fingerprint.json": "d47371d5422d5ea5e8dce3ec02f26a239edd7543572de09079392d6ca00d31f8"
     },
-    "schema_fingerprint": "9b62f94a5246c1884a7c44d38cad85093ffbbd0b5418b261c6324a96a3a213c3",
-    "actual_capture_completed_at": "2026-11-26T11:27:55.649070+00:00",
+    "schema_fingerprint": "f3830f159f76e7c6aab28200b6a3df75f4a438ee7173e3470b731facf5ecfaf6",
+    "actual_capture_completed_at": "2026-11-26T13:36:25.597766+00:00",
     "workflow_job_conclusion": "success",
     "epoch_attestation_enabled": false,
     "native_tests": "NOT_RUN",
@@ -2300,8 +2300,8 @@
     "whole_approval": false,
     "migration_source": {
       "algorithm": "gridex-supabase-replay-source-v2",
-      "count": 1661,
-      "sha256": "ad606816275d1e590a2de801dcdb40273762867fb0b51774a9ec1605ca96bdbd"
+      "count": 1662,
+      "sha256": "b4c60b955900a1adc9382dba1f399fec4d808bfdf808a4982b83d805064c098c"
     }
   },
   "pre_20261124_z15_active_generated_outputs_origin": {
@@ -101122,6 +101122,61 @@
       "fingerprint_file_sha256": "be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68",
       "types_sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
       "scope": "GENUINE_CURRENT_F5_PRIMARY_CAPTURE_ONLY_NOT_NATIVE_OR_CURRENT_IMPORT_SOURCE_CAPTURE"
+    }
+  },
+  "pre_snapshot_guard_20261126_capture": {
+    "generated_at": "2026-11-26T11:27:55.649070+00:00",
+    "generated_with": "Supabase CLI 2.101.0 canonical replay, GitHub Actions 45810039605",
+    "sha256": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
+    "latest_migration": "20261126102500_guard_customer_support_message_source.sql",
+    "latest_migration_schema_effect": "Official schema and type capture for the Gridex OPS qualification branch. Independent clean-install and upgrade checks are tracked separately.",
+    "active_generated_outputs_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "1616806c65b4d09d172e147244e6e82cabc19e1d",
+      "source_tree": "bbcb8b87d9255b27d19b8ba5b9d8c1866a027806",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 45810039605,
+      "workflow_job_id": 139875184648,
+      "attempt": 1,
+      "artifact_id": 15113071325,
+      "artifact_name": "staff-schema-capture-1616806c65b4d09d172e147244e6e82cabc19e1d",
+      "artifact_archive_sha256": "acf3fa6dc7abafb6919fa29943600af18c2ef8ad5b6e89b4900db1dd4f0ec2bd",
+      "artifact_archive_bytes": 2180344,
+      "capture_receipt_sha256": "691091c315b9141c0a72642d70db4c0aacb950d23e17aa5f8dfbd3d6e9eed3f3",
+      "raw_output_sha256": {
+        "database.types.ts": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
+        "schema.sql": "6acaa050c1c60f46b33e8eaa172f06e33ecd55bfa8b813ccdca6bd0165a23ceb",
+        "schema.fingerprint.json": "42a43eda35b0922bc2f409e6d6014952818fddb179adbd58fc75fe6784eeb09f"
+      },
+      "schema_fingerprint": "9b62f94a5246c1884a7c44d38cad85093ffbbd0b5418b261c6324a96a3a213c3",
+      "actual_capture_completed_at": "2026-11-26T11:27:55.649070+00:00",
+      "workflow_job_conclusion": "success",
+      "epoch_attestation_enabled": false,
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+      "whole_approval": false,
+      "migration_source": {
+        "algorithm": "gridex-supabase-replay-source-v2",
+        "count": 1661,
+        "sha256": "ad606816275d1e590a2de801dcdb40273762867fb0b51774a9ec1605ca96bdbd"
+      }
+    },
+    "capture_artifact": {
+      "source_head": "1616806c65b4d09d172e147244e6e82cabc19e1d",
+      "source_tree": "bbcb8b87d9255b27d19b8ba5b9d8c1866a027806",
+      "run": 45810039605,
+      "job": 139875184648,
+      "attempt": 1,
+      "artifact": 15113071325,
+      "archive_sha256": "acf3fa6dc7abafb6919fa29943600af18c2ef8ad5b6e89b4900db1dd4f0ec2bd",
+      "original_receipt_sha256": "691091c315b9141c0a72642d70db4c0aacb950d23e17aa5f8dfbd3d6e9eed3f3",
+      "types_sha256": "76a40d8185530ddb71dd9b33747268654ac13c32201f1433d5e86e4f03424d9c",
+      "schema_sha256": "6acaa050c1c60f46b33e8eaa172f06e33ecd55bfa8b813ccdca6bd0165a23ceb",
+      "fingerprint_file_sha256": "42a43eda35b0922bc2f409e6d6014952818fddb179adbd58fc75fe6784eeb09f",
+      "scope": "GENUINE_ORDINARY_CAPTURE_ONLY"
     }
   }
 }

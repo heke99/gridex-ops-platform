@@ -87227,9 +87227,10 @@ begin
   v_snapshot_area:=upper(nullif(btrim(new.snapshot_json->>'price_area'),''));
   if v_snapshot_area is not null and v_snapshot_area not in ('SE1','SE2','SE3','SE4') then raise exception using errcode='23514',message='contract_snapshot_price_area_invalid'; end if;
   if v_snapshot_area is not null and v_area is not null and v_snapshot_area<>v_area then raise exception using errcode='23514',message='contract_snapshot_price_area_mismatch'; end if;
-  IF new.source='staff_manually_verified_signed_addendum_v1'
-    AND gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(new) IS NOT TRUE THEN
-    RAISE EXCEPTION 'price_addendum_snapshot_native_authority_required' USING ERRCODE='23514';
+  IF new.source='staff_manually_verified_signed_addendum_v1' THEN
+    IF gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(new) IS NOT TRUE THEN
+      RAISE EXCEPTION 'price_addendum_snapshot_native_authority_required' USING ERRCODE='23514';
+    END IF;
   END IF;
   v_snapshot_ppv:=nullif(new.snapshot_json->>'price_plan_version_id','')::uuid;
   if v_snapshot_ppv is not null and v_contract.price_plan_version_id is not null and v_snapshot_ppv<>v_contract.price_plan_version_id
