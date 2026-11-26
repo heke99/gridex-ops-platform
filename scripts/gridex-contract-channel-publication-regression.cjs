@@ -166,8 +166,15 @@ check(
 const internalPublishForm = adminPage.match(
   /contractLifecycleAllows\(offer\.lifecycle_status,\s*"publish_version"\)\s*\?\s*\(\s*<form action=\{publishContractVersionAction\}>([\s\S]*?)<\/form>/,
 )?.[1] ?? "";
+const internalPublishButton = internalPublishForm.match(
+  /<button\b[^>]*>([\s\S]*?)<\/button>/,
+)?.[1] ?? "";
+const internalPublishLabels = internalPublishButton.match(
+  /^\s*\{\s*offer\.lifecycle_status\s*===\s*"paused"\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"\s*\}\s*$/,
+);
 check(
-  /Kontrollera och publicera versionen internt/.test(internalPublishForm) &&
+  internalPublishLabels?.[1] === "Kontrollera och återaktivera för kundregistrering" &&
+    internalPublishLabels?.[2] === "Kontrollera och aktivera för kundregistrering" &&
     /Publicera på hemsidan/.test(channelControl) &&
     /name="channel" value="website"/.test(channelControl) &&
     !/name="channel" value="internal"/.test(channelControl) &&
