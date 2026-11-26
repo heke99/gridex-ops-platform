@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -137,9 +138,25 @@ vi.mock('@/lib/customer-portal/customerResolver', async (importOriginal) => {
   }
 })
 
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('@/lib/admin/guards', () => ({
+  isPlatformAdminContext: () => false,
+  requireAdminActionAccess: async (permissions: string[]) => {
+    expect(permissions).toEqual(['cases.write'])
+    return { userId: STAFF_USER }
+  },
+}))
+vi.mock('@/lib/tenant/adminScope', () => ({
+  resolveAdminSelectedCompanyReadScope: async (actor: { userId: string }) => {
+    expect(actor.userId).toBe(STAFF_USER)
+    return { companyId: TENANT_A }
+  },
+}))
+
 const TENANT_A = '0000000a-0000-4000-8000-000000000000'
 const CUSTOMER_A1 = '000000a1-0000-4000-8000-000000000000'
 const CUSTOMER_A2 = '000000a2-0000-4000-8000-000000000000'
+const STAFF_USER = '000000b1-0000-4000-8000-000000000000'
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i
 
 function request(method: string, path: string, body?: unknown, key?: string) {
@@ -224,6 +241,54 @@ describe('mounted customer support attachment routes', () => {
     expect(echoed.headers.get('x-request-id')).toBe('request-from-tenant')
     const blank = await fileRoute.GET(new NextRequest(fileUrl, { headers: { 'x-request-id': ' ' } }), fileParams(reference, body.data.attachment_reference))
     expect(blank.headers.get('x-request-id')).toMatch(UUID)
+  })
+
+  it('lists and serves the same released PDF that Staff shared with the case owner', async () => {
+    const reference = await openCase()
+    const caseId = String(db.customer_cases[0].id)
+    const bytes = pdf()
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+    const { uploadSupportAttachmentAction } = await import('@/app/admin/customer-cases/actions')
+
+    for (const [visibility, name] of [['customer', 'delad.pdf'], ['internal', 'intern.pdf']]) {
+      const form = new FormData()
+      form.set('expected_company_id', TENANT_A)
+      form.set('expected_actor_user_id', STAFF_USER)
+      form.set('case_id', caseId)
+      form.set('visibility', visibility)
+      form.set('file', new File([new Uint8Array(bytes)], name, { type: 'application/pdf' }))
+      await uploadSupportAttachmentAction(form)
+    }
+
+    const [shared, internal] = db.customer_case_attachments
+    expect(shared).toMatchObject({
+      company_id: TENANT_A, customer_id: CUSTOMER_A1, customer_case_id: caseId,
+      visibility: 'customer', scan_status: 'released', uploaded_by_kind: 'staff', uploaded_by_user_id: STAFF_USER, sha256,
+    })
+    expect(internal).toMatchObject({ visibility: 'internal', scan_status: 'released', uploaded_by_kind: 'staff' })
+
+    const route = await import('@/app/api/v1/customer/support/cases/[reference]/attachments/route')
+    const fileRoute = await import('@/app/api/v1/customer/support/cases/[reference]/attachments/[attachmentReference]/route')
+    const caseAttachmentsPath = `/api/v1/customer/support/cases/${reference}/attachments`
+    const listed = await route.GET(request('GET', caseAttachmentsPath), params(reference))
+    expect(listed.status).toBe(200)
+    const { data } = await listed.json()
+    expect(data).toEqual([{
+      attachment_reference: shared.public_reference, file_name: 'delad.pdf', mime_type: 'application/pdf',
+      byte_size: bytes.length, uploaded_by: 'staff', sha256, created_at: shared.created_at,
+    }])
+    const attachmentReference = data[0].attachment_reference
+    const downloaded = await fileRoute.GET(
+      request('GET', `${caseAttachmentsPath}/${attachmentReference}`), fileParams(reference, attachmentReference),
+    )
+    expect(downloaded.status).toBe(200)
+    expect(Buffer.from(await downloaded.arrayBuffer())).toEqual(bytes)
+    expect(downloaded.headers.get('x-gridex-sha256')).toBe(sha256)
+    expect(downloaded.headers.get('content-type')).toBe('application/pdf')
+    expect(downloaded.headers.get('content-disposition')).toBe("attachment; filename*=UTF-8''delad.pdf")
+    expect(downloaded.headers.get('cache-control')).toBe('private, no-store')
+    expect(downloaded.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(downloaded.headers.get('content-security-policy')).toBe("default-src 'none'; sandbox")
   })
 
   it('rejects active PDF content with 422 and never lists or serves it', async () => {
