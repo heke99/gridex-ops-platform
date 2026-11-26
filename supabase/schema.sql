@@ -5164,6 +5164,85 @@ BEGIN
 END$$;
 
 --
+-- Name: approve_test_price_series_invoice_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.approve_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_invoice uuid, p_review_hash text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  reservation gridex_billing_source.price_series_reservations%ROWTYPE;
+  draft gridex_billing_source.price_series_invoice_drafts%ROWTYPE;
+  invoice public.customer_invoices%ROWTYPE;
+  receipt gridex_billing_source.price_series_invoice_approvals%ROWTYPE;
+  expected jsonb;
+  member_ids uuid[];
+  existing boolean;
+BEGIN
+  PERFORM gridex_billing_source.require_test_price_series_actor_v1(p_company,p_actor);
+  SELECT * INTO draft FROM gridex_billing_source.price_series_invoice_drafts d
+    WHERE d.company_id=p_company AND d.invoice_id=p_invoice;
+  IF NOT FOUND THEN RAISE EXCEPTION 'invoice_price_series_draft_missing' USING ERRCODE='P0002'; END IF;
+  SELECT * INTO STRICT reservation FROM gridex_billing_source.price_series_reservations r
+    WHERE r.company_id=p_company AND r.id=draft.reservation_id;
+  SELECT * INTO invoice FROM public.customer_invoices i
+    WHERE i.company_id=p_company AND i.customer_id=reservation.customer_id AND i.id=p_invoice;
+  IF NOT FOUND OR NOT (
+    (invoice.status='draft' AND invoice.invoice_number IS NULL) OR
+    (invoice.status='issued' AND EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_issues o
+      WHERE (o.company_id,o.reservation_id,o.invoice_id,o.review_hash,o.invoice_number,o.calculation_sha256)
+        =(p_company,reservation.id,p_invoice,p_review_hash,invoice.invoice_number,invoice.calculation_snapshot_sha256)))
+  ) OR invoice.source_system<>'invoice_price_series_test_v1'
+    OR invoice.amount_ex_vat IS DISTINCT FROM (reservation.basis->>'amountExVat')::numeric
+    OR invoice.vat_amount IS DISTINCT FROM (invoice.calculation_snapshot->>'vatAmount')::numeric
+    OR invoice.amount_inc_vat IS DISTINCT FROM (invoice.calculation_snapshot->>'amountIncVat')::numeric
+    OR invoice.total_kwh IS DISTINCT FROM (reservation.basis->>'quantityKwh')::numeric
+    OR invoice.calculation_snapshot->>'basisSha256' IS DISTINCT FROM reservation.basis_sha256
+    OR invoice.calculation_snapshot->'basis' IS DISTINCT FROM reservation.basis
+    OR invoice.calculation_snapshot_sha256 IS DISTINCT FROM encode(sha256(convert_to(invoice.calculation_snapshot::text,'UTF8')),'hex')
+    OR draft.review_hash IS DISTINCT FROM encode(sha256(convert_to(jsonb_build_array(
+      p_company,reservation.id,p_invoice,invoice.calculation_snapshot_sha256)::text,'UTF8')),'hex')
+    OR p_review_hash IS DISTINCT FROM draft.review_hash
+  THEN RAISE EXCEPTION 'invoice_price_series_review_changed' USING ERRCODE='23514'; END IF;
+
+  SELECT * INTO receipt FROM gridex_billing_source.price_series_invoice_approvals a
+    WHERE a.company_id=p_company AND a.reservation_id=reservation.id;
+  existing:=FOUND;
+  IF NOT existing THEN
+    SELECT jsonb_agg(jsonb_build_object('underlayId',m.billing_underlay_id,'pricingRunId',m.pricing_run_id) ORDER BY m.ordinal),
+      array_agg(m.billing_underlay_id ORDER BY m.ordinal)
+    INTO expected,member_ids FROM gridex_billing_source.price_series_reservation_members m
+    WHERE m.company_id=p_company AND m.reservation_id=reservation.id;
+    BEGIN
+      PERFORM gridex_billing_source.reserve_price_series_v1(p_company,reservation.customer_id,reservation.contract_id,
+        reservation.site_id,reservation.metering_point_id,reservation.billing_month,expected);
+    EXCEPTION WHEN SQLSTATE 'PT409' THEN
+      RAISE EXCEPTION 'price_timeline_invoice_review_required' USING ERRCODE='23514';
+    END;
+  IF EXISTS(SELECT 1 FROM public.customer_contracts c WHERE c.company_id=p_company AND c.id=reservation.contract_id
+    AND (c.consolidated_invoice IS TRUE OR c.export_blocked IS TRUE)) THEN
+    RAISE EXCEPTION 'invoice_price_series_separate_billing_required' USING ERRCODE='23514';
+  END IF;
+    PERFORM gridex_billing_source.assert_invoice_sources_uncorrected_v1(p_company,member_ids);
+    PERFORM gridex_case_confirmation.require_underlay_invoice_open_v1(p_company,member) FROM unnest(member_ids) member;
+    SELECT * INTO receipt FROM gridex_billing_source.price_series_invoice_approvals a
+      WHERE a.company_id=p_company AND a.reservation_id=reservation.id;
+    existing:=FOUND;
+    IF NOT existing THEN
+      INSERT INTO gridex_billing_source.price_series_invoice_approvals(company_id,reservation_id,review_hash,approved_by)
+      VALUES(p_company,reservation.id,p_review_hash,p_actor) RETURNING * INTO receipt;
+    END IF;
+  END IF;
+  IF receipt.review_hash IS DISTINCT FROM draft.review_hash THEN
+    RAISE EXCEPTION 'invoice_price_series_review_changed' USING ERRCODE='23514';
+  END IF;
+  RETURN jsonb_build_object('invoiceId',p_invoice,'reviewHash',receipt.review_hash,'approvedBy',receipt.approved_by,
+    'approvedAt',receipt.approved_at,'existing',existing);
+END
+$$;
+
+--
 -- Name: assert_invoice_sources_uncorrected_v1(uuid, uuid[]); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
 --
 
@@ -5205,6 +5284,9 @@ BEGIN
   -- Separate VOLATILE command under READ COMMITTED, after taking both locks.
   IF EXISTS (
     SELECT FROM gridex_billing_source.correction_journal j
+    WHERE j.company_id=p_company AND j.underlay_id=ANY(p_underlays)
+  ) OR EXISTS (
+    SELECT FROM gridex_e66_intake.mixed_billing_correction_holds j
     WHERE j.company_id=p_company AND j.underlay_id=ANY(p_underlays)
   ) THEN
     RAISE EXCEPTION 'billing_source_correction_required' USING ERRCODE='23514';
@@ -5442,6 +5524,305 @@ BEGIN
  WHERE previous.company_id=new.company_id AND (previous.id=new.previous_value_id OR previous.source_metering_value_id=new.previous_value_id) ON CONFLICT DO NOTHING;
  RETURN new;
 END $$;
+
+--
+-- Name: contract_price_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.contract_price_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    customer_id uuid,
+    price_plan_version_id uuid,
+    campaign_version_id uuid,
+    pricing_model text DEFAULT 'spot'::text NOT NULL,
+    base_price_components_snapshot jsonb DEFAULT '[]'::jsonb NOT NULL,
+    price_components_snapshot jsonb DEFAULT '[]'::jsonb NOT NULL,
+    snapshot_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+    valid_from date,
+    valid_to date,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    contract_number text,
+    customer_number text,
+    source text DEFAULT 'pricing_engine'::text NOT NULL,
+    public_contract_offer_id uuid,
+    public_price_text text,
+    terms_url text,
+    spot_weight_percent numeric,
+    portfolio_weight_percent numeric,
+    fixed_weight_percent numeric,
+    price_book_id uuid,
+    price_plan_id uuid,
+    legal_bundle_id uuid,
+    snapshot_hash text NOT NULL,
+    snapshot_quality text,
+    price_book_hash text,
+    accepted_request_id text,
+    accepted_trace_id text,
+    snapshot_schema_version text,
+    quote_reference text,
+    quote_hash text,
+    price_option_reference text,
+    area_price_reference text,
+    invoice_delivery_method text,
+    selected_component_references text[] DEFAULT '{}'::text[] NOT NULL,
+    CONSTRAINT contract_price_snapshots_snapshot_hash_sha256_check CHECK ((snapshot_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: COLUMN contract_price_snapshots.snapshot_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.contract_price_snapshots.snapshot_hash IS 'Canonical SHA-256 of snapshot_json::text after insert-time normalization. Required for immutable signing-chain integrity.';
+
+--
+-- Name: check_test_price_addendum_snapshot_insert_v1(public.contract_price_snapshots); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(successor public.contract_price_snapshots) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT auth.role()='service_role' AND EXISTS(
+        SELECT FROM gridex_billing_source.test_price_addendum_applications a
+        JOIN gridex_billing_source.test_price_addendum_reviews r
+          ON (a.company_id,a.contract_id,a.document_id,a.review_sha256)=(r.company_id,r.contract_id,r.document_id,r.receipt_sha256)
+        JOIN public.price_plan_versions version
+          ON (version.company_id,version.price_plan_id,version.id)=(a.company_id,a.price_plan_id,a.price_plan_version_id)
+        JOIN public.price_books book
+          ON (book.company_id,book.price_plan_id,book.price_plan_version_id,book.id)
+           =(a.company_id,a.price_plan_id,a.price_plan_version_id,a.price_book_id)
+        WHERE version.locked_at IS NOT NULL AND book.locked_at IS NOT NULL
+          AND version.status='published' AND book.status='published' AND book.content_sha256=version.content_sha256
+          AND successor.base_price_components_snapshot=version.snapshot_json->'base_components'
+          AND successor.price_components_snapshot=version.snapshot_json->'price_components'
+          AND gridex_billing_source.has_zero_only_addendum_invoice_fee_v1(successor.price_components_snapshot) IS TRUE
+          AND (a.company_id,a.contract_id,a.customer_id,a.successor_snapshot_id,a.price_plan_id,
+          a.price_plan_version_id,a.price_book_id,a.effective_on)
+         =(successor.company_id,successor.contract_id,successor.customer_id,successor.id,successor.price_plan_id,
+          successor.price_plan_version_id,successor.price_book_id,successor.valid_from)
+          AND successor.source='staff_manually_verified_signed_addendum_v1'
+          AND successor.pricing_model='fixed'
+          AND successor.snapshot_json->>'addendumReviewSha256'=a.review_sha256
+          AND successor.snapshot_json->>'price_plan_version_id'=a.price_plan_version_id::text
+          AND (successor.snapshot_json->>'fixed_price_ore_per_kwh')::numeric=a.fixed_price_ore_per_kwh
+          AND r.effective_on=a.effective_on
+          AND (r.receipt#>>'{verification,priceOrePerKwh}')::numeric=a.fixed_price_ore_per_kwh
+          AND public.gridex_actor_has_company_permission(a.actor_user_id,a.company_id,'pricing.write') IS TRUE
+      )
+    $$;
+
+--
+-- Name: create_price_series_neutral_file_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.create_price_series_neutral_file_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  DECLARE
+    file gridex_billing_source.price_series_invoice_neutral_files%rowtype;
+    issued gridex_billing_source.price_series_invoice_issues%rowtype;
+    existing_file boolean;
+    members uuid[];
+  BEGIN
+    PERFORM gridex_billing_source.require_test_price_series_actor_v1(p_company,p_actor);
+    PERFORM 1 FROM gridex_billing_source.price_series_invoice_drafts
+      WHERE (company_id,invoice_id)=(p_company,p_invoice) FOR UPDATE;
+    issued:=gridex_billing_source.verified_price_series_issue_v1(p_company,p_invoice,p_review);
+    SELECT * INTO file FROM gridex_billing_source.price_series_invoice_neutral_files
+      WHERE (company_id,invoice_id)=(p_company,p_invoice);
+    existing_file:=FOUND;
+    IF NOT existing_file THEN
+      SELECT array_agg(m.billing_underlay_id ORDER BY m.ordinal) INTO members
+      FROM gridex_billing_source.price_series_reservation_members m
+      WHERE (m.company_id,m.reservation_id)=(issued.company_id,issued.reservation_id);
+      PERFORM gridex_billing_source.assert_invoice_sources_uncorrected_v1(p_company,members);
+      PERFORM gridex_case_confirmation.require_underlay_invoice_open_v1(p_company,member) FROM unnest(members) member;
+      INSERT INTO gridex_billing_source.price_series_invoice_neutral_files(company_id,invoice_id,body_sha256,created_by)
+      VALUES(p_company,p_invoice,issued.body_sha256,p_actor) RETURNING * INTO file;
+      INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,metadata)
+      VALUES(p_company,p_actor,'invoice_group_neutral_file',file.file_id::text,
+        'invoice_group_neutral_file_created',jsonb_build_object('invoiceId',p_invoice,'sha256',file.body_sha256));
+    END IF;
+    IF file.body_sha256 IS DISTINCT FROM issued.body_sha256 THEN
+      RAISE EXCEPTION 'invoice_group_file_receipt_invalid' USING ERRCODE='23514';
+    END IF;
+    RETURN jsonb_build_object('fileId',file.file_id,'invoiceId',file.invoice_id,'sha256',file.body_sha256,'existing',existing_file);
+  END
+  $$;
+
+--
+-- Name: fence_price_series_group_source_v1(); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.fence_price_series_group_source_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF current_setting('transaction_isolation') NOT IN ('read committed','read uncommitted') THEN
+    RAISE EXCEPTION 'invoice_source_reservation_read_committed_required' USING ERRCODE='25001';
+  END IF;
+  PERFORM gridex_invoice_groups.lock_source(NEW.company_id, NEW.billing_underlay_id);
+  IF EXISTS(SELECT FROM gridex_billing_source.price_series_reservation_members s
+    WHERE s.company_id=NEW.company_id AND s.billing_underlay_id=NEW.billing_underlay_id)
+  THEN RAISE EXCEPTION 'invoice_group_source_already_reserved' USING ERRCODE='23505'; END IF;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: finish_test_price_series_invoice_v1(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.finish_test_price_series_invoice_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text, p_outcome text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+  DECLARE
+    draft gridex_billing_source.price_series_invoice_drafts%rowtype;
+    reservation gridex_billing_source.price_series_reservations%rowtype;
+    issued gridex_billing_source.price_series_invoice_issues%rowtype;
+    invoice public.customer_invoices%rowtype;
+    members jsonb;
+    member_ids uuid[];
+    periods jsonb;
+    token jsonb;
+    terms jsonb;
+    due date;
+    series text;
+    issue_number text;
+    issue_time timestamptz:=transaction_timestamp();
+    frozen bytea;
+    projected integer;
+  BEGIN
+    PERFORM gridex_billing_source.require_test_price_series_actor_v1(p_company,p_actor);
+    SELECT * INTO STRICT draft FROM gridex_billing_source.price_series_invoice_drafts
+      WHERE (company_id,invoice_id)=(p_company,p_invoice);
+    IF draft.review_hash IS DISTINCT FROM p_review THEN
+      RAISE EXCEPTION 'invoice_group_review_changed' USING ERRCODE='40001';
+    END IF;
+    SELECT * INTO issued FROM gridex_billing_source.price_series_invoice_issues
+      WHERE (company_id,reservation_id)=(p_company,draft.reservation_id);
+    IF FOUND THEN
+      IF p_outcome='cancelled' THEN RAISE EXCEPTION 'invoice_group_issued_credit_required' USING ERRCODE='55000'; END IF;
+      IF (issued.invoice_id,issued.review_hash) IS DISTINCT FROM (p_invoice,p_review) THEN
+        RAISE EXCEPTION 'invoice_group_review_changed' USING ERRCODE='40001';
+      END IF;
+      RETURN gridex_billing_source.price_series_issue_result_v1(issued,true);
+    END IF;
+    IF p_outcome IS DISTINCT FROM 'issued' THEN
+      RAISE EXCEPTION 'invoice_group_issue_input_invalid' USING ERRCODE='22023';
+    END IF;
+
+    SELECT * INTO STRICT reservation FROM gridex_billing_source.price_series_reservations
+      WHERE (company_id,id)=(p_company,draft.reservation_id);
+    PERFORM gridex_invoice_groups.lock_period(p_company,reservation.billing_month);
+    -- An earlier identical call may have committed while this call entered the period.
+    SELECT * INTO issued FROM gridex_billing_source.price_series_invoice_issues
+      WHERE (company_id,reservation_id)=(p_company,draft.reservation_id);
+    IF FOUND THEN
+      IF (issued.invoice_id,issued.review_hash) IS DISTINCT FROM (p_invoice,p_review) THEN
+        RAISE EXCEPTION 'invoice_group_review_changed' USING ERRCODE='40001';
+      END IF;
+      RETURN gridex_billing_source.price_series_issue_result_v1(issued,true);
+    END IF;
+    IF EXISTS (SELECT FROM public.billing_period_locks l WHERE l.company_id=p_company
+          AND l.billing_year=split_part(reservation.billing_month,'-',1)::integer
+          AND l.billing_month=split_part(reservation.billing_month,'-',2)::integer AND l.status IN ('locked','exported','closed'))
+      OR EXISTS (SELECT FROM public.price_period_locks l WHERE l.company_id=p_company AND l.billing_month=reservation.billing_month
+          AND l.lock_scope IN ('billing_period','invoice_export') AND l.status='locked') THEN
+      RAISE EXCEPTION 'invoice_group_issue_period_locked' USING ERRCODE='55000';
+    END IF;
+    IF NOT EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_approvals a
+      WHERE (a.company_id,a.reservation_id,a.review_hash)=(p_company,reservation.id,p_review)) THEN
+      RAISE EXCEPTION 'invoice_group_issue_approval_required' USING ERRCODE='23514';
+    END IF;
+    SELECT jsonb_agg(jsonb_build_object('underlayId',m.billing_underlay_id,'pricingRunId',m.pricing_run_id) ORDER BY m.ordinal),
+      array_agg(m.billing_underlay_id ORDER BY m.ordinal)
+    INTO members,member_ids FROM gridex_billing_source.price_series_reservation_members m
+    WHERE (m.company_id,m.reservation_id)=(p_company,reservation.id);
+    BEGIN
+      token:=gridex_billing_source.reserve_price_series_v1(p_company,reservation.customer_id,reservation.contract_id,
+        reservation.site_id,reservation.metering_point_id,reservation.billing_month,members);
+    EXCEPTION WHEN SQLSTATE 'PT409' THEN
+      RAISE EXCEPTION 'price_timeline_invoice_review_required' USING ERRCODE='23514';
+    END;
+    IF (token->>'id',token->>'basisSha256') IS DISTINCT FROM (reservation.id::text,reservation.basis_sha256) THEN
+      RAISE EXCEPTION 'invoice_group_review_changed' USING ERRCODE='40001';
+    END IF;
+    IF EXISTS(SELECT FROM public.customer_contracts c WHERE (c.company_id,c.id)=(p_company,reservation.contract_id)
+      AND (c.export_blocked IS TRUE OR c.consolidated_invoice IS TRUE)) THEN
+      RAISE EXCEPTION 'invoice_price_series_separate_billing_required' USING ERRCODE='23514';
+    END IF;
+    PERFORM gridex_billing_source.assert_invoice_sources_uncorrected_v1(p_company,member_ids);
+    PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company,NULL,p_invoice);
+    PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company,member) FROM unnest(member_ids) member;
+    PERFORM gridex_case_confirmation.require_underlay_invoice_open_v1(p_company,member) FROM unnest(member_ids) member;
+
+    SELECT * INTO invoice FROM public.customer_invoices i
+      WHERE (i.company_id,i.id,i.customer_id)=(p_company,p_invoice,reservation.customer_id) FOR UPDATE;
+    IF invoice.id IS NULL OR invoice.status IS DISTINCT FROM 'draft' OR invoice.invoice_number IS NOT NULL
+      OR invoice.source_system IS DISTINCT FROM 'invoice_price_series_test_v1' OR invoice.currency IS DISTINCT FROM 'SEK'
+      OR btrim(coalesce(invoice.invoice_reference,''))=''
+      OR (invoice.amount_ex_vat,invoice.vat_amount,invoice.amount_inc_vat,invoice.total_kwh) IS DISTINCT FROM (
+        (reservation.basis->>'amountExVat')::numeric,(invoice.calculation_snapshot->>'vatAmount')::numeric,
+        (invoice.calculation_snapshot->>'amountIncVat')::numeric,(reservation.basis->>'quantityKwh')::numeric)
+      OR (invoice.calculation_snapshot->'basis',invoice.calculation_snapshot->>'basisSha256')
+           IS DISTINCT FROM (reservation.basis,reservation.basis_sha256)
+      OR invoice.calculation_snapshot_sha256 IS DISTINCT FROM encode(sha256(convert_to(invoice.calculation_snapshot::text,'UTF8')),'hex')
+      OR draft.review_hash IS DISTINCT FROM encode(sha256(convert_to(jsonb_build_array(
+        p_company,reservation.id,p_invoice,invoice.calculation_snapshot_sha256)::text,'UTF8')),'hex') THEN
+      RAISE EXCEPTION 'invoice_group_review_changed' USING ERRCODE='40001';
+    END IF;
+    terms:=gridex_billing_source.price_series_payment_terms_v1(p_company,reservation.id);
+    IF terms IS NULL THEN RAISE EXCEPTION 'invoice_group_issuer_terms_missing' USING ERRCODE='23514'; END IF;
+    periods:=gridex_billing_source.price_series_issue_periods_v1(reservation);
+    IF jsonb_array_length(periods) IS DISTINCT FROM cardinality(member_ids) THEN
+      RAISE EXCEPTION 'invoice_group_issue_document_source_missing' USING ERRCODE='23514';
+    END IF;
+    series:=gridex_invoice_groups.qualified_internal_series(p_company,'test');
+    IF series IS NULL THEN RAISE EXCEPTION 'invoice_group_issue_issuer_required' USING ERRCODE='23514'; END IF;
+    PERFORM 1 FROM public.company_number_sequences s WHERE (s.company_id,s.sequence_key)=(p_company,series)
+      AND s.metadata#>>'{invoice_issuer,company_id}'=p_company::text
+      AND s.metadata#>>'{invoice_issuer,environment}'='test' FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_issue_issuer_required' USING ERRCODE='23514'; END IF;
+    due:=(issue_time AT TIME ZONE 'Europe/Stockholm')::date+(terms->>'days')::integer;
+    issue_number:=public.gridex_next_document_number(p_company,series,NULL);
+    IF NOT pg_try_advisory_xact_lock(hashtextextended(p_company::text||':issued-invoice-number:'||issue_number,0)) THEN
+      RAISE EXCEPTION 'invoice_group_number_busy' USING ERRCODE='55P03';
+    END IF;
+    IF EXISTS(SELECT FROM public.customer_invoices i WHERE (i.company_id,i.invoice_number)=(p_company,issue_number)) THEN
+      RAISE EXCEPTION 'invoice_group_number_collision' USING ERRCODE='23505';
+    END IF;
+    frozen:=convert_to(jsonb_build_object('format','gridex_customer_price_series_invoice_test_v1','environment','test',
+      'invoiceReference',invoice.invoice_reference,'invoiceNumber',issue_number,
+      'issuedDate',(issue_time AT TIME ZONE 'Europe/Stockholm')::date,'dueDate',due,
+      'currency',invoice.currency,'quantityKwh',invoice.total_kwh::text,'amountExVat',invoice.amount_ex_vat::text,
+      'vatAmount',invoice.vat_amount::text,'amountIncVat',invoice.amount_inc_vat::text,'periods',periods)::text,'UTF8');
+    INSERT INTO gridex_billing_source.price_series_invoice_issues(
+      company_id,reservation_id,invoice_id,review_hash,calculation_sha256,series_key,invoice_number,
+      actor_user_id,effective_at,due_date,payment_configuration_evidence,body,body_sha256
+    ) VALUES(p_company,reservation.id,p_invoice,p_review,invoice.calculation_snapshot_sha256,series,issue_number,
+      p_actor,issue_time,due,terms->'configurations',frozen,encode(sha256(frozen),'hex')) RETURNING * INTO issued;
+    UPDATE public.customer_invoices SET status='issued',invoice_number=issue_number,issued_at=issue_time,
+      due_date=due,updated_by=p_actor,updated_at=issue_time WHERE (company_id,id)=(p_company,p_invoice);
+    UPDATE public.billing_underlays u SET invoice_readiness_status='invoiced',invoice_readiness_issues='[]'::jsonb,
+      invoice_export_locked_at=coalesce(u.invoice_export_locked_at,issue_time),updated_at=issue_time
+      WHERE u.company_id=p_company AND u.id=ANY(member_ids) AND u.customer_id=reservation.customer_id;
+    SELECT count(*) INTO projected FROM public.billing_underlays u
+    WHERE u.company_id=p_company AND u.id=ANY(member_ids) AND u.customer_id=reservation.customer_id
+      AND u.invoice_readiness_status='invoiced' AND u.invoice_readiness_issues='[]'::jsonb
+      AND u.invoice_export_locked_at IS NOT NULL AND u.updated_at=issue_time;
+    IF projected<>cardinality(member_ids) THEN
+      RAISE EXCEPTION 'invoice_group_issue_source_projection_missing' USING ERRCODE='23514';
+    END IF;
+    RETURN gridex_billing_source.price_series_issue_result_v1(issued,false);
+  END
+  $$;
 
 --
 -- Name: frozen_ordinary_invoice_source_v1(jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
@@ -5725,6 +6106,25 @@ CREATE FUNCTION gridex_billing_source.guard_price_timeline_invoice_hold_v1() RET
    RETURN NEW;
   END IF;
   IF TG_TABLE_NAME='billing_underlays' THEN
+   IF TG_OP='UPDATE' AND OLD.invoice_readiness_status IS DISTINCT FROM 'invoiced'
+    AND NEW.invoice_readiness_status='invoiced' AND NEW.invoice_readiness_issues='[]'::jsonb
+    AND (to_jsonb(NEW)-ARRAY['invoice_readiness_status','invoice_readiness_issues','invoice_export_locked_at','updated_at'])=
+        (to_jsonb(OLD)-ARRAY['invoice_readiness_status','invoice_readiness_issues','invoice_export_locked_at','updated_at'])
+    AND EXISTS(
+      SELECT FROM gridex_billing_source.price_series_reservation_members m
+      JOIN gridex_billing_source.price_series_reservations r
+        ON (r.company_id,r.id)=(m.company_id,m.reservation_id)
+      JOIN gridex_billing_source.price_series_invoice_issues o
+        ON (o.company_id,o.reservation_id)=(r.company_id,r.id)
+      JOIN gridex_billing_source.price_series_invoice_drafts d
+        ON (d.company_id,d.reservation_id,d.invoice_id,d.review_hash)=(o.company_id,o.reservation_id,o.invoice_id,o.review_hash)
+      JOIN public.customer_invoices i ON (i.company_id,i.id)=(d.company_id,d.invoice_id)
+      WHERE (m.company_id,m.billing_underlay_id,r.customer_id)=(NEW.company_id,NEW.id,NEW.customer_id)
+        AND i.customer_id=r.customer_id AND i.source_system='invoice_price_series_test_v1' AND i.status='issued'
+        AND (i.invoice_number,i.calculation_snapshot_sha256,i.issued_at)=(o.invoice_number,o.calculation_sha256,o.effective_at)
+        AND NEW.updated_at=o.effective_at
+        AND NEW.invoice_export_locked_at IS NOT DISTINCT FROM coalesce(OLD.invoice_export_locked_at,o.effective_at)
+    ) THEN RETURN NEW; END IF;
    NEW.invoice_readiness_status:='blocked';
    NEW.invoice_readiness_issues:=jsonb_build_array(reason);
    RETURN NEW;
@@ -5732,6 +6132,245 @@ CREATE FUNCTION gridex_billing_source.guard_price_timeline_invoice_hold_v1() RET
   RAISE EXCEPTION 'price_timeline_invoice_review_required' USING ERRCODE='23514';
  END
  $$;
+
+--
+-- Name: has_canonical_signed_series_price_v1(uuid, uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.has_canonical_signed_series_price_v1(p_company uuid, p_customer uuid, p_contract uuid, p_price uuid, p_start timestamp with time zone, p_end timestamp with time zone) RETURNS boolean
+    LANGUAGE sql STABLE STRICT
+    SET search_path TO 'pg_catalog'
+    AS $_$
+      SELECT EXISTS(
+        SELECT 1
+        FROM public.customer_contracts contract
+        JOIN public.contract_price_snapshots price
+          ON (price.company_id,price.customer_id,price.contract_id,price.id)
+           =(p_company,p_customer,contract.id,p_price)
+        JOIN public.customer_contract_signature_requests request
+          ON request.id=CASE
+            WHEN contract.signature_snapshot->>'signature_request_id' ~
+                 '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$'
+            THEN (contract.signature_snapshot->>'signature_request_id')::uuid END
+          AND (request.company_id,request.customer_id,request.customer_contract_id)
+             =(contract.company_id,contract.customer_id,contract.id)
+          AND request.used_at=contract.signed_at AND request.revoked_at IS NULL
+        JOIN public.customer_contract_evidence evidence
+          ON (evidence.company_id,evidence.customer_contract_id,evidence.evidence_type,evidence.evidence_sha256)
+           =(contract.company_id,contract.id,'online_acceptance',contract.signature_snapshot_sha256)
+          AND evidence.evidence_snapshot=contract.signature_snapshot AND evidence.captured_at=request.used_at
+        WHERE (contract.company_id,contract.customer_id,contract.id)=(p_company,p_customer,p_contract)
+          AND contract.contract_price_snapshot_id=price.id
+          AND contract.price_plan_version_id=price.price_plan_version_id
+          AND price.source='signature_prepare' AND price.pricing_model='fixed'
+          AND price.snapshot_quality='canonical'
+          AND price.snapshot_schema_version='gridex_contract_pricing_v7_signed_receipt'
+          AND price.snapshot_hash=encode(sha256(convert_to(price.snapshot_json::text,'UTF8')),'hex')
+          AND isfinite(p_start) AND isfinite(p_end) AND p_start<p_end
+          AND price.valid_from<=(p_start AT TIME ZONE 'Europe/Stockholm')::date
+          AND (price.valid_to IS NULL OR
+            price.valid_to>=((p_end-interval '1 microsecond') AT TIME ZONE 'Europe/Stockholm')::date)
+          AND contract.signature_snapshot->>'schema'='gridex_online_contract_signature_v1'
+          AND contract.signature_snapshot_sha256=
+            encode(sha256(convert_to(contract.signature_snapshot::text,'UTF8')),'hex')
+          AND (contract.signature_snapshot->>'company_id',contract.signature_snapshot->>'customer_id',
+            contract.signature_snapshot->>'contract_id',contract.signature_snapshot->>'contract_price_snapshot_id',
+            contract.signature_snapshot->>'price_plan_version_id',contract.signature_snapshot->>'pricing_snapshot_sha256')
+           =(p_company::text,p_customer::text,p_contract::text,p_price::text,price.price_plan_version_id::text,price.snapshot_hash)
+          AND request.metadata->>'contract_price_snapshot_id'=price.id::text
+          AND request.metadata->>'price_plan_version_id'=price.price_plan_version_id::text
+      )
+    $_$;
+
+--
+-- Name: has_unapplied_test_price_addendum_v1(uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_end timestamp with time zone) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT EXISTS(SELECT FROM gridex_billing_source.test_price_addendum_reviews r
+        WHERE (r.company_id,r.contract_id)=(p_company,p_contract) AND r.effective_at<p_end)
+      OR EXISTS(SELECT FROM public.contract_price_snapshots s WHERE (s.company_id,s.contract_id)=(p_company,p_contract)
+        AND s.source='staff_manually_verified_signed_addendum_v1'
+        AND (s.valid_from IS NULL OR (s.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm')<p_end))
+    $$;
+
+--
+-- Name: has_zero_only_addendum_invoice_fee_v1(jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.has_zero_only_addendum_invoice_fee_v1(components jsonb) RETURNS boolean
+    LANGUAGE sql IMMUTABLE STRICT
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT CASE WHEN jsonb_typeof(components)='array' THEN
+        jsonb_array_length(components)=0 OR (
+          jsonb_array_length(components)=1 AND
+          components#>>'{0,component_code}'='invoice_fee' AND
+          components#>>'{0,component_type}'='invoice_fee' AND
+          components#>>'{0,calculation_type}'='per_invoice' AND
+          components#>>'{0,unit}'='sek_invoice' AND
+          components#>>'{0,status}'='active' AND
+          components#>>'{0,metadata,lifecycle}'='per_invoice' AND
+          components#>'{0,amount}'='0'::jsonb
+        ) ELSE false END
+    $$;
+
+--
+-- Name: billing_underlays; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.billing_underlays (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    source_request_id uuid,
+    grid_owner_id uuid,
+    underlay_month integer,
+    underlay_year integer,
+    status text DEFAULT 'pending'::text NOT NULL,
+    total_kwh numeric,
+    total_sek_ex_vat numeric,
+    currency text DEFAULT 'SEK'::text NOT NULL,
+    source_system text DEFAULT 'manual'::text NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    received_at timestamp with time zone,
+    validated_at timestamp with time zone,
+    exported_at timestamp with time zone,
+    failure_reason text,
+    readiness_status text DEFAULT 'not_checked'::text,
+    readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    contract_id uuid,
+    billing_period_start date,
+    billing_period_end date,
+    missing_values_count integer,
+    source_meter_value_count integer,
+    pricing_snapshot_id uuid,
+    customer_site_id uuid,
+    price_plan_id uuid,
+    campaign_id uuid,
+    price_area text,
+    calculated_total_sek_ex_vat numeric,
+    calculated_vat_sek numeric,
+    calculated_total_sek_inc_vat numeric,
+    pricing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    invoice_readiness_status text,
+    invoice_readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    invoice_export_locked_at timestamp with time zone,
+    invoice_export_run_id uuid,
+    price_plan_version_id uuid,
+    price_book_id uuid,
+    contract_price_snapshot_id uuid,
+    billing_block_reason text,
+    supply_period_id uuid,
+    vat_rate numeric DEFAULT 0.25,
+    energy_direction text DEFAULT 'consumption'::text NOT NULL,
+    settlement_type text DEFAULT 'invoice'::text NOT NULL,
+    portfolio_id uuid,
+    portfolio_monthly_settlement_id uuid,
+    portfolio_settlement_revision integer,
+    portfolio_settlement_sha256 text,
+    billing_configuration_snapshot jsonb,
+    billing_configuration_snapshot_sha256 text,
+    billing_configuration_snapshotted_at timestamp with time zone,
+    customer_contract_id uuid,
+    billing_blocked_by_case_id uuid,
+    CONSTRAINT billing_underlays_configuration_snapshot_check CHECK ((((billing_configuration_snapshot IS NULL) AND (billing_configuration_snapshot_sha256 IS NULL) AND (billing_configuration_snapshotted_at IS NULL)) OR ((jsonb_typeof(billing_configuration_snapshot) = 'object'::text) AND (billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text) AND (billing_configuration_snapshotted_at IS NOT NULL)))),
+    CONSTRAINT billing_underlays_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
+    CONSTRAINT billing_underlays_month_valid_check CHECK ((((underlay_month >= 1) AND (underlay_month <= 12)) AND ((underlay_year >= 2000) AND (underlay_year <= 2100)))),
+    CONSTRAINT billing_underlays_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
+    CONSTRAINT billing_underlays_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
+    CONSTRAINT billing_underlays_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
+    CONSTRAINT billing_underlays_vat_rate_fraction_check CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric)))),
+    CONSTRAINT billing_underlays_vat_rate_fraction_contract CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric))))
+);
+
+--
+-- Name: COLUMN billing_underlays.billing_configuration_snapshot; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot IS 'Immutable normalized payment terms, invoice profile, distribution, recipient, provider/environment, VAT, OCR/reference policy and address readiness evidence.';
+
+--
+-- Name: COLUMN billing_underlays.billing_configuration_snapshot_sha256; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot_sha256 IS 'SHA-256 of the canonical stable JSON representation created by the billing readiness runtime.';
+
+--
+-- Name: is_planned_move_out_underlay_v1(public.billing_underlays, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.is_planned_move_out_underlay_v1(underlay public.billing_underlays, basis jsonb) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT EXISTS (
+        SELECT FROM public.customer_supply_periods period
+        JOIN public.customer_contracts contract ON (contract.company_id,contract.id)=(period.company_id,period.contract_id)
+        WHERE (period.company_id,period.id,period.contract_id,period.customer_id,period.metering_point_id)
+          =(underlay.company_id,underlay.supply_period_id,underlay.contract_id,underlay.customer_id,underlay.metering_point_id)
+          AND basis#>>'{supply,currentSourceMessageId}'=period.source_message_id::text
+          AND basis#>>'{supply,marketStateVersion}'=period.market_state_version::text
+          AND basis->>'contractId'=contract.id::text
+          AND gridex_received_sources.planned_move_out_supply_window_v1(
+            period,contract,(basis->>'start')::timestamptz,(basis->>'end')::timestamptz)
+      )
+    $$;
+
+--
+-- Name: list_test_price_series_reviews_v1(uuid, text, uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.list_test_price_series_reviews_v1(p_company uuid, p_month text, p_customer uuid, p_after uuid) RETURNS jsonb
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT coalesce(jsonb_agg(result ORDER BY result->>'invoiceId'),'[]'::jsonb) FROM (
+    SELECT jsonb_build_object('companyId',d.company_id,'customerId',r.customer_id,'billingMonth',r.billing_month,
+      'invoiceId',i.id,'invoiceNumber',issued.invoice_number,'reviewHash',d.review_hash,'canIssue',
+        (issued.invoice_id IS NULL AND a.reservation_id IS NOT NULL AND co.is_active AND co.status='active'
+         AND co.invoice_export_enabled
+         AND gridex_invoice_groups.qualified_internal_series(d.company_id,'test') IS NOT NULL
+         AND gridex_billing_source.price_series_payment_terms_v1(d.company_id,d.reservation_id) IS NOT NULL),
+      'reviewType','test_price_series',
+      'status',CASE WHEN issued.invoice_id IS NOT NULL THEN 'issued' WHEN a.reservation_id IS NULL THEN 'pending_review' ELSE 'approved' END,
+      'currency',i.currency,'totalAmount',i.amount_inc_vat,
+      'customerName',coalesce(nullif(c.full_name,''),nullif(c.company_name,''),c.customer_number),
+      'sources',(SELECT jsonb_agg(jsonb_build_object('underlayId',u.id,'siteId',r.site_id,'facilityReference',NULL,
+        'priceArea',u.price_area,
+        'periodStart',((frozen.member->>'from')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+        'periodEnd',((frozen.member->>'until')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+        'quantityKwh',(frozen.member->>'quantityKwh')::numeric,
+        'totalAmount',(frozen.member->>'lockedAmountIncVat')::numeric) ORDER BY m.ordinal)
+      FROM gridex_billing_source.price_series_reservation_members m
+      JOIN public.billing_underlays u ON u.company_id=m.company_id AND u.id=m.billing_underlay_id
+      CROSS JOIN LATERAL (SELECT r.basis->'members'->(m.ordinal-1) AS member) frozen
+      WHERE m.company_id=d.company_id AND m.reservation_id=d.reservation_id
+        AND frozen.member->>'underlayId'=m.billing_underlay_id::text
+        AND frozen.member->>'pricingRunId'=m.pricing_run_id::text)) AS result
+    FROM gridex_billing_source.price_series_invoice_drafts d
+    JOIN gridex_billing_source.price_series_reservations r ON r.company_id=d.company_id AND r.id=d.reservation_id
+    JOIN public.customer_invoices i ON i.company_id=d.company_id AND i.id=d.invoice_id AND i.customer_id=r.customer_id
+    JOIN public.customers c ON c.company_id=r.company_id AND c.id=r.customer_id
+    JOIN public.companies co ON co.id=r.company_id AND co.billing_provider_environment='test' AND co.invoice_export_target_system='file_export'
+    LEFT JOIN gridex_billing_source.price_series_invoice_approvals a ON a.company_id=d.company_id AND a.reservation_id=d.reservation_id
+    LEFT JOIN gridex_billing_source.price_series_invoice_issues issued
+      ON (issued.company_id,issued.reservation_id,issued.invoice_id)=(d.company_id,d.reservation_id,d.invoice_id)
+    WHERE d.company_id=p_company AND r.billing_month=p_month AND (p_customer IS NULL OR r.customer_id=p_customer)
+      AND (p_after IS NULL OR d.invoice_id>p_after)
+    ORDER BY d.invoice_id LIMIT 21
+  ) reviews
+$$;
 
 --
 -- Name: lock_ordinary_invoice_pricing_source_v1(uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
@@ -5749,7 +6388,12 @@ BEGIN
   SELECT * INTO binding FROM gridex_billing_source.underlay_bindings
   WHERE company_id=p_company AND underlay_id=p_underlay
     AND (source_basis->>'contractStatus'='terminated'
-      OR p_first_output AND gridex_billing_source.frozen_ordinary_invoice_source_v1(source_basis));
+      OR p_first_output AND gridex_billing_source.frozen_ordinary_invoice_source_v1(source_basis)
+      OR (source_basis->>'contractStatus' IN ('signed','active') AND EXISTS (
+        SELECT FROM public.billing_underlays candidate
+        WHERE (candidate.company_id,candidate.id)=(p_company,p_underlay)
+          AND gridex_billing_source.is_planned_move_out_underlay_v1(candidate,source_basis)
+      )));
   IF NOT FOUND THEN RETURN NULL; END IF;
   SELECT * INTO STRICT underlay FROM public.billing_underlays WHERE company_id=p_company AND id=p_underlay;
   SELECT array_agg((entry->>'normalizedValueId')::uuid ORDER BY entry->>'normalizedValueId') INTO sources
@@ -5765,7 +6409,9 @@ BEGIN
     JOIN public.price_plan_versions version ON version.id=price.price_plan_version_id AND version.company_id=p_company
     WHERE price.id=underlay.contract_price_snapshot_id AND price.company_id=p_company FOR SHARE OF price,version;
   SELECT * INTO STRICT underlay FROM public.billing_underlays WHERE company_id=p_company AND id=p_underlay;
-  IF (binding.source_basis->>'contractStatus'='terminated' AND NOT gridex_billing_source.ordinary_ended_pricing_v1(underlay))
+  IF ((binding.source_basis->>'contractStatus'='terminated'
+    OR gridex_billing_source.is_planned_move_out_underlay_v1(underlay,binding.source_basis))
+    AND NOT gridex_billing_source.ordinary_ended_pricing_v1(underlay))
      OR NOT EXISTS (
     SELECT FROM gridex_billing_source.underlay_bindings current_binding
     WHERE current_binding.company_id=p_company AND current_binding.underlay_id=p_underlay
@@ -5816,6 +6462,201 @@ BEGIN
   RETURN receipts;
 END
 $$;
+
+--
+-- Name: lock_price_series_members_v1(uuid, uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.lock_price_series_members_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE
+  hold_reason constant text := 'price_timeline_invoice_review_required';
+  month_date date;
+  month_start timestamptz;
+  month_end timestamptz;
+  underlay_ids uuid[];
+  source_ids uuid[];
+  source_count bigint;
+  supply_period uuid;
+  scope_timeline jsonb;
+  snapshot_ids jsonb := '[]'::jsonb;
+  members jsonb := '[]'::jsonb;
+  expected_actual jsonb := '[]'::jsonb;
+  previous_end timestamptz;
+  start_at timestamptz;
+  end_at timestamptz;
+  net numeric := 0;
+  quantity numeric := 0;
+  source record;
+  locked public.pricing_runs%ROWTYPE;
+  seal gridex_locked_pricing_evidence.run_seals%ROWTYPE;
+  evidence jsonb;
+BEGIN
+  IF p_company IS NULL OR p_customer IS NULL OR p_contract IS NULL OR p_site IS NULL OR p_point IS NULL
+    OR p_billing_month IS NULL OR p_billing_month !~ '^[0-9]{4}-(0[1-9]|1[0-2])$'
+    OR jsonb_typeof(p_expected) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'invoice_price_series_scope_required' USING ERRCODE='22023';
+  END IF;
+  IF current_setting('transaction_isolation') NOT IN ('read committed','read uncommitted') THEN
+    RAISE EXCEPTION 'invoice_price_timeline_read_committed_required' USING ERRCODE='25001';
+  END IF;
+
+  month_date := (p_billing_month || '-01')::date;
+  month_start := month_date::timestamp AT TIME ZONE 'Europe/Stockholm';
+  month_end := (month_date + interval '1 month') AT TIME ZONE 'Europe/Stockholm';
+
+  -- Match the lock order of the native ordinary billing source owners.
+  PERFORM gridex_bilateral_prodat.lock_supply_v1();
+  PERFORM gridex_regulated_supply.lock_graph_v1();
+
+  SELECT array_agg(u.id ORDER BY u.id) INTO underlay_ids
+  FROM public.billing_underlays u
+  WHERE u.company_id=p_company AND u.customer_id=p_customer AND u.metering_point_id=p_point
+    AND p_contract IN (u.contract_id,u.customer_contract_id)
+    AND u.underlay_year=extract(year FROM month_date) AND u.underlay_month=extract(month FROM month_date)
+    AND u.energy_direction='consumption' AND u.settlement_type='invoice';
+  IF coalesce(cardinality(underlay_ids),0)<2
+    OR cardinality(underlay_ids)<>jsonb_array_length(p_expected) THEN
+    RAISE EXCEPTION 'invoice_price_series_members_changed' USING ERRCODE='23514';
+  END IF;
+
+  SELECT min(u.supply_period_id::text)::uuid INTO supply_period
+  FROM public.billing_underlays u WHERE u.company_id=p_company AND u.id=ANY(underlay_ids);
+  SELECT count(*),array_agg(DISTINCT (v->>'normalizedValueId')::uuid ORDER BY (v->>'normalizedValueId')::uuid)
+    INTO source_count,source_ids
+  FROM gridex_billing_source.underlay_bindings b
+  CROSS JOIN LATERAL jsonb_array_elements(b.source_basis->'values') v
+  WHERE b.company_id=p_company AND b.underlay_id=ANY(underlay_ids);
+  IF supply_period IS NULL OR coalesce(cardinality(source_ids),0)=0 OR array_position(source_ids,NULL) IS NOT NULL
+    OR source_count<>cardinality(source_ids) THEN
+    RAISE EXCEPTION 'invoice_price_series_source_required' USING ERRCODE='23514';
+  END IF;
+  PERFORM gridex_billing_source.lock_values_v1(p_company,source_ids,supply_period);
+  PERFORM FROM public.customer_contracts c WHERE c.company_id=p_company
+    AND c.customer_id=p_customer AND c.id=p_contract AND c.metering_point_id=p_point
+    AND coalesce(c.site_id,c.customer_site_id)=p_site
+    AND (c.site_id IS NULL OR c.customer_site_id IS NULL OR c.site_id=c.customer_site_id)
+    FOR UPDATE NOWAIT;
+  IF NOT FOUND THEN RAISE EXCEPTION 'invoice_price_series_scope_changed' USING ERRCODE='23514'; END IF;
+  PERFORM FROM public.billing_underlays u
+  WHERE u.company_id=p_company AND u.id=ANY(underlay_ids) ORDER BY u.id FOR SHARE NOWAIT;
+
+  FOR source IN
+    SELECT u.id,u.customer_contract_id,u.contract_id,u.site_id,u.customer_site_id,u.supply_period_id,
+      u.billing_period_start,u.billing_period_end,u.contract_price_snapshot_id,u.currency,u.total_kwh,
+      u.status,u.readiness_status,u.missing_values_count,u.billing_block_reason,
+      u.payload,b.source_basis,b.source_basis_hash,b.exact_total_kwh
+    FROM public.billing_underlays u
+    LEFT JOIN gridex_billing_source.underlay_bindings b ON b.company_id=u.company_id AND b.underlay_id=u.id
+    WHERE u.company_id=p_company AND u.id=ANY(underlay_ids)
+    ORDER BY u.billing_period_start,u.billing_period_end,u.id
+  LOOP
+    start_at := (source.source_basis->>'start')::timestamptz;
+    end_at := (source.source_basis->>'end')::timestamptz;
+    IF source.supply_period_id IS DISTINCT FROM supply_period
+      OR coalesce(source.customer_contract_id,source.contract_id) IS DISTINCT FROM p_contract
+      OR (source.customer_contract_id IS NOT NULL AND source.contract_id IS NOT NULL AND source.customer_contract_id<>source.contract_id)
+      OR coalesce(source.customer_site_id,source.site_id) IS DISTINCT FROM p_site
+      OR (source.site_id IS NOT NULL AND source.customer_site_id IS NOT NULL AND source.site_id<>source.customer_site_id)
+      OR source.status IS DISTINCT FROM 'validated' OR source.readiness_status IS DISTINCT FROM 'ready'
+      OR source.currency IS DISTINCT FROM 'SEK' OR source.total_kwh IS NULL OR coalesce(source.missing_values_count,0)<>0
+      OR source.billing_block_reason IS DISTINCT FROM hold_reason
+      OR source.source_basis->>'invoiceReviewHold' IS DISTINCT FROM hold_reason
+      OR source.source_basis->>'contractId' IS DISTINCT FROM p_contract::text
+      OR source.source_basis->>'energyDirection' IS DISTINCT FROM 'consumption'
+      OR source.source_basis#>>'{price,id}' IS DISTINCT FROM source.contract_price_snapshot_id::text
+      OR source.exact_total_kwh IS DISTINCT FROM source.total_kwh
+      OR source.source_basis_hash IS DISTINCT FROM encode(sha256(convert_to(source.source_basis::text,'UTF8')),'hex')
+      OR NOT coalesce(isfinite(start_at) AND isfinite(end_at) AND start_at>=month_start AND end_at<=month_end AND end_at>start_at,false)
+      OR start_at IS DISTINCT FROM (source.payload->>'billing_period_start_instant')::timestamptz
+      OR end_at IS DISTINCT FROM (source.payload->>'billing_period_end_instant')::timestamptz
+      OR source.billing_period_start IS DISTINCT FROM (start_at AT TIME ZONE 'Europe/Stockholm')::date
+      OR source.billing_period_end IS DISTINCT FROM (end_at AT TIME ZONE 'Europe/Stockholm')::date
+      OR (previous_end IS NOT NULL AND start_at IS DISTINCT FROM previous_end) THEN
+      RAISE EXCEPTION 'invoice_price_series_source_changed' USING ERRCODE='23514';
+    END IF;
+    PERFORM gridex_billing_source.require_underlay_v1(p_company,source.id);
+
+    IF scope_timeline IS NULL THEN
+      scope_timeline := source.payload->'contract_price_timeline';
+      IF start_at IS DISTINCT FROM (scope_timeline->>'from')::timestamptz THEN
+        RAISE EXCEPTION 'invoice_price_series_coverage_changed' USING ERRCODE='23514';
+      END IF;
+    ELSIF scope_timeline IS DISTINCT FROM source.payload->'contract_price_timeline' THEN
+      RAISE EXCEPTION 'invoice_price_series_coverage_changed' USING ERRCODE='23514';
+    END IF;
+    PERFORM gridex_billing_source.require_contract_price_timeline_v1(
+      p_company,p_contract,source.contract_price_snapshot_id,start_at,end_at,scope_timeline);
+
+    -- A segment must agree with its actual signed fixed-price version, not just
+    -- with the month's ordered list of price IDs.
+    PERFORM FROM public.contract_price_snapshots s
+    JOIN public.price_plan_versions v ON v.company_id=s.company_id AND v.id=s.price_plan_version_id
+    WHERE s.company_id=p_company AND s.contract_id=p_contract AND s.id=source.contract_price_snapshot_id
+      AND s.pricing_model='fixed'
+      AND (gridex_billing_source.has_canonical_signed_series_price_v1(
+        p_company,p_customer,p_contract,s.id,start_at,end_at)
+        OR (s.source='staff_manually_verified_signed_addendum_v1' AND EXISTS(
+          SELECT FROM gridex_billing_source.test_price_addendum_applications a
+          JOIN gridex_billing_source.test_price_addendum_reviews r
+            ON (r.company_id,r.contract_id,r.document_id,r.receipt_sha256)
+             =(a.company_id,a.contract_id,a.document_id,a.review_sha256)
+          WHERE (a.company_id,a.contract_id,a.customer_id,a.successor_snapshot_id)=(p_company,p_contract,p_customer,s.id)
+            AND r.effective_at<=start_at AND s.snapshot_json->>'addendumReviewSha256'=a.review_sha256)))
+      AND s.valid_from<=source.billing_period_start
+      AND (s.valid_to IS NULL OR s.valid_to>=((end_at - interval '1 microsecond') AT TIME ZONE 'Europe/Stockholm')::date)
+      AND v.locked_at IS NOT NULL AND v.content_sha256=source.source_basis->>'priceVersionHash'
+      AND to_jsonb(s) IS NOT DISTINCT FROM source.source_basis->'price'
+    FOR SHARE OF s,v NOWAIT;
+    IF NOT FOUND THEN RAISE EXCEPTION 'invoice_price_series_signed_price_changed' USING ERRCODE='23514'; END IF;
+
+    SELECT p.* INTO STRICT locked FROM public.pricing_runs p
+      WHERE p.company_id=p_company AND p.customer_id=p_customer AND p.billing_underlay_id=source.id
+        AND p.status='locked' AND p.locked_at IS NOT NULL
+        AND p.energy_direction='consumption' AND p.settlement_type='invoice'
+      FOR SHARE NOWAIT;
+    IF locked.billing_period_start IS DISTINCT FROM start_at OR locked.billing_period_end IS DISTINCT FROM end_at THEN
+      RAISE EXCEPTION 'invoice_price_series_pricing_period_changed' USING ERRCODE='23514';
+    END IF;
+    SELECT s.* INTO STRICT seal FROM gridex_locked_pricing_evidence.run_seals s
+      WHERE s.company_id=p_company AND s.underlay_id=source.id AND s.run_id=locked.id FOR SHARE NOWAIT;
+    evidence := gridex_locked_pricing_evidence.source_rows(p_company,source.id,locked.id);
+    IF jsonb_array_length(evidence)<>seal.evidence_count
+      OR gridex_locked_pricing_evidence.seal_digest(p_company,source.id,locked.id,evidence) IS DISTINCT FROM seal.evidence_digest THEN
+      RAISE EXCEPTION 'invoice_price_series_pricing_evidence_changed' USING ERRCODE='23514';
+    END IF;
+
+    snapshot_ids := snapshot_ids||jsonb_build_array(source.contract_price_snapshot_id);
+    expected_actual := expected_actual||jsonb_build_array(jsonb_build_object('underlayId',source.id,'pricingRunId',locked.id));
+    members := members||jsonb_build_array(jsonb_build_object(
+      'underlayId',source.id,'pricingRunId',locked.id,'priceSnapshotId',source.contract_price_snapshot_id,
+      'sourceBasisSha256',source.source_basis_hash,'pricingEvidenceSha256',encode(seal.evidence_digest,'hex'),
+      'from',start_at,'until',end_at,'quantityKwh',source.total_kwh,
+      'amountExVat',locked.total_ex_vat,'lockedVatAmount',locked.vat_amount,'lockedAmountIncVat',locked.total_inc_vat
+    ));
+    previous_end := end_at;
+    net := net+locked.total_ex_vat;
+    quantity := quantity+source.total_kwh;
+  END LOOP;
+
+  IF (scope_timeline->>'until')::timestamptz IS DISTINCT FROM previous_end
+    OR scope_timeline->'snapshotIds' IS DISTINCT FROM snapshot_ids
+    OR expected_actual IS DISTINCT FROM p_expected THEN
+    RAISE EXCEPTION 'invoice_price_series_members_changed' USING ERRCODE='23514';
+  END IF;
+  RETURN jsonb_build_object(
+    'kind','same_site_fixed_price_series_v1','companyId',p_company,'customerId',p_customer,'contractId',p_contract,
+    'siteId',p_site,'meteringPointId',p_point,'supplyPeriodId',supply_period,'billingMonth',p_billing_month,'currency','SEK',
+    'members',members,'quantityKwh',quantity,'amountExVat',net
+  );
+EXCEPTION
+  WHEN no_data_found OR too_many_rows THEN
+    RAISE EXCEPTION 'invoice_price_series_locked_pricing_required' USING ERRCODE='23514';
+END;
+$_$;
 
 --
 -- Name: lock_values_v1(uuid, uuid[], uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
@@ -5985,94 +6826,6 @@ EXCEPTION WHEN no_data_found OR too_many_rows OR cardinality_violation OR invali
 END $_$;
 
 --
--- Name: billing_underlays; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.billing_underlays (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    source_request_id uuid,
-    grid_owner_id uuid,
-    underlay_month integer,
-    underlay_year integer,
-    status text DEFAULT 'pending'::text NOT NULL,
-    total_kwh numeric,
-    total_sek_ex_vat numeric,
-    currency text DEFAULT 'SEK'::text NOT NULL,
-    source_system text DEFAULT 'manual'::text NOT NULL,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    received_at timestamp with time zone,
-    validated_at timestamp with time zone,
-    exported_at timestamp with time zone,
-    failure_reason text,
-    readiness_status text DEFAULT 'not_checked'::text,
-    readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    contract_id uuid,
-    billing_period_start date,
-    billing_period_end date,
-    missing_values_count integer,
-    source_meter_value_count integer,
-    pricing_snapshot_id uuid,
-    customer_site_id uuid,
-    price_plan_id uuid,
-    campaign_id uuid,
-    price_area text,
-    calculated_total_sek_ex_vat numeric,
-    calculated_vat_sek numeric,
-    calculated_total_sek_inc_vat numeric,
-    pricing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    invoice_readiness_status text,
-    invoice_readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    invoice_export_locked_at timestamp with time zone,
-    invoice_export_run_id uuid,
-    price_plan_version_id uuid,
-    price_book_id uuid,
-    contract_price_snapshot_id uuid,
-    billing_block_reason text,
-    supply_period_id uuid,
-    vat_rate numeric DEFAULT 0.25,
-    energy_direction text DEFAULT 'consumption'::text NOT NULL,
-    settlement_type text DEFAULT 'invoice'::text NOT NULL,
-    portfolio_id uuid,
-    portfolio_monthly_settlement_id uuid,
-    portfolio_settlement_revision integer,
-    portfolio_settlement_sha256 text,
-    billing_configuration_snapshot jsonb,
-    billing_configuration_snapshot_sha256 text,
-    billing_configuration_snapshotted_at timestamp with time zone,
-    customer_contract_id uuid,
-    billing_blocked_by_case_id uuid,
-    CONSTRAINT billing_underlays_configuration_snapshot_check CHECK ((((billing_configuration_snapshot IS NULL) AND (billing_configuration_snapshot_sha256 IS NULL) AND (billing_configuration_snapshotted_at IS NULL)) OR ((jsonb_typeof(billing_configuration_snapshot) = 'object'::text) AND (billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text) AND (billing_configuration_snapshotted_at IS NOT NULL)))),
-    CONSTRAINT billing_underlays_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
-    CONSTRAINT billing_underlays_month_valid_check CHECK ((((underlay_month >= 1) AND (underlay_month <= 12)) AND ((underlay_year >= 2000) AND (underlay_year <= 2100)))),
-    CONSTRAINT billing_underlays_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
-    CONSTRAINT billing_underlays_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
-    CONSTRAINT billing_underlays_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
-    CONSTRAINT billing_underlays_vat_rate_fraction_check CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric)))),
-    CONSTRAINT billing_underlays_vat_rate_fraction_contract CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric))))
-);
-
---
--- Name: COLUMN billing_underlays.billing_configuration_snapshot; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot IS 'Immutable normalized payment terms, invoice profile, distribution, recipient, provider/environment, VAT, OCR/reference policy and address readiness evidence.';
-
---
--- Name: COLUMN billing_underlays.billing_configuration_snapshot_sha256; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot_sha256 IS 'SHA-256 of the canonical stable JSON representation created by the billing readiness runtime.';
-
---
 -- Name: ordinary_ended_pricing_v1(public.billing_underlays); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
 --
 
@@ -6104,10 +6857,9 @@ CREATE FUNCTION gridex_billing_source.ordinary_ended_pricing_v1(underlay public.
       AND (underlay.customer_contract_id IS NULL OR underlay.customer_contract_id=contract.id)
       AND binding.exact_total_kwh=underlay.total_kwh
       AND binding.source_basis_hash=encode(sha256(convert_to(binding.source_basis::text,'UTF8')),'hex')
-      AND binding.source_basis->>'contractId'=contract.id::text AND binding.source_basis->>'contractStatus'='terminated'
+      AND binding.source_basis->>'contractId'=contract.id::text 
       AND binding.source_basis#>>'{supply,qualified}'='true' AND binding.source_basis#>>'{supply,activated}'='true'
       AND binding.source_basis#>>'{supply,initialSourceMessageId}'=period.source_message_id::text
-      AND binding.source_basis#>>'{supply,currentSourceMessageId}'=period.source_end_message_id::text
       AND binding.source_basis#>>'{supply,marketStateVersion}'=period.market_state_version::text
       AND binding.source_basis#>>'{price,id}'=price.id::text
       AND version.id=underlay.price_plan_version_id AND version.locked_at IS NOT NULL
@@ -6116,8 +6868,13 @@ CREATE FUNCTION gridex_billing_source.ordinary_ended_pricing_v1(underlay public.
       AND underlay.pricing_snapshot_id=price.id AND underlay.pricing_snapshot=price.snapshot_json
       AND (binding.source_basis->>'start')::timestamptz=(underlay.payload->>'billing_period_start_instant')::timestamptz
       AND (binding.source_basis->>'end')::timestamptz=(underlay.payload->>'billing_period_end_instant')::timestamptz
-      AND gridex_billing_source.ordinary_ended_supply_v1(
-        period,contract,(binding.source_basis->>'start')::timestamptz,(binding.source_basis->>'end')::timestamptz
+      AND (
+        (binding.source_basis->>'contractStatus'='terminated'
+          AND binding.source_basis#>>'{supply,currentSourceMessageId}'=period.source_end_message_id::text
+          AND gridex_billing_source.ordinary_ended_supply_v1(
+            period,contract,(binding.source_basis->>'start')::timestamptz,(binding.source_basis->>'end')::timestamptz))
+        OR (binding.source_basis->>'contractStatus' IN ('signed','active','terminated')
+          AND gridex_billing_source.is_planned_move_out_underlay_v1(underlay,binding.source_basis))
       )
       AND NOT EXISTS (SELECT FROM gridex_billing_source.correction_journal correction WHERE correction.underlay_id=underlay.id)
   )
@@ -6392,6 +7149,327 @@ CREATE FUNCTION gridex_billing_source.ordinary_ended_supply_v1(period public.cus
 $$;
 
 --
+-- Name: planned_move_out_close_receipt_v1(public.customer_supply_periods, public.customer_contracts); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.planned_move_out_close_receipt_v1(period public.customer_supply_periods, contract public.customer_contracts) RETURNS jsonb
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT CASE WHEN count(*)=1 THEN jsonb_agg(jsonb_build_object(
+        'contractId',contract.id, 'eventId',event.id, 'effectiveDate',period.end_date,
+        'recordedAt',period.metadata->>'planned_end_recorded_at',
+        'cutoffAt',(period.end_date+1)::timestamp AT TIME ZONE 'Europe/Stockholm'
+      ))->0 END
+      FROM public.customer_lifecycle_events event
+      WHERE event.company_id=period.company_id AND event.customer_id=period.customer_id
+        AND event.event_type='move_out' AND event.event_status='completed' AND event.effective_date=period.end_date
+        AND event.created_at=CASE WHEN pg_input_is_valid(period.metadata->>'planned_end_recorded_at','timestamptz')
+          THEN (period.metadata->>'planned_end_recorded_at')::timestamptz END
+    $$;
+
+--
+-- Name: prepare_test_price_series_invoice_v1(uuid, uuid, uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.prepare_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_month text, p_expected jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  token jsonb;
+  reservation gridex_billing_source.price_series_reservations%ROWTYPE;
+  draft gridex_billing_source.price_series_invoice_drafts%ROWTYPE;
+  new_invoice uuid:=gen_random_uuid();
+  snapshot jsonb;
+  snapshot_hash text;
+  tax numeric;
+  gross numeric;
+  rates integer;
+  exact_tax boolean;
+BEGIN
+  PERFORM gridex_billing_source.require_test_price_series_actor_v1(p_company,p_actor);
+  token:=gridex_billing_source.reserve_price_series_v1(p_company,p_customer,p_contract,p_site,p_point,p_month,p_expected);
+  IF EXISTS(SELECT 1 FROM public.customer_contracts c WHERE c.company_id=p_company AND c.id=p_contract
+    AND (c.consolidated_invoice IS TRUE OR c.export_blocked IS TRUE)) THEN
+    RAISE EXCEPTION 'invoice_price_series_separate_billing_required' USING ERRCODE='23514';
+  END IF;
+  SELECT * INTO STRICT reservation FROM gridex_billing_source.price_series_reservations r
+    WHERE r.company_id=p_company AND r.id=(token->>'id')::uuid FOR UPDATE;
+  SELECT * INTO draft FROM gridex_billing_source.price_series_invoice_drafts d
+    WHERE d.company_id=p_company AND d.reservation_id=reservation.id;
+  IF FOUND THEN
+    RETURN jsonb_build_object('invoiceId',draft.invoice_id,'reservationId',reservation.id,'reviewHash',draft.review_hash,'existing',true);
+  END IF;
+
+  PERFORM gridex_billing_source.assert_invoice_sources_uncorrected_v1(p_company,ARRAY(
+    SELECT m.billing_underlay_id FROM gridex_billing_source.price_series_reservation_members m
+    WHERE m.company_id=p_company AND m.reservation_id=reservation.id ORDER BY m.ordinal));
+  PERFORM gridex_case_confirmation.require_underlay_invoice_open_v1(p_company,m.billing_underlay_id)
+    FROM gridex_billing_source.price_series_reservation_members m WHERE m.company_id=p_company AND m.reservation_id=reservation.id;
+
+  -- Restrict this TEST draft to existing locked totals for which aggregation introduces no rounding choice.
+  SELECT count(DISTINCT u.vat_rate),sum(p.vat_amount),sum(p.total_inc_vat),
+    bool_and(coalesce(u.vat_rate BETWEEN 0 AND 1 AND p.total_ex_vat>=0 AND trunc(p.total_ex_vat,2)=p.total_ex_vat
+      AND trunc(p.vat_amount,2)=p.vat_amount AND p.total_ex_vat*u.vat_rate=p.vat_amount
+      AND p.total_ex_vat+p.vat_amount=p.total_inc_vat,false))
+  INTO rates,tax,gross,exact_tax
+  FROM gridex_billing_source.price_series_reservation_members m
+  JOIN public.billing_underlays u ON u.id=m.billing_underlay_id AND u.company_id=m.company_id
+  JOIN public.pricing_runs p ON p.id=m.pricing_run_id AND p.billing_underlay_id=u.id AND p.company_id=m.company_id
+  WHERE m.company_id=p_company AND m.reservation_id=reservation.id;
+  IF rates<>1 OR exact_tax IS NOT TRUE THEN RAISE EXCEPTION 'invoice_price_series_accounting_review_required' USING ERRCODE='23514'; END IF;
+
+  snapshot:=jsonb_build_object('schema','gridex_same_meter_price_series_invoice_test_v1',
+    'reservationId',reservation.id,'basisSha256',reservation.basis_sha256,'basis',reservation.basis,
+    'vatAmount',tax,'amountIncVat',gross);
+  snapshot_hash:=encode(sha256(convert_to(snapshot::text,'UTF8')),'hex');
+  INSERT INTO public.customer_invoices(id,company_id,customer_id,contract_id,customer_contract_id,invoice_reference,
+    period_start,period_end,total_kwh,consumption_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,status,
+    source_system,created_by,calculation_snapshot,calculation_snapshot_sha256)
+  VALUES(new_invoice,p_company,p_customer,p_contract,p_contract,public.gridex_new_public_resource_reference('invoice'),
+    ((reservation.basis#>>'{members,0,from}')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+    ((reservation.basis#>>'{members,-1,until}')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+    (reservation.basis->>'quantityKwh')::numeric,(reservation.basis->>'quantityKwh')::numeric,
+    (reservation.basis->>'amountExVat')::numeric,tax,gross,'SEK','draft','invoice_price_series_test_v1',p_actor,snapshot,snapshot_hash);
+  INSERT INTO gridex_billing_source.price_series_invoice_drafts(company_id,reservation_id,invoice_id,review_hash)
+  VALUES(p_company,reservation.id,new_invoice,encode(sha256(convert_to(jsonb_build_array(
+    p_company,reservation.id,new_invoice,snapshot_hash)::text,'UTF8')),'hex')) RETURNING * INTO draft;
+  RETURN jsonb_build_object('invoiceId',draft.invoice_id,'reservationId',reservation.id,'reviewHash',draft.review_hash,'existing',false);
+END
+$$;
+
+--
+-- Name: price_series_invoice_inspection_basis_v1(uuid, uuid, uuid, text[]); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.price_series_invoice_inspection_basis_v1(c uuid, actor uuid, target uuid, body_columns text[]) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+    DECLARE
+      invoice_row jsonb;
+      issued gridex_billing_source.price_series_invoice_issues%ROWTYPE;
+      reservation gridex_billing_source.price_series_reservations%ROWTYPE;
+      calculation_body jsonb;
+      member_facts jsonb;
+      protected_scope jsonb;
+      first_start timestamptz;
+      final_end timestamptz;
+    BEGIN
+      IF actor IS NULL OR auth.uid() IS DISTINCT FROM actor THEN
+        RAISE EXCEPTION 'price_series_retention_read_actor_required' USING ERRCODE='42501';
+      END IF;
+      IF body_columns IS DISTINCT FROM ARRAY['raw_payload','metadata','calculation_snapshot','portfolio_settlement_snapshot'] THEN
+        RAISE EXCEPTION 'price_series_retention_read_class_changed' USING ERRCODE='23514';
+      END IF;
+      issued:=gridex_billing_source.verified_price_series_issue_v1(c,target,NULL);
+      SELECT to_jsonb(i) INTO STRICT invoice_row FROM public.customer_invoices i
+      WHERE (i.company_id,i.id)=(c,target);
+      SELECT * INTO STRICT reservation FROM gridex_billing_source.price_series_reservations r
+      WHERE (r.company_id,r.id,r.customer_id)=(c,issued.reservation_id,(invoice_row->>'customer_id')::uuid);
+
+      IF reservation.basis->>'kind' IS DISTINCT FROM 'same_site_fixed_price_series_v1'
+        OR reservation.basis_sha256 IS DISTINCT FROM encode(sha256(convert_to(reservation.basis::text,'UTF8')),'hex')
+        OR invoice_row#>'{calculation_snapshot,basis}' IS DISTINCT FROM reservation.basis
+        OR invoice_row#>>'{calculation_snapshot,basisSha256}' IS DISTINCT FROM reservation.basis_sha256
+        OR issued.calculation_sha256 IS DISTINCT FROM encode(sha256(convert_to((invoice_row->'calculation_snapshot')::text,'UTF8')),'hex')
+        OR NOT EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_approvals a
+          WHERE (a.company_id,a.reservation_id,a.review_hash)=(c,reservation.id,issued.review_hash))
+        OR jsonb_typeof(reservation.basis->'members') IS DISTINCT FROM 'array'
+        OR jsonb_array_length(reservation.basis->'members') NOT BETWEEN 2 AND 32 THEN
+        RAISE EXCEPTION 'price_series_retention_issue_evidence_changed' USING ERRCODE='23514';
+      END IF;
+
+      WITH matched AS (
+        SELECT m.ordinal,m.billing_underlay_id,m.pricing_run_id,u.supply_period_id,
+          b.source_basis_hash,encode(seal.evidence_digest,'hex') AS pricing_evidence_hash,
+          p.billing_period_start AS start_at,p.billing_period_end AS end_at
+        FROM jsonb_array_elements(reservation.basis->'members') WITH ORDINALITY AS frozen(member,ordinal)
+        JOIN gridex_billing_source.price_series_reservation_members m
+          ON (m.company_id,m.reservation_id,m.ordinal)=(c,reservation.id,frozen.ordinal)
+          AND (m.billing_underlay_id::text,m.pricing_run_id::text)=(frozen.member->>'underlayId',frozen.member->>'pricingRunId')
+        JOIN public.billing_underlays u ON (u.company_id,u.id,u.customer_id,u.metering_point_id)
+          =(c,m.billing_underlay_id,reservation.customer_id,reservation.metering_point_id)
+        JOIN gridex_billing_source.underlay_bindings b ON (b.company_id,b.underlay_id)=(c,u.id)
+        JOIN public.pricing_runs p ON (p.company_id,p.billing_underlay_id,p.id)=(c,u.id,m.pricing_run_id)
+        JOIN gridex_locked_pricing_evidence.run_seals seal ON (seal.company_id,seal.underlay_id,seal.run_id)=(c,u.id,p.id)
+        WHERE coalesce(u.customer_contract_id,u.contract_id)=reservation.contract_id
+          AND coalesce(u.customer_site_id,u.site_id)=reservation.site_id
+          AND u.supply_period_id::text=reservation.basis->>'supplyPeriodId'
+          AND u.contract_price_snapshot_id::text=frozen.member->>'priceSnapshotId'
+          AND b.source_basis_hash=frozen.member->>'sourceBasisSha256'
+          AND b.source_basis_hash=encode(sha256(convert_to(b.source_basis::text,'UTF8')),'hex')
+          AND encode(seal.evidence_digest,'hex')=frozen.member->>'pricingEvidenceSha256'
+          AND p.status='locked' AND p.locked_at IS NOT NULL
+          AND p.billing_period_start=(frozen.member->>'from')::timestamptz
+          AND p.billing_period_end=(frozen.member->>'until')::timestamptz
+          AND isfinite(p.billing_period_start) AND isfinite(p.billing_period_end)
+          AND p.billing_period_start<p.billing_period_end
+      ), ordered AS (
+        SELECT matched.*,lag(end_at) OVER (ORDER BY ordinal) AS previous_end FROM matched
+      )
+      SELECT jsonb_agg(jsonb_build_object('underlayId',billing_underlay_id,'pricingRunId',pricing_run_id,
+        'supplyPeriodId',supply_period_id,'sourceHash',source_basis_hash,'pricingEvidenceHash',pricing_evidence_hash,
+        'periodStart',start_at,'periodEnd',end_at) ORDER BY ordinal),min(start_at),max(end_at)
+      INTO member_facts,first_start,final_end FROM ordered
+      WHERE previous_end IS NULL AND ordinal=1 OR previous_end=start_at;
+
+      IF jsonb_array_length(member_facts) IS DISTINCT FROM jsonb_array_length(reservation.basis->'members')
+        OR (SELECT count(*) FROM gridex_billing_source.price_series_reservation_members m
+          WHERE (m.company_id,m.reservation_id)=(c,reservation.id))<>jsonb_array_length(member_facts) THEN
+        RAISE EXCEPTION 'price_series_retention_member_evidence_changed' USING ERRCODE='23514';
+      END IF;
+
+      SELECT jsonb_object_agg(col,invoice_row->col) INTO calculation_body FROM unnest(body_columns) col;
+      IF octet_length(calculation_body::text) NOT BETWEEN 1 AND 20971520
+        OR calculation_body@>'{"retentionUnavailable":true}' THEN
+        RAISE EXCEPTION 'finance_retention_actual_body_required';
+      END IF;
+
+      protected_scope:=jsonb_build_object('companyId',c,'customerId',reservation.customer_id,'invoiceId',target,
+        'reviewHash',issued.review_hash,'calculationHash',issued.calculation_sha256,
+        'documentHash',issued.body_sha256,'sourceMembers',member_facts);
+      RETURN jsonb_build_object('retentionClass','invoice_calculation_body','targetId',target,
+        'sourceTable','public.customer_invoices','bodyColumns',body_columns,'periodStart',first_start,'periodEnd',final_end,
+        'originalProducerHash',issued.calculation_sha256,'sourceBound',true,
+        'sourceHash',encode(sha256(convert_to(calculation_body::text,'UTF8')),'hex'),
+        'targetHash',encode(sha256(convert_to(invoice_row::text,'UTF8')),'hex'),
+        'scopeHash',encode(sha256(convert_to(protected_scope::text,'UTF8')),'hex'),
+        'byteLength',octet_length(calculation_body::text),'includedCustomers',jsonb_build_array(reservation.customer_id),
+        'sourceMembers',member_facts,'allIncludedScopesClosed',false,'complete',false,'authority','none');
+    END
+    $$;
+
+--
+-- Name: price_series_reservations; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_reservations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    metering_point_id uuid NOT NULL,
+    billing_month text NOT NULL,
+    basis jsonb NOT NULL,
+    basis_sha256 text NOT NULL,
+    CONSTRAINT price_series_reservations_basis_check CHECK ((jsonb_typeof(basis) = 'object'::text)),
+    CONSTRAINT price_series_reservations_billing_month_check CHECK ((billing_month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'::text)),
+    CONSTRAINT price_series_reservations_check CHECK ((basis_sha256 = encode(sha256(convert_to((basis)::text, 'UTF8'::name)), 'hex'::text)))
+);
+
+--
+-- Name: price_series_issue_periods_v1(gridex_billing_source.price_series_reservations); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.price_series_issue_periods_v1(reservation gridex_billing_source.price_series_reservations) RETURNS jsonb
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+    SELECT jsonb_agg(jsonb_build_object(
+      'facilityReference',site.facility_reference,
+      'sourceReference',gridex_invoice_groups.public_source_reference(member.company_id,member.billing_underlay_id),
+      'periodStartAt',frozen.value->>'from',
+      'periodEndExclusiveAt',frozen.value->>'until',
+      'periodStartDate',((frozen.value->>'from')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+      'periodEndExclusiveDate',((frozen.value->>'until')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date,
+      'lastIncludedDate',(((frozen.value->>'until')::timestamptz-interval '1 microsecond') AT TIME ZONE 'Europe/Stockholm')::date,
+      'priceArea',underlay.price_area,'quantityKwh',frozen.value->>'quantityKwh',
+      'amountExVat',frozen.value->>'amountExVat','vatAmount',frozen.value->>'lockedVatAmount',
+      'amountIncVat',frozen.value->>'lockedAmountIncVat','pricing',lines.pricing) ORDER BY member.ordinal)
+    FROM gridex_billing_source.price_series_reservation_members member
+    JOIN public.billing_underlays underlay ON (underlay.company_id,underlay.id)=(member.company_id,member.billing_underlay_id)
+    JOIN public.customer_sites site ON (site.company_id,site.customer_id,site.id)=(reservation.company_id,reservation.customer_id,reservation.site_id)
+    CROSS JOIN LATERAL (SELECT reservation.basis->'members'->(member.ordinal-1) AS value) frozen
+    CROSS JOIN LATERAL (
+      SELECT jsonb_agg(jsonb_build_object('description',line.description,'quantity',line.quantity::text,
+        'unit',line.unit,'unitPriceExVat',line.unit_price_ex_vat::text,'exVat',line.amount_ex_vat::text,
+        'vat',line.vat_amount::text,'total',line.amount_inc_vat::text) ORDER BY line.sort_order,line.id) AS pricing,
+        sum(line.amount_ex_vat) AS net,sum(line.vat_amount) AS vat,sum(line.amount_inc_vat) AS gross
+      FROM public.pricing_preview_lines line
+      WHERE (line.company_id,line.pricing_run_id,line.billing_underlay_id)=(member.company_id,member.pricing_run_id,member.billing_underlay_id)
+      HAVING bool_and(btrim(line.description)<>'')
+    ) lines
+    WHERE (member.company_id,member.reservation_id)=(reservation.company_id,reservation.id)
+      AND (frozen.value->>'underlayId',frozen.value->>'pricingRunId')=(member.billing_underlay_id::text,member.pricing_run_id::text)
+      AND (lines.net,lines.vat,lines.gross)=((frozen.value->>'amountExVat')::numeric,
+        (frozen.value->>'lockedVatAmount')::numeric,(frozen.value->>'lockedAmountIncVat')::numeric)
+      AND btrim(site.facility_reference)<>'' AND underlay.price_area IN ('SE1','SE2','SE3','SE4')
+  $$;
+
+--
+-- Name: price_series_invoice_issues; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_invoice_issues (
+    company_id uuid NOT NULL,
+    reservation_id uuid NOT NULL,
+    invoice_id uuid NOT NULL,
+    review_hash text NOT NULL,
+    calculation_sha256 text NOT NULL,
+    series_key text NOT NULL,
+    invoice_number text NOT NULL,
+    actor_user_id uuid NOT NULL,
+    effective_at timestamp with time zone NOT NULL,
+    due_date date NOT NULL,
+    payment_configuration_evidence jsonb NOT NULL,
+    body bytea NOT NULL,
+    body_sha256 text NOT NULL,
+    CONSTRAINT price_series_invoice_issues_calculation_sha256_check CHECK ((calculation_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT price_series_invoice_issues_check CHECK ((body_sha256 = encode(sha256(body), 'hex'::text))),
+    CONSTRAINT price_series_invoice_issues_invoice_number_check CHECK ((btrim(invoice_number) <> ''::text)),
+    CONSTRAINT price_series_invoice_issues_payment_configuration_evidenc_check CHECK (((jsonb_typeof(payment_configuration_evidence) = 'array'::text) AND (jsonb_array_length(payment_configuration_evidence) >= 2))),
+    CONSTRAINT price_series_invoice_issues_review_hash_check CHECK ((review_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: price_series_issue_result_v1(gridex_billing_source.price_series_invoice_issues, boolean); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.price_series_issue_result_v1(issued gridex_billing_source.price_series_invoice_issues, replayed boolean) RETURNS jsonb
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+    SELECT jsonb_build_object('invoiceId',issued.invoice_id,'reviewHash',issued.review_hash,'outcome','issued',
+      'invoiceNumber',issued.invoice_number,'dueDate',issued.due_date,'actorUserId',issued.actor_user_id,
+      'effectiveAt',issued.effective_at,'existing',replayed)
+  $$;
+
+--
+-- Name: price_series_payment_terms_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.price_series_payment_terms_v1(p_company uuid, p_reservation uuid) RETURNS jsonb
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+    SELECT CASE WHEN count(*)>=2 AND count(terms.days)=count(*) AND min(terms.days)=max(terms.days)
+      THEN jsonb_build_object('days',min(terms.days),'configurations',jsonb_agg(jsonb_build_object(
+        'underlayId',member.billing_underlay_id,'sha256',underlay.billing_configuration_snapshot_sha256) ORDER BY member.ordinal)) END
+    FROM gridex_billing_source.price_series_reservations reservation
+    JOIN gridex_billing_source.price_series_reservation_members member
+      ON (member.company_id,member.reservation_id)=(reservation.company_id,reservation.id)
+    LEFT JOIN public.billing_underlays underlay ON underlay.company_id=member.company_id AND underlay.id=member.billing_underlay_id
+    CROSS JOIN LATERAL (
+      SELECT CASE WHEN underlay.billing_configuration_snapshot->>'schema'='billing_configuration_v1'
+        AND underlay.billing_configuration_snapshot->>'company_id'=reservation.company_id::text
+        AND underlay.billing_configuration_snapshot->>'customer_id'=reservation.customer_id::text
+        AND underlay.billing_configuration_snapshot->>'contract_id'=reservation.contract_id::text
+        AND underlay.billing_configuration_snapshot#>>'{provider,provider}'='file_export'
+        AND underlay.billing_configuration_snapshot#>>'{provider,environment}'='test'
+        AND underlay.billing_configuration_snapshot#>>'{payment_terms,defaulted}'='false'
+        AND underlay.billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'
+        AND underlay.billing_configuration_snapshotted_at IS NOT NULL
+        AND (underlay.billing_configuration_snapshot#>>'{payment_terms,dueDays}') ~ '^[0-9]{1,9}$'
+      THEN (underlay.billing_configuration_snapshot#>>'{payment_terms,dueDays}')::integer END AS days
+    ) terms
+    WHERE (reservation.company_id,reservation.id)=(p_company,p_reservation)
+  $_$;
+
+--
 -- Name: protect_items_v1(); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
 --
 
@@ -6404,6 +7482,31 @@ BEGIN
   OR (tg_op='UPDATE' AND EXISTS(SELECT FROM gridex_billing_source.underlay_bindings WHERE underlay_id=new.billing_underlay_id)) THEN RAISE EXCEPTION 'billing_source_finalized_items_immutable' USING ERRCODE='55000'; END IF;
  RETURN CASE WHEN tg_op='DELETE' THEN old ELSE new END;
 END $$;
+
+--
+-- Name: protect_test_price_series_draft_v1(); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.protect_test_price_series_draft_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_drafts d
+    WHERE d.company_id=OLD.company_id AND d.invoice_id=OLD.id) THEN
+    IF TG_OP='UPDATE' AND OLD.status='draft' AND NEW.status='issued' AND OLD.invoice_number IS NULL
+      AND (to_jsonb(NEW)-ARRAY['status','invoice_number','issued_at','due_date','updated_by','updated_at'])=
+          (to_jsonb(OLD)-ARRAY['status','invoice_number','issued_at','due_date','updated_by','updated_at'])
+      AND EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_issues o
+       WHERE (o.company_id,o.invoice_id,o.invoice_number,o.effective_at,o.due_date,o.actor_user_id,o.calculation_sha256)
+        =(NEW.company_id,NEW.id,NEW.invoice_number,NEW.issued_at,NEW.due_date,NEW.updated_by,NEW.calculation_snapshot_sha256)
+        AND NEW.updated_at=o.effective_at) THEN RETURN NEW; END IF;
+    RAISE EXCEPTION 'invoice_price_series_draft_requires_series_workflow' USING ERRCODE='55000';
+  END IF;
+  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END
+$$;
 
 --
 -- Name: protect_underlay_v1(); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
@@ -6421,6 +7524,159 @@ BEGIN
 END $$;
 
 --
+-- Name: normalized_metering_values; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.normalized_metering_values (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid,
+    customer_site_id uuid,
+    site_id uuid,
+    metering_point_id uuid NOT NULL,
+    facility_id text,
+    price_area text,
+    grid_area text,
+    period_start timestamp with time zone NOT NULL,
+    period_end timestamp with time zone NOT NULL,
+    resolution text,
+    quantity_kwh numeric NOT NULL,
+    quality_status text,
+    source_type text NOT NULL,
+    source_message_id uuid,
+    source_transaction_reference text,
+    source_line_reference text,
+    source_metering_value_id uuid,
+    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status text DEFAULT 'stored'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    revision_status text DEFAULT 'current'::text NOT NULL,
+    billing_status text DEFAULT 'pending_match'::text NOT NULL,
+    register_code text,
+    product_code text,
+    direction text DEFAULT 'consumption'::text NOT NULL,
+    unit text DEFAULT 'kWh'::text NOT NULL,
+    canonical_dedupe_key text,
+    replaced_by_value_id uuid,
+    previous_value_id uuid,
+    revision_number integer DEFAULT 1 NOT NULL,
+    supply_period_id uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
+    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    billing_gate_evaluated_at timestamp with time zone,
+    CONSTRAINT normalized_metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
+    CONSTRAINT normalized_metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
+    CONSTRAINT normalized_metering_values_direction_check CHECK ((direction = ANY (ARRAY['consumption'::text, 'production'::text, 'net_consumption'::text, 'net_production'::text]))),
+    CONSTRAINT normalized_metering_values_period_check CHECK ((period_end > period_start)),
+    CONSTRAINT normalized_metering_values_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
+    CONSTRAINT normalized_metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text]))),
+    CONSTRAINT normalized_metering_values_unit_check CHECK ((unit = ANY (ARRAY['Wh'::text, 'kWh'::text, 'MWh'::text])))
+);
+
+--
+-- Name: read_planned_move_out_receipt_v1(public.normalized_metering_values, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.read_planned_move_out_receipt_v1(value public.normalized_metering_values, source_basis jsonb) RETURNS jsonb
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+      SELECT receipt.close_evidence
+      FROM gridex_billing_source.planned_move_out_receipts receipt
+      JOIN public.customer_supply_periods period ON (period.company_id,period.id)=(receipt.company_id,receipt.supply_period_id)
+      JOIN public.customer_contracts contract ON (contract.company_id,contract.id)=(receipt.company_id,receipt.contract_id)
+      WHERE (receipt.company_id,receipt.normalized_value_id,receipt.meter_value_id,receipt.source_message_id,receipt.supply_period_id)
+            =(value.company_id,value.id,value.source_metering_value_id,value.source_message_id,value.supply_period_id)
+        AND value.revision_status='current' AND value.billing_status='billable' AND value.billing_gate_status='eligible'
+        AND source_basis->>'qualified'='true'
+        AND receipt.source_basis_sha256=encode(sha256(convert_to(source_basis::text,'UTF8')),'hex')
+        AND receipt.supply_source_basis IS NOT DISTINCT FROM value.billing_gate_snapshot->'supply_source_basis'
+        AND receipt.close_evidence->>'recordedAt'=period.metadata->>'planned_end_recorded_at'
+        AND receipt.supply_source_basis->>'currentSourceMessageId'=period.source_message_id::text
+        AND receipt.supply_source_basis->>'marketStateVersion'=period.market_state_version::text
+        -- This projection currently holds the raw observation locks. Check the
+        -- retained market rows without taking the graph locks in reverse order.
+        AND EXISTS (
+          SELECT FROM public.ediel_messages source
+          JOIN gridex_received_sources.validation_assessments assessment
+            ON (assessment.company_id,assessment.environment,assessment.source_message_id,assessment.source_payload_hash)
+              =(source.company_id,source.environment,source.id,source.immutable_payload_hash)
+          WHERE (source.company_id,source.id)=(period.company_id,period.source_message_id)
+            AND source.direction='inbound' AND source.message_family='PRODAT' AND source.message_code='Z04'
+            AND source.immutable_payload_hash=receipt.supply_source_basis->>'payloadHash'
+            AND source.immutable_payload_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex')
+            AND assessment.facts_text::jsonb->>'syntaxDecision'='accepted'
+            AND assessment.facts_text::jsonb->>'functionalDecision'='accepted'
+            AND (assessment.facts_text::jsonb->>'applicationDecision'='accepted'
+              OR gridex_received_sources.supply_effect_assessment_owns_period_v1(period.company_id,source.id,period.id,assessment.id)
+              OR gridex_received_sources.mixed_period_canonical_v1(assessment.id,period.company_id,period.id,source.id))
+            AND NOT EXISTS (
+              SELECT FROM gridex_received_sources.validation_assessments successor
+              WHERE successor.previous_assessment_id=assessment.id)
+        )
+        AND NOT EXISTS (
+          SELECT FROM gridex_ediel_retention.blob_tombstones removed
+          WHERE removed.company_id=receipt.company_id
+            AND removed.message_id IN (period.source_message_id,(receipt.supply_source_basis->>'originalMessageId')::uuid)
+        )
+        AND gridex_received_sources.planned_move_out_supply_window_v1(period,contract,value.period_start,value.period_end)
+    $$;
+
+--
+-- Name: read_price_series_customer_document_v1(uuid, uuid[], uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.read_price_series_customer_document_v1(p_company uuid, p_customers uuid[], p_invoice uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  DECLARE
+    invoice_customer uuid;
+    issued gridex_billing_source.price_series_invoice_issues%rowtype;
+  BEGIN
+    SELECT i.customer_id INTO invoice_customer FROM public.customer_invoices i
+    JOIN gridex_billing_source.price_series_invoice_issues o ON (o.company_id,o.invoice_id)=(i.company_id,i.id)
+    WHERE (i.company_id,i.id)=(p_company,p_invoice) AND i.customer_id=ANY(p_customers) AND i.status='issued';
+    IF NOT FOUND THEN RETURN NULL; END IF;
+    PERFORM public.ediel_require_portal_retention_access_v1(p_company,invoice_customer);
+    BEGIN
+      issued:=gridex_billing_source.verified_price_series_issue_v1(p_company,p_invoice,NULL);
+    EXCEPTION WHEN check_violation THEN
+      IF SQLERRM='finance_copy_retention_tombstoned' THEN RETURN jsonb_build_object('kind','retired'); END IF;
+      RAISE;
+    END;
+    RETURN jsonb_build_object('kind','ready','bodyBase64',encode(issued.body,'base64'),'sha256',issued.body_sha256);
+  END
+  $$;
+
+--
+-- Name: read_price_series_neutral_file_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.read_price_series_neutral_file_v1(p_company uuid, p_file uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  DECLARE
+    file gridex_billing_source.price_series_invoice_neutral_files%rowtype;
+    issued gridex_billing_source.price_series_invoice_issues%rowtype;
+  BEGIN
+    SELECT * INTO file FROM gridex_billing_source.price_series_invoice_neutral_files
+      WHERE (company_id,file_id)=(p_company,p_file);
+    IF NOT FOUND THEN RETURN NULL; END IF;
+    issued:=gridex_billing_source.verified_price_series_issue_v1(p_company,file.invoice_id,NULL);
+    IF file.body_sha256 IS DISTINCT FROM issued.body_sha256 THEN
+      RAISE EXCEPTION 'invoice_group_file_receipt_invalid' USING ERRCODE='23514';
+    END IF;
+    RETURN jsonb_build_object('fileId',file.file_id,'invoiceId',file.invoice_id,'sha256',file.body_sha256,
+      'bodyBase64',replace(encode(issued.body,'base64'),E'\n',''));
+  END
+  $$;
+
+--
 -- Name: require_contract_price_timeline_v1(uuid, uuid, uuid, timestamp with time zone, timestamp with time zone, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
 --
 
@@ -6428,7 +7684,7 @@ CREATE FUNCTION gridex_billing_source.require_contract_price_timeline_v1(p_compa
     LANGUAGE plpgsql
     SET search_path TO 'pg_catalog'
     AS $$
- DECLARE v_start timestamptz; v_end timestamptz; v_ids jsonb; v_observed jsonb; v_start_date date; v_last_date date;
+ DECLARE v_start timestamptz; v_end timestamptz; v_ids jsonb; v_observed jsonb; v_start_date date; v_last_date date; v_effective jsonb;
  BEGIN
   IF p_company IS NULL OR p_contract IS NULL OR p_selected IS NULL
    OR jsonb_typeof(p_timeline) IS DISTINCT FROM 'object'
@@ -6446,6 +7702,21 @@ CREATE FUNCTION gridex_billing_source.require_contract_price_timeline_v1(p_compa
   v_last_date:=((v_end-interval '1 microsecond') AT TIME ZONE 'Europe/Stockholm')::date;
   IF v_last_date-v_start_date>31
   THEN RAISE EXCEPTION 'billing_price_timeline_invalid' USING ERRCODE='22023'; END IF;
+  IF gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company,p_contract,v_end) THEN
+    SELECT gridex_billing_source.resolve_test_contract_price_timeline_v1(p_company,c.customer_id,p_contract,v_start,v_end)
+      INTO v_effective FROM public.customer_contracts c WHERE (c.company_id,c.id)=(p_company,p_contract);
+    IF v_effective->>'kind' IS DISTINCT FROM 'ready'
+      OR v_effective->>'basisSha256' IS DISTINCT FROM p_timeline->>'basisSha256'
+      OR (SELECT jsonb_agg(segment.value#>'{snapshot,id}' ORDER BY segment.ordinality)
+          FROM jsonb_array_elements(v_effective->'segments') WITH ORDINALITY segment(value,ordinality)) IS DISTINCT FROM v_ids
+      OR NOT EXISTS(SELECT FROM jsonb_array_elements(v_effective->'segments') segment
+         WHERE segment#>>'{snapshot,id}'=p_selected::text AND
+           (segment->>'effectiveFrom')::timestamptz<=p_start AND (segment->>'effectiveUntil')::timestamptz>=p_end) THEN
+      RAISE EXCEPTION 'billing_price_timeline_changed' USING ERRCODE='PT409',
+        DETAIL=jsonb_build_object('companyId',p_company,'contractId',p_contract)::text;
+    END IF;
+    RETURN;
+  END IF;
   SELECT coalesce(jsonb_agg(s.id ORDER BY s.valid_from,s.id),'[]'::jsonb) INTO v_observed
   FROM public.contract_price_snapshots s
   WHERE s.company_id=p_company AND s.contract_id=p_contract AND s.valid_from<=v_last_date
@@ -6483,7 +7754,19 @@ CREATE FUNCTION gridex_billing_source.require_current_invoice_price_timeline_v1(
     FROM public.billing_underlays u
     JOIN gridex_billing_source.underlay_bindings b ON b.underlay_id=u.id AND b.company_id=u.company_id
     WHERE u.id=p_underlay AND u.company_id=p_company
-      AND u.payload#>'{contract_price_timeline}' IS NOT NULL;
+      AND (u.payload#>'{contract_price_timeline}' IS NOT NULL OR (
+        b.source_basis ?& ARRAY['contractId','start','end'] AND (
+          gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company,
+            (b.source_basis->>'contractId')::uuid,(b.source_basis->>'end')::timestamptz)
+          OR EXISTS(
+            SELECT FROM public.companies co JOIN public.customer_contracts c ON c.company_id=co.id
+            JOIN public.contract_price_snapshots s
+              ON (s.company_id,s.contract_id,s.id)=(c.company_id,c.id,c.contract_price_snapshot_id)
+            WHERE co.id=p_company AND co.billing_provider_environment='test'
+              AND c.id=(b.source_basis->>'contractId')::uuid AND s.source='signature_prepare'
+          )
+        )
+      ));
     IF NOT FOUND THEN RETURN; END IF;
 
     IF current_setting('transaction_isolation') NOT IN ('read committed','read uncommitted') THEN
@@ -6499,13 +7782,73 @@ CREATE FUNCTION gridex_billing_source.require_current_invoice_price_timeline_v1(
       RAISE EXCEPTION 'invoice_price_timeline_lock_busy' USING ERRCODE='55P03';
     END;
     BEGIN
-      PERFORM gridex_billing_source.require_contract_price_timeline_v1(
-        p_company,basis_contract,basis_price,basis_start,basis_end,price_timeline);
+      IF price_timeline IS NULL THEN
+        PERFORM gridex_billing_source.require_no_unapplied_test_price_addendum_v1(
+          p_company,basis_contract,basis_start,basis_end);
+      ELSE
+        PERFORM gridex_billing_source.require_contract_price_timeline_v1(
+          p_company,basis_contract,basis_price,basis_start,basis_end,price_timeline);
+      END IF;
     EXCEPTION WHEN SQLSTATE 'PT409' THEN
       RAISE EXCEPTION USING ERRCODE='23514',MESSAGE=reason;
     END;
   END
   $$;
+
+--
+-- Name: require_no_unapplied_test_price_addendum_v1(uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.require_no_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone) RETURNS void
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+    BEGIN
+      IF p_end>p_start AND gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company,p_contract,p_end) THEN
+        RAISE EXCEPTION 'billing_price_timeline_changed' USING ERRCODE='PT409',
+          DETAIL=jsonb_build_object('companyId',p_company,'contractId',p_contract,
+            'reason','signed_price_addendum_unapplied')::text;
+      END IF;
+    END $$;
+
+--
+-- Name: require_test_price_addendum_actor_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.require_test_price_addendum_actor_v1(p_company uuid, p_actor uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+    BEGIN
+      IF auth.role() IS DISTINCT FROM 'service_role'
+        OR public.gridex_actor_has_company_permission(p_actor,p_company,'contracts.write') IS NOT TRUE
+        OR public.gridex_actor_has_company_permission(p_actor,p_company,'documents.write') IS NOT TRUE THEN
+        RAISE EXCEPTION 'price_addendum_staff_scope_required' USING ERRCODE='42501';
+      END IF;
+      PERFORM FROM public.companies WHERE id=p_company AND is_active AND status='active'
+        AND billing_provider_environment='test' FOR SHARE;
+      IF NOT FOUND THEN RAISE EXCEPTION 'price_addendum_test_scope_required' USING ERRCODE='23514'; END IF;
+    END
+    $$;
+
+--
+-- Name: require_test_price_series_actor_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.require_test_price_series_actor_v1(p_company uuid, p_actor uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.export') IS NOT TRUE THEN
+    RAISE EXCEPTION 'invoice_price_series_review_forbidden' USING ERRCODE='42501';
+  END IF;
+  PERFORM 1 FROM public.companies c WHERE c.id=p_company AND c.is_active
+    AND c.status='active' AND c.invoice_export_target_system='file_export'
+    AND c.billing_provider_environment='test' AND c.invoice_export_enabled FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'invoice_price_series_test_provider_required' USING ERRCODE='23514'; END IF;
+END
+$$;
 
 --
 -- Name: require_underlay_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
@@ -6524,6 +7867,202 @@ BEGIN PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company,
  legal_basis:=gridex_received_sources.billing_supply_basis_v1(p_company,u.supply_period_id,(b.source_basis->>'start')::timestamptz,(b.source_basis->>'end')::timestamptz);
  IF legal_basis IS DISTINCT FROM b.source_basis->'supply' THEN RAISE EXCEPTION 'billing_finalized_supply_basis_changed' USING ERRCODE='23514'; END IF;
 END $$;
+
+--
+-- Name: reserve_price_series_v1(uuid, uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.reserve_price_series_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  underlay_id uuid;
+  verified_basis jsonb;
+  verified_hash text;
+  retained_members jsonb;
+  answer gridex_billing_source.price_series_reservations%ROWTYPE;
+BEGIN
+  IF jsonb_typeof(p_expected) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'invoice_price_series_scope_required' USING ERRCODE='22023';
+  END IF;
+  IF jsonb_array_length(p_expected) NOT BETWEEN 2 AND 32 THEN
+    RAISE EXCEPTION 'invoice_price_series_scope_required' USING ERRCODE='22023';
+  END IF;
+  -- The same lock covers all existing one-source allocations and explicit group allocation.
+  -- A stable order keeps callers for an identical set from waiting on each other in a cycle.
+  FOR underlay_id IN SELECT DISTINCT (m->>'underlayId')::uuid FROM jsonb_array_elements(p_expected) m ORDER BY 1 LOOP
+    IF underlay_id IS NULL THEN RAISE EXCEPTION 'invoice_price_series_scope_required' USING ERRCODE='22023'; END IF;
+    PERFORM gridex_invoice_groups.lock_source(p_company, underlay_id);
+  END LOOP;
+  verified_basis:=gridex_billing_source.lock_price_series_members_v1(
+    p_company,p_customer,p_contract,p_site,p_point,p_billing_month,p_expected);
+  verified_hash:=encode(sha256(convert_to(verified_basis::text,'UTF8')),'hex');
+
+  SELECT * INTO answer FROM gridex_billing_source.price_series_reservations r
+  WHERE r.company_id=p_company AND r.customer_id=p_customer AND r.contract_id=p_contract AND r.site_id=p_site
+    AND r.metering_point_id=p_point AND r.billing_month=p_billing_month FOR SHARE;
+  IF FOUND THEN
+    SELECT jsonb_agg(jsonb_build_object('underlayId',m.billing_underlay_id,'pricingRunId',m.pricing_run_id) ORDER BY m.ordinal)
+      INTO retained_members FROM gridex_billing_source.price_series_reservation_members m
+      WHERE m.company_id=p_company AND m.reservation_id=answer.id;
+    IF retained_members IS DISTINCT FROM p_expected THEN
+      RAISE EXCEPTION 'invoice_price_series_reservation_members_changed' USING ERRCODE='23514';
+    END IF;
+    IF answer.basis_sha256 IS DISTINCT FROM verified_hash OR answer.basis IS DISTINCT FROM verified_basis THEN
+      RAISE EXCEPTION 'invoice_price_series_reservation_changed' USING ERRCODE='23505';
+    END IF;
+    RETURN jsonb_build_object('id',answer.id,'basisSha256',answer.basis_sha256,'existing',true);
+  END IF;
+
+  FOR underlay_id IN SELECT (m->>'underlayId')::uuid FROM jsonb_array_elements(verified_basis->'members') m LOOP
+    IF EXISTS(SELECT FROM public.invoice_export_items e WHERE e.company_id=p_company
+        AND e.billing_underlay_id=underlay_id AND e.status<>'cancelled')
+      OR EXISTS(SELECT FROM public.customer_invoices i WHERE i.company_id=p_company
+        AND i.billing_underlay_id=underlay_id AND i.status<>'cancelled')
+      OR EXISTS(SELECT FROM public.billing_export_run_items e WHERE e.company_id=p_company
+        AND e.billing_underlay_id=underlay_id AND e.status<>'blocked')
+      OR EXISTS(SELECT FROM gridex_invoice_groups.sources g WHERE g.company_id=p_company
+        AND g.billing_underlay_id=underlay_id)
+    THEN RAISE EXCEPTION 'invoice_group_source_already_reserved' USING ERRCODE='23505'; END IF;
+  END LOOP;
+
+  INSERT INTO gridex_billing_source.price_series_reservations(
+    company_id,customer_id,contract_id,site_id,metering_point_id,billing_month,basis,basis_sha256
+  ) VALUES (p_company,p_customer,p_contract,p_site,p_point,p_billing_month,verified_basis,verified_hash)
+  RETURNING * INTO answer;
+  INSERT INTO gridex_billing_source.price_series_reservation_members(
+    company_id,reservation_id,ordinal,billing_underlay_id,pricing_run_id
+  ) SELECT p_company,answer.id,ordinal,(m->>'underlayId')::uuid,(m->>'pricingRunId')::uuid
+    FROM jsonb_array_elements(verified_basis->'members') WITH ORDINALITY AS member(m,ordinal);
+  RETURN jsonb_build_object('id',answer.id,'basisSha256',answer.basis_sha256,'existing',false);
+END
+$$;
+
+--
+-- Name: resolve_test_contract_price_timeline_v1(uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.resolve_test_contract_price_timeline_v1(p_company uuid, p_customer uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+    DECLARE
+      original public.contract_price_snapshots%ROWTYPE;
+      successor public.contract_price_snapshots%ROWTYPE;
+      applied gridex_billing_source.test_price_addendum_applications%ROWTYPE;
+      review gridex_billing_source.test_price_addendum_reviews%ROWTYPE;
+      source gridex_billing_source.test_price_addendum_documents%ROWTYPE;
+      contract public.customer_contracts%ROWTYPE;
+      segments jsonb:='[]'::jsonb;
+      basis jsonb;
+      held constant jsonb:='{"kind":"held","reason":"signed_price_addendum_unapplied"}';
+    BEGIN
+      SELECT * INTO contract FROM public.customer_contracts c
+        WHERE (c.company_id,c.customer_id,c.id)=(p_company,p_customer,p_contract);
+      IF NOT FOUND THEN RETURN jsonb_build_object('kind','held','reason','price_addendum_contract_scope_required'); END IF;
+      IF NOT gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company,p_contract,p_end) THEN
+        RETURN jsonb_build_object('kind','legacy');
+      END IF;
+      SELECT * INTO applied FROM gridex_billing_source.test_price_addendum_applications a
+        WHERE (a.company_id,a.contract_id,a.customer_id)=(p_company,p_contract,p_customer);
+      IF NOT FOUND THEN RETURN held; END IF;
+      SELECT * INTO source FROM gridex_billing_source.test_price_addendum_documents d
+        WHERE (d.company_id,d.contract_id,d.customer_id,d.id)=(p_company,p_contract,p_customer,applied.document_id);
+      SELECT * INTO review FROM gridex_billing_source.test_price_addendum_reviews r
+        WHERE (r.company_id,r.contract_id,r.document_id,r.receipt_sha256)
+          =(p_company,p_contract,applied.document_id,applied.review_sha256);
+      SELECT * INTO original FROM public.contract_price_snapshots s
+        WHERE (s.company_id,s.contract_id,s.customer_id,s.id)=(p_company,p_contract,p_customer,source.original_price_id);
+      SELECT * INTO successor FROM public.contract_price_snapshots s
+        WHERE (s.company_id,s.contract_id,s.customer_id,s.id)=(p_company,p_contract,p_customer,applied.successor_snapshot_id);
+      IF NOT FOUND OR review.document_id IS NULL OR original.id IS NULL OR source.id IS NULL
+        OR (contract.signature_snapshot_sha256,contract.contract_price_snapshot_id,original.snapshot_hash)
+          IS DISTINCT FROM (source.original_signature_sha256,source.original_price_id,source.original_price_sha256)
+        OR NOT gridex_billing_source.has_canonical_signed_series_price_v1(
+          p_company,p_customer,p_contract,original.id,original.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm',
+          (original.valid_from+1)::timestamp AT TIME ZONE 'Europe/Stockholm')
+        OR successor.source IS DISTINCT FROM 'staff_manually_verified_signed_addendum_v1'
+        OR successor.snapshot_json->>'addendumReviewSha256' IS DISTINCT FROM applied.review_sha256
+        OR (successor.price_plan_id,successor.price_plan_version_id,successor.price_book_id,successor.valid_from,successor.valid_to)
+          IS DISTINCT FROM (applied.price_plan_id,applied.price_plan_version_id,applied.price_book_id,review.effective_on,original.valid_to)
+        OR successor.snapshot_hash IS DISTINCT FROM encode(sha256(convert_to(successor.snapshot_json::text,'UTF8')),'hex')
+        OR source.document_sha256 IS DISTINCT FROM review.receipt->>'documentSha256'
+        OR source.document_sha256 IS DISTINCT FROM encode(sha256(source.document),'hex')
+        OR NOT EXISTS(SELECT FROM public.price_plan_versions v
+          WHERE (v.company_id,v.price_plan_id,v.id)=(applied.company_id,applied.price_plan_id,applied.price_plan_version_id)
+            AND v.locked_at IS NOT NULL AND v.status='published'
+            AND v.snapshot_json->'base_components'=successor.base_price_components_snapshot
+            AND v.snapshot_json->'price_components'=successor.price_components_snapshot)
+        OR successor.price_components_snapshot IS DISTINCT FROM original.price_components_snapshot
+        OR gridex_billing_source.has_zero_only_addendum_invoice_fee_v1(successor.price_components_snapshot) IS NOT TRUE
+        OR review.effective_at>=p_end
+        OR p_start<(original.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm')
+        OR (original.valid_to IS NOT NULL AND p_end>((original.valid_to+1)::timestamp AT TIME ZONE 'Europe/Stockholm'))
+        OR EXISTS(SELECT FROM gridex_billing_source.test_price_addendum_reviews r
+          WHERE (r.company_id,r.contract_id)=(p_company,p_contract) AND r.document_id<>applied.document_id
+            AND r.effective_at<p_end)
+        OR EXISTS(SELECT FROM public.contract_price_snapshots s
+          WHERE (s.company_id,s.contract_id)=(p_company,p_contract) AND s.id NOT IN (original.id,successor.id)
+            AND (s.valid_from IS NULL OR (s.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm')<p_end)
+            AND (s.valid_to IS NULL OR ((s.valid_to+1)::timestamp AT TIME ZONE 'Europe/Stockholm')>p_start)) THEN
+        RETURN held;
+      END IF;
+
+      IF p_start<review.effective_at THEN
+        segments:=jsonb_build_array(jsonb_build_object('snapshot',to_jsonb(original),
+          'effectiveFrom',p_start,'effectiveUntil',review.effective_at));
+      END IF;
+      segments:=segments||jsonb_build_array(jsonb_build_object('snapshot',to_jsonb(successor),
+        'effectiveFrom',greatest(p_start,review.effective_at),'effectiveUntil',p_end));
+      basis:=jsonb_build_object('companyId',p_company,'customerId',p_customer,'contractId',p_contract,
+        'from',p_start,'until',p_end,'originalSignatureSha256',source.original_signature_sha256,
+        'originalPriceSha256',original.snapshot_hash,'successorPriceSha256',successor.snapshot_hash,
+        'reviewSha256',review.receipt_sha256,'effectiveAt',review.effective_at);
+      RETURN jsonb_build_object('kind','ready','basisSha256',encode(sha256(convert_to(basis::text,'UTF8')),'hex'),
+        'segments',segments);
+    END $$;
+
+--
+-- Name: verified_price_series_issue_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE FUNCTION gridex_billing_source.verified_price_series_issue_v1(p_company uuid, p_invoice uuid, p_review text) RETURNS gridex_billing_source.price_series_invoice_issues
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  DECLARE
+    issued gridex_billing_source.price_series_invoice_issues%rowtype;
+    source_id uuid;
+    checked integer:=0;
+    body jsonb;
+  BEGIN
+    SELECT o.* INTO issued FROM gridex_billing_source.price_series_invoice_issues o
+    JOIN gridex_billing_source.price_series_invoice_drafts d
+      ON (d.company_id,d.reservation_id,d.invoice_id,d.review_hash)=(o.company_id,o.reservation_id,o.invoice_id,o.review_hash)
+    JOIN public.customer_invoices i ON (i.company_id,i.id)=(d.company_id,d.invoice_id)
+    WHERE (o.company_id,o.invoice_id)=(p_company,p_invoice)
+      AND (p_review IS NULL OR o.review_hash=p_review)
+      AND (i.invoice_number,i.calculation_snapshot_sha256)=(o.invoice_number,o.calculation_sha256)
+      AND i.source_system='invoice_price_series_test_v1' AND i.status='issued';
+    IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_file_not_issued' USING ERRCODE='23514'; END IF;
+    PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company,NULL,p_invoice);
+    FOR source_id IN SELECT m.billing_underlay_id FROM gridex_billing_source.price_series_reservation_members m
+      WHERE (m.company_id,m.reservation_id)=(issued.company_id,issued.reservation_id) ORDER BY m.ordinal LOOP
+      PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company,source_id);
+      checked:=checked+1;
+    END LOOP;
+    body:=convert_from(issued.body,'UTF8')::jsonb;
+    IF issued.body_sha256 IS DISTINCT FROM encode(sha256(issued.body),'hex')
+      OR body->>'format' IS DISTINCT FROM 'gridex_customer_price_series_invoice_test_v1'
+      OR body->>'environment' IS DISTINCT FROM 'test' OR body->>'invoiceNumber' IS DISTINCT FROM issued.invoice_number
+      OR checked<2 OR jsonb_array_length(body->'periods') IS DISTINCT FROM checked THEN
+      RAISE EXCEPTION 'invoice_group_file_source_invalid' USING ERRCODE='23514';
+    END IF;
+    RETURN issued;
+  END
+  $$;
 
 --
 -- Name: bind_message_v1(); Type: FUNCTION; Schema: gridex_brp_changes; Owner: -
@@ -10570,6 +12109,219 @@ END
 $$;
 
 --
+-- Name: capture_mixed_billing_correction_v1(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.capture_mixed_billing_correction_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  affected record;
+BEGIN
+  IF NEW.previous_value_id IS NULL OR NEW.source_message_id IS NULL THEN RETURN NEW; END IF;
+  IF NOT EXISTS (SELECT FROM public.ediel_messages m
+    WHERE (m.id,m.company_id,m.direction,m.environment,m.message_family,m.message_code)
+      =(NEW.source_message_id,NEW.company_id,'inbound','test','UTILTS','E66'))
+  THEN RETURN NEW; END IF;
+
+  FOR affected IN
+    SELECT DISTINCT u.id,previous.id AS prior_normalized,b.source_id,receipt.row_fingerprint
+    FROM public.normalized_metering_values previous
+    JOIN gridex_e66_intake.mixed_e73_request_basis b ON b.company_id=previous.company_id AND b.environment='test'
+      AND b.evidence->'childEffects' @> jsonb_build_array(jsonb_build_object('normalizedId',previous.id))
+    JOIN gridex_e66_intake.billing_calendar_receipts receipt
+      ON (receipt.company_id,receipt.source_id,receipt.environment)=(b.company_id,b.source_id,b.environment)
+    JOIN public.billing_underlays u ON (u.company_id,u.id,u.source_request_id)=(receipt.company_id,receipt.underlay_id,b.request_id)
+    WHERE previous.company_id=NEW.company_id AND (previous.id=NEW.previous_value_id OR previous.source_metering_value_id=NEW.previous_value_id)
+      AND previous.id<>NEW.id
+      AND (previous.customer_id,previous.metering_point_id,previous.period_start,previous.period_end)
+        IS NOT DISTINCT FROM (NEW.customer_id,NEW.metering_point_id,NEW.period_start,NEW.period_end)
+      AND u.payload#>>'{e73BillingScope,basisVersion}'='mixed-e73-ide-finance-v1'
+      AND u.payload->>'edielMessageId'=b.source_id::text
+      AND u.payload#>'{e73BillingScope,ideBasisHashes}' @> jsonb_build_array(jsonb_build_array(b.transaction_id,b.evidence_sha256))
+      AND receipt.row_fingerprint=gridex_e66_intake.billing_calendar_member_hash_v1(u)
+      AND EXISTS (SELECT FROM jsonb_array_elements(b.evidence->'childEffects') item
+        WHERE item->>'normalizedId'=previous.id::text
+          AND u.payload#>'{billingCalendar,contributors}' @> jsonb_build_array(jsonb_build_array(b.transaction_id,(item->>'ordinal')::integer)))
+    ORDER BY u.id,previous.id
+  LOOP
+    -- Serialize on the same row used by the existing approval/archive gate.
+    -- A concurrent approval already holding the row wins this attempt.
+    PERFORM 1 FROM public.billing_underlays u
+      WHERE (u.id,u.company_id)=(affected.id,NEW.company_id) FOR UPDATE NOWAIT;
+    IF NOT FOUND THEN RAISE EXCEPTION 'mixed_e66_billing_correction_underlay_missing' USING ERRCODE='55000'; END IF;
+    INSERT INTO gridex_e66_intake.mixed_billing_correction_holds(
+      company_id,underlay_id,previous_normalized_value_id,new_normalized_value_id,prior_source_id,
+      new_source_id,underlay_fingerprint)
+    VALUES (NEW.company_id,affected.id,affected.prior_normalized,NEW.id,affected.source_id,
+      NEW.source_message_id,affected.row_fingerprint)
+    ON CONFLICT(underlay_id,new_normalized_value_id) DO NOTHING;
+  END LOOP;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: commit_mixed_qualification_v1(uuid, text, uuid, uuid, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.commit_mixed_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  w gridex_e66_intake.work;
+  source public.ediel_messages;
+  saved gridex_e66_intake.mixed_qualification_receipts;
+  facet jsonb;
+  basis jsonb;
+  digest text;
+  expected_membership jsonb;
+  native_results jsonb;
+  accepted_count integer;
+  actual_count bigint;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  IF p_assessment IS NULL OR p_lease IS NULL OR jsonb_typeof(p_transactions) IS DISTINCT FROM 'array'
+     OR jsonb_array_length(p_transactions) < 2 THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_input_required' USING ERRCODE='22023';
+  END IF;
+  digest := encode(sha256(convert_to(p_transactions::text,'UTF8')),'hex');
+  SELECT * INTO w FROM gridex_e66_intake.work x
+    WHERE (x.source_id,x.company_id,x.environment,x.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+    FOR UPDATE;
+  IF w.source_id IS NULL THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_work_unavailable' USING ERRCODE='55000';
+  END IF;
+  SELECT * INTO saved FROM gridex_e66_intake.mixed_qualification_receipts r
+    WHERE r.source_id=p_source;
+  IF FOUND THEN
+    IF (saved.actor_id,saved.lease_token,saved.assessment_id,saved.command_hash)
+       IS DISTINCT FROM (p_actor,p_lease,p_assessment,digest)
+       OR gridex_e66_intake.request_upgrade_state_v1(p_source)='hold_source_unverified' THEN
+      RAISE EXCEPTION 'e66_mixed_qualification_replay_changed' USING ERRCODE='55000';
+    END IF;
+    RETURN jsonb_build_object('kind','mixed_qualified','sourceId',p_source,'replayed',true);
+  END IF;
+
+  w := gridex_e66_intake.require_registration_rejection_claim_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  SELECT * INTO STRICT source FROM public.ediel_messages WHERE id=w.source_id;
+  IF source.grid_owner_data_request_id IS NOT NULL
+     OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'qualify_normally'
+     OR EXISTS (SELECT FROM gridex_utilts_binding.receipts b WHERE b.source_message_id=p_source) THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_prior_or_matched_owner' USING ERRCODE='55000';
+  END IF;
+
+  basis := gridex_ediel_source_rules.require_v1(p_company,p_source);
+  SELECT t.transaction_facts_text::jsonb->'transactions' INTO facet
+  FROM gridex_received_sources.validation_assessments a
+  JOIN gridex_received_sources.utilts_transaction_validations t ON t.assessment_id=a.id
+    AND (t.source_message_id,t.company_id,t.environment,t.source_payload_hash)
+      =(a.source_message_id,a.company_id,a.environment,a.source_payload_hash)
+  WHERE (a.id,a.source_message_id,a.company_id,a.environment,a.source_payload_hash)
+    =(p_assessment,p_source,p_company,p_environment,w.payload_sha256)
+    AND a.facts_text::jsonb->>'syntaxDecision'='accepted'
+    AND (a.facts_text::jsonb#>>'{rulePackEvidence,rulePackId}',
+         a.facts_text::jsonb#>>'{rulePackEvidence,messageProfileId}',
+         a.facts_text::jsonb#>>'{rulePackEvidence,version}',
+         a.facts_text::jsonb#>>'{rulePackEvidence,sourceHash}')
+      =(basis->>'rulePackId',basis->>'messageProfileId',basis->>'version',basis->>'sourceHash')
+    AND NOT EXISTS (SELECT FROM gridex_received_sources.validation_assessments later
+                    WHERE later.previous_assessment_id=a.id);
+  IF jsonb_typeof(facet) IS DISTINCT FROM 'array'
+     OR jsonb_array_length(facet) IS DISTINCT FROM jsonb_array_length(p_transactions)
+     OR EXISTS (
+      SELECT FROM jsonb_array_elements(p_transactions) WITH ORDINALITY AS tx(item,ord)
+      CROSS JOIN LATERAL (SELECT facet->(tx.ord::integer-1) AS expected) checked
+      WHERE nullif(item->>'transactionId','') IS NULL
+        OR (item->>'transactionId',item->>'disposition',item->>'responseType')
+          IS DISTINCT FROM (expected->>'transactionId',expected->>'disposition',expected->>'responseType')
+        OR item->'issueCodes' IS DISTINCT FROM expected->'issueCodes'
+        OR (expected->>'transactionIndex')::bigint IS DISTINCT FROM tx.ord-1
+        OR item#>>'{consumptionContract,metering,sourceRequestId}' IS NOT NULL
+        OR item#>>'{consumptionContract,billing,sourceRequestId}' IS NOT NULL
+        OR item#>>'{consumptionContract,billing,capability}' IS DISTINCT FROM 'skip'
+        OR (
+          (item->>'disposition',item->>'responseType') IN (
+              ('accepted','positive_aperak'),('guide_rejected','negative_aperak'),
+              ('processability_rejected','utilts_err'))
+          AND CASE WHEN item->>'disposition'='accepted' THEN
+            item#>>'{consumptionContract,metering,capability}'='write'
+              AND jsonb_array_length(item#>'{consumptionContract,observations}')>0
+          ELSE item#>>'{consumptionContract,metering,capability}'='skip'
+              AND item#>'{consumptionContract,observations}'='[]'::jsonb END
+        ) IS NOT TRUE
+     ) THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_evidence_mismatch' USING ERRCODE='55000';
+  END IF;
+
+  SELECT jsonb_agg(item->>'transactionId' ORDER BY ord),
+         count(*) FILTER (WHERE item->>'disposition'='accepted')
+    INTO expected_membership,accepted_count
+    FROM jsonb_array_elements(p_transactions) WITH ORDINALITY AS tx(item,ord);
+  IF accepted_count=0 OR (SELECT count(DISTINCT item->>'transactionId')
+      FROM jsonb_array_elements(p_transactions) AS tx(item))<>jsonb_array_length(p_transactions) THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_membership_invalid' USING ERRCODE='22023';
+  END IF;
+
+  native_results := gridex_e66_intake.persist_owned_utilts_v1(
+    p_company,p_environment,p_source,'E66',source.raw_payload,p_transactions,p_actor);
+  IF jsonb_typeof(native_results) IS DISTINCT FROM 'array'
+     OR jsonb_array_length(native_results) IS DISTINCT FROM jsonb_array_length(p_transactions)
+     OR EXISTS (
+       SELECT FROM jsonb_array_elements(p_transactions) WITH ORDINALITY AS tx(item,ord)
+       CROSS JOIN LATERAL (SELECT native_results->(tx.ord::integer-1) AS result) checked
+       WHERE (result->>'transactionId',result->>'disposition',result->>'responseType')
+         IS DISTINCT FROM (item->>'transactionId',item->>'disposition',item->>'responseType')
+         OR result->>'persistenceStatus' IS DISTINCT FROM
+           CASE WHEN item->>'disposition'='accepted' THEN 'persisted' ELSE 'not_applicable' END
+         OR result->>'versionState'='late_older_history')
+     OR NOT EXISTS (SELECT FROM gridex_utilts_binding.receipts b
+       WHERE (b.source_message_id,b.company_id,b.environment,b.raw_hash,b.membership)
+         =(p_source,p_company,p_environment,w.payload_sha256,expected_membership)) THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_native_receipt_mismatch' USING ERRCODE='55000';
+  END IF;
+
+  SELECT count(*) INTO actual_count
+  FROM jsonb_array_elements(p_transactions) AS tx(item)
+  JOIN public.ediel_ack_transaction_results a
+    ON (a.source_message_id,a.company_id,a.environment,a.source_transaction_id,a.disposition,a.planned_response_type)
+      =(p_source,p_company,p_environment,item->>'transactionId',item->>'disposition',item->>'responseType')
+  WHERE a.final_response_type IS NULL
+    AND ((a.disposition='accepted' AND a.persistence_status='persisted' AND a.persisted_series_id IS NOT NULL)
+      OR (a.disposition<>'accepted' AND a.persistence_status='not_applicable' AND a.persisted_series_id IS NULL));
+  IF actual_count<>jsonb_array_length(p_transactions) OR w.lease_until<=clock_timestamp() THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_ledger_or_lease_mismatch' USING ERRCODE='55000';
+  END IF;
+
+  INSERT INTO gridex_e66_intake.mixed_qualification_receipts
+    (source_id,assessment_id,actor_id,lease_token,command_hash)
+  VALUES (p_source,p_assessment,p_actor,p_lease,digest);
+  INSERT INTO gridex_e66_intake.mixed_accepted_transactions
+    (source_id,transaction_id,transaction_index,series_id,contract_hash)
+  SELECT p_source,a.source_transaction_id,tx.ord-1,c.series_id,c.contract_hash
+  FROM jsonb_array_elements(p_transactions) WITH ORDINALITY AS tx(item,ord)
+  JOIN public.ediel_ack_transaction_results a
+    ON (a.source_message_id,a.company_id,a.environment,a.source_transaction_id)
+      =(p_source,p_company,p_environment,item->>'transactionId')
+  JOIN gridex_utilts_binding.contracts c ON
+    (c.series_id,c.source_message_id,c.company_id,c.environment,c.transaction_id)
+      =(a.persisted_series_id,p_source,p_company,p_environment,a.source_transaction_id)
+  WHERE a.disposition='accepted';
+  GET DIAGNOSTICS actual_count=ROW_COUNT;
+  IF actual_count<>accepted_count THEN
+    RAISE EXCEPTION 'e66_mixed_qualification_contract_mismatch' USING ERRCODE='55000';
+  END IF;
+  UPDATE gridex_e66_intake.work SET phase='mixed_qualified',lease_actor=NULL,lease_token=NULL,lease_until=NULL
+    WHERE source_id=p_source;
+  RETURN jsonb_build_object('kind','mixed_qualified','sourceId',p_source,'replayed',false);
+END
+$$;
+
+--
 -- Name: work; Type: TABLE; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -10697,11 +12449,11 @@ CREATE TABLE public.metering_values (
 );
 
 --
--- Name: consume_owned_e66_meter_v1(uuid, uuid, text, integer, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+-- Name: consume_owned_e66_meter_scoped_v1(uuid, uuid, text, integer, uuid, jsonb, uuid[]); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
 --
 
-CREATE FUNCTION gridex_e66_intake.consume_owned_e66_meter_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) RETURNS public.metering_values
-    LANGUAGE plpgsql SECURITY DEFINER
+CREATE FUNCTION gridex_e66_intake.consume_owned_e66_meter_scoped_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb, p_prelocked_sources uuid[]) RETURNS public.metering_values
+    LANGUAGE plpgsql
     SET search_path TO 'pg_catalog', 'public', 'extensions'
     SET "TimeZone" TO 'UTC'
     AS $$
@@ -10709,6 +12461,7 @@ DECLARE v_contract jsonb; v_attribution jsonb; v_observation jsonb; v_key text; 
  -- SC046 authentic newer correction declarations.
  sc046_own public.meter_reading_series%rowtype; sc046_pre public.meter_reading_series%rowtype;
  sc046_old public.meter_reading_series%rowtype; sc046_hop public.meter_reading_series%rowtype;
+ probe_before record; probe_after record;
  sc046_graph text; sc046_graph_after text; sc046_cohort jsonb; sc046_sources uuid[]; sc046_sources_after uuid[];
  sc046_contract jsonb; sc046_old_contract jsonb; sc046_old_observation jsonb; sc046_old_payload jsonb;
  sc046_candidates uuid[]; sc046_seen uuid[]; sc046_origin_id uuid; sc046_source uuid;
@@ -10726,52 +12479,28 @@ BEGIN
  -- SC046 source locks precede the storage graph, which precedes ACK/series
  -- SHARE locks. Preliminary reads confer no authority. The identity spelling
  -- is copied from persist_series_v2, including raw date strings and defaults.
- SELECT h.* INTO sc046_pre FROM public.ediel_ack_transaction_results a
- JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
- WHERE a.company_id=p_company_id AND a.source_message_id=p_source_message_id AND a.source_transaction_id=p_transaction_id;
- IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_not_accepted' USING ERRCODE='P0U01'; END IF;
- sc046_cohort:=jsonb_build_array(p_company_id::text,sc046_pre.series_kind,sc046_pre.message_code,
-  coalesce(sc046_pre.external_metering_point_id,''),coalesce(sc046_pre.grid_area_id,''),
-  sc046_pre.period_start,sc046_pre.period_end,sc046_pre.resolution,coalesce(sc046_pre.product_id,''));
- SELECT concat_ws('|',p_company_id::text,o.environment,coalesce(sc046_pre.raw_transaction->>'seriesKind','actual'),
-  o.message_code,coalesce(sc046_pre.raw_transaction->>'externalMeteringPointId',''),coalesce(sc046_pre.raw_transaction->>'gridAreaId',''),
-  coalesce(sc046_pre.raw_transaction->>'periodStart',''),coalesce(sc046_pre.raw_transaction->>'periodEnd',''),
-  coalesce(sc046_pre.raw_transaction->>'resolution','UNKNOWN'),coalesce(sc046_pre.raw_transaction->>'productId','')) INTO sc046_graph FROM public.ediel_messages o WHERE o.id=p_source_message_id;
- v_attribution:=sc046_pre.raw_transaction#>'{consumptionContract,metering}';
- v_observation:=sc046_pre.raw_transaction#>'{consumptionContract,observations}'->p_observation_ordinal;
- v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
-  coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
- SELECT (SELECT array_agg(DISTINCT source_id ORDER BY source_id) FROM (
-   SELECT p_source_message_id AS source_id
-   UNION SELECT h.source_ediel_message_id FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
-    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort
-   UNION SELECT m.source_ediel_message_id FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
-   UNION SELECT l.source_ediel_message_id FROM public.metering_value_sources l JOIN public.metering_values m ON m.id=l.metering_value_id AND m.company_id=l.company_id
-    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
-  ) sources WHERE source_id IS NOT NULL) INTO sc046_sources;
+ SELECT * INTO STRICT probe_before FROM gridex_e66_intake.meter_source_probe_v1(
+  p_company_id,p_source_message_id,p_transaction_id,p_observation_ordinal);
+ sc046_pre:=probe_before.series_row;
+ sc046_cohort:=probe_before.cohort_key;
+ sc046_graph:=probe_before.graph_key;
+ sc046_sources:=probe_before.source_ids;
+ IF p_prelocked_sources IS NOT NULL AND sc046_sources IS DISTINCT FROM p_prelocked_sources THEN
+  RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='40001';
+ END IF;
  PERFORM 1 FROM public.ediel_messages o WHERE o.id=ANY(sc046_sources) ORDER BY o.id FOR SHARE;
  IF sc046_graph IS NULL THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(sc046_graph,0));
  -- Recheck all preliminary bindings after both source and graph waits. New
  -- source membership requires a retry; never acquire a new source row below.
- SELECT h.* INTO sc046_own FROM public.ediel_ack_transaction_results a
- JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
- WHERE a.company_id=p_company_id AND a.source_message_id=p_source_message_id AND a.source_transaction_id=p_transaction_id;
- IF NOT FOUND OR sc046_own.id IS DISTINCT FROM sc046_pre.id
+ SELECT * INTO STRICT probe_after FROM gridex_e66_intake.meter_source_probe_v1(
+  p_company_id,p_source_message_id,p_transaction_id,p_observation_ordinal);
+ sc046_own:=probe_after.series_row;
+ IF sc046_own.id IS DISTINCT FROM sc046_pre.id
   OR (to_jsonb(sc046_own)-'is_current') IS DISTINCT FROM (to_jsonb(sc046_pre)-'is_current') THEN
   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
- SELECT concat_ws('|',p_company_id::text,o.environment,coalesce(sc046_pre.raw_transaction->>'seriesKind','actual'),
-  o.message_code,coalesce(sc046_pre.raw_transaction->>'externalMeteringPointId',''),coalesce(sc046_pre.raw_transaction->>'gridAreaId',''),
-  coalesce(sc046_pre.raw_transaction->>'periodStart',''),coalesce(sc046_pre.raw_transaction->>'periodEnd',''),
-  coalesce(sc046_pre.raw_transaction->>'resolution','UNKNOWN'),coalesce(sc046_pre.raw_transaction->>'productId','')) INTO sc046_graph_after FROM public.ediel_messages o WHERE o.id=p_source_message_id;
- SELECT (SELECT array_agg(DISTINCT source_id ORDER BY source_id) FROM (
-   SELECT p_source_message_id AS source_id
-   UNION SELECT h.source_ediel_message_id FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
-    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort
-   UNION SELECT m.source_ediel_message_id FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
-   UNION SELECT l.source_ediel_message_id FROM public.metering_value_sources l JOIN public.metering_values m ON m.id=l.metering_value_id AND m.company_id=l.company_id
-    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
-  ) sources WHERE source_id IS NOT NULL) INTO sc046_sources_after;
+ sc046_graph_after:=probe_after.graph_key;
+ sc046_sources_after:=probe_after.source_ids;
  IF sc046_graph_after IS DISTINCT FROM sc046_graph OR sc046_sources_after IS DISTINCT FROM sc046_sources THEN
   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
  -- Immutable late-history birth cannot be promoted with a mutable current bit.
@@ -10967,6 +12696,21 @@ BEGIN
 END $$;
 
 --
+-- Name: consume_owned_e66_meter_v1(uuid, uuid, text, integer, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.consume_owned_e66_meter_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) RETURNS public.metering_values
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+BEGIN
+ RETURN gridex_e66_intake.consume_owned_e66_meter_scoped_v1(
+  p_company_id,p_source_message_id,p_transaction_id,p_observation_ordinal,p_actor_id,p_expected_contract,NULL);
+END
+$$;
+
+--
 -- Name: consume_owned_utilts_billing_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -10980,15 +12724,30 @@ DECLARE v_transaction text; v_contract jsonb; v_context jsonb; v_contracts jsonb
  v_sent_range tstzrange; v_scoped_total numeric; v_start timestamptz; v_end timestamptz;
  v_contribution_count integer:=0; v_scoped_count integer; v_scope jsonb; v_ordinals jsonb;
  v_receipt_id uuid; v_found_id uuid; v_month record; v_primary public.billing_underlays%rowtype;
- v_calendar jsonb; v_contract_sha256 text; v_projected_count bigint:=0; v_projected_total numeric:=0;
+ mixed_admission jsonb; v_multi jsonb; v_calendar_anchor uuid:=p_source_message_id; v_finance_contracts jsonb; v_calendar jsonb; v_contract_sha256 text; v_projected_count bigint:=0; v_projected_total numeric:=0;
 BEGIN
  SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source_message_id AND s.company_id=p_company_id FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended('utilts-billing|'||p_company_id::text||'|'||p_source_message_id::text,0));
+ IF v_source.message_code='E66' AND EXISTS (
+   SELECT FROM gridex_e66_intake.work w
+   WHERE (w.source_id,w.company_id,w.environment,w.phase)=(v_source.id,p_company_id,v_source.environment,'mixed_qualified')
+ ) THEN
+  IF v_source.environment IS DISTINCT FROM 'test' OR v_source.grid_owner_data_request_id IS NOT NULL THEN RETURN NULL; END IF;
+  mixed_admission:=gridex_e66_intake.mixed_billing_admission_v1(p_company_id,p_source_message_id,p_actor_id);
+  IF mixed_admission IS NULL THEN
+    v_multi:=gridex_e66_intake.prepare_mixed_billing_v2(p_company_id,p_source_message_id,p_actor_id);
+    IF v_multi IS NULL THEN RETURN NULL; END IF;
+  END IF;
+ END IF;
  FOR v_transaction IN SELECT a.source_transaction_id FROM public.ediel_ack_transaction_results a
   WHERE a.source_message_id=p_source_message_id AND a.company_id=p_company_id AND a.environment=v_source.environment
   AND a.disposition='accepted' AND a.persistence_status='persisted' ORDER BY a.source_transaction_id LOOP
   v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,v_transaction);
+  IF mixed_admission IS NOT NULL OR v_multi IS NOT NULL THEN
+   v_contracts:=v_contracts||jsonb_build_array(v_contract);
+   CONTINUE;
+  END IF;
   IF v_contract#>>'{billing,capability}' IS DISTINCT FROM 'write' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
   IF v_context IS NULL THEN v_context:=v_contract->'billing';
   ELSIF v_context IS DISTINCT FROM v_contract->'billing' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
@@ -10998,10 +12757,33 @@ BEGIN
   END LOOP;
   v_contracts:=v_contracts||jsonb_build_array(v_contract);
  END LOOP;
- IF v_context IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
+ IF v_context IS NULL AND mixed_admission IS NULL AND v_multi IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
  IF jsonb_typeof(p_expected_contracts) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
  IF (SELECT jsonb_agg(e.value ORDER BY e.value->>'transactionId') FROM jsonb_array_elements(p_expected_contracts) e) IS DISTINCT FROM v_contracts THEN
   RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ -- Mixed E66 uses only the accepted physical IDE evidence selected by the
+ -- private admission function. Keep the original immutable contracts for audit.
+ IF v_multi ? 'replayUnderlayId' THEN
+  SELECT b.* INTO STRICT v_result FROM public.billing_underlays b
+  WHERE (b.company_id,b.id)=(p_company_id,(v_multi->>'replayUnderlayId')::uuid) FOR SHARE;
+  RETURN v_result;
+ END IF;
+ v_finance_contracts:=v_contracts;
+ IF v_multi IS NOT NULL THEN
+  v_context:=v_multi->'context';
+  v_finance_contracts:=v_multi->'contracts';
+  v_sent_range:=tstzrange((v_multi->>'requestedFrom')::timestamptz,(v_multi->>'requestedUntil')::timestamptz,'[)');
+  v_calendar_anchor:=(v_multi->>'calendarAnchorSourceId')::uuid;
+ ELSIF mixed_admission IS NOT NULL THEN
+  v_context:=mixed_admission->'context';
+  v_finance_contracts:=mixed_admission->'contracts';
+  v_sent_range:=tstzrange((mixed_admission->>'requestedFrom')::timestamptz,
+    (mixed_admission->>'requestedUntil')::timestamptz,'[)');
+  IF (SELECT jsonb_agg(c->>'transactionId' ORDER BY c->>'transactionId') FROM jsonb_array_elements(v_finance_contracts) c)
+     IS DISTINCT FROM
+     (SELECT jsonb_agg(c->>'transactionId' ORDER BY c->>'transactionId') FROM jsonb_array_elements(v_contracts) c)
+  THEN RAISE EXCEPTION 'mixed_e66_finance_membership_changed' USING ERRCODE='P0U01'; END IF;
+ END IF;
  -- Metering retains the entire physical source. A request's financial
  -- contribution may use only whole original observations inside its sent E73.
  IF v_source.message_code='E66' AND v_source.grid_owner_data_request_id::text=v_context->>'sourceRequestId' THEN
@@ -11010,12 +12792,13 @@ BEGIN
  END IF;
  IF v_sent_range IS NOT NULL THEN
   WITH contributions AS (
-   SELECT c.value->>'transactionId' AS transaction_id, i.value::text::integer AS ordinal,
+   SELECT c.value->>'physicalSourceId' AS physical_source_id,c.value->>'transactionId' AS transaction_id,
+    i.value::text::integer AS ordinal,
     c.value->'observations'->(i.value::text::integer) AS observation
-   FROM jsonb_array_elements(v_contracts) c
+   FROM jsonb_array_elements(v_finance_contracts) c
    CROSS JOIN LATERAL jsonb_array_elements(c.value->'billingContributionOrdinals') i
   ), scoped AS MATERIALIZED (
-   SELECT transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
+   SELECT physical_source_id,transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
     (observation->>'periodStart')::timestamptz AS period_start,
     (observation->>'periodEnd')::timestamptz AS period_end
    FROM contributions
@@ -11023,20 +12806,40 @@ BEGIN
      AND (observation->>'periodEnd')::timestamptz<=upper(v_sent_range)
   )
   SELECT sum(quantity),count(*),min(period_start),max(period_end),
-   jsonb_agg(jsonb_build_array(transaction_id,ordinal) ORDER BY transaction_id,ordinal)
+   jsonb_agg(CASE WHEN v_multi IS NULL THEN jsonb_build_array(transaction_id,ordinal)
+      ELSE jsonb_build_array(physical_source_id,transaction_id,ordinal) END ORDER BY physical_source_id,transaction_id,ordinal)
   INTO v_scoped_total,v_scoped_count,v_start,v_end,v_ordinals FROM scoped;
   IF v_scoped_count=0 THEN
    RAISE EXCEPTION 'e66_billing_no_whole_requested_observation' USING ERRCODE='P0U01';
   END IF;
-  IF v_scoped_count<>v_contribution_count OR v_start IS DISTINCT FROM (v_context->>'periodStart')::timestamptz
+  IF mixed_admission IS NOT NULL OR v_multi IS NOT NULL OR v_scoped_count<>v_contribution_count OR v_start IS DISTINCT FROM (v_context->>'periodStart')::timestamptz
     OR v_end IS DISTINCT FROM (v_context->>'periodEnd')::timestamptz THEN
    v_scope:=jsonb_build_object('requestedFrom',lower(v_sent_range),'requestedUntil',upper(v_sent_range),
     'periodStart',v_start,'periodEnd',v_end,'contributors',v_ordinals);
+   IF v_multi IS NOT NULL THEN
+    IF v_scoped_total IS DISTINCT FROM (v_multi->>'totalKwh')::numeric THEN
+     RAISE EXCEPTION 'mixed_e66_projection_total_changed' USING ERRCODE='P0U01';
+    END IF;
+    v_scope:=v_scope||jsonb_build_object('basisVersion','mixed-e73-ide-finance-v2','environment','test',
+      'sentSourceId',v_multi->'sentSourceId','sentHash',v_multi->'sentHash','coverageSha256',v_multi->'coverageSha256');
+   ELSIF mixed_admission IS NOT NULL THEN
+    v_scope:=v_scope||jsonb_build_object('basisVersion','mixed-e73-ide-finance-v1',
+      'sentSourceId',mixed_admission->'sentSourceId','sentHash',mixed_admission->'sentHash',
+      'ideBasisHashes',mixed_admission->'basisHashes');
+   END IF;
    v_total:=v_scoped_total;
    v_context:=v_context||jsonb_build_object('month',extract(month FROM v_end)::integer,'year',extract(year FROM v_end)::integer);
   END IF;
  END IF;
  PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_context,true);
+ -- A legacy scalar E66 writer takes a share lock on the same request row.
+ -- Prevent it from creating a second raw financial projection after a mixed one.
+ IF mixed_admission IS NULL AND v_multi IS NULL AND v_source.message_code='E66' AND v_source.environment='test'
+  AND EXISTS (SELECT FROM public.billing_underlays b
+    JOIN gridex_e66_intake.billing_calendar_receipts receipt ON (receipt.company_id,receipt.underlay_id)=(b.company_id,b.id)
+    WHERE (b.company_id,b.source_request_id,receipt.environment)=(p_company_id,(v_context->>'sourceRequestId')::uuid,'test')
+      AND b.payload#>>'{e73BillingScope,basisVersion}' IN ('mixed-e73-ide-finance-v1','mixed-e73-ide-finance-v2'))
+ THEN RAISE EXCEPTION 'e66_billing_mixed_request_already_prepared' USING ERRCODE='P0U01'; END IF;
  SELECT r.underlay_id INTO v_receipt_id
  FROM gridex_e66_intake.billing_calendar_receipts r
  WHERE r.company_id=p_company_id AND r.source_id=p_source_message_id AND r.environment=v_source.environment
@@ -11046,7 +12849,13 @@ BEGIN
    RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01';
   END IF;
   SELECT b.* INTO STRICT v_result FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.id=v_receipt_id;
-  IF v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts THEN
+  IF v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts
+    OR (mixed_admission IS NOT NULL AND jsonb_build_object(
+      'sentSourceId',v_result.payload#>'{e73BillingScope,sentSourceId}',
+      'sentHash',v_result.payload#>'{e73BillingScope,sentHash}',
+      'basisHashes',v_result.payload#>'{e73BillingScope,ideBasisHashes}')
+      IS DISTINCT FROM (mixed_admission-ARRAY['contracts','context','requestedFrom','requestedUntil']))
+  THEN
    RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01';
   END IF;
   RETURN v_result;
@@ -11072,18 +12881,40 @@ BEGIN
   RETURN v_result;
  END IF;
  IF v_source.message_code='E66' THEN
-  v_contract_sha256:=encode(sha256(convert_to(v_contracts::text,'UTF8')),'hex');
+  v_contract_sha256:=coalesce(v_multi->>'coverageSha256',encode(sha256(convert_to(v_contracts::text,'UTF8')),'hex'));
   -- Only whole, accepted observations that belong to the request are grouped.
   -- The civil month comes from each inclusive start. An observation ending
   -- exactly at the next local midnight still belongs to the previous month.
   FOR v_month IN
-   WITH contributions AS (
-    SELECT c.value->>'transactionId' AS transaction_id, i.value::text::integer AS ordinal,
+   WITH mixed_contracts AS MATERIALIZED (
+    SELECT c.ordinality AS contract_position,c.value->>'physicalSourceId' AS physical_source_id,
+     c.value->>'transactionId' AS transaction_id,c.value->'billingContributionOrdinals' AS selected,
+     c.value->'observations' AS observations
+    FROM jsonb_array_elements(CASE WHEN v_multi IS NOT NULL THEN v_finance_contracts ELSE '[]'::jsonb END)
+     WITH ORDINALITY AS c(value,ordinality)
+   ), selected AS MATERIALIZED (
+    SELECT c.contract_position,c.physical_source_id,c.transaction_id,i.value::text::integer AS ordinal,
+     CASE WHEN i.value::text::integer<0 THEN jsonb_array_length(c.observations)+i.value::text::integer
+       ELSE i.value::text::integer END AS observation_index
+    FROM mixed_contracts c
+    CROSS JOIN LATERAL jsonb_array_elements(c.selected) i
+   ), owned_observations AS MATERIALIZED (
+    SELECT c.contract_position,o.ordinality-1 AS observation_index,o.observation
+    FROM mixed_contracts c
+    CROSS JOIN LATERAL jsonb_array_elements(c.observations) WITH ORDINALITY AS o(observation,ordinality)
+   ), contributions AS (
+    SELECT c.value->>'physicalSourceId' AS physical_source_id,c.value->>'transactionId' AS transaction_id,
+    i.value::text::integer AS ordinal,
      c.value->'observations'->(i.value::text::integer) AS observation
-    FROM jsonb_array_elements(v_contracts) c
+    FROM jsonb_array_elements(v_finance_contracts) c
     CROSS JOIN LATERAL jsonb_array_elements(c.value->'billingContributionOrdinals') i
+    WHERE v_multi IS NULL
+    UNION ALL
+    SELECT i.physical_source_id,i.transaction_id,i.ordinal,o.observation
+    FROM selected i
+    LEFT JOIN owned_observations o USING(contract_position,observation_index)
    ), intervals AS (
-    SELECT transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
+    SELECT physical_source_id,transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
      (observation->>'periodStart')::timestamptz AS starts_at,(observation->>'periodEnd')::timestamptz AS ends_at
     FROM contributions
    ), scoped AS (
@@ -11096,35 +12927,39 @@ BEGIN
     count(*)::integer AS contribution_count,sum(quantity) AS total,
     bool_and((starts_at<ends_at AND ends_at<=((local_month+interval '1 month') AT TIME ZONE 'Europe/Stockholm')
       AND quantity IS NOT NULL) IS TRUE) AS whole_intervals,
-    jsonb_agg(jsonb_build_array(transaction_id,ordinal) ORDER BY transaction_id,ordinal) AS contributors,
-    jsonb_agg(jsonb_build_array(starts_at,ends_at) ORDER BY transaction_id,ordinal) AS observation_periods
+    jsonb_agg(CASE WHEN v_multi IS NULL THEN jsonb_build_array(transaction_id,ordinal)
+      ELSE jsonb_build_array(physical_source_id,transaction_id,ordinal) END ORDER BY physical_source_id,transaction_id,ordinal) AS contributors,
+    jsonb_agg(jsonb_build_array(starts_at,ends_at) ORDER BY physical_source_id,transaction_id,ordinal) AS observation_periods
    FROM scoped GROUP BY local_month ORDER BY local_month
   LOOP
    IF v_month.whole_intervals IS NOT TRUE OR v_month.total IS NULL THEN
     RAISE EXCEPTION 'utilts_consumption_billing_month_boundary_requires_finer_observation' USING ERRCODE='P0U01';
    END IF;
    v_calendar:=jsonb_build_object(
-    'version','stockholm-observation-month-v1','timeZone','Europe/Stockholm',
+    'version',CASE WHEN v_multi IS NULL THEN 'stockholm-observation-month-v1'
+      ELSE 'stockholm-multisource-observation-month-v1' END,'timeZone','Europe/Stockholm',
     'periodStart',v_month.starts_at,'periodEnd',v_month.ends_at,
     'year',v_month.year,'month',v_month.month,'contractSha256',v_contract_sha256,
     'contributors',v_month.contributors,'observationPeriods',v_month.observation_periods);
    INSERT INTO public.billing_underlays(company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,
     grid_owner_id,underlay_month,underlay_year,status,total_kwh,currency,source_system,payload,readiness_status,
-    readiness_issues,created_by,updated_by,received_at,source_meter_value_count)
+    readiness_issues,created_by,updated_by,received_at,source_meter_value_count,billing_block_reason)
    VALUES(p_company_id,(v_context->>'customerId')::uuid,(v_context->>'siteId')::uuid,(v_context->>'customerSiteId')::uuid,
     (v_context->>'meteringPointId')::uuid,(v_context->>'sourceRequestId')::uuid,(v_context->>'gridOwnerId')::uuid,
     v_month.month,v_month.year,v_context->>'status',v_month.total,v_context->>'currency',v_context->>'sourceSystem',
-    jsonb_build_object('edielMessageId',p_source_message_id,'tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb),
-      'billingCalendar',v_calendar)
-     || CASE WHEN v_primary.id IS NULL THEN jsonb_build_object('consumptionContracts',v_contracts) ELSE '{}'::jsonb END
+    jsonb_build_object('tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb),'billingCalendar',v_calendar)
+     || CASE WHEN v_multi IS NULL THEN jsonb_build_object('edielMessageId',p_source_message_id) ELSE '{}'::jsonb END
+     || CASE WHEN v_multi IS NULL AND v_primary.id IS NULL THEN jsonb_build_object('consumptionContracts',v_contracts) ELSE '{}'::jsonb END
      || CASE WHEN v_scope IS NOT NULL THEN jsonb_build_object(
        'e73BillingScope',(v_scope-'contributors')||jsonb_build_object(
         'periodStart',v_month.starts_at,'periodEnd',v_month.ends_at,'contributors',v_month.contributors))
        ELSE '{}'::jsonb END,
-    'not_checked','[]'::jsonb,p_actor_id,p_actor_id,now(),v_month.contribution_count)
+    CASE WHEN v_multi IS NULL THEN 'not_checked' ELSE 'blocked' END,
+    '[]'::jsonb,p_actor_id,p_actor_id,now(),v_month.contribution_count,
+    CASE WHEN v_multi IS NOT NULL THEN 'mixed_e66_multisource_pricing_unqualified' END)
    RETURNING * INTO v_result;
    INSERT INTO gridex_e66_intake.billing_calendar_receipts(company_id,source_id,environment,billing_year,billing_month,underlay_id,row_fingerprint)
-   VALUES(p_company_id,p_source_message_id,v_source.environment,v_month.year,v_month.month,v_result.id,
+   VALUES(p_company_id,v_calendar_anchor,v_source.environment,v_month.year,v_month.month,v_result.id,
     gridex_e66_intake.billing_calendar_member_hash_v1(v_result));
    IF v_primary.id IS NULL THEN v_primary:=v_result; END IF;
    v_projected_count:=v_projected_count+v_month.contribution_count;
@@ -11133,6 +12968,12 @@ BEGIN
   IF v_primary.id IS NULL OR v_projected_count IS DISTINCT FROM coalesce(v_scoped_count,v_contribution_count)::bigint
     OR v_projected_total IS DISTINCT FROM v_total THEN
    RAISE EXCEPTION 'utilts_consumption_billing_calendar_projection_incomplete' USING ERRCODE='P0U01';
+  END IF;
+  IF v_multi IS NOT NULL THEN
+   INSERT INTO gridex_e66_intake.mixed_e73_billing_projections(company_id,environment,request_id,
+     coverage_sha256,calendar_anchor_source_id,primary_underlay_id)
+   VALUES(p_company_id,'test',(v_context->>'sourceRequestId')::uuid,
+     v_multi->>'coverageSha256',v_calendar_anchor,v_primary.id);
   END IF;
   RETURN v_primary;
  END IF;
@@ -11147,6 +12988,326 @@ BEGIN
   CASE WHEN v_scope IS NOT NULL THEN v_scoped_count END) RETURNING * INTO v_result;
  RETURN v_result;
 END $$;
+
+--
+-- Name: consume_owned_utilts_billing_v2(uuid, uuid, uuid, jsonb, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.consume_owned_utilts_billing_v2(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb, p_previous uuid) RETURNS public.billing_underlays
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_transaction text; v_contract jsonb; v_context jsonb; v_contracts jsonb:='[]'; v_total numeric:=0; v_ordinal jsonb;
+ v_result public.billing_underlays%rowtype; v_source public.ediel_messages%rowtype;
+ v_sent_range tstzrange; v_scoped_total numeric; v_start timestamptz; v_end timestamptz;
+ v_contribution_count integer:=0; v_scoped_count integer; v_scope jsonb; v_ordinals jsonb;
+ v_receipt_id uuid; v_found_id uuid; v_month record; v_primary public.billing_underlays%rowtype;
+ mixed_admission jsonb; v_multi jsonb; v_calendar_anchor uuid:=p_source_message_id; v_finance_contracts jsonb; v_calendar jsonb; v_contract_sha256 text; v_projected_count bigint:=0; v_projected_total numeric:=0;
+BEGIN
+ SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source_message_id AND s.company_id=p_company_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('utilts-billing|'||p_company_id::text||'|'||p_source_message_id::text,0));
+ IF v_source.message_code='E66' AND EXISTS (
+   SELECT FROM gridex_e66_intake.work w
+   WHERE (w.source_id,w.company_id,w.environment,w.phase)=(v_source.id,p_company_id,v_source.environment,'mixed_qualified')
+ ) THEN
+  IF v_source.environment IS DISTINCT FROM 'test' OR v_source.grid_owner_data_request_id IS NOT NULL THEN RETURN NULL; END IF;
+  IF p_previous IS NULL THEN RETURN NULL; END IF;
+  mixed_admission:=gridex_e66_intake.mixed_billing_admission_v2(p_company_id,p_source_message_id,p_actor_id,p_previous);
+  IF mixed_admission IS NULL THEN RETURN NULL; END IF;
+ ELSE
+  RETURN NULL;
+ END IF;
+ FOR v_transaction IN SELECT a.source_transaction_id FROM public.ediel_ack_transaction_results a
+  WHERE a.source_message_id=p_source_message_id AND a.company_id=p_company_id AND a.environment=v_source.environment
+  AND a.disposition='accepted' AND a.persistence_status='persisted' ORDER BY a.source_transaction_id LOOP
+  v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,v_transaction);
+  IF mixed_admission IS NOT NULL OR v_multi IS NOT NULL THEN
+   v_contracts:=v_contracts||jsonb_build_array(v_contract);
+   CONTINUE;
+  END IF;
+  IF v_contract#>>'{billing,capability}' IS DISTINCT FROM 'write' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  IF v_context IS NULL THEN v_context:=v_contract->'billing';
+  ELSIF v_context IS DISTINCT FROM v_contract->'billing' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  v_contribution_count:=v_contribution_count+jsonb_array_length(v_contract->'billingContributionOrdinals');
+  FOR v_ordinal IN SELECT value FROM jsonb_array_elements(v_contract->'billingContributionOrdinals') LOOP
+   v_total:=v_total+(v_contract->'observations'->((v_ordinal#>>'{}')::integer)->>'quantity')::numeric;
+  END LOOP;
+  v_contracts:=v_contracts||jsonb_build_array(v_contract);
+ END LOOP;
+ IF v_context IS NULL AND mixed_admission IS NULL AND v_multi IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
+ IF jsonb_typeof(p_expected_contracts) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ IF (SELECT jsonb_agg(e.value ORDER BY e.value->>'transactionId') FROM jsonb_array_elements(p_expected_contracts) e) IS DISTINCT FROM v_contracts THEN
+  RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ -- Mixed E66 uses only the accepted physical IDE evidence selected by the
+ -- private admission function. Keep the original immutable contracts for audit.
+ IF v_multi ? 'replayUnderlayId' THEN
+  SELECT b.* INTO STRICT v_result FROM public.billing_underlays b
+  WHERE (b.company_id,b.id)=(p_company_id,(v_multi->>'replayUnderlayId')::uuid) FOR SHARE;
+  RETURN v_result;
+ END IF;
+ v_finance_contracts:=v_contracts;
+ IF v_multi IS NOT NULL THEN
+  v_context:=v_multi->'context';
+  v_finance_contracts:=v_multi->'contracts';
+  v_sent_range:=tstzrange((v_multi->>'requestedFrom')::timestamptz,(v_multi->>'requestedUntil')::timestamptz,'[)');
+  v_calendar_anchor:=(v_multi->>'calendarAnchorSourceId')::uuid;
+ ELSIF mixed_admission IS NOT NULL THEN
+  v_context:=mixed_admission->'context';
+  v_finance_contracts:=mixed_admission->'contracts';
+  v_sent_range:=tstzrange((mixed_admission->>'requestedFrom')::timestamptz,
+    (mixed_admission->>'requestedUntil')::timestamptz,'[)');
+  IF (SELECT jsonb_agg(c->>'transactionId' ORDER BY c->>'transactionId') FROM jsonb_array_elements(v_finance_contracts) c)
+     IS DISTINCT FROM
+     (SELECT jsonb_agg(c->>'transactionId' ORDER BY c->>'transactionId') FROM jsonb_array_elements(v_contracts) c)
+  THEN RAISE EXCEPTION 'mixed_e66_finance_membership_changed' USING ERRCODE='P0U01'; END IF;
+ END IF;
+ -- Metering retains the entire physical source. A request's financial
+ -- contribution may use only whole original observations inside its sent E73.
+ IF v_source.message_code='E66' AND v_source.grid_owner_data_request_id::text=v_context->>'sourceRequestId' THEN
+  v_sent_range:=gridex_utilts_binding.e73_sent_request_range_v1(
+    p_company_id,v_source.grid_owner_data_request_id,v_source.environment);
+ END IF;
+ IF v_sent_range IS NOT NULL THEN
+  WITH contributions AS (
+   SELECT c.value->>'physicalSourceId' AS physical_source_id,c.value->>'transactionId' AS transaction_id,
+    i.value::text::integer AS ordinal,
+    c.value->'observations'->(i.value::text::integer) AS observation
+   FROM jsonb_array_elements(v_finance_contracts) c
+   CROSS JOIN LATERAL jsonb_array_elements(c.value->'billingContributionOrdinals') i
+  ), scoped AS MATERIALIZED (
+   SELECT physical_source_id,transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
+    (observation->>'periodStart')::timestamptz AS period_start,
+    (observation->>'periodEnd')::timestamptz AS period_end
+   FROM contributions
+   WHERE (observation->>'periodStart')::timestamptz>=lower(v_sent_range)
+     AND (observation->>'periodEnd')::timestamptz<=upper(v_sent_range)
+  )
+  SELECT sum(quantity),count(*),min(period_start),max(period_end),
+   jsonb_agg(CASE WHEN v_multi IS NULL THEN jsonb_build_array(transaction_id,ordinal)
+      ELSE jsonb_build_array(physical_source_id,transaction_id,ordinal) END ORDER BY physical_source_id,transaction_id,ordinal)
+  INTO v_scoped_total,v_scoped_count,v_start,v_end,v_ordinals FROM scoped;
+  IF v_scoped_count=0 THEN
+   RAISE EXCEPTION 'e66_billing_no_whole_requested_observation' USING ERRCODE='P0U01';
+  END IF;
+  IF mixed_admission IS NOT NULL OR v_multi IS NOT NULL OR v_scoped_count<>v_contribution_count OR v_start IS DISTINCT FROM (v_context->>'periodStart')::timestamptz
+    OR v_end IS DISTINCT FROM (v_context->>'periodEnd')::timestamptz THEN
+   v_scope:=jsonb_build_object('requestedFrom',lower(v_sent_range),'requestedUntil',upper(v_sent_range),
+    'periodStart',v_start,'periodEnd',v_end,'contributors',v_ordinals);
+   IF v_multi IS NOT NULL THEN
+    IF v_scoped_total IS DISTINCT FROM (v_multi->>'totalKwh')::numeric THEN
+     RAISE EXCEPTION 'mixed_e66_projection_total_changed' USING ERRCODE='P0U01';
+    END IF;
+    v_scope:=v_scope||jsonb_build_object('basisVersion','mixed-e73-ide-finance-v2','environment','test',
+      'sentSourceId',v_multi->'sentSourceId','sentHash',v_multi->'sentHash','coverageSha256',v_multi->'coverageSha256');
+   ELSIF mixed_admission IS NOT NULL THEN
+    v_scope:=v_scope||jsonb_build_object('basisVersion','mixed-e73-ide-finance-v1',
+      'sentSourceId',mixed_admission->'sentSourceId','sentHash',mixed_admission->'sentHash',
+      'ideBasisHashes',mixed_admission->'basisHashes');
+   END IF;
+   v_total:=v_scoped_total;
+   v_context:=v_context||jsonb_build_object('month',extract(month FROM v_end)::integer,'year',extract(year FROM v_end)::integer);
+  END IF;
+ END IF;
+ PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_context,true);
+ -- A legacy scalar E66 writer takes a share lock on the same request row.
+ -- Prevent it from creating a second raw financial projection after a mixed one.
+ IF mixed_admission IS NULL AND v_multi IS NULL AND v_source.message_code='E66' AND v_source.environment='test'
+  AND EXISTS (SELECT FROM public.billing_underlays b
+    JOIN gridex_e66_intake.billing_calendar_receipts receipt ON (receipt.company_id,receipt.underlay_id)=(b.company_id,b.id)
+    WHERE (b.company_id,b.source_request_id,receipt.environment)=(p_company_id,(v_context->>'sourceRequestId')::uuid,'test')
+      AND b.payload#>>'{e73BillingScope,basisVersion}' IN ('mixed-e73-ide-finance-v1','mixed-e73-ide-finance-v2'))
+ THEN RAISE EXCEPTION 'e66_billing_mixed_request_already_prepared' USING ERRCODE='P0U01'; END IF;
+ SELECT r.underlay_id INTO v_receipt_id
+ FROM gridex_e66_intake.billing_calendar_receipts r
+ WHERE r.company_id=p_company_id AND r.source_id=p_source_message_id AND r.environment=v_source.environment
+ ORDER BY r.billing_year,r.billing_month LIMIT 1;
+ IF FOUND THEN
+  IF gridex_e66_intake.bound_underlay_fingerprint_v1(p_company_id,p_source_message_id,v_receipt_id) IS NULL THEN
+   RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01';
+  END IF;
+  SELECT b.* INTO STRICT v_result FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.id=v_receipt_id;
+  IF v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts
+    OR (mixed_admission IS NOT NULL AND jsonb_build_object(
+      'sentSourceId',v_result.payload#>'{e73BillingScope,sentSourceId}',
+      'sentHash',v_result.payload#>'{e73BillingScope,sentHash}',
+      'basisHashes',v_result.payload#>'{e73BillingScope,ideBasisHashes}')
+      IS DISTINCT FROM (mixed_admission-ARRAY['contracts','context','requestedFrom','requestedUntil']))
+  THEN
+   RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01';
+  END IF;
+  RETURN v_result;
+ END IF;
+ SELECT b.* INTO v_result FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.source_system='ediel_utilts'
+  AND b.payload->>'edielMessageId'=p_source_message_id::text ORDER BY b.created_at,b.id LIMIT 1 FOR UPDATE;
+ IF FOUND THEN
+  v_found_id:=v_result.id;
+  IF v_result.payload ? 'billingCalendar' OR EXISTS (
+   SELECT FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.source_system='ediel_utilts'
+    AND b.payload->>'edielMessageId'=p_source_message_id::text AND b.id<>v_found_id
+  ) THEN RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01'; END IF;
+  IF v_result.customer_id::text IS DISTINCT FROM v_context->>'customerId' OR v_result.site_id::text IS DISTINCT FROM v_context->>'siteId'
+   OR v_result.customer_site_id::text IS DISTINCT FROM v_context->>'customerSiteId'
+   OR v_result.metering_point_id::text IS DISTINCT FROM v_context->>'meteringPointId' OR v_result.grid_owner_id::text IS DISTINCT FROM v_context->>'gridOwnerId'
+   OR v_result.source_request_id::text IS DISTINCT FROM v_context->>'sourceRequestId' OR v_result.total_kwh IS DISTINCT FROM v_total
+   OR v_result.underlay_month IS DISTINCT FROM (v_context->>'month')::integer
+   OR v_result.underlay_year IS DISTINCT FROM (v_context->>'year')::integer
+   OR v_result.currency IS DISTINCT FROM v_context->>'currency'
+   OR v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts
+   OR v_result.payload->'e73BillingScope' IS DISTINCT FROM v_scope THEN
+   RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01'; END IF;
+  RETURN v_result;
+ END IF;
+ IF v_source.message_code='E66' THEN
+  v_contract_sha256:=coalesce(v_multi->>'coverageSha256',encode(sha256(convert_to(v_contracts::text,'UTF8')),'hex'));
+  -- Only whole, accepted observations that belong to the request are grouped.
+  -- The civil month comes from each inclusive start. An observation ending
+  -- exactly at the next local midnight still belongs to the previous month.
+  FOR v_month IN
+   WITH contributions AS (
+    SELECT c.value->>'physicalSourceId' AS physical_source_id,c.value->>'transactionId' AS transaction_id,
+    i.value::text::integer AS ordinal,
+     c.value->'observations'->(i.value::text::integer) AS observation
+    FROM jsonb_array_elements(v_finance_contracts) c
+    CROSS JOIN LATERAL jsonb_array_elements(c.value->'billingContributionOrdinals') i
+   ), intervals AS (
+    SELECT physical_source_id,transaction_id,ordinal,(observation->>'quantity')::numeric AS quantity,
+     (observation->>'periodStart')::timestamptz AS starts_at,(observation->>'periodEnd')::timestamptz AS ends_at
+    FROM contributions
+   ), scoped AS (
+    SELECT *, date_trunc('month',starts_at AT TIME ZONE 'Europe/Stockholm') AS local_month
+    FROM intervals
+    WHERE v_sent_range IS NULL OR (starts_at>=lower(v_sent_range) AND ends_at<=upper(v_sent_range))
+   )
+   SELECT local_month,extract(year FROM local_month)::integer AS year,
+    extract(month FROM local_month)::integer AS month,min(starts_at) AS starts_at,max(ends_at) AS ends_at,
+    count(*)::integer AS contribution_count,sum(quantity) AS total,
+    bool_and((starts_at<ends_at AND ends_at<=((local_month+interval '1 month') AT TIME ZONE 'Europe/Stockholm')
+      AND quantity IS NOT NULL) IS TRUE) AS whole_intervals,
+    jsonb_agg(CASE WHEN v_multi IS NULL THEN jsonb_build_array(transaction_id,ordinal)
+      ELSE jsonb_build_array(physical_source_id,transaction_id,ordinal) END ORDER BY physical_source_id,transaction_id,ordinal) AS contributors,
+    jsonb_agg(jsonb_build_array(starts_at,ends_at) ORDER BY physical_source_id,transaction_id,ordinal) AS observation_periods
+   FROM scoped GROUP BY local_month ORDER BY local_month
+  LOOP
+   IF v_month.whole_intervals IS NOT TRUE OR v_month.total IS NULL THEN
+    RAISE EXCEPTION 'utilts_consumption_billing_month_boundary_requires_finer_observation' USING ERRCODE='P0U01';
+   END IF;
+   v_calendar:=jsonb_build_object(
+    'version',CASE WHEN v_multi IS NULL THEN 'stockholm-observation-month-v1'
+      ELSE 'stockholm-multisource-observation-month-v1' END,'timeZone','Europe/Stockholm',
+    'periodStart',v_month.starts_at,'periodEnd',v_month.ends_at,
+    'year',v_month.year,'month',v_month.month,'contractSha256',v_contract_sha256,
+    'contributors',v_month.contributors,'observationPeriods',v_month.observation_periods);
+   INSERT INTO public.billing_underlays(company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,
+    grid_owner_id,underlay_month,underlay_year,status,total_kwh,currency,source_system,payload,readiness_status,
+    readiness_issues,created_by,updated_by,received_at,source_meter_value_count,billing_block_reason)
+   VALUES(p_company_id,(v_context->>'customerId')::uuid,(v_context->>'siteId')::uuid,(v_context->>'customerSiteId')::uuid,
+    (v_context->>'meteringPointId')::uuid,(v_context->>'sourceRequestId')::uuid,(v_context->>'gridOwnerId')::uuid,
+    v_month.month,v_month.year,v_context->>'status',v_month.total,v_context->>'currency',v_context->>'sourceSystem',
+    jsonb_build_object('tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb),'billingCalendar',v_calendar)
+     || CASE WHEN v_multi IS NULL THEN jsonb_build_object('edielMessageId',p_source_message_id) ELSE '{}'::jsonb END
+     || CASE WHEN v_multi IS NULL AND v_primary.id IS NULL THEN jsonb_build_object('consumptionContracts',v_contracts) ELSE '{}'::jsonb END
+     || CASE WHEN v_scope IS NOT NULL THEN jsonb_build_object(
+       'e73BillingScope',(v_scope-'contributors')||jsonb_build_object(
+        'periodStart',v_month.starts_at,'periodEnd',v_month.ends_at,'contributors',v_month.contributors))
+       ELSE '{}'::jsonb END,
+    CASE WHEN v_multi IS NULL THEN 'not_checked' ELSE 'blocked' END,
+    '[]'::jsonb,p_actor_id,p_actor_id,now(),v_month.contribution_count,
+    CASE WHEN v_multi IS NOT NULL THEN 'mixed_e66_multisource_pricing_unqualified' END)
+   RETURNING * INTO v_result;
+   INSERT INTO gridex_e66_intake.billing_calendar_receipts(company_id,source_id,environment,billing_year,billing_month,underlay_id,row_fingerprint)
+   VALUES(p_company_id,v_calendar_anchor,v_source.environment,v_month.year,v_month.month,v_result.id,
+    gridex_e66_intake.billing_calendar_member_hash_v1(v_result));
+   IF v_primary.id IS NULL THEN v_primary:=v_result; END IF;
+   v_projected_count:=v_projected_count+v_month.contribution_count;
+   v_projected_total:=v_projected_total+v_month.total;
+  END LOOP;
+  IF v_primary.id IS NULL OR v_projected_count IS DISTINCT FROM coalesce(v_scoped_count,v_contribution_count)::bigint
+    OR v_projected_total IS DISTINCT FROM v_total THEN
+   RAISE EXCEPTION 'utilts_consumption_billing_calendar_projection_incomplete' USING ERRCODE='P0U01';
+  END IF;
+  IF v_multi IS NOT NULL THEN
+   INSERT INTO gridex_e66_intake.mixed_e73_billing_projections(company_id,environment,request_id,
+     coverage_sha256,calendar_anchor_source_id,primary_underlay_id)
+   VALUES(p_company_id,'test',(v_context->>'sourceRequestId')::uuid,
+     v_multi->>'coverageSha256',v_calendar_anchor,v_primary.id);
+  END IF;
+  RETURN v_primary;
+ END IF;
+ INSERT INTO public.billing_underlays(company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,grid_owner_id,underlay_month,underlay_year,
+  status,total_kwh,currency,source_system,payload,readiness_status,readiness_issues,created_by,updated_by,received_at,
+  source_meter_value_count)
+ VALUES(p_company_id,(v_context->>'customerId')::uuid,(v_context->>'siteId')::uuid,(v_context->>'customerSiteId')::uuid,(v_context->>'meteringPointId')::uuid,(v_context->>'sourceRequestId')::uuid,
+  (v_context->>'gridOwnerId')::uuid,(v_context->>'month')::integer,(v_context->>'year')::integer,v_context->>'status',v_total,v_context->>'currency',v_context->>'sourceSystem',
+  jsonb_build_object('edielMessageId',p_source_message_id,'consumptionContracts',v_contracts,'tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb))
+    || CASE WHEN v_scope IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('e73BillingScope',v_scope) END,
+  'not_checked','[]'::jsonb,p_actor_id,p_actor_id,now(),
+  CASE WHEN v_scope IS NOT NULL THEN v_scoped_count END) RETURNING * INTO v_result;
+ RETURN v_result;
+END $$;
+
+--
+-- Name: current_mixed_e73_application_v1(uuid, text, uuid, text, integer, uuid, bytea, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.current_mixed_e73_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract_digest bytea, p_source_line text) RETURNS uuid
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT n.id
+ FROM gridex_utilts_binding.metering_application_receipts r
+ JOIN public.metering_values m ON (m.company_id,m.id)=(r.company_id,r.value_id)
+ JOIN public.normalized_metering_values n
+   ON (n.company_id,n.id,n.source_metering_value_id)=(r.company_id,r.normalized_id,r.value_id)
+ JOIN public.metering_value_sources l
+   ON (l.id,l.company_id,l.metering_value_id,l.normalized_metering_value_id,
+       l.source_ediel_message_id,l.source_transaction_reference)
+   =(r.source_link_id,r.company_id,r.value_id,r.normalized_id,r.source_message_id,r.transaction_id)
+ WHERE (r.company_id,r.environment,r.source_message_id,r.transaction_id,r.observation_ordinal,r.value_id)
+   =(p_company,p_environment,p_source,p_transaction,p_ordinal,p_metering_id)
+ AND l.source_line_reference IS NOT DISTINCT FROM p_source_line
+ AND r.contract_hash=p_contract_digest
+ AND r.value_hash=gridex_e66_intake.mixed_e73_value_fingerprint_v1(m)
+ AND r.normalized_hash=gridex_e66_intake.mixed_e73_normalized_fingerprint_v1(n)
+ AND m.is_current AND m.revision_status='current' AND n.revision_status='current'
+$$;
+
+--
+-- Name: due_mixed_worker_members_v1(gridex_e66_intake.work, uuid, timestamp with time zone); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.due_mixed_worker_members_v1(w gridex_e66_intake.work, p_actor uuid, p_now timestamp with time zone) RETURNS TABLE(transaction_id text, transaction_index integer, due_at timestamp with time zone)
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT c.transaction_id,c.transaction_index,coalesce(x.next_attempt_at,w.created_at)
+  FROM gridex_e66_intake.mixed_qualification_receipts q
+  JOIN gridex_e66_intake.mixed_accepted_transactions c ON c.source_id=q.source_id
+  JOIN public.ediel_ack_transaction_results a
+    ON (a.company_id,a.environment,a.source_message_id,a.source_transaction_id,a.persisted_series_id)
+      =(w.company_id,w.environment,w.source_id,c.transaction_id,c.series_id)
+  LEFT JOIN gridex_e66_intake.mixed_worker_attempts x ON (x.source_id,x.transaction_id)=(c.source_id,c.transaction_id)
+  WHERE (q.source_id,q.actor_id)=(w.source_id,p_actor)
+    AND w.environment='test' AND w.phase='mixed_qualified' AND w.lease_token IS NULL
+    AND a.disposition='accepted' AND a.planned_response_type='positive_aperak'
+    AND a.persistence_status='persisted' AND a.finalized_at IS NULL
+    AND coalesce(x.next_attempt_at,w.created_at)<=p_now
+    AND (x.lease_expires_at IS NULL OR x.lease_expires_at<=p_now)
+
+  UNION ALL
+  SELECT rejected.transaction_id,rejected.transaction_index,
+    coalesce(attempt.next_attempt_at,w.created_at+interval '1 microsecond')
+  FROM gridex_e66_intake.mixed_e50_candidates_v1(w,p_actor) rejected
+  JOIN public.ediel_ack_transaction_results result
+    ON (result.company_id,result.environment,result.source_message_id,result.source_transaction_id)
+      =(w.company_id,w.environment,w.source_id,rejected.transaction_id)
+  LEFT JOIN gridex_e66_intake.mixed_e50_attempts attempt
+    ON (attempt.source_id,attempt.transaction_id)=(w.source_id,rejected.transaction_id)
+  WHERE result.finalized_at IS NULL AND result.final_response_type IS NULL AND result.response_message_id IS NULL
+    AND attempt.completed_at IS NULL AND coalesce(attempt.next_attempt_at,w.created_at)<=p_now
+    AND (attempt.lease_expires_at IS NULL OR attempt.lease_expires_at<=p_now)
+$$;
 
 --
 -- Name: guard_billing_calendar_member_v1(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
@@ -11203,6 +13364,269 @@ END
 $$;
 
 --
+-- Name: guard_mixed_billing_coverage_immutable_v1(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.guard_mixed_billing_coverage_immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'mixed_billing_coverage_is_immutable' USING ERRCODE='55000';
+END
+$$;
+
+--
+-- Name: guard_mixed_billing_projection_readiness_v1(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.guard_mixed_billing_projection_readiness_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  owned boolean;
+BEGIN
+  SELECT EXISTS(
+    SELECT FROM gridex_e66_intake.billing_calendar_receipts calendar
+    JOIN gridex_e66_intake.mixed_e73_billing_projections projection
+      ON (projection.company_id,projection.environment,projection.calendar_anchor_source_id)
+        =(calendar.company_id,calendar.environment,calendar.source_id)
+    WHERE (calendar.underlay_id,calendar.company_id)=(OLD.id,OLD.company_id)
+  ) INTO owned;
+  IF TG_OP='DELETE' THEN
+    IF owned THEN RAISE EXCEPTION 'mixed_e66_projection_member_immutable' USING ERRCODE='P0U01'; END IF;
+    RETURN OLD;
+  END IF;
+  IF owned AND (NEW.status,NEW.readiness_status,NEW.billing_block_reason,NEW.pricing_snapshot_id,
+       NEW.contract_price_snapshot_id,NEW.pricing_snapshot,NEW.contract_id)
+      IS DISTINCT FROM (OLD.status,OLD.readiness_status,OLD.billing_block_reason,OLD.pricing_snapshot_id,
+       OLD.contract_price_snapshot_id,OLD.pricing_snapshot,OLD.contract_id)
+  THEN RAISE EXCEPTION 'mixed_e66_multisource_pricing_unqualified' USING ERRCODE='P0U01'; END IF;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: has_mixed_positive_create_context_v1(uuid, text, uuid, text, text, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.has_mixed_positive_create_context_v1(p_company uuid, p_env text, p_source uuid, p_transaction text, p_source_hash text, p_ack uuid) RETURNS boolean
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT p_env='test' AND p_ack IS NULL AND EXISTS (
+    SELECT FROM gridex_e66_intake.mixed_positive_create_context x
+    JOIN gridex_e66_intake.mixed_e73_ide_completions c
+      ON (c.source_id,c.transaction_id,c.actor_id,c.basis_sha256,c.source_sha256,c.wire_sha256)
+        =(x.source_id,x.transaction_id,x.actor_id,x.basis_sha256,x.source_sha256,x.wire_sha256)
+    JOIN gridex_e66_intake.mixed_e73_draft_preconditions d
+      ON (d.source_id,d.transaction_id,d.actor_id,d.basis_sha256,d.lease_token)
+        =(x.source_id,x.transaction_id,x.actor_id,x.basis_sha256,x.lease_token)
+    WHERE d.expires_at>clock_timestamp() AND (x.xact,x.company_id,x.source_id,x.transaction_id,x.source_sha256)
+      =(pg_current_xact_id_if_assigned(),p_company,p_source,p_transaction,p_source_hash)
+  )
+$$;
+
+--
+-- Name: hold_compatible_sg11_format_v1(public.ediel_messages, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.hold_compatible_sg11_format_v1(original public.ediel_messages, actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  reception gridex_ediel_inbound_receptions.receptions;
+  saved gridex_e66_intake.sg11_compatibility_holds;
+  digest text := encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex');
+  basis jsonb;
+  diagnostic jsonb;
+  mailbox uuid;
+BEGIN
+  PERFORM gridex_ediel_inbound_receptions.authorize_v1(original.company_id,actor,'communication.write');
+  SELECT * INTO STRICT reception FROM gridex_ediel_inbound_receptions.receptions r
+  WHERE (r.source_message_id,r.company_id,r.environment,r.inbound_email_message_id)
+      =(original.id,original.company_id,original.environment,original.inbound_email_message_id)
+    AND r.classification='first_reception'
+    AND r.canonical_payload_hash=digest AND r.received_payload_hash=digest;
+  mailbox:=(reception.transport_source_snapshot->>'mailboxId')::uuid;
+  IF mailbox IS NULL OR NOT EXISTS (SELECT FROM public.ediel_mailboxes m
+    WHERE m.id=mailbox AND m.environment=original.environment AND
+      (m.company_id=original.company_id OR m.is_shared_platform_mailbox IS TRUE)) THEN
+    RAISE EXCEPTION 'e66_sg11_compatibility_reception_unavailable' USING ERRCODE='55000';
+  END IF;
+  basis:=gridex_ediel_source_rules.require_v1(original.company_id,original.id);
+  IF basis->>'version' IS DISTINCT FROM '25-A-5:r5'
+    OR basis#>>'{snapshot,version}' IS DISTINCT FROM '25-A-5:r5'
+    OR basis#>>'{snapshot,rulePack,market}' IS DISTINCT FROM 'electricity'
+    OR basis#>>'{snapshot,rulePack,family}' IS DISTINCT FROM 'UTILTS'
+    OR basis#>>'{snapshot,rulePack,guide_version}' IS DISTINCT FROM '25-A-5'
+    OR basis#>>'{snapshot,rulePack,guide_revision}' IS DISTINCT FROM '5'
+    OR coalesce(basis->>'sourceHash','') !~ '^[a-f0-9]{64}$'
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(basis#>'{snapshot,guideSources}') s
+      WHERE s->>'source_type'='technical_guide' AND s->>'revision'='25-A-5'
+        AND s->>'source_hash'='b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2') THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_guide_unavailable' USING ERRCODE='55000';
+  END IF;
+  SELECT * INTO saved FROM gridex_e66_intake.sg11_compatibility_holds WHERE source_id=original.id;
+  diagnostic:=CASE WHEN saved.source_id IS NULL
+    THEN gridex_e66_intake.sg11_forbidden_timestamp_v2(original.raw_payload)
+    ELSE gridex_e66_intake.sg11_forbidden_timestamp_v1(original.raw_payload) END;
+  IF diagnostic IS NULL THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_no_occurrence' USING ERRCODE='55000';
+  END IF;
+  IF saved.source_id IS NOT NULL THEN
+    IF (saved.company_id,saved.environment,saved.mailbox_id,saved.reception_id,saved.source_sha256,
+          saved.profile_checksum,saved.diagnostic) IS DISTINCT FROM
+       (original.company_id,original.environment,mailbox,reception.id,digest,basis->>'sourceHash',diagnostic) THEN
+      RAISE EXCEPTION 'e66_sg11_compatibility_replay_changed' USING ERRCODE='55000';
+    END IF;
+    RETURN jsonb_build_object('kind','sg11_format_review','sourceId',original.id,
+      'diagnostic',diagnostic,'replayed',true);
+  END IF;
+  IF EXISTS (SELECT FROM gridex_utilts_binding.receipts WHERE source_message_id=original.id)
+    OR EXISTS (SELECT FROM public.ediel_ack_transaction_results WHERE source_message_id=original.id)
+    OR EXISTS (SELECT FROM public.ediel_messages a WHERE a.company_id=original.company_id AND a.environment=original.environment
+      AND a.related_message_id=original.id AND a.direction='outbound'
+      AND a.message_family IN ('APERAK','UTILTS_ERR')) THEN
+    RAISE EXCEPTION 'e66_sg11_compatibility_prior_effect' USING ERRCODE='55000';
+  END IF;
+  INSERT INTO gridex_e66_intake.sg11_compatibility_holds
+    (source_id,company_id,environment,mailbox_id,reception_id,source_sha256,profile_checksum,actor_id,diagnostic)
+  VALUES(original.id,original.company_id,original.environment,mailbox,reception.id,digest,
+    basis->>'sourceHash',actor,diagnostic);
+  INSERT INTO public.ediel_message_events
+    (company_id,ediel_message_id,message_id,event_type,event_status,message,payload,event_payload,created_by)
+  VALUES(original.company_id,original.id,original.id,'validated','warning',
+    'E66 hålls för granskning. Tidsstämpeln DTM+597 hör till en otillåten mängdtyp.',
+    diagnostic,diagnostic,actor);
+  RETURN jsonb_build_object('kind','sg11_format_review','sourceId',original.id,
+    'diagnostic',diagnostic,'replayed',false);
+END
+$_$;
+
+--
+-- Name: hold_prelinked_mixed_v1(uuid, text, uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.hold_prelinked_mixed_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  w gridex_e66_intake.work;
+  saved_request uuid;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  w:=gridex_e66_intake.require_registration_rejection_claim_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  SELECT m.grid_owner_data_request_id INTO saved_request FROM public.ediel_messages m
+    WHERE (m.id,m.company_id,m.environment)=(w.source_id,w.company_id,w.environment) FOR SHARE;
+  IF saved_request IS NULL OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'qualify_normally'
+    OR NOT EXISTS (
+      SELECT FROM gridex_received_sources.validation_assessments a
+      JOIN gridex_received_sources.utilts_transaction_validations t
+        ON (t.assessment_id,t.company_id,t.environment,t.source_message_id,t.source_payload_hash)
+          =(a.id,a.company_id,a.environment,a.source_message_id,a.source_payload_hash)
+      WHERE (a.id,a.company_id,a.environment,a.source_message_id,a.source_payload_hash)
+        =(p_assessment,p_company,p_environment,p_source,w.payload_sha256)
+        AND jsonb_array_length(t.transaction_facts_text::jsonb->'transactions')>1
+        AND NOT EXISTS (SELECT FROM gridex_received_sources.validation_assessments later
+                        WHERE later.previous_assessment_id=a.id)
+    )
+  THEN RAISE EXCEPTION 'e66_prelinked_mixed_evidence_missing' USING ERRCODE='55000'; END IF;
+  INSERT INTO gridex_e66_intake.mixed_prelinked_holds(source_id,request_id,assessment_id,actor_id,source_sha256)
+    VALUES(p_source,saved_request,p_assessment,p_actor,w.payload_sha256);
+  UPDATE gridex_e66_intake.work SET phase='mixed_prelinked_review',lease_actor=NULL,lease_token=NULL,lease_until=NULL
+    WHERE source_id=p_source;
+  RETURN jsonb_build_object('kind','mixed_prelinked_review','sourceId',p_source,'replayed',false);
+END
+$$;
+
+--
+-- Name: hold_sg11_format_v1(uuid, text, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.hold_sg11_format_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  w gridex_e66_intake.work;
+  source public.ediel_messages;
+  saved gridex_e66_intake.sg11_format_holds;
+  basis jsonb;
+  diagnostic jsonb;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  SELECT * INTO STRICT w FROM gridex_e66_intake.work
+    WHERE (source_id,company_id,environment,mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+    FOR UPDATE;
+  SELECT * INTO saved FROM gridex_e66_intake.sg11_format_holds WHERE source_id=p_source;
+  IF saved.source_id IS NULL THEN
+    w:=gridex_e66_intake.require_registration_rejection_claim_v1(
+      p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  ELSIF w.phase IS DISTINCT FROM 'sg11_format_review'
+    OR (saved.company_id,saved.environment,saved.mailbox_id,saved.reception_id,saved.payload_sha256,
+      saved.actor_id,saved.lease_token) IS DISTINCT FROM
+      (p_company,p_environment,p_mailbox,w.reception_id,w.payload_sha256,p_actor,p_lease)
+    OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'hold_qualification_unverified'
+  THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_replay_changed' USING ERRCODE='55000';
+  END IF;
+  SELECT * INTO STRICT source FROM public.ediel_messages WHERE id=w.source_id FOR UPDATE;
+  basis:=gridex_ediel_source_rules.require_v1(p_company,p_source);
+  IF basis->>'version' IS DISTINCT FROM '25-A-5:r5'
+    OR basis#>>'{snapshot,version}' IS DISTINCT FROM '25-A-5:r5'
+    OR basis#>>'{snapshot,rulePack,market}' IS DISTINCT FROM 'electricity'
+    OR basis#>>'{snapshot,rulePack,family}' IS DISTINCT FROM 'UTILTS'
+    OR basis#>>'{snapshot,rulePack,guide_version}' IS DISTINCT FROM '25-A-5'
+    OR basis#>>'{snapshot,rulePack,guide_revision}' IS DISTINCT FROM '5'
+    OR coalesce(basis->>'sourceHash','') !~ '^[a-f0-9]{64}$'
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(basis#>'{snapshot,guideSources}') s
+      WHERE s->>'source_type'='technical_guide' AND s->>'revision'='25-A-5'
+        AND s->>'source_hash'='b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2') THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_guide_unavailable' USING ERRCODE='55000';
+  END IF;
+  diagnostic:=CASE WHEN saved.source_id IS NULL
+    THEN gridex_e66_intake.sg11_forbidden_timestamp_v2(source.raw_payload)
+    ELSE gridex_e66_intake.sg11_forbidden_timestamp_v1(source.raw_payload) END;
+  IF diagnostic IS NULL THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_no_occurrence' USING ERRCODE='55000';
+  END IF;
+  IF saved.source_id IS NOT NULL THEN
+    IF (saved.profile_checksum,saved.diagnostic) IS DISTINCT FROM (basis->>'sourceHash',diagnostic) THEN
+      RAISE EXCEPTION 'e66_sg11_format_review_replay_changed' USING ERRCODE='55000';
+    END IF;
+    RETURN jsonb_build_object('sourceId',p_source,'diagnostic',diagnostic,'replayed',true);
+  END IF;
+  IF w.lease_until<=clock_timestamp()
+    OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'qualify_normally'
+    OR EXISTS (SELECT FROM gridex_e66_intake.registration_rejections WHERE source_id=p_source)
+    OR EXISTS (SELECT FROM public.ediel_messages a WHERE a.company_id=p_company AND a.environment=p_environment
+      AND a.related_message_id=p_source AND a.direction='outbound'
+      AND a.message_family IN ('APERAK','UTILTS_ERR'))
+  THEN
+    RAISE EXCEPTION 'e66_sg11_format_review_prior_owner_or_effect' USING ERRCODE='55000';
+  END IF;
+  INSERT INTO gridex_e66_intake.sg11_format_holds
+    (source_id,company_id,environment,mailbox_id,reception_id,payload_sha256,profile_checksum,actor_id,lease_token,diagnostic)
+  VALUES(p_source,p_company,p_environment,p_mailbox,w.reception_id,w.payload_sha256,basis->>'sourceHash',
+    p_actor,p_lease,diagnostic);
+  INSERT INTO public.ediel_message_events
+    (company_id,ediel_message_id,message_id,event_type,event_status,message,payload,event_payload,created_by)
+  VALUES(p_company,p_source,p_source,'validated','warning',
+    'E66 hålls för granskning. Tidsstämpeln DTM+597 hör till en otillåten mängdtyp.',
+    diagnostic,diagnostic,p_actor);
+  UPDATE gridex_e66_intake.work SET phase='sg11_format_review',lease_actor=NULL,lease_token=NULL,lease_until=NULL
+   WHERE source_id=p_source;
+  RETURN jsonb_build_object('sourceId',p_source,'diagnostic',diagnostic,'replayed',false);
+END
+$_$;
+
+--
 -- Name: is_historical_completion_v1(uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -11239,6 +13663,607 @@ CREATE FUNCTION gridex_e66_intake.matched_request_ack_eligible_v1(p_source uuid)
      WHERE b.source_id=p_source AND (b.response_base IS NOT NULL
        OR coalesce(c.outcome->>'status','') NOT IN ('received','partial','replaced'))))
  $$;
+
+--
+-- Name: meter_reading_series; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meter_reading_series (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    metering_point_id uuid,
+    source_ediel_message_id uuid,
+    external_metering_point_id text,
+    grid_area_id text,
+    period_start timestamp with time zone,
+    period_end timestamp with time zone,
+    resolution text DEFAULT 'UNKNOWN'::text NOT NULL,
+    unit text DEFAULT 'KWH'::text NOT NULL,
+    quality_status text DEFAULT 'received'::text NOT NULL,
+    dedupe_key text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    message_code text,
+    source_transaction_reference text,
+    series_kind text DEFAULT 'actual'::text NOT NULL,
+    product_id text,
+    time_series_product jsonb,
+    actor_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    registration_date timestamp with time zone,
+    latest_update_date timestamp with time zone,
+    version_no integer DEFAULT 1 NOT NULL,
+    supersedes_series_id uuid,
+    is_current boolean DEFAULT true NOT NULL,
+    correction_reason text,
+    raw_transaction jsonb DEFAULT '{}'::jsonb NOT NULL,
+    immutable_hash text,
+    CONSTRAINT meter_reading_series_series_kind_check CHECK ((series_kind = ANY (ARRAY['actual'::text, 'forecast'::text, 'aggregate'::text, 'request'::text]))),
+    CONSTRAINT meter_reading_series_version_no_check CHECK ((version_no > 0))
+);
+
+--
+-- Name: meter_source_probe_v1(uuid, uuid, text, integer); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.meter_source_probe_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer) RETURNS TABLE(series_row public.meter_reading_series, graph_key text, cohort_key jsonb, source_ids uuid[])
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_attribution jsonb;v_observation jsonb;v_key text;
+BEGIN
+ SELECT h.* INTO series_row FROM public.ediel_ack_transaction_results a
+ JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
+ WHERE a.company_id=p_company_id AND a.source_message_id=p_source_message_id AND a.source_transaction_id=p_transaction_id;
+ IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_not_accepted' USING ERRCODE='P0U01'; END IF;
+ cohort_key:=jsonb_build_array(p_company_id::text,series_row.series_kind,series_row.message_code,
+  coalesce(series_row.external_metering_point_id,''),coalesce(series_row.grid_area_id,''),
+  series_row.period_start,series_row.period_end,series_row.resolution,coalesce(series_row.product_id,''));
+ SELECT concat_ws('|',p_company_id::text,o.environment,coalesce(series_row.raw_transaction->>'seriesKind','actual'),
+  o.message_code,coalesce(series_row.raw_transaction->>'externalMeteringPointId',''),coalesce(series_row.raw_transaction->>'gridAreaId',''),
+  coalesce(series_row.raw_transaction->>'periodStart',''),coalesce(series_row.raw_transaction->>'periodEnd',''),
+  coalesce(series_row.raw_transaction->>'resolution','UNKNOWN'),coalesce(series_row.raw_transaction->>'productId','')) INTO graph_key FROM public.ediel_messages o WHERE o.id=p_source_message_id;
+ v_attribution:=series_row.raw_transaction#>'{consumptionContract,metering}';
+ v_observation:=series_row.raw_transaction#>'{consumptionContract,observations}'->p_observation_ordinal;
+ v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
+  coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
+ SELECT (SELECT array_agg(DISTINCT source_id ORDER BY source_id) FROM (
+   SELECT p_source_message_id AS source_id
+   UNION SELECT h.source_ediel_message_id FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
+    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=cohort_key
+   UNION SELECT m.source_ediel_message_id FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+   UNION SELECT l.source_ediel_message_id FROM public.metering_value_sources l JOIN public.metering_values m ON m.id=l.metering_value_id AND m.company_id=l.company_id
+    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+  ) sources WHERE source_id IS NOT NULL) INTO source_ids;
+ RETURN NEXT;
+END
+$$;
+
+--
+-- Name: mixed_billing_admission_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_billing_admission_v1(p_company uuid, p_source uuid, p_actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  request_row public.grid_owner_data_requests;
+  child record;
+  current_basis jsonb;
+  reference_basis jsonb;
+  exact_contract jsonb;
+  finance_contract jsonb;
+  basis_hashes jsonb:='[]'::jsonb;
+  finance_contracts jsonb:='[]'::jsonb;
+  expected_range tstzrange;
+  actual_range tstzmultirange;
+  contributed_seconds numeric;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role'
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS NOT TRUE
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.write') IS NOT TRUE
+  THEN RETURN NULL; END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+  FOR child IN
+    SELECT t.transaction_id,b.evidence,b.evidence_sha256,b.request_id
+    FROM gridex_e66_intake.work w
+    JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=w.source_id AND q.actor_id=p_actor
+    JOIN gridex_e66_intake.mixed_accepted_transactions t ON t.source_id=w.source_id
+    LEFT JOIN gridex_e66_intake.mixed_e73_request_basis b
+      ON (b.source_id,b.transaction_id,b.company_id,b.environment,b.actor_id)
+        =(t.source_id,t.transaction_id,w.company_id,w.environment,p_actor)
+    WHERE (w.source_id,w.company_id,w.environment,w.phase)=(p_source,p_company,'test','mixed_qualified')
+    ORDER BY t.transaction_id
+  LOOP
+    IF child.evidence IS NULL OR child.evidence->>'requestScope' IS DISTINCT FROM 'billing_underlay' THEN RETURN NULL; END IF;
+    current_basis:=gridex_e66_intake.read_mixed_e73_evidence_v1(p_company,'test',p_source,p_actor,child.transaction_id);
+    IF current_basis IS DISTINCT FROM child.evidence
+      OR encode(sha256(convert_to(current_basis::text,'UTF8')),'hex') IS DISTINCT FROM child.evidence_sha256
+    THEN RETURN NULL; END IF;
+    IF reference_basis IS NULL THEN
+      reference_basis:=current_basis;
+      expected_range:=tstzrange((current_basis->>'requestedFrom')::timestamptz,
+        (current_basis->>'requestedUntil')::timestamptz,'[)');
+    ELSIF (current_basis->>'requestId',current_basis->>'sentSourceId',current_basis->>'sentHash',
+           current_basis->>'requestedFrom',current_basis->>'requestedUntil')
+          IS DISTINCT FROM
+          (reference_basis->>'requestId',reference_basis->>'sentSourceId',reference_basis->>'sentHash',
+           reference_basis->>'requestedFrom',reference_basis->>'requestedUntil')
+    THEN RETURN NULL; END IF;
+    exact_contract:=gridex_utilts_binding.stored_contract_v1(p_company,p_source,child.transaction_id);
+    IF exact_contract#>>'{billing,capability}' IS DISTINCT FROM 'skip'
+      OR exact_contract#>>'{billing,sourceRequestId}' IS NOT NULL
+      OR encode(sha256(convert_to(exact_contract::text,'UTF8')),'hex') IS DISTINCT FROM current_basis->>'contractHash'
+    THEN RETURN NULL; END IF;
+    SELECT exact_contract||jsonb_build_object('billingContributionOrdinals',jsonb_agg((o->>'ordinal')::integer ORDER BY (o->>'ordinal')::integer))
+    INTO finance_contract
+    FROM jsonb_array_elements(exact_contract->'observations') o
+    WHERE (o->>'periodStart')::timestamptz >= lower(expected_range)
+      AND (o->>'periodEnd')::timestamptz <= upper(expected_range)
+    HAVING count(*)>0;
+    IF finance_contract IS NULL THEN RETURN NULL; END IF;
+    finance_contracts:=finance_contracts||jsonb_build_array(finance_contract);
+    basis_hashes:=basis_hashes||jsonb_build_array(jsonb_build_array(child.transaction_id,child.evidence_sha256));
+  END LOOP;
+  IF reference_basis IS NULL THEN RETURN NULL; END IF;
+  SELECT range_agg(tstzrange(starts_at,ends_at,'[)')),sum(extract(epoch FROM ends_at-starts_at))
+  INTO actual_range,contributed_seconds
+  FROM (
+    SELECT (o->>'periodStart')::timestamptz AS starts_at,(o->>'periodEnd')::timestamptz AS ends_at
+    FROM jsonb_array_elements(finance_contracts) c
+    CROSS JOIN LATERAL jsonb_array_elements(c->'billingContributionOrdinals') i
+    CROSS JOIN LATERAL (SELECT c->'observations'->(i::text::integer) AS o) entry
+  ) intervals;
+  IF actual_range IS DISTINCT FROM tstzmultirange(expected_range)
+    OR contributed_seconds IS DISTINCT FROM extract(epoch FROM upper(expected_range)-lower(expected_range))
+  THEN RETURN NULL; END IF;
+
+  SELECT q.* INTO request_row FROM public.grid_owner_data_requests q
+  WHERE (q.company_id,q.id,q.request_scope)=(p_company,(reference_basis->>'requestId')::uuid,'billing_underlay')
+    AND q.status IN ('sent','received') AND q.customer_id IS NOT NULL AND q.site_id IS NOT NULL
+  FOR NO KEY UPDATE;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  -- A previous underlay for the request keeps corrected sources out of finance.
+  -- The original may replay through the native immutable calendar receipts.
+  IF EXISTS (SELECT FROM public.billing_underlays b
+    WHERE (b.company_id,b.source_request_id)=(p_company,request_row.id)
+      AND (b.payload->>'edielMessageId') IS DISTINCT FROM p_source::text)
+  THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('contracts',finance_contracts,'basisHashes',basis_hashes,
+    'sentSourceId',reference_basis->>'sentSourceId','sentHash',reference_basis->>'sentHash',
+    'requestedFrom',lower(expected_range),'requestedUntil',upper(expected_range),
+    'context',jsonb_build_object(
+      'requestScope','billing_underlay','capability','write','sourceRequestId',request_row.id,
+      'customerId',request_row.customer_id,'siteId',request_row.site_id,'customerSiteId',request_row.site_id,
+      'meteringPointId',request_row.metering_point_id,'gridOwnerId',request_row.grid_owner_id,
+      'periodStart',lower(expected_range),'periodEnd',upper(expected_range),'currency','SEK','status','received','sourceSystem','ediel_utilts'));
+END
+$$;
+
+--
+-- Name: mixed_billing_admission_v2(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_billing_admission_v2(p_company uuid, p_source uuid, p_actor uuid, p_previous uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  request_row public.grid_owner_data_requests;
+  child record;
+  current_basis jsonb;
+  reference_basis jsonb;
+  exact_contract jsonb;
+  finance_contract jsonb;
+  basis_hashes jsonb:='[]'::jsonb;
+  finance_contracts jsonb:='[]'::jsonb;
+  expected_range tstzrange;
+  actual_range tstzmultirange;
+  contributed_seconds numeric;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role'
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS NOT TRUE
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.write') IS NOT TRUE
+  THEN RETURN NULL; END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+  FOR child IN
+    SELECT t.transaction_id,b.evidence,b.evidence_sha256,b.request_id
+    FROM gridex_e66_intake.work w
+    JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=w.source_id AND q.actor_id=p_actor
+    JOIN gridex_e66_intake.mixed_accepted_transactions t ON t.source_id=w.source_id
+    LEFT JOIN gridex_e66_intake.mixed_e73_request_basis b
+      ON (b.source_id,b.transaction_id,b.company_id,b.environment,b.actor_id)
+        =(t.source_id,t.transaction_id,w.company_id,w.environment,p_actor)
+    WHERE (w.source_id,w.company_id,w.environment,w.phase)=(p_source,p_company,'test','mixed_qualified')
+    ORDER BY t.transaction_id
+  LOOP
+    IF child.evidence IS NULL OR child.evidence->>'requestScope' IS DISTINCT FROM 'billing_underlay' THEN RETURN NULL; END IF;
+    current_basis:=gridex_e66_intake.read_mixed_e73_evidence_v1(p_company,'test',p_source,p_actor,child.transaction_id);
+    IF current_basis IS DISTINCT FROM child.evidence
+      OR encode(sha256(convert_to(current_basis::text,'UTF8')),'hex') IS DISTINCT FROM child.evidence_sha256
+    THEN RETURN NULL; END IF;
+    IF reference_basis IS NULL THEN
+      reference_basis:=current_basis;
+      expected_range:=tstzrange((current_basis->>'requestedFrom')::timestamptz,
+        (current_basis->>'requestedUntil')::timestamptz,'[)');
+    ELSIF (current_basis->>'requestId',current_basis->>'sentSourceId',current_basis->>'sentHash',
+           current_basis->>'requestedFrom',current_basis->>'requestedUntil')
+          IS DISTINCT FROM
+          (reference_basis->>'requestId',reference_basis->>'sentSourceId',reference_basis->>'sentHash',
+           reference_basis->>'requestedFrom',reference_basis->>'requestedUntil')
+    THEN RETURN NULL; END IF;
+    exact_contract:=gridex_utilts_binding.stored_contract_v1(p_company,p_source,child.transaction_id);
+    IF exact_contract#>>'{billing,capability}' IS DISTINCT FROM 'skip'
+      OR exact_contract#>>'{billing,sourceRequestId}' IS NOT NULL
+      OR encode(sha256(convert_to(exact_contract::text,'UTF8')),'hex') IS DISTINCT FROM current_basis->>'contractHash'
+    THEN RETURN NULL; END IF;
+    SELECT exact_contract||jsonb_build_object('billingContributionOrdinals',jsonb_agg((o->>'ordinal')::integer ORDER BY (o->>'ordinal')::integer))
+    INTO finance_contract
+    FROM jsonb_array_elements(exact_contract->'observations') o
+    WHERE (o->>'periodStart')::timestamptz >= lower(expected_range)
+      AND (o->>'periodEnd')::timestamptz <= upper(expected_range)
+    HAVING count(*)>0;
+    IF finance_contract IS NULL THEN RETURN NULL; END IF;
+    finance_contracts:=finance_contracts||jsonb_build_array(finance_contract);
+    basis_hashes:=basis_hashes||jsonb_build_array(jsonb_build_array(child.transaction_id,child.evidence_sha256));
+  END LOOP;
+  IF reference_basis IS NULL THEN RETURN NULL; END IF;
+  SELECT range_agg(tstzrange(starts_at,ends_at,'[)')),sum(extract(epoch FROM ends_at-starts_at))
+  INTO actual_range,contributed_seconds
+  FROM (
+    SELECT (o->>'periodStart')::timestamptz AS starts_at,(o->>'periodEnd')::timestamptz AS ends_at
+    FROM jsonb_array_elements(finance_contracts) c
+    CROSS JOIN LATERAL jsonb_array_elements(c->'billingContributionOrdinals') i
+    CROSS JOIN LATERAL (SELECT c->'observations'->(i::text::integer) AS o) entry
+  ) intervals;
+  IF actual_range IS DISTINCT FROM tstzmultirange(expected_range)
+    OR contributed_seconds IS DISTINCT FROM extract(epoch FROM upper(expected_range)-lower(expected_range))
+  THEN RETURN NULL; END IF;
+
+  SELECT q.* INTO request_row FROM public.grid_owner_data_requests q
+  WHERE (q.company_id,q.id,q.request_scope)=(p_company,(reference_basis->>'requestId')::uuid,'billing_underlay')
+    AND q.status IN ('sent','received') AND q.customer_id IS NOT NULL AND q.site_id IS NOT NULL
+  FOR NO KEY UPDATE;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  -- A previous underlay for the request keeps corrected sources out of finance.
+  -- The original may replay through the native immutable calendar receipts.
+  IF EXISTS (
+    WITH RECURSIVE predecessors(id) AS (
+      SELECT p_previous WHERE p_previous IS NOT NULL
+      UNION
+      SELECT r.predecessor_id FROM gridex_e66_intake.mixed_billing_replacements r
+      JOIN predecessors c ON c.id=r.replacement_id WHERE r.company_id=p_company
+    )
+    SELECT FROM public.billing_underlays b
+    WHERE (b.company_id,b.source_request_id)=(p_company,request_row.id)
+      AND NOT EXISTS (SELECT FROM predecessors x WHERE x.id=b.id)
+      AND (b.payload->>'edielMessageId') IS DISTINCT FROM p_source::text)
+  THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('contracts',finance_contracts,'basisHashes',basis_hashes,
+    'sentSourceId',reference_basis->>'sentSourceId','sentHash',reference_basis->>'sentHash',
+    'requestedFrom',lower(expected_range),'requestedUntil',upper(expected_range),
+    'context',jsonb_build_object(
+      'requestScope','billing_underlay','capability','write','sourceRequestId',request_row.id,
+      'customerId',request_row.customer_id,'siteId',request_row.site_id,'customerSiteId',request_row.site_id,
+      'meteringPointId',request_row.metering_point_id,'gridOwnerId',request_row.grid_owner_id,
+      'periodStart',lower(expected_range),'periodEnd',upper(expected_range),'currency','SEK','status','received','sourceSystem','ediel_utilts'));
+END
+$$;
+
+--
+-- Name: mixed_e50_candidates_v1(gridex_e66_intake.work, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_e50_candidates_v1(w gridex_e66_intake.work, p_actor uuid) RETURNS TABLE(transaction_id text, transaction_index integer)
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT member.id,(member.ordinality-1)::integer
+  FROM gridex_e66_intake.mixed_qualification_receipts q
+  JOIN gridex_received_sources.validation_assessments assessment
+    ON (assessment.id,assessment.source_message_id,assessment.company_id,assessment.environment,assessment.source_payload_hash)
+      =(q.assessment_id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+  JOIN gridex_received_sources.utilts_transaction_validations intent
+    ON (intent.assessment_id,intent.source_message_id,intent.company_id,intent.environment,intent.source_payload_hash)
+      =(assessment.id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+  JOIN gridex_received_sources.utilts_functional_validations facts
+    ON (facts.assessment_id,facts.source_message_id,facts.company_id,facts.environment,facts.source_payload_hash)
+      =(assessment.id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+  JOIN gridex_utilts_binding.receipts binding
+    ON (binding.source_message_id,binding.company_id,binding.environment,binding.raw_hash,binding.message_code)
+      =(w.source_id,w.company_id,w.environment,w.payload_sha256,'E66')
+  CROSS JOIN LATERAL jsonb_array_elements_text(binding.membership) WITH ORDINALITY AS member(id,ordinality)
+  JOIN public.ediel_ack_transaction_results result
+    ON (result.source_message_id,result.company_id,result.environment,result.source_transaction_id)
+      =(w.source_id,w.company_id,w.environment,member.id)
+  CROSS JOIN LATERAL (SELECT
+    intent.transaction_facts_text::jsonb #> ARRAY['transactions',(member.ordinality-1)::text] AS value,
+    facts.functional_facts_text::jsonb #> ARRAY['transactions',(member.ordinality-1)::text] AS error) target
+  WHERE (q.source_id,q.actor_id)=(w.source_id,p_actor)
+    AND w.environment='test' AND w.phase='mixed_qualified' AND w.lease_token IS NULL
+    AND (result.disposition,result.planned_response_type,result.persistence_status)
+      =('processability_rejected','utilts_err','not_applicable')
+    AND result.persisted_series_id IS NULL
+    AND result.issue_codes=ARRAY['UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION']::text[]
+    AND (target.value->>'transactionId',target.value->>'disposition',target.value->>'responseType')
+      =(member.id,'processability_rejected','utilts_err')
+    AND (target.error->>'transactionId',target.error->>'transactionIndex')
+      =(member.id,(member.ordinality-1)::text)
+    AND jsonb_array_length(target.error->'errors')=1
+    AND (target.error#>>'{errors,0,code}',target.error#>>'{errors,0,referenceQualifier}',target.error#>>'{errors,0,referenceNumber}')
+      =('E50','TN',member.id)
+    AND NOT EXISTS (SELECT FROM gridex_received_sources.validation_assessments later
+      WHERE later.previous_assessment_id=assessment.id)
+    AND NOT EXISTS (SELECT FROM gridex_e66_intake.mixed_accepted_transactions accepted
+      WHERE (accepted.source_id,accepted.transaction_id)=(w.source_id,member.id))
+$$;
+
+--
+-- Name: mixed_e66_seen_proof_v1(gridex_e66_intake.work); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_e66_seen_proof_v1(w gridex_e66_intake.work) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  qualification gridex_e66_intake.mixed_qualification_receipts;
+  original public.ediel_messages;
+  member record;
+  binding jsonb;
+  current_evidence jsonb;
+  coverage jsonb;
+  request_id uuid;
+  sent_source_id uuid;
+  accepted_count integer:=0;
+  rejected_count integer:=0;
+BEGIN
+  IF (w.environment,w.phase) IS DISTINCT FROM ('test','mixed_qualified') OR w.lease_token IS NOT NULL
+  THEN RETURN false; END IF;
+  -- Incomplete work is common during polling. Avoid the graph lock on that path.
+  IF EXISTS(SELECT FROM public.ediel_ack_transaction_results result
+    WHERE (result.source_message_id,result.company_id,result.environment)=(w.source_id,w.company_id,w.environment)
+      AND result.finalized_at IS NULL) THEN RETURN false; END IF;
+
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  SELECT q.* INTO qualification FROM gridex_e66_intake.mixed_qualification_receipts q
+  WHERE q.source_id=w.source_id;
+  IF NOT FOUND OR gridex_e66_intake.request_upgrade_state_v1(w.source_id) IS DISTINCT FROM 'hold_qualification_unverified'
+    OR EXISTS(SELECT FROM gridex_received_sources.validation_assessments a
+      WHERE a.previous_assessment_id=qualification.assessment_id)
+    OR EXISTS(SELECT FROM gridex_e66_intake.mixed_prelinked_holds h WHERE h.source_id=w.source_id)
+    OR EXISTS(SELECT FROM gridex_e66_intake.sg11_format_holds h WHERE h.source_id=w.source_id)
+    OR EXISTS(SELECT FROM gridex_e66_intake.sg11_compatibility_holds h WHERE h.source_id=w.source_id)
+    OR EXISTS(SELECT FROM gridex_e66_intake.registration_rejections h WHERE h.source_id=w.source_id)
+    OR EXISTS(SELECT FROM gridex_e66_intake.mixed_worker_attempts h WHERE h.source_id=w.source_id
+      AND h.lease_expires_at>clock_timestamp())
+    OR EXISTS(SELECT FROM gridex_e66_intake.mixed_e50_attempts h WHERE h.source_id=w.source_id
+      AND h.lease_expires_at>clock_timestamp())
+  THEN RETURN false; END IF;
+  PERFORM gridex_e66_intake.require_dispatch_scope(w.company_id,w.environment,w.mailbox_id,qualification.actor_id);
+
+  SELECT m.* INTO original FROM public.ediel_messages m
+  WHERE (m.id,m.company_id,m.environment,m.immutable_payload_hash,m.direction,m.message_family,m.message_code)
+    =(w.source_id,w.company_id,w.environment,w.payload_sha256,'inbound','UTILTS','E66')
+    AND m.grid_owner_data_request_id IS NULL FOR SHARE;
+  IF NOT FOUND THEN RETURN false; END IF;
+  SELECT r.membership INTO binding FROM gridex_utilts_binding.receipts r
+  WHERE (r.source_message_id,r.company_id,r.environment,r.raw_hash,r.message_code)
+    =(w.source_id,w.company_id,w.environment,w.payload_sha256,'E66');
+  IF jsonb_typeof(binding) IS DISTINCT FROM 'array' OR jsonb_array_length(binding)<2
+    OR binding IS DISTINCT FROM gridex_ack_authority.wire_v1(original.raw_payload)->'ide'
+    OR (SELECT count(DISTINCT ide) FROM jsonb_array_elements_text(binding) AS members(ide))<>jsonb_array_length(binding)
+    OR (SELECT count(*) FROM public.ediel_ack_transaction_results a
+      WHERE (a.source_message_id,a.company_id,a.environment)=(w.source_id,w.company_id,w.environment))<>jsonb_array_length(binding)
+  THEN RETURN false; END IF;
+
+  FOR member IN
+    SELECT wire.id,a.disposition,a.planned_response_type,a.persistence_status,
+      a.persisted_series_id,a.final_response_type,a.finalized_at,a.response_message_id,
+      reply.raw_payload AS reply_wire,reply.message_family AS reply_family,reply.ack_outcome AS reply_outcome,
+      reply.immutable_payload_hash AS reply_hash,proof.ack_payload_hash AS creation_hash,
+      accepted.series_id AS accepted_series,received_e73.request_id AS own_request,
+      received_e73.sent_source_id AS own_sent_source,received_e73.evidence AS e73_evidence,
+      prepared.wire_sha256 AS prepared_hash,rejected.completed_at AS rejected_at,rejected.response_sha256 AS rejected_hash
+    FROM jsonb_array_elements_text(binding) WITH ORDINALITY AS wire(id,ordinality)
+    LEFT JOIN public.ediel_ack_transaction_results a
+      ON (a.source_message_id,a.company_id,a.environment,a.source_transaction_id)
+        =(w.source_id,w.company_id,w.environment,wire.id)
+    LEFT JOIN public.ediel_messages reply
+      ON (reply.id,reply.related_message_id,reply.company_id,reply.environment,reply.direction,reply.message_standard)
+        =(a.response_message_id,w.source_id,w.company_id,w.environment,'outbound','edifact')
+    LEFT JOIN gridex_ediel_ack_replay.creation_receipts proof
+      ON (proof.ack_message_id,proof.source_message_id,proof.company_id,proof.environment,proof.actor_user_id,
+        proof.source_payload_hash,proof.family,proof.sequence_field,proof.sequence_value,proof.outcome)
+        =(a.response_message_id,w.source_id,w.company_id,w.environment,qualification.actor_id,
+          w.payload_sha256,reply.message_family,'relatedTransactionReference',wire.id,reply.ack_outcome)
+    LEFT JOIN gridex_e66_intake.mixed_accepted_transactions accepted
+      ON (accepted.source_id,accepted.transaction_id,accepted.transaction_index)=(w.source_id,wire.id,wire.ordinality-1)
+    LEFT JOIN gridex_e66_intake.mixed_e73_request_basis received_e73
+      ON (received_e73.source_id,received_e73.transaction_id,received_e73.company_id,received_e73.environment,received_e73.actor_id)
+        =(w.source_id,wire.id,w.company_id,w.environment,qualification.actor_id)
+    LEFT JOIN gridex_e66_intake.mixed_e73_ide_completions prepared
+      ON (prepared.source_id,prepared.transaction_id,prepared.actor_id,prepared.source_sha256,prepared.basis_sha256)
+        =(w.source_id,wire.id,qualification.actor_id,w.payload_sha256,received_e73.evidence_sha256)
+    LEFT JOIN gridex_e66_intake.mixed_e50_attempts rejected
+      ON (rejected.source_id,rejected.transaction_id,rejected.response_id)=(w.source_id,wire.id,a.response_message_id)
+      AND rejected.lease_token IS NULL
+    ORDER BY wire.ordinality
+  LOOP
+    IF member.finalized_at IS NULL OR member.response_message_id IS NULL
+      OR member.reply_hash IS NULL OR member.reply_hash IS DISTINCT FROM member.creation_hash
+      OR member.reply_hash IS DISTINCT FROM encode(sha256(convert_to(member.reply_wire,'UTF8')),'hex')
+    THEN RETURN false; END IF;
+
+    IF (member.disposition,member.planned_response_type,member.persistence_status,member.final_response_type)
+      =('accepted','positive_aperak','persisted','positive_aperak')
+    THEN
+      IF member.accepted_series IS NULL OR member.accepted_series IS DISTINCT FROM member.persisted_series_id
+        OR member.own_request IS NULL OR member.own_sent_source IS NULL
+        OR member.prepared_hash IS DISTINCT FROM member.reply_hash
+        OR (member.reply_family,member.reply_outcome) IS DISTINCT FROM ('APERAK','positive')
+        OR (gridex_ack_authority.wire_v1(member.reply_wire)#>'{refs,ACW}') IS DISTINCT FROM jsonb_build_array(member.id)
+      THEN RETURN false; END IF;
+      current_evidence:=gridex_e66_intake.read_mixed_e73_evidence_v1(
+        w.company_id,w.environment,w.source_id,qualification.actor_id,member.id);
+      IF current_evidence IS NULL OR current_evidence IS DISTINCT FROM member.e73_evidence
+        OR current_evidence->>'requestScope' IS DISTINCT FROM 'meter_values'
+        OR (accepted_count>0 AND (request_id,sent_source_id) IS DISTINCT FROM (member.own_request,member.own_sent_source))
+      THEN RETURN false; END IF;
+      request_id:=member.own_request;
+      sent_source_id:=member.own_sent_source;
+      accepted_count:=accepted_count+1;
+    ELSIF (member.disposition,member.planned_response_type,member.persistence_status,member.final_response_type)
+      =('processability_rejected','utilts_err','not_applicable','utilts_err')
+    THEN
+      IF member.accepted_series IS NOT NULL OR member.persisted_series_id IS NOT NULL OR member.rejected_at IS NULL
+        OR member.rejected_hash IS DISTINCT FROM member.reply_hash
+        OR (member.reply_family,member.reply_outcome) IS DISTINCT FROM ('UTILTS_ERR','negative')
+      THEN RETURN false; END IF;
+      PERFORM gridex_e66_intake.require_mixed_e50_original_v1(w,qualification.actor_id,member.id);
+      PERFORM gridex_e66_intake.require_mixed_e50_wire_v1(member.reply_wire,member.id);
+      rejected_count:=rejected_count+1;
+    ELSE
+      RETURN false;
+    END IF;
+  END LOOP;
+
+  IF accepted_count=0 OR rejected_count=0 THEN RETURN false; END IF;
+  coverage:=gridex_e66_intake.read_mixed_e73_coverage_v1(w.company_id,w.environment,request_id,qualification.actor_id);
+  RETURN (coverage->>'combinedObservedComplete')::boolean IS TRUE;
+EXCEPTION WHEN insufficient_privilege OR object_not_in_prerequisite_state OR SQLSTATE 'P0U01' THEN
+  RETURN false;
+END
+$$;
+
+--
+-- Name: mixed_e73_draft_precondition_v1(uuid, text, uuid, uuid, uuid, text, text, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_e73_draft_precondition_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_operation text, p_token uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  ready jsonb;
+  lease gridex_e66_intake.mixed_e73_draft_preconditions;
+  now_at timestamptz;
+  result text;
+  changed boolean;
+BEGIN
+  IF (p_operation IN ('claim','validate')) IS NOT TRUE
+    OR (p_operation='validate') IS DISTINCT FROM (p_token IS NOT NULL)
+    OR nullif(p_transaction,'') IS NULL
+  THEN RAISE EXCEPTION 'mixed_e73_draft_invalid_command' USING ERRCODE='22023'; END IF;
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  PERFORM 1 FROM gridex_e66_intake.work w
+    WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id)
+        =(p_source,p_company,p_environment,p_mailbox)
+      AND w.phase='mixed_qualified' AND w.lease_token IS NULL
+    FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','held','reason','missing_mixed_work'); END IF;
+
+  ready:=gridex_e66_intake.read_mixed_e73_ide_readiness_v1(
+    p_company,p_environment,p_source,p_actor,p_transaction);
+  IF ready->>'status' IS DISTINCT FROM 'ready_for_reply_evaluation'
+    OR ready->>'responseType' IS DISTINCT FROM 'positive_aperak'
+  THEN RETURN jsonb_build_object('status','held','reason',coalesce(ready->>'status','readiness_unavailable')); END IF;
+
+  SELECT d.* INTO lease FROM gridex_e66_intake.mixed_e73_draft_preconditions d
+    WHERE (d.source_id,d.transaction_id)=(p_source,p_transaction) FOR UPDATE;
+  now_at:=clock_timestamp();
+  IF p_operation='validate' THEN
+    IF (lease.actor_id,lease.basis_sha256,lease.lease_token)
+      IS DISTINCT FROM (p_actor,ready->>'basisSha256',p_token)
+      OR (lease.expires_at>now_at) IS NOT TRUE
+    THEN RETURN jsonb_build_object('status','held','reason','precondition_token_unavailable'); END IF;
+    result:='valid';
+    changed:=false;
+  ELSIF lease.expires_at>now_at THEN
+    IF (lease.actor_id,lease.basis_sha256) IS DISTINCT FROM (p_actor,ready->>'basisSha256') THEN
+      RETURN jsonb_build_object('status','held','reason','precondition_basis_conflict');
+    END IF;
+    result:='claimed';
+    changed:=false;
+  ELSE
+    INSERT INTO gridex_e66_intake.mixed_e73_draft_preconditions AS d
+      (source_id,transaction_id,actor_id,basis_sha256,lease_token,expires_at)
+    VALUES (p_source,p_transaction,p_actor,ready->>'basisSha256',gen_random_uuid(),now_at+interval '60 seconds')
+    ON CONFLICT (source_id,transaction_id) DO UPDATE SET
+      actor_id=excluded.actor_id,basis_sha256=excluded.basis_sha256,
+      lease_token=excluded.lease_token,expires_at=excluded.expires_at
+    RETURNING d.* INTO lease;
+    result:='claimed';
+    changed:=true;
+  END IF;
+  RETURN jsonb_build_object('status',result,'changed',changed,'basisSha256',lease.basis_sha256,
+    'leaseToken',lease.lease_token,'expiresAt',lease.expires_at,
+    'sourceId',p_source,'sourceSha256',ready->>'sourceSha256','transactionId',p_transaction,
+    'transactionIndex',ready->'transactionIndex',
+    'draftAuthorized',false,'dispatchAuthorized',false);
+END
+$$;
+
+--
+-- Name: mixed_e73_normalized_fingerprint_v1(public.normalized_metering_values); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_e73_normalized_fingerprint_v1(n public.normalized_metering_values) RETURNS bytea
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+ SELECT CASE WHEN n IS NOT DISTINCT FROM NULL THEN NULL ELSE sha256(convert_to(
+    jsonb_build_object(
+      'id',n.id, 'company_id',n.company_id,
+      'customer_id',n.customer_id, 'site_id',n.site_id,
+      'customer_site_id',n.customer_site_id, 'metering_point_id',n.metering_point_id,
+      'source_metering_value_id',n.source_metering_value_id, 'source_message_id',n.source_message_id,
+      'source_transaction_reference',n.source_transaction_reference, 'source_line_reference',n.source_line_reference,
+      'source_type',n.source_type, 'facility_id',n.facility_id,
+      'price_area',n.price_area, 'grid_area',n.grid_area,
+      'resolution',n.resolution, 'quantity_kwh',n.quantity_kwh,
+      'quality_status',n.quality_status, 'period_start',n.period_start,
+      'period_end',n.period_end, 'register_code',n.register_code,
+      'product_code',n.product_code, 'direction',n.direction,
+      'unit',n.unit, 'canonical_dedupe_key',n.canonical_dedupe_key,
+      'previous_value_id',n.previous_value_id, 'revision_number',n.revision_number
+    )::text,'UTF8')) END
+$$;
+
+--
+-- Name: mixed_e73_value_fingerprint_v1(public.metering_values); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.mixed_e73_value_fingerprint_v1(m public.metering_values) RETURNS bytea
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+ SELECT CASE WHEN m IS NOT DISTINCT FROM NULL THEN NULL ELSE sha256(convert_to(
+    jsonb_build_object(
+      'id',m.id, 'company_id',m.company_id,
+      'customer_id',m.customer_id, 'site_id',m.site_id,
+      'customer_site_id',m.customer_site_id, 'metering_point_id',m.metering_point_id,
+      'grid_owner_id',m.grid_owner_id, 'source_request_id',m.source_request_id,
+      'source_ediel_message_id',m.source_ediel_message_id, 'source_transaction_id',m.source_transaction_id,
+      'source_transaction_reference',m.source_transaction_reference, 'source_line_reference',m.source_line_reference,
+      'source_system',m.source_system, 'price_area',m.price_area,
+      'resolution',m.resolution, 'value_kwh',m.value_kwh,
+      'quality_code',m.quality_code, 'reading_type',m.reading_type,
+      'period_start',m.period_start, 'period_end',m.period_end,
+      'read_at',m.read_at, 'register_code',m.register_code,
+      'product_code',m.product_code, 'direction',m.direction,
+      'unit',m.unit, 'canonical_dedupe_key',m.canonical_dedupe_key,
+      'previous_value_id',m.previous_value_id, 'revision_number',m.revision_number
+    )::text,'UTF8')) END
+$$;
 
 --
 -- Name: offset_rejection_request_v1(uuid, text, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
@@ -11300,6 +14325,48 @@ BEGIN
   THEN RETURN NULL; END IF;
   RETURN jsonb_build_object('requestId',request.id,'originalId',outgoing.id,'originalHash',outgoing.immutable_payload_hash,
     'requestRange',requested_range::text);
+END
+$$;
+
+--
+-- Name: persist_mixed_positive_draft_v1(uuid, text, uuid, uuid, uuid, text, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.persist_mixed_positive_draft_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_draft jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  precondition jsonb;
+  completion gridex_e66_intake.mixed_e73_ide_completions;
+  digest text;
+  canonical_result jsonb;
+  xact_id xid8;
+BEGIN
+  IF p_environment IS DISTINCT FROM 'test' OR jsonb_typeof(p_draft) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'mixed_positive_scope_required' USING ERRCODE='22023';
+  END IF;
+  precondition:=gridex_e66_intake.mixed_e73_draft_precondition_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_transaction,'validate',p_token);
+  IF precondition->>'status' IS DISTINCT FROM 'valid' THEN RETURN precondition; END IF;
+  digest:=encode(sha256(convert_to(p_draft->>'rawPayload','UTF8')),'hex');
+  SELECT c.* INTO completion FROM gridex_e66_intake.mixed_e73_ide_completions c
+  WHERE (c.source_id,c.transaction_id,c.actor_id,c.source_sha256,c.basis_sha256,c.wire_sha256)
+    =(p_source,p_transaction,p_actor,precondition->>'sourceSha256',precondition->>'basisSha256',digest);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'mixed_positive_completion_required' USING ERRCODE='55000';
+  END IF;
+  xact_id:=pg_current_xact_id();
+  INSERT INTO gridex_e66_intake.mixed_positive_create_context
+    VALUES(xact_id,p_source,p_transaction,p_company,p_actor,p_token,completion.basis_sha256,
+      completion.source_sha256,completion.wire_sha256);
+  canonical_result:=gridex_ediel_ack_replay.create_v1(p_company,p_environment,p_source,completion.source_sha256,
+    p_actor,'APERAK','relatedTransactionReference',p_transaction,'positive',p_draft,NULL);
+  IF canonical_result#>>'{ackMessage,raw_payload}' IS DISTINCT FROM p_draft->>'rawPayload'
+    OR canonical_result#>>'{ackMessage,status}' IS DISTINCT FROM 'draft'
+  THEN RAISE EXCEPTION 'mixed_positive_exact_draft_mismatch' USING ERRCODE='55000'; END IF;
+  DELETE FROM gridex_e66_intake.mixed_positive_create_context x WHERE x.xact=xact_id;
+  RETURN canonical_result;
 END
 $$;
 
@@ -11550,6 +14617,538 @@ BEGIN
 END $$;
 
 --
+-- Name: prepare_mixed_billing_v2(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.prepare_mixed_billing_v2(p_company uuid, p_seed_source uuid, p_actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  prior gridex_e66_intake.mixed_e73_billing_projections;
+  sealed gridex_e66_intake.mixed_e73_billing_coverage;
+  requested public.grid_owner_data_requests;
+  digest text;
+  child record;
+  original jsonb;
+  contracts jsonb:='[]'::jsonb;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role'
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS NOT TRUE
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.write') IS NOT TRUE
+    OR NOT EXISTS(SELECT FROM gridex_e66_intake.mixed_qualification_receipts q
+      WHERE (q.source_id,q.actor_id)=(p_seed_source,p_actor))
+  THEN RETURN NULL; END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+
+  SELECT projection.* INTO prior
+  FROM gridex_e66_intake.mixed_e73_billing_projections projection
+  JOIN gridex_e66_intake.mixed_e73_billing_coverage coverage
+    ON (coverage.company_id,coverage.environment,coverage.request_id,coverage.evidence_sha256)
+      =(projection.company_id,projection.environment,projection.request_id,projection.coverage_sha256)
+  WHERE (projection.company_id,projection.environment)=(p_company,'test')
+    AND coverage.evidence->'members' @> jsonb_build_array(jsonb_build_object('sourceId',p_seed_source))
+    AND EXISTS(SELECT FROM gridex_e66_intake.mixed_e73_request_basis b
+       WHERE (b.company_id,b.environment,b.request_id,b.source_id,b.actor_id)
+         =(p_company,'test',projection.request_id,p_seed_source,p_actor));
+  IF FOUND THEN
+    IF gridex_e66_intake.bound_underlay_fingerprint_v1(
+      p_company,prior.calendar_anchor_source_id,prior.primary_underlay_id) IS NULL
+    THEN RAISE EXCEPTION 'mixed_e66_projection_receipt_changed' USING ERRCODE='P0U01'; END IF;
+    RETURN jsonb_build_object('replayUnderlayId',prior.primary_underlay_id);
+  END IF;
+
+  -- Requalify the immutable first receipt against the currently observed
+  -- source effects. A correction cannot reuse a now-stale first receipt.
+  digest:=gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(p_company,p_seed_source,p_actor);
+  IF digest IS NULL THEN RETURN NULL; END IF;
+  SELECT * INTO sealed FROM gridex_e66_intake.mixed_e73_billing_coverage coverage
+  WHERE (coverage.company_id,coverage.environment,coverage.evidence_sha256)=(p_company,'test',digest)
+    AND coverage.evidence->'members' @> jsonb_build_array(jsonb_build_object('sourceId',p_seed_source));
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  SELECT * INTO requested FROM public.grid_owner_data_requests q
+  WHERE (q.company_id,q.id,q.request_scope)=(p_company,sealed.request_id,'billing_underlay')
+    AND q.status IN ('sent','received') FOR NO KEY UPDATE;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  FOR child IN
+    SELECT (member->>'sourceId')::uuid AS physical_source_id,member->>'transactionId' AS ide,
+      min(member->>'contractSha256') AS contract_sha256,
+      jsonb_agg((member->>'ordinal')::integer ORDER BY (member->>'ordinal')::integer) AS ordinals
+    FROM jsonb_array_elements(sealed.evidence->'members') member
+    GROUP BY (member->>'sourceId')::uuid,member->>'transactionId'
+    HAVING count(DISTINCT member->>'contractSha256')=1
+    ORDER BY physical_source_id,ide
+  LOOP
+    original:=gridex_utilts_binding.stored_contract_v1(p_company,child.physical_source_id,child.ide);
+    IF encode(sha256(convert_to(original::text,'UTF8')),'hex') IS DISTINCT FROM child.contract_sha256
+    THEN RAISE EXCEPTION 'mixed_e66_projection_contract_changed' USING ERRCODE='P0U01'; END IF;
+    contracts:=contracts||jsonb_build_array(original||jsonb_build_object(
+      'physicalSourceId',child.physical_source_id,'billingContributionOrdinals',child.ordinals));
+  END LOOP;
+  IF (SELECT sum(jsonb_array_length(contract->'billingContributionOrdinals'))
+      FROM jsonb_array_elements(contracts) contract) IS DISTINCT FROM (sealed.evidence->>'contributionCount')::bigint
+  THEN RAISE EXCEPTION 'mixed_e66_projection_membership_changed' USING ERRCODE='P0U01'; END IF;
+
+  RETURN jsonb_build_object('contracts',contracts,'coverageSha256',digest,
+    'calendarAnchorSourceId',sealed.evidence#>>'{members,0,sourceId}',
+    'sentSourceId',sealed.evidence->>'sentSourceId','sentHash',sealed.evidence->>'sentSha256',
+    'requestedFrom',sealed.evidence->>'requestedFrom','requestedUntil',sealed.evidence->>'requestedUntil',
+    'totalKwh',sealed.evidence->'totalKwh',
+    'context',jsonb_build_object('requestScope','billing_underlay','capability','write','sourceRequestId',requested.id,
+      'customerId',requested.customer_id,'siteId',requested.site_id,'customerSiteId',requested.site_id,
+      'meteringPointId',requested.metering_point_id,'gridOwnerId',requested.grid_owner_id,
+      'periodStart',sealed.evidence->>'requestedFrom','periodEnd',sealed.evidence->>'requestedUntil',
+      'currency','SEK','status','received','sourceSystem','ediel_utilts'));
+END
+$$;
+
+--
+-- Name: read_mixed_ack_evidence_v1(uuid, text, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.read_mixed_ack_evidence_v1(p_company uuid, p_environment text, p_source uuid) RETURNS TABLE(transaction_index bigint, transaction_id text, response_type text, evidence_status text)
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT member.ordinality - 1, member.id, row.planned_response_type::text,
+    CASE
+      WHEN row.response_message_id IS NOT NULL OR row.final_response_type IS NOT NULL
+        OR row.finalized_at IS NOT NULL THEN 'existing_response'
+      WHEN row.disposition='accepted' AND row.planned_response_type='positive_aperak'
+        AND row.persistence_status='persisted' AND child.series_id IS NOT NULL
+        THEN 'awaiting_child_readiness'
+      WHEN row.disposition='processability_rejected' AND row.planned_response_type='utilts_err'
+        AND row.persistence_status='not_applicable' AND row.persisted_series_id IS NULL
+        AND EXISTS (
+          SELECT FROM gridex_received_sources.utilts_functional_validations evidence
+          CROSS JOIN LATERAL jsonb_array_elements(evidence.functional_facts_text::jsonb->'transactions') item
+          WHERE (evidence.assessment_id,evidence.source_message_id,evidence.company_id,
+                 evidence.environment,evidence.source_payload_hash)
+              =(assessment.id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+            AND item->>'transactionId'=member.id
+            AND item->>'transactionIndex'=(member.ordinality - 1)::text
+            AND jsonb_array_length(item->'errors')>0
+            AND NOT EXISTS (
+              SELECT FROM jsonb_array_elements(item->'errors') error
+              WHERE (error->>'referenceQualifier',error->>'referenceNumber')
+                    IS DISTINCT FROM ('TN',member.id)
+                OR nullif(error->>'code','') IS NULL)
+        ) THEN 'recorded_transaction_error'
+      ELSE 'review_required'
+    END
+  FROM gridex_e66_intake.work w
+  JOIN gridex_e66_intake.mixed_qualification_receipts receipt ON receipt.source_id=w.source_id
+  JOIN gridex_received_sources.validation_assessments assessment
+    ON (assessment.id,assessment.source_message_id,assessment.company_id,
+        assessment.environment,assessment.source_payload_hash)
+      =(receipt.assessment_id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+  JOIN gridex_received_sources.utilts_transaction_validations facet
+    ON (facet.assessment_id,facet.source_message_id,facet.company_id,
+        facet.environment,facet.source_payload_hash)
+      =(assessment.id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+  JOIN gridex_utilts_binding.receipts binding
+    ON (binding.source_message_id,binding.company_id,binding.environment,binding.raw_hash)
+      =(w.source_id,w.company_id,w.environment,w.payload_sha256)
+    AND binding.message_code='E66'
+  CROSS JOIN LATERAL jsonb_array_elements_text(binding.membership) WITH ORDINALITY AS member(id,ordinality)
+  JOIN public.ediel_ack_transaction_results row
+    ON (row.source_message_id,row.company_id,row.environment,row.source_transaction_id)
+      =(w.source_id,w.company_id,w.environment,member.id)
+  LEFT JOIN gridex_e66_intake.mixed_accepted_transactions child
+    ON (child.source_id,child.transaction_id,child.transaction_index,child.series_id)
+      =(w.source_id,member.id,member.ordinality-1,row.persisted_series_id)
+  WHERE (w.source_id,w.company_id,w.environment)=(p_source,p_company,p_environment)
+    AND w.phase='mixed_qualified'
+    AND NOT EXISTS (
+      SELECT FROM gridex_received_sources.validation_assessments later
+      WHERE later.previous_assessment_id=assessment.id)
+    AND (facet.transaction_facts_text::jsonb #>> ARRAY['transactions',(member.ordinality-1)::text,'transactionId'],
+         facet.transaction_facts_text::jsonb #>> ARRAY['transactions',(member.ordinality-1)::text,'disposition'],
+         facet.transaction_facts_text::jsonb #>> ARRAY['transactions',(member.ordinality-1)::text,'responseType'])
+        =(member.id,row.disposition::text,row.planned_response_type::text)
+  ORDER BY member.ordinality
+$$;
+
+--
+-- Name: read_mixed_e73_coverage_v1(uuid, text, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.read_mixed_e73_coverage_v1(p_company uuid, p_environment text, p_request uuid, p_actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  sent_range tstzrange;
+  protected_coverage tstzmultirange;
+  mixed_coverage tstzmultirange;
+  combined_coverage tstzmultirange;
+  current_basis_count bigint;
+  unavailable_basis_count bigint;
+  gaps jsonb;
+  protected_seconds numeric;
+  mixed_seconds numeric;
+  combined_seconds numeric;
+BEGIN
+  IF (p_environment IN ('test','production')) IS NOT TRUE OR p_company IS NULL OR p_request IS NULL THEN
+    RAISE EXCEPTION 'mixed_e73_coverage_invalid_scope' USING ERRCODE='22023';
+  END IF;
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'mixed_e73_coverage_forbidden' USING ERRCODE='42501';
+  END IF;
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'mixed_e73_coverage_forbidden' USING ERRCODE='42501';
+  END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+  sent_range:=gridex_utilts_binding.e73_sent_request_range_v1(p_company,p_request,p_environment);
+  IF sent_range IS NULL THEN RETURN NULL; END IF;
+  protected_coverage:=gridex_utilts_binding.e66_protected_request_coverage_v1(
+    p_company,p_request,p_environment,sent_range);
+
+  WITH revalidated AS MATERIALIZED (
+    SELECT b.evidence,b.evidence_sha256,
+      gridex_e66_intake.read_mixed_e73_evidence_v1(
+        b.company_id,b.environment,b.source_id,b.actor_id,b.transaction_id) AS current_evidence
+    FROM gridex_e66_intake.mixed_e73_request_basis b
+    WHERE (b.company_id,b.environment,b.request_id,b.actor_id)=(p_company,p_environment,p_request,p_actor)
+  ), verified AS MATERIALIZED (
+    SELECT evidence,coalesce(
+      current_evidence=evidence AND evidence_sha256=encode(sha256(convert_to(current_evidence::text,'UTF8')),'hex')
+      AND (current_evidence->>'requestedFrom')::timestamptz=lower(sent_range)
+      AND (current_evidence->>'requestedUntil')::timestamptz=upper(sent_range),false) AS valid
+    FROM revalidated
+  )
+  SELECT count(*) FILTER (WHERE valid),count(*) FILTER (WHERE NOT valid),
+    coalesce((SELECT range_agg(piece * sent_range)
+      FROM verified v CROSS JOIN LATERAL unnest((v.evidence->>'observedOverlap')::tstzmultirange) AS ranges(piece)
+      WHERE v.valid),'{}'::tstzmultirange)
+  INTO current_basis_count,unavailable_basis_count,mixed_coverage
+  FROM verified;
+
+  combined_coverage:=protected_coverage + mixed_coverage;
+  SELECT coalesce(jsonb_agg(jsonb_build_object('from',lower(piece),'until',upper(piece))
+    ORDER BY lower(piece)),'[]'::jsonb) INTO gaps
+  FROM unnest(tstzmultirange(sent_range)-combined_coverage) AS remaining(piece);
+  SELECT coalesce(sum(extract(epoch FROM upper(piece)-lower(piece))),0) INTO protected_seconds
+  FROM unnest(protected_coverage) AS coverage(piece);
+  SELECT coalesce(sum(extract(epoch FROM upper(piece)-lower(piece))),0) INTO mixed_seconds
+  FROM unnest(mixed_coverage) AS coverage(piece);
+  SELECT coalesce(sum(extract(epoch FROM upper(piece)-lower(piece))),0) INTO combined_seconds
+  FROM unnest(combined_coverage) AS coverage(piece);
+
+  RETURN jsonb_build_object('requestId',p_request,'environment',p_environment,
+    'requestedFrom',lower(sent_range),'requestedUntil',upper(sent_range),
+    'ordinaryProtectedCoveredSeconds',protected_seconds,'mixedObservedCoveredSeconds',mixed_seconds,
+    'combinedObservedCoveredSeconds',combined_seconds,'combinedObservedRemainingGaps',gaps,
+    'combinedObservedComplete',jsonb_array_length(gaps)=0,
+    'currentBasisCount',current_basis_count,'unavailableBasisCount',unavailable_basis_count);
+END
+$$;
+
+--
+-- Name: read_mixed_e73_evidence_v1(uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.read_mixed_e73_evidence_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  source_payload text;
+  source_sender text;
+  source_receiver text;
+  child_contract jsonb;
+  child_effects jsonb;
+  reference text;
+  candidates uuid[];
+  sent_sources uuid[];
+  child_contract_hash text;
+  contract_digest bytea;
+  request public.grid_owner_data_requests;
+  sent_range tstzrange;
+  overlap tstzmultirange;
+  validated_effects jsonb;
+  inbound_hash text;
+  inbound_assessment uuid;
+  qualification_hash text;
+  outbound public.ediel_messages;
+  outbound_owner jsonb;
+  outbound_acceptance jsonb;
+  transaction_index integer;
+BEGIN
+  WITH child AS (
+    SELECT assessment_id, actor_id, command_hash FROM gridex_e66_intake.mixed_qualification_receipts
+    WHERE source_id=p_source AND actor_id=p_actor
+  )
+  SELECT m.raw_payload,m.sender_ediel_id,m.receiver_ediel_id,c.contract,n.ordered_effects,c.contract_hash,
+         w.payload_sha256,child.assessment_id,child.command_hash,t.transaction_index
+    INTO source_payload,source_sender,source_receiver,child_contract,child_effects,child_contract_hash,
+         inbound_hash,inbound_assessment,qualification_hash,transaction_index
+  FROM gridex_e66_intake.work w
+  JOIN child ON true
+  JOIN gridex_e66_intake.mixed_accepted_transactions t ON t.source_id=w.source_id
+  JOIN gridex_e66_metering_stage.mixed_normalization_receipts n
+    ON (n.source_id,n.transaction_id,n.contract_hash,n.actor_id)
+      =(t.source_id,t.transaction_id,t.contract_hash,child.actor_id)
+  JOIN gridex_utilts_binding.contracts c
+    ON (c.source_message_id,c.company_id,c.environment,c.transaction_id,c.series_id,c.contract_hash)
+      =(t.source_id,w.company_id,w.environment,t.transaction_id,t.series_id,t.contract_hash)
+  JOIN public.ediel_messages m ON (m.id,m.company_id,m.environment)=(w.source_id,w.company_id,w.environment)
+  JOIN gridex_utilts_binding.receipts b
+    ON (b.source_message_id,b.company_id,b.environment,b.raw_hash)
+      =(w.source_id,w.company_id,w.environment,w.payload_sha256)
+    AND b.message_code='E66' AND b.membership->>t.transaction_index=t.transaction_id
+  JOIN public.ediel_ack_transaction_results a
+    ON (a.source_message_id,a.company_id,a.environment,a.source_transaction_id,a.persisted_series_id)
+      =(w.source_id,w.company_id,w.environment,t.transaction_id,t.series_id)
+    AND a.disposition='accepted' AND a.persistence_status='persisted'
+    AND a.planned_response_type='positive_aperak'
+    AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+  JOIN public.meter_reading_series series
+    ON (series.company_id,series.id,series.source_ediel_message_id)
+      =(w.company_id,t.series_id,w.source_id) AND series.is_current
+  WHERE (w.source_id,w.company_id,w.environment,t.transaction_id)=(p_source,p_company,p_environment,p_transaction)
+    AND w.phase='mixed_qualified' AND m.grid_owner_data_request_id IS NULL
+    AND w.payload_sha256=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+    AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+    AND c.contract#>>'{metering,sourceRequestId}' IS NULL
+    AND NOT EXISTS (SELECT FROM gridex_received_sources.validation_assessments a
+                    WHERE a.previous_assessment_id=child.assessment_id)
+  FOR SHARE OF m;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  WITH segments AS MATERIALIZED (
+    SELECT segment,ordinal FROM jsonb_array_elements(gridex_utilts_binding.wire_tokens_v1(source_payload))
+      WITH ORDINALITY AS wire(segment,ordinal)
+  )
+  SELECT min(segment#>>'{elements,1,1}') INTO reference
+  FROM segments WHERE segment->>'tag'='RFF' AND segment#>>'{elements,1,0}'='ACW'
+    AND ordinal<(SELECT min(ordinal) FROM segments WHERE segment->>'tag'='IDE')
+  HAVING count(*)=1 AND EXISTS (
+    SELECT FROM segments h WHERE h.segment->>'tag'='UNB'
+      AND (h.segment#>>'{elements,2,0}',h.segment#>>'{elements,3,0}')=(source_sender,source_receiver)
+  );
+  IF nullif(reference,'') IS NULL THEN RETURN NULL; END IF;
+
+  candidates:=public.gridex_match_e66_to_sent_e73_reference_v1(p_company,p_environment,p_actor,reference);
+  IF cardinality(candidates) IS DISTINCT FROM 1 THEN RETURN NULL; END IF;
+  sent_sources:=gridex_utilts_binding.e73_request_candidate_ids_v1(p_company,candidates[1],p_environment);
+  sent_range:=gridex_utilts_binding.e73_sent_request_range_v1(p_company,candidates[1],p_environment);
+  IF sent_range IS NULL OR cardinality(sent_sources) IS DISTINCT FROM 1
+    OR sent_sources IS DISTINCT FROM gridex_utilts_binding.e73_request_candidate_ids_v1(p_company,candidates[1],p_environment)
+    OR candidates IS DISTINCT FROM public.gridex_match_e66_to_sent_e73_reference_v1(
+      p_company,p_environment,p_actor,reference)
+  THEN RETURN NULL; END IF;
+  SELECT q.* INTO request FROM public.grid_owner_data_requests q
+  WHERE (q.company_id,q.id)=(p_company,candidates[1]) AND q.status IN ('sent','received')
+    AND q.metering_point_id::text=child_contract#>>'{metering,meteringPointId}'
+    AND q.customer_id::text IS NOT DISTINCT FROM child_contract#>>'{metering,customerId}'
+    AND q.site_id::text IS NOT DISTINCT FROM child_contract#>>'{metering,siteId}'
+    AND q.grid_owner_id::text=child_contract#>>'{metering,gridOwnerId}'
+  FOR SHARE OF q;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  SELECT m.* INTO outbound FROM public.ediel_messages m WHERE m.id=sent_sources[1]
+    AND (m.sender_ediel_id,m.receiver_ediel_id)=(source_receiver,source_sender);
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  outbound_owner:=gridex_ediel_outbound_owner.require_v1(p_company,outbound.id);
+  outbound_acceptance:=gridex_ediel_transport.accepted_source_basis_v1(outbound);
+  IF outbound_owner IS NULL OR outbound_acceptance IS NULL THEN RETURN NULL; END IF;
+
+  IF child_contract->>'transactionId' IS DISTINCT FROM p_transaction
+    OR child_contract->>'environment' IS DISTINCT FROM p_environment THEN RETURN NULL; END IF;
+  contract_digest:=decode(child_contract_hash,'hex');
+
+  WITH effects AS MATERIALIZED (
+    SELECT e || jsonb_build_object('meteringHash',encode(r.value_hash,'hex'),
+      'normalizedHash',encode(r.normalized_hash,'hex'),'sourceLinkId',r.source_link_id,
+      'normalizedOriginSourceId',nv.source_message_id,'linkedSourceId',l.source_ediel_message_id) AS effect,
+      tstzrange(v.period_start,v.period_end,'[)') AS period
+  FROM jsonb_array_elements(child_effects) WITH ORDINALITY AS sealed(e, ordinality)
+  JOIN gridex_utilts_binding.metering_application_receipts r
+    ON (r.source_message_id,r.company_id,r.environment,r.transaction_id,r.observation_ordinal,r.value_id::text,r.normalized_id::text)
+      =(p_source,p_company,p_environment,p_transaction,(e->>'ordinal')::integer,e->>'meteringId',e->>'normalizedId')
+  JOIN public.metering_values v ON (v.company_id,v.id)=(r.company_id,r.value_id)
+  JOIN public.metering_value_sources l
+    ON (l.company_id,l.id,l.source_ediel_message_id,l.source_transaction_reference,l.metering_value_id,l.normalized_metering_value_id)
+      =(r.company_id,r.source_link_id,p_source,p_transaction,r.value_id,r.normalized_id)
+    AND l.source_type='ediel_utilts'
+  JOIN public.normalized_metering_values nv
+    ON (nv.company_id,nv.id,nv.source_metering_value_id)=(r.company_id,r.normalized_id,r.value_id)
+  WHERE ordinality=(e->>'ordinal')::integer+1
+    AND gridex_e66_intake.current_mixed_e73_application_v1(
+      p_company,p_environment,p_source,p_transaction,r.observation_ordinal,r.value_id,contract_digest,
+      child_contract->'observations'->r.observation_ordinal->>'sourceLineReference'
+    )=r.normalized_id
+    AND v.source_request_id IS NULL AND v.metering_point_id=request.metering_point_id
+    AND v.customer_id IS NOT DISTINCT FROM request.customer_id
+    AND v.source_system='ediel_utilts' AND v.reading_type='consumption' AND v.direction='consumption'
+    AND isfinite(v.period_start) AND isfinite(v.period_end) AND v.period_start<v.period_end
+  ORDER BY (e->>'ordinal')::integer
+  FOR SHARE OF v, nv, l, r
+  )
+  SELECT range_agg(sent_range * period),jsonb_agg(effect ORDER BY (effect->>'ordinal')::integer)
+    INTO overlap,validated_effects FROM effects
+  HAVING count(*)=jsonb_array_length(child_effects);
+  IF overlap IS NULL OR isempty(overlap) THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('status','correlated_unattributed','transactionId',p_transaction,
+    'requestId',request.id,'requestScope',request.request_scope,'requestedFrom',lower(sent_range),'requestedUntil',upper(sent_range),
+    'observedOverlap',overlap,'transactionIndex',transaction_index,
+    'assessmentId',inbound_assessment,'sourceHash',inbound_hash,'qualificationHash',qualification_hash,
+    'contractHash',child_contract_hash,'reference',reference,'sentSourceId',outbound.id,
+    'sentHash',outbound.immutable_payload_hash,'sentRulePackId',outbound_owner->>'rulePackId',
+    'sentMessageProfileId',outbound_owner->>'messageProfileId','sentGuideVersion',outbound_owner->>'version',
+    'sentRuleSourceHash',outbound_owner->>'sourceHash','sentAttemptId',outbound_acceptance->>'attemptId',
+    'sentAttemptLane',outbound_acceptance->>'lane','childEffects',validated_effects);
+END
+$$;
+
+--
+-- Name: read_mixed_e73_ide_readiness_v1(uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.read_mixed_e73_ide_readiness_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  response_evidence record;
+  basis gridex_e66_intake.mixed_e73_request_basis;
+  current_evidence jsonb;
+  coverage jsonb;
+  contract jsonb;
+  result jsonb;
+BEGIN
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'mixed_e73_readiness_forbidden' USING ERRCODE='42501';
+  END IF;
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+  IF public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'mixed_e73_readiness_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  SELECT a.* INTO response_evidence
+  FROM gridex_e66_intake.read_mixed_ack_evidence_v1(p_company,p_environment,p_source) a
+  JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=p_source AND q.actor_id=p_actor
+  WHERE a.transaction_id=p_transaction;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  result:=jsonb_build_object('transactionId',p_transaction,'transactionIndex',response_evidence.transaction_index,
+    'responseType',response_evidence.response_type,'dispatchAuthorized',false);
+  IF response_evidence.evidence_status='existing_response' THEN
+    RETURN result || jsonb_build_object('status','hold_existing_response');
+  ELSIF response_evidence.evidence_status IS DISTINCT FROM 'awaiting_child_readiness' THEN
+    RETURN result || jsonb_build_object('status','hold_positive_reply_evidence_unavailable');
+  END IF;
+
+  SELECT b.* INTO basis FROM gridex_e66_intake.mixed_e73_request_basis b
+  WHERE (b.source_id,b.transaction_id,b.company_id,b.environment,b.actor_id)
+    =(p_source,p_transaction,p_company,p_environment,p_actor);
+  IF NOT FOUND THEN RETURN result || jsonb_build_object('status','hold_basis_unavailable'); END IF;
+
+  current_evidence:=gridex_e66_intake.read_mixed_e73_evidence_v1(p_company,p_environment,p_source,p_actor,p_transaction);
+  IF current_evidence IS DISTINCT FROM basis.evidence
+    OR basis.evidence_sha256 IS DISTINCT FROM encode(sha256(convert_to(current_evidence::text,'UTF8')),'hex')
+  THEN RETURN result || jsonb_build_object('status','hold_basis_stale'); END IF;
+
+  BEGIN
+    contract:=gridex_utilts_binding.stored_contract_v1(p_company,p_source,p_transaction);
+  EXCEPTION WHEN SQLSTATE 'P0U01' THEN
+    RETURN result || jsonb_build_object('status','hold_positive_reply_evidence_unavailable');
+  END;
+  IF encode(sha256(convert_to(contract::text,'UTF8')),'hex') IS DISTINCT FROM current_evidence->>'contractHash'
+  THEN RETURN result || jsonb_build_object('status','hold_positive_reply_evidence_unavailable'); END IF;
+
+  coverage:=gridex_e66_intake.read_mixed_e73_coverage_v1(p_company,p_environment,basis.request_id,p_actor);
+  result:=result || jsonb_build_object('requestId',basis.request_id,'basisSha256',basis.evidence_sha256,'sourceSha256',current_evidence->>'sourceHash');
+  IF (coverage->>'combinedObservedComplete')::boolean IS DISTINCT FROM true THEN
+    RETURN result || jsonb_build_object('status','hold_partial_coverage');
+  END IF;
+  IF (current_evidence->>'requestScope',contract#>>'{billing,capability}',contract#>>'{billing,reason}')
+     IS DISTINCT FROM ('meter_values','skip','billing_not_applicable')
+    OR contract#>>'{billing,sourceRequestId}' IS NOT NULL
+  THEN RETURN result || jsonb_build_object('status','hold_billing_evidence'); END IF;
+
+  RETURN result || jsonb_build_object('status','ready_for_reply_evaluation');
+END
+$$;
+
+--
+-- Name: read_mixed_positive_recovery_v1(uuid, text, uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.read_mixed_positive_recovery_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  readiness jsonb;
+  completion gridex_e66_intake.mixed_e73_ide_completions;
+  native_original jsonb;
+  reservation public.ediel_ack_transaction_results;
+  ack_id uuid;
+  status text;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  IF p_environment IS DISTINCT FROM 'test' OR NOT EXISTS (
+    SELECT FROM gridex_e66_intake.work w
+    WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+      AND w.phase='mixed_qualified' AND w.lease_token IS NULL
+  ) THEN RETURN jsonb_build_object('status','held','reason','missing_mixed_work'); END IF;
+
+  readiness:=gridex_e66_intake.read_mixed_e73_ide_readiness_v1(p_company,p_environment,p_source,p_actor,p_transaction);
+  IF coalesce(readiness->>'status','') NOT IN ('ready_for_reply_evaluation','hold_existing_response') THEN
+    RETURN jsonb_build_object('status','held','reason',coalesce(readiness->>'status','readiness_unavailable'));
+  END IF;
+  SELECT c.* INTO completion FROM gridex_e66_intake.mixed_e73_ide_completions c
+  WHERE (c.source_id,c.transaction_id,c.actor_id)=(p_source,p_transaction,p_actor);
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','held','reason','missing_ide_completion'); END IF;
+
+  native_original:=gridex_ediel_ack_replay.read_v1(p_company,p_environment,p_source,p_actor,
+    'APERAK','relatedTransactionReference',p_transaction);
+  IF native_original IS NULL THEN RETURN jsonb_build_object('status','held','reason','missing_native_draft'); END IF;
+  ack_id:=(native_original#>>'{ackMessage,id}')::uuid;
+  IF native_original#>>'{ackMessage,status}' IS DISTINCT FROM 'draft'
+    OR native_original#>>'{ackMessage,message_sent_at}' IS NOT NULL
+    OR native_original#>>'{ackMessage,ack_outcome}' IS DISTINCT FROM 'positive'
+    OR completion.wire_sha256 IS DISTINCT FROM encode(sha256(convert_to(native_original#>>'{ackMessage,raw_payload}','UTF8')),'hex')
+    OR completion.source_sha256 IS DISTINCT FROM encode(sha256(convert_to(native_original#>>'{sourceMessage,raw_payload}','UTF8')),'hex')
+    OR NOT EXISTS (
+      SELECT FROM gridex_ediel_ack_replay.creation_receipts r
+      WHERE (r.ack_message_id,r.source_message_id,r.company_id,r.environment,r.actor_user_id,
+             r.source_payload_hash,r.ack_payload_hash,r.family,r.sequence_field,r.sequence_value,r.outcome)
+        =(ack_id,p_source,p_company,p_environment,p_actor,completion.source_sha256,completion.wire_sha256,
+          'APERAK','relatedTransactionReference',p_transaction,'positive')
+    )
+  THEN RAISE EXCEPTION 'mixed_recovery_native_receipt_mismatch' USING ERRCODE='55000'; END IF;
+
+  SELECT a.* INTO reservation FROM public.ediel_ack_transaction_results a
+  WHERE (a.company_id,a.environment,a.source_message_id,a.source_transaction_id)
+    =(p_company,p_environment,p_source,p_transaction);
+  IF NOT FOUND THEN RAISE EXCEPTION 'mixed_recovery_result_unavailable' USING ERRCODE='55000'; END IF;
+  IF reservation.finalized_at IS NOT NULL THEN
+    IF (reservation.response_message_id,reservation.final_response_type::text) IS DISTINCT FROM (ack_id,'positive_aperak') THEN
+      RAISE EXCEPTION 'mixed_recovery_conflicting_final_reply' USING ERRCODE='55000';
+    END IF;
+    status:='already_finalized';
+  ELSIF reservation.response_message_id IS NULL AND reservation.final_response_type IS NULL
+    AND readiness->>'status'='ready_for_reply_evaluation'
+    AND readiness->>'basisSha256'=completion.basis_sha256 THEN
+    status:='recovered_draft';
+  ELSE
+    RETURN jsonb_build_object('status','held','reason','mixed_recovery_result_not_available');
+  END IF;
+  RETURN jsonb_build_object('status',status,'ackId',ack_id,'sourceId',p_source,
+    'transactionId',p_transaction,'wireSha256',completion.wire_sha256,'dispatchAuthorized',false);
+END
+$$;
+
+--
 -- Name: record_customer_import_lock_retry_v1(uuid, text, uuid, uuid, uuid, uuid, text, integer); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -11576,6 +15175,32 @@ BEGIN
  RETURN jsonb_build_object('state','retry_required','reason','database_lock_contended',
    'sourceId',p_source,'phase',p_stage,'checkpoint',p_checkpoint);
 END $$;
+
+--
+-- Name: reject_mixed_e73_basis_mutation(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.reject_mixed_e73_basis_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'mixed_e73_basis_is_immutable' USING ERRCODE='55000';
+END
+$$;
+
+--
+-- Name: reject_mixed_e73_completion_mutation_v1(); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.reject_mixed_e73_completion_mutation_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'mixed_e73_ide_completion_is_immutable' USING ERRCODE='55000';
+END
+$$;
 
 --
 -- Name: request_upgrade_state_v1(uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
@@ -11617,7 +15242,9 @@ BEGIN
      WHERE (pending.source_id,pending.reception_id,pending.company_id,pending.environment,pending.mailbox_id,pending.payload_sha256)
          =(w.source_id,w.reception_id,w.company_id,w.environment,w.mailbox_id,w.payload_sha256)
        AND pending.completed_at IS NULL
-       AND a.disposition='guide_rejected' AND a.planned_response_type='negative_aperak' AND a.persisted_series_id IS NULL
+       AND a.persisted_series_id IS NULL AND ((a.disposition,a.planned_response_type)=('guide_rejected','negative_aperak')
+         OR (pending.rejection_reason,a.disposition,a.planned_response_type)=
+           ('UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION','processability_rejected','utilts_err'))
    ) THEN RETURN 'qualify_normally'; END IF;
   IF q.source_id IS NULL AND r.source_message_id IS NULL AND NOT EXISTS (
     SELECT FROM gridex_e66_metering_stage.jobs j WHERE j.source_id=p_source
@@ -11671,6 +15298,134 @@ BEGIN
   AND (x.company_id=c OR x.is_shared_platform_mailbox IS TRUE) FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'e66_dispatch_scope_required' USING ERRCODE='42501'; END IF;
 END $$;
+
+--
+-- Name: require_e50_original_v1(uuid, uuid, text, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.require_e50_original_v1(p_company uuid, p_source uuid, p_raw text, p_transaction text) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  token_index integer;
+  tokens jsonb:=gridex_utilts_binding.wire_tokens_v1(p_raw);
+  boundary integer;
+  wire jsonb:=gridex_ack_authority.wire_v1(p_raw);
+  guide jsonb;
+  deliveries jsonb;
+  registrations jsonb;
+  dates text;
+  delivered_until timestamptz;
+  registered_at timestamptz;
+BEGIN
+  guide:=gridex_ediel_source_rules.require_v1(p_company,p_source);
+  IF NOT EXISTS(SELECT FROM public.ediel_rule_packs p WHERE p.id=(guide->>'rulePackId')::uuid
+      AND p.family='UTILTS' AND p.guide_version='25-A-5')
+    OR wire->>'family' IS DISTINCT FROM 'UTILTS' OR wire->>'code' IS DISTINCT FROM 'E66'
+    OR wire->'ide' IS DISTINCT FROM jsonb_build_array(p_transaction)
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t
+      WHERE t->>'tag'='MKS' AND t#>>'{elements,2,0}' IN ('E02','E03'))
+  THEN RAISE EXCEPTION 'e66_e50_original_required' USING ERRCODE='55000'; END IF;
+  SELECT min((t->>'index')::int) INTO token_index FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='IDE';
+  SELECT min((t->>'index')::int) INTO boundary FROM jsonb_array_elements(tokens) t
+    WHERE t->>'tag' IN ('SEQ','UNT') AND (t->>'index')::int>token_index;
+  SELECT jsonb_agg(t#>'{elements,1}') FILTER(WHERE t#>>'{elements,1,0}'='324'),
+    jsonb_agg(t#>'{elements,1}') FILTER(WHERE t#>>'{elements,1,0}'='597')
+  INTO deliveries,registrations FROM jsonb_array_elements(tokens) t
+  WHERE t->>'tag'='DTM' AND (t->>'index')::int>token_index AND (t->>'index')::int<boundary;
+  IF jsonb_array_length(deliveries) IS DISTINCT FROM 1 OR jsonb_array_length(registrations) IS DISTINCT FROM 1
+    OR jsonb_array_length(deliveries->0) IS DISTINCT FROM 3 OR jsonb_array_length(registrations->0) IS DISTINCT FROM 3
+    OR deliveries#>>'{0,2}' IS DISTINCT FROM '719' OR registrations#>>'{0,2}' IS DISTINCT FROM '203'
+  THEN RAISE EXCEPTION 'e66_e50_original_required' USING ERRCODE='55000'; END IF;
+  dates:=deliveries#>>'{0,1}';
+  IF NOT coalesce(dates ~ '^[0-9]{24}$',false) THEN RAISE EXCEPTION 'e66_e50_original_required' USING ERRCODE='55000'; END IF;
+  delivered_until:=gridex_utilts_binding.esco_local_time_v1(right(dates,12),'+0000');
+  registered_at:=gridex_utilts_binding.esco_local_time_v1(registrations#>>'{0,1}','+0000');
+  IF NOT coalesce(delivered_until>registered_at,false) THEN
+    RAISE EXCEPTION 'e66_e50_original_required' USING ERRCODE='55000';
+  END IF;
+END
+$_$;
+
+--
+-- Name: require_mixed_e50_original_v1(gridex_e66_intake.work, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.require_mixed_e50_original_v1(w gridex_e66_intake.work, p_actor uuid, p_ide text) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  original public.ediel_messages;
+  guide jsonb;
+  tokens jsonb;
+  first_index integer;
+  boundary integer;
+  selected_index integer;
+  deliveries jsonb;
+  registrations jsonb;
+  dates text;
+BEGIN
+  SELECT e.transaction_index INTO selected_index
+  FROM gridex_e66_intake.mixed_e50_candidates_v1(w,p_actor) e WHERE e.transaction_id=p_ide;
+  IF selected_index IS NULL
+    OR gridex_e66_intake.request_upgrade_state_v1(w.source_id) IS DISTINCT FROM 'hold_qualification_unverified'
+  THEN RAISE EXCEPTION 'mixed_e50_original_required' USING ERRCODE='55000'; END IF;
+
+  SELECT * INTO original FROM public.ediel_messages m
+  WHERE (m.id,m.company_id,m.environment,m.immutable_payload_hash,m.message_family,m.message_code,m.direction)
+    =(w.source_id,w.company_id,w.environment,w.payload_sha256,'UTILTS','E66','inbound')
+    AND m.grid_owner_data_request_id IS NULL FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'mixed_e50_original_required' USING ERRCODE='55000'; END IF;
+  guide:=gridex_ediel_source_rules.require_v1(w.company_id,w.source_id);
+  tokens:=gridex_utilts_binding.wire_tokens_v1(original.raw_payload);
+  SELECT (t->>'index')::int INTO first_index FROM jsonb_array_elements(tokens) t
+  WHERE t->>'tag'='IDE' ORDER BY (t->>'index')::int OFFSET selected_index LIMIT 1;
+  IF NOT EXISTS(SELECT FROM public.ediel_rule_packs p WHERE p.id=(guide->>'rulePackId')::uuid
+        AND p.family='UTILTS' AND p.guide_version='25-A-5')
+    OR (gridex_ack_authority.wire_v1(original.raw_payload)#>>ARRAY['ide',selected_index::text]) IS DISTINCT FROM p_ide
+    OR first_index IS NULL
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t
+      WHERE t->>'tag'='MKS' AND t#>>'{elements,2,0}' IN ('E02','E03'))
+  THEN RAISE EXCEPTION 'mixed_e50_original_required' USING ERRCODE='55000'; END IF;
+
+  SELECT min((t->>'index')::int) INTO boundary FROM jsonb_array_elements(tokens) t
+  WHERE t->>'tag' IN ('IDE','SEQ','UNT') AND (t->>'index')::int>first_index;
+  SELECT jsonb_agg(t#>'{elements,1}') FILTER(WHERE t#>>'{elements,1,0}'='324'),
+    jsonb_agg(t#>'{elements,1}') FILTER(WHERE t#>>'{elements,1,0}'='597')
+  INTO deliveries,registrations FROM jsonb_array_elements(tokens) t
+  WHERE t->>'tag'='DTM' AND (t->>'index')::int>first_index AND (t->>'index')::int<boundary;
+  dates:=deliveries#>>'{0,1}';
+  IF jsonb_array_length(deliveries) IS DISTINCT FROM 1 OR jsonb_array_length(registrations) IS DISTINCT FROM 1
+    OR jsonb_array_length(deliveries->0) IS DISTINCT FROM 3 OR jsonb_array_length(registrations->0) IS DISTINCT FROM 3
+    OR deliveries#>>'{0,2}' IS DISTINCT FROM '719' OR registrations#>>'{0,2}' IS DISTINCT FROM '203'
+    OR NOT coalesce(dates ~ '^[0-9]{24}$',false)
+    OR NOT coalesce(gridex_utilts_binding.esco_local_time_v1(right(dates,12),'+0000')
+       >gridex_utilts_binding.esco_local_time_v1(registrations#>>'{0,1}','+0000'),false)
+  THEN RAISE EXCEPTION 'mixed_e50_original_required' USING ERRCODE='55000'; END IF;
+END
+$_$;
+
+--
+-- Name: require_mixed_e50_wire_v1(text, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.require_mixed_e50_wire_v1(p_raw text, p_ide text) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE tokens jsonb:=gridex_utilts_binding.wire_tokens_v1(p_raw);
+BEGIN
+  IF NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='ERR')
+    OR (SELECT jsonb_agg(jsonb_build_array(t#>'{elements,1}',t#>'{elements,2}',t#>'{elements,3}'))
+      FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='E01')
+      IS DISTINCT FROM '[[["E01","","260"],["41"],["E50","","260"]]]'::jsonb
+    OR (SELECT jsonb_agg(t#>>'{elements,1,1}') FROM jsonb_array_elements(tokens) t
+      WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='TN') IS DISTINCT FROM jsonb_build_array(p_ide)
+  THEN RAISE EXCEPTION 'mixed_e50_canonical_err_required' USING ERRCODE='55000'; END IF;
+END
+$$;
 
 --
 -- Name: require_offset_conflict_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
@@ -11740,6 +15495,724 @@ BEGIN
         AND r.canonical_payload_hash=w.payload_sha256 AND r.received_payload_hash=w.payload_sha256)
   THEN RAISE EXCEPTION 'e66_registration_rejection_source_changed' USING ERRCODE='55000'; END IF;
   RETURN w;
+END
+$$;
+
+--
+-- Name: require_supported_mixed_source_v1(uuid, text, uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.require_supported_mixed_source_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF p_environment IS DISTINCT FROM 'test' THEN
+    RAISE EXCEPTION 'mixed_qualification_environment_unavailable' USING ERRCODE='22023';
+  END IF;
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  IF EXISTS (
+    SELECT FROM public.ediel_messages m
+    WHERE (m.id,m.company_id,m.environment)=(p_source,p_company,p_environment)
+      AND gridex_e66_intake.sg11_forbidden_timestamp_v2(m.raw_payload) IS NOT NULL
+  ) THEN RAISE EXCEPTION 'e66_mixed_worker_requires_sg11_review' USING ERRCODE='55000'; END IF;
+END
+$$;
+
+--
+-- Name: seal_mixed_billing_multisource_coverage_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(p_company uuid, p_seed_source uuid, p_actor uuid) RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  requested public.grid_owner_data_requests;
+  proposed_request uuid;
+  reference_basis jsonb;
+  expected_range tstzrange;
+  child record;
+  current_basis jsonb;
+  original_contract jsonb;
+  child_members jsonb;
+  members jsonb:='[]'::jsonb;
+  verified_total numeric:=0;
+  child_total numeric;
+  child_count bigint;
+  expected_child_count bigint;
+  source_count integer;
+  actual_range tstzmultirange;
+  exact_seconds numeric;
+  evidence jsonb;
+  fingerprint text;
+  prior text;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role'
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'metering.write') IS NOT TRUE
+    OR public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.write') IS NOT TRUE
+  THEN RETURN NULL; END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company,p_actor);
+
+  SELECT (array_agg(DISTINCT b.request_id))[1] INTO proposed_request
+  FROM gridex_e66_intake.mixed_e73_request_basis b
+  WHERE (b.company_id,b.environment,b.source_id,b.actor_id)=(p_company,'test',p_seed_source,p_actor)
+    AND b.evidence->>'requestScope'='billing_underlay'
+  HAVING count(DISTINCT b.request_id)=1;
+  IF proposed_request IS NULL OR EXISTS(
+    SELECT FROM gridex_e66_intake.mixed_e73_request_basis b
+    WHERE (b.company_id,b.environment,b.source_id,b.actor_id)=(p_company,'test',p_seed_source,p_actor)
+      AND (b.request_id<>proposed_request OR b.evidence->>'requestScope' IS DISTINCT FROM 'billing_underlay')
+  ) THEN RETURN NULL; END IF;
+  SELECT q.* INTO requested FROM public.grid_owner_data_requests q
+  WHERE (q.company_id,q.id,q.request_scope)=(p_company,proposed_request,'billing_underlay')
+    AND q.status IN ('sent','received') AND q.customer_id IS NOT NULL AND q.site_id IS NOT NULL
+  FOR NO KEY UPDATE;
+  IF NOT FOUND OR EXISTS(SELECT FROM public.billing_underlays b
+    WHERE (b.company_id,b.source_request_id)=(p_company,proposed_request))
+  THEN RETURN NULL; END IF;
+  expected_range:=gridex_utilts_binding.e73_sent_request_range_v1(p_company,proposed_request,'test');
+  IF expected_range IS NULL THEN RETURN NULL; END IF;
+
+  FOR child IN
+    SELECT w.source_id,w.payload_sha256,t.transaction_id,t.series_id,b.evidence,b.evidence_sha256
+    FROM gridex_e66_intake.work w
+    JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=w.source_id AND q.actor_id=p_actor
+    JOIN gridex_e66_intake.mixed_accepted_transactions t ON t.source_id=w.source_id
+    JOIN public.meter_reading_series series
+      ON (series.company_id,series.id,series.source_ediel_message_id)=(w.company_id,t.series_id,w.source_id)
+      AND series.is_current
+    LEFT JOIN gridex_e66_intake.mixed_e73_request_basis b
+      ON (b.source_id,b.transaction_id,b.company_id,b.environment,b.actor_id)
+        =(t.source_id,t.transaction_id,w.company_id,w.environment,p_actor)
+    WHERE (w.company_id,w.environment,w.phase)=(p_company,'test','mixed_qualified')
+      AND EXISTS(SELECT FROM gridex_e66_intake.mixed_e73_request_basis seed
+        WHERE (seed.company_id,seed.environment,seed.source_id,seed.actor_id,seed.request_id)
+          =(p_company,'test',w.source_id,p_actor,proposed_request))
+    ORDER BY w.source_id,t.transaction_id
+  LOOP
+    IF child.evidence IS NULL OR gridex_e66_intake.request_upgrade_state_v1(child.source_id)
+      IS DISTINCT FROM 'hold_qualification_unverified' THEN RETURN NULL; END IF;
+    current_basis:=gridex_e66_intake.read_mixed_e73_evidence_v1(
+      p_company,'test',child.source_id,p_actor,child.transaction_id);
+    IF current_basis IS NULL OR current_basis IS DISTINCT FROM child.evidence
+      OR encode(sha256(convert_to(current_basis::text,'UTF8')),'hex') IS DISTINCT FROM child.evidence_sha256
+      OR (current_basis->>'requestId',current_basis->>'requestScope',current_basis->>'sourceHash',
+          (current_basis->>'requestedFrom')::timestamptz,(current_basis->>'requestedUntil')::timestamptz)
+        IS DISTINCT FROM (proposed_request::text,'billing_underlay',child.payload_sha256,lower(expected_range),upper(expected_range))
+    THEN RETURN NULL; END IF;
+    IF reference_basis IS NULL THEN
+      reference_basis:=current_basis;
+    ELSIF (current_basis->>'sentSourceId',current_basis->>'sentHash',current_basis->>'sentAttemptId')
+      IS DISTINCT FROM (reference_basis->>'sentSourceId',reference_basis->>'sentHash',reference_basis->>'sentAttemptId')
+    THEN RETURN NULL; END IF;
+
+    original_contract:=gridex_utilts_binding.stored_contract_v1(p_company,child.source_id,child.transaction_id);
+    IF original_contract#>>'{billing,capability}' IS DISTINCT FROM 'skip'
+      OR original_contract#>>'{billing,sourceRequestId}' IS NOT NULL
+      OR encode(sha256(convert_to(original_contract::text,'UTF8')),'hex') IS DISTINCT FROM current_basis->>'contractHash'
+    THEN RETURN NULL; END IF;
+
+    SELECT count(*) INTO expected_child_count
+    FROM jsonb_array_elements(original_contract->'observations') observation
+    WHERE (observation->>'periodStart')::timestamptz>=lower(expected_range)
+      AND (observation->>'periodEnd')::timestamptz<=upper(expected_range);
+    WITH observations AS MATERIALIZED (
+      SELECT ordinal, "periodStart" AS period_start, "periodEnd" AS period_end, quantity
+      FROM jsonb_to_recordset(original_contract->'observations')
+      AS o(ordinal text,"periodStart" timestamptz,"periodEnd" timestamptz,quantity numeric)
+      WHERE "periodStart">=lower(expected_range) AND "periodEnd"<=upper(expected_range)
+        AND "periodStart"<"periodEnd" AND quantity IS NOT NULL
+    ), effects AS MATERIALIZED (
+      SELECT ordinal,"meteringId","meteringHash","normalizedId","normalizedHash","sourceLinkId"
+      FROM jsonb_to_recordset(current_basis->'childEffects')
+      AS e(ordinal text,"linkedSourceId" text,"meteringId" text,"meteringHash" text,
+           "normalizedId" text,"normalizedHash" text,"sourceLinkId" text)
+      WHERE "linkedSourceId"=child.source_id::text
+    )
+    SELECT jsonb_agg(jsonb_build_object(
+      'sourceId',child.source_id,'sourceSha256',child.payload_sha256,'transactionId',child.transaction_id,
+      'seriesId',child.series_id,'basisSha256',child.evidence_sha256,'contractSha256',current_basis->>'contractHash',
+      'ordinal',o.ordinal::integer,'periodStart',o.period_start,'periodEnd',o.period_end,
+      'meteringId',e."meteringId",'meteringHash',e."meteringHash",'normalizedId',e."normalizedId",
+      'normalizedHash',e."normalizedHash",'sourceLinkId',e."sourceLinkId")
+      ORDER BY o.ordinal::integer),sum(o.quantity),count(*)
+    INTO child_members,child_total,child_count
+    FROM observations o JOIN effects e USING(ordinal);
+    IF child_count=0 OR child_count<>expected_child_count OR child_total IS NULL THEN RETURN NULL; END IF;
+    members:=members||child_members;
+    verified_total:=verified_total+child_total;
+  END LOOP;
+
+  SELECT count(DISTINCT member->>'sourceId'),range_agg(tstzrange(starts_at,ends_at,'[)')),
+    sum(extract(epoch FROM ends_at-starts_at))
+  INTO source_count,actual_range,exact_seconds
+  FROM jsonb_array_elements(members) member
+  CROSS JOIN LATERAL (SELECT (member->>'periodStart')::timestamptz AS starts_at,
+    (member->>'periodEnd')::timestamptz AS ends_at) period;
+  IF source_count<2 OR actual_range IS DISTINCT FROM tstzmultirange(expected_range)
+    OR exact_seconds IS DISTINCT FROM extract(epoch FROM upper(expected_range)-lower(expected_range))
+  THEN RETURN NULL; END IF;
+
+  evidence:=jsonb_build_object('version','mixed-e73-billing-coverage-v1','requestId',proposed_request,'environment','test',
+    'sentSourceId',reference_basis->>'sentSourceId','sentSha256',reference_basis->>'sentHash',
+    'sentAttemptId',reference_basis->>'sentAttemptId',
+    'requestedFrom',lower(expected_range),'requestedUntil',upper(expected_range),'sourceCount',source_count,
+    'contributionCount',jsonb_array_length(members),'totalKwh',verified_total,'members',members);
+  fingerprint:=encode(sha256(convert_to(evidence::text,'UTF8')),'hex');
+  SELECT c.evidence_sha256 INTO prior FROM gridex_e66_intake.mixed_e73_billing_coverage c
+  WHERE (c.company_id,c.environment,c.request_id)=(p_company,'test',proposed_request);
+  IF FOUND THEN
+    RETURN CASE WHEN prior=fingerprint THEN prior END;
+  END IF;
+  INSERT INTO gridex_e66_intake.mixed_e73_billing_coverage(company_id,environment,request_id,evidence,evidence_sha256)
+  VALUES(p_company,'test',proposed_request,evidence,fingerprint);
+  RETURN fingerprint;
+END
+$$;
+
+--
+-- Name: seal_mixed_e73_ide_completion_v1(uuid, text, uuid, uuid, uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.seal_mixed_e73_ide_completion_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_wire text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  precondition jsonb;
+  original public.ediel_messages;
+  original_wire jsonb;
+  reply_wire jsonb;
+  rule_basis jsonb;
+  wire_sha256 text;
+  existing gridex_e66_intake.mixed_e73_ide_completions;
+  replayed boolean:=false;
+BEGIN
+  IF nullif(p_wire,'') IS NULL OR octet_length(p_wire)>8388608 THEN
+    RAISE EXCEPTION 'mixed_e73_ide_completion_invalid_wire' USING ERRCODE='22023';
+  END IF;
+  -- The precondition pins the active source work, scope, existing ledger and current basis.
+  precondition:=gridex_e66_intake.mixed_e73_draft_precondition_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_transaction,'validate',p_token);
+  IF precondition->>'status' IS DISTINCT FROM 'valid' THEN RETURN precondition; END IF;
+  PERFORM public.ediel_require_source_bytes_available_v1(p_company,p_source);
+  SELECT m.* INTO STRICT original FROM public.ediel_messages m
+  WHERE (m.id,m.company_id,m.environment)=(p_source,p_company,p_environment) FOR SHARE;
+  IF precondition->>'sourceSha256' IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex')
+  THEN RAISE EXCEPTION 'mixed_e73_ide_completion_original_changed' USING ERRCODE='55000'; END IF;
+  rule_basis:=gridex_ediel_source_rules.require_v1(p_company,p_source);
+  original_wire:=gridex_ack_authority.wire_v1(original.raw_payload);
+  reply_wire:=gridex_ack_authority.wire_v1(p_wire);
+  IF gridex_ack_authority.source_match_v1(reply_wire,original_wire) IS NOT TRUE
+    OR reply_wire->'type' IS DISTINCT FROM '["APERAK","D","04A","UN","E5SE5A"]'::jsonb
+    OR reply_wire->>'code' IS DISTINCT FROM '312'
+    OR reply_wire->'erc' IS DISTINCT FROM '["100"]'::jsonb
+    OR reply_wire#>'{refs,ACW}' IS DISTINCT FROM jsonb_build_array(p_transaction)
+    OR reply_wire#>'{ercGroups,0,acw}' IS DISTINCT FROM jsonb_build_array(p_transaction)
+    OR jsonb_array_length(reply_wire#>'{refs,DM}') IS DISTINCT FROM 1
+    OR nullif(reply_wire#>>'{refs,DM,0}','') IS NULL
+    OR original_wire->'ide'->((precondition->>'transactionIndex')::integer) IS DISTINCT FROM to_jsonb(p_transaction)
+  THEN RAISE EXCEPTION 'mixed_e73_ide_completion_wire_scope_mismatch' USING ERRCODE='55000'; END IF;
+  wire_sha256:=encode(sha256(convert_to(p_wire,'UTF8')),'hex');
+
+  SELECT c.* INTO existing FROM gridex_e66_intake.mixed_e73_ide_completions c
+    WHERE (c.source_id,c.transaction_id)=(p_source,p_transaction);
+  IF FOUND THEN
+    IF (existing.actor_id,existing.source_sha256,existing.basis_sha256,existing.wire_sha256,
+        existing.rule_pack_id,existing.message_profile_id,existing.rule_source_sha256)
+       IS DISTINCT FROM (p_actor,precondition->>'sourceSha256',precondition->>'basisSha256',wire_sha256,
+         (rule_basis->>'rulePackId')::uuid,(rule_basis->>'messageProfileId')::uuid,rule_basis->>'sourceHash')
+    THEN RAISE EXCEPTION 'mixed_e73_ide_completion_replay_changed' USING ERRCODE='55000'; END IF;
+    replayed:=true;
+  ELSE
+    INSERT INTO gridex_e66_intake.mixed_e73_ide_completions
+      (source_id,transaction_id,actor_id,first_lease_token,source_sha256,basis_sha256,wire_sha256,
+       rule_pack_id,message_profile_id,rule_source_sha256)
+    VALUES (p_source,p_transaction,p_actor,p_token,precondition->>'sourceSha256',precondition->>'basisSha256',wire_sha256,
+      (rule_basis->>'rulePackId')::uuid,(rule_basis->>'messageProfileId')::uuid,rule_basis->>'sourceHash')
+    RETURNING * INTO existing;
+  END IF;
+  RETURN jsonb_build_object('status','ide_preparation_recorded','transactionId',p_transaction,
+    'sourceId',p_source,'wireSha256',wire_sha256,'sealedAt',existing.sealed_at,'replayed',replayed,
+    'draftAuthorized',false,'dispatchAuthorized',false);
+END
+$$;
+
+--
+-- Name: seal_mixed_e73_request_basis_v1(uuid, text, uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.seal_mixed_e73_request_basis_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  existing gridex_e66_intake.mixed_e73_request_basis;
+  evidence jsonb;
+  evidence_sha256 text;
+BEGIN
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  PERFORM 1 FROM gridex_e66_intake.work w
+    WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+      AND w.phase='mixed_qualified' AND w.lease_token IS NULL
+      AND gridex_e66_intake.request_upgrade_state_v1(p_source)='hold_qualification_unverified'
+      AND NOT EXISTS (SELECT FROM gridex_e66_intake.matched_request_basis s WHERE s.source_id=w.source_id)
+    FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'mixed_e73_basis_work_unavailable' USING ERRCODE='55000'; END IF;
+
+  evidence:=gridex_e66_intake.read_mixed_e73_evidence_v1(p_company,p_environment,p_source,p_actor,p_transaction);
+  IF evidence IS NULL THEN RAISE EXCEPTION 'mixed_e73_basis_evidence_unavailable' USING ERRCODE='55000'; END IF;
+  evidence_sha256:=encode(sha256(convert_to(evidence::text,'UTF8')),'hex');
+  SELECT b.* INTO existing FROM gridex_e66_intake.mixed_e73_request_basis b
+    WHERE (b.source_id,b.transaction_id)=(p_source,p_transaction);
+  IF FOUND THEN
+    IF (existing.company_id,existing.environment,existing.actor_id,existing.evidence_sha256,existing.evidence)
+       IS DISTINCT FROM (p_company,p_environment,p_actor,evidence_sha256,evidence)
+    THEN RAISE EXCEPTION 'mixed_e73_basis_replay_changed' USING ERRCODE='55000'; END IF;
+    RETURN jsonb_build_object('status','basis_recorded','requestId',existing.request_id,
+      'transactionId',p_transaction,'evidenceSha256',evidence_sha256,'replayed',true);
+  END IF;
+
+  INSERT INTO gridex_e66_intake.mixed_e73_request_basis
+    (source_id,transaction_id,company_id,environment,actor_id,request_id,sent_source_id,evidence,evidence_sha256)
+  VALUES (p_source,p_transaction,p_company,p_environment,p_actor,
+    (evidence->>'requestId')::uuid,(evidence->>'sentSourceId')::uuid,evidence,evidence_sha256);
+  RETURN jsonb_build_object('status','basis_recorded','requestId',evidence->>'requestId',
+    'transactionId',p_transaction,'evidenceSha256',evidence_sha256,'replayed',false);
+END
+$$;
+
+--
+-- Name: sg11_forbidden_timestamp_v1(text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.sg11_forbidden_timestamp_v1(p_raw text) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  tokens jsonb := gridex_utilts_binding.wire_tokens_v1(p_raw);
+  token jsonb;
+  tag text;
+  qualifier text;
+  e66 boolean := false;
+  ide text;
+  seq integer := 0;
+  quantity text;
+BEGIN
+  IF jsonb_typeof(tokens) IS DISTINCT FROM 'array'
+    OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH')<>1 THEN
+    RETURN NULL;
+  END IF;
+  FOR token IN SELECT value FROM jsonb_array_elements(tokens) LOOP
+    tag := token->>'tag';
+    qualifier := token#>>'{elements,1,0}';
+    CASE tag
+      WHEN 'UNH' THEN
+        IF token#>>'{elements,2,0}' IS DISTINCT FROM 'UTILTS' THEN RETURN NULL; END IF;
+      WHEN 'BGM' THEN e66 := qualifier='E66';
+      WHEN 'IDE' THEN
+        ide := CASE WHEN qualifier='24' THEN nullif(token#>>'{elements,2,0}','') END;
+        seq := 0;
+        quantity := NULL;
+      WHEN 'SEQ' THEN seq := seq+1; quantity := NULL;
+      WHEN 'QTY' THEN quantity := nullif(qualifier,'');
+      WHEN 'PRI' THEN quantity := NULL;
+      WHEN 'MOA' THEN quantity := NULL;
+      WHEN 'UNT' THEN EXIT;
+      WHEN 'DTM' THEN
+        IF e66 AND ide IS NOT NULL AND seq>0 AND qualifier='597' AND quantity NOT IN ('220','42') THEN
+          RETURN jsonb_build_object('reason','UTILTS_E66_SG11_TIMESTAMP_QUANTITY_NOT_ALLOWED',
+            'transactionId',ide,'observationIndex',seq-1,'wireTokenIndex',token->'index',
+            'quantityQualifier',quantity);
+        END IF;
+      ELSE NULL;
+    END CASE;
+  END LOOP;
+  RETURN NULL;
+END
+$$;
+
+--
+-- Name: sg11_forbidden_timestamp_v2(text); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.sg11_forbidden_timestamp_v2(p_raw text) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  tokens jsonb := gridex_utilts_binding.wire_tokens_v1(p_raw);
+  token jsonb;
+  tag text;
+  qualifier text;
+  e66 boolean := false;
+  ide text;
+  seq integer := 0;
+  quantity text;
+BEGIN
+  IF jsonb_typeof(tokens) IS DISTINCT FROM 'array'
+    OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH')<>1 THEN
+    RETURN NULL;
+  END IF;
+  FOR token IN SELECT value FROM jsonb_array_elements(tokens) LOOP
+    tag := token->>'tag';
+    qualifier := token#>>'{elements,1,0}';
+    CASE tag
+      WHEN 'UNH' THEN
+        IF token#>>'{elements,2,0}' IS DISTINCT FROM 'UTILTS' THEN RETURN NULL; END IF;
+      WHEN 'BGM' THEN e66 := qualifier='E66';
+      WHEN 'IDE' THEN
+        ide := CASE WHEN qualifier='24' THEN nullif(token#>>'{elements,2,0}','') END;
+        seq := 0;
+        quantity := NULL;
+      WHEN 'SEQ' THEN seq := seq+1; quantity := NULL;
+      WHEN 'QTY' THEN quantity := nullif(qualifier,'');
+      WHEN 'PRI' THEN quantity := NULL;
+      WHEN 'MOA' THEN quantity := NULL;
+      WHEN 'UNT' THEN EXIT;
+      WHEN 'DTM' THEN
+        IF e66 AND ide IS NOT NULL AND seq>0 AND qualifier='597' AND quantity NOT IN ('136','220','42') THEN
+          RETURN jsonb_build_object('reason','UTILTS_E66_SG11_TIMESTAMP_QUANTITY_NOT_ALLOWED',
+            'transactionId',ide,'observationIndex',seq-1,'wireTokenIndex',token->'index',
+            'quantityQualifier',quantity);
+        END IF;
+      ELSE NULL;
+    END CASE;
+  END LOOP;
+  RETURN NULL;
+END
+$$;
+
+--
+-- Name: step_mixed_e50_v1(uuid, text, uuid, uuid, text, uuid, text, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.step_mixed_e50_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_lease uuid, p_draft jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  w gridex_e66_intake.work;
+  attempt gridex_e66_intake.mixed_e50_attempts;
+  protected_reply jsonb;
+  response uuid;
+  digest text;
+  raw text;
+  finalize_result jsonb;
+BEGIN
+  SELECT c.* INTO w FROM gridex_e66_intake.work c
+  JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=c.source_id AND q.actor_id=p_actor
+  WHERE (c.source_id,c.company_id,c.environment,c.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+    AND c.phase='mixed_qualified' AND c.lease_token IS NULL AND c.environment='test' FOR UPDATE OF c;
+  SELECT * INTO attempt FROM gridex_e66_intake.mixed_e50_attempts a
+  WHERE (a.source_id,a.transaction_id,a.lease_token)=(w.source_id,p_ide,p_lease)
+    AND a.completed_at IS NULL AND a.lease_expires_at>clock_timestamp() FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('kind','held','reason','mixed_e50_lease_unavailable'); END IF;
+
+  IF p_action='defer' THEN
+    UPDATE gridex_e66_intake.mixed_e50_attempts SET lease_token=NULL,lease_expires_at=NULL,
+      next_attempt_at=clock_timestamp()+interval '60 seconds'
+    WHERE (source_id,transaction_id)=(p_source,p_ide);
+    RETURN jsonb_build_object('kind','yielded');
+  END IF;
+  PERFORM gridex_e66_intake.require_mixed_e50_original_v1(w,p_actor,p_ide);
+
+  IF p_action='advance' AND attempt.response_id IS NULL THEN
+    RETURN jsonb_build_object('kind','render_e50','sourceHash',w.payload_sha256);
+  END IF;
+  IF p_action='store' AND attempt.response_id IS NULL THEN
+    PERFORM gridex_e66_intake.require_mixed_e50_wire_v1(p_draft->>'rawPayload',p_ide);
+    protected_reply:=gridex_ediel_ack_replay.create_v1(p_company,p_environment,p_source,w.payload_sha256,
+      p_actor,'UTILTS_ERR','relatedTransactionReference',p_ide,'negative',p_draft,NULL);
+  ELSE
+    protected_reply:=gridex_ediel_ack_replay.read_v1(p_company,p_environment,p_source,p_actor,
+      'UTILTS_ERR','relatedTransactionReference',p_ide);
+  END IF;
+  response:=(protected_reply#>>'{ackMessage,id}')::uuid;
+  raw:=protected_reply#>>'{ackMessage,raw_payload}';
+  digest:=encode(sha256(convert_to(raw,'UTF8')),'hex');
+  PERFORM gridex_e66_intake.require_mixed_e50_wire_v1(raw,p_ide);
+  IF response IS NULL OR protected_reply#>>'{ackMessage,status}' IS DISTINCT FROM 'draft'
+    OR protected_reply#>>'{ackMessage,message_sent_at}' IS NOT NULL
+    OR NOT EXISTS(SELECT FROM gridex_ediel_ack_replay.creation_receipts r
+      WHERE (r.ack_message_id,r.source_message_id,r.company_id,r.environment,r.actor_user_id,
+             r.source_payload_hash,r.ack_payload_hash,r.family,r.sequence_field,r.sequence_value,r.outcome)
+        =(response,p_source,p_company,p_environment,p_actor,w.payload_sha256,digest,
+          'UTILTS_ERR','relatedTransactionReference',p_ide,'negative'))
+    OR (attempt.response_id IS NOT NULL AND (attempt.response_id,attempt.response_sha256) IS DISTINCT FROM (response,digest))
+  THEN RAISE EXCEPTION 'mixed_e50_protected_reply_required' USING ERRCODE='55000'; END IF;
+
+  IF p_action='store' THEN
+    UPDATE gridex_e66_intake.mixed_e50_attempts SET response_id=response,response_sha256=digest
+    WHERE (source_id,transaction_id)=(p_source,p_ide);
+  ELSIF p_action='finish' THEN
+    IF attempt.response_id IS NULL THEN RAISE EXCEPTION 'mixed_e50_protected_reply_required' USING ERRCODE='55000'; END IF;
+    INSERT INTO gridex_e66_intake.mixed_e50_finalize_context
+    VALUES (pg_current_xact_id(),p_source,p_ide,p_actor,p_mailbox,response);
+    finalize_result:=public.gridex_finalize_utilts_transaction_ack_v1(p_company,p_environment,p_source,p_ide,
+      'utilts_err',response,p_actor,p_mailbox);
+    IF (finalize_result->>'status' IN ('finalized','already_finalized')) IS NOT TRUE
+      OR finalize_result->>'responseMessageId' IS DISTINCT FROM response::text
+    THEN RAISE EXCEPTION 'mixed_e50_finalization_conflict' USING ERRCODE='55000'; END IF;
+    DELETE FROM gridex_e66_intake.mixed_e50_finalize_context WHERE tx=pg_current_xact_id();
+    UPDATE gridex_e66_intake.mixed_e50_attempts SET completed_at=clock_timestamp(),lease_token=NULL,lease_expires_at=NULL
+    WHERE (source_id,transaction_id)=(p_source,p_ide);
+    RETURN jsonb_build_object('kind','e50_finalized','responseId',response);
+  END IF;
+  RETURN jsonb_build_object('kind','finalize_e50','responseId',response);
+END
+$$;
+
+--
+-- Name: yield_mixed_worker_attempt_v1(uuid, text, uuid, boolean); Type: FUNCTION; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source uuid, p_ide text, p_worker_lease uuid, p_delay boolean) RETURNS void
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  UPDATE gridex_e66_intake.mixed_worker_attempts
+    SET lease_token=NULL,lease_expires_at=NULL,
+      next_attempt_at=clock_timestamp()+CASE WHEN p_delay THEN interval '60 seconds' ELSE interval '0 seconds' END
+  WHERE (source_id,transaction_id,lease_token)=(p_source,p_ide,p_worker_lease)
+$$;
+
+--
+-- Name: consume_mixed_chunk_v1(uuid, text, uuid, uuid, uuid, text, integer, integer); Type: FUNCTION; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_metering_stage.consume_mixed_chunk_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_next integer, p_limit integer) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+ work gridex_e66_intake.work;
+ job gridex_e66_metering_stage.mixed_jobs;
+ receipt gridex_e66_metering_stage.mixed_chunk_receipts;
+ owned_contract jsonb;
+ saved public.metering_values;
+ normalized_id uuid;
+ stop_ordinal integer;
+ target_ordinal integer;
+ expected_by_ordinal jsonb;
+ all_sources uuid[];
+ locked_source_count integer;
+ expected_sources uuid[];
+BEGIN
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 8 OR p_next IS NULL OR p_next < 0 THEN
+   RAISE EXCEPTION 'mixed_stage_invalid_chunk' USING ERRCODE='22023';
+ END IF;
+ PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+ PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+ SELECT * INTO STRICT work FROM gridex_e66_intake.work w
+ WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+ FOR UPDATE;
+ IF work.phase <> 'mixed_qualified' OR work.lease_token IS NOT NULL
+   OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'hold_qualification_unverified'
+   OR NOT EXISTS (
+     SELECT FROM public.ediel_messages m WHERE m.id=p_source AND m.company_id=p_company
+       AND m.environment=p_environment AND m.grid_owner_data_request_id IS NULL
+   ) OR EXISTS (
+     SELECT FROM gridex_e66_intake.matched_request_basis b WHERE b.source_id=p_source
+   ) THEN
+   RAISE EXCEPTION 'mixed_stage_work_unavailable' USING ERRCODE='55000';
+ END IF;
+
+ -- This lookup creates no source-row lock. The canonical consumer compares this
+ -- exact value against the authoritative contract after its sorted source locks.
+ SELECT c.contract INTO owned_contract
+ FROM gridex_e66_intake.mixed_accepted_transactions t
+   JOIN gridex_utilts_binding.contracts c ON
+     (c.source_message_id,c.company_id,c.environment,c.transaction_id,c.series_id,c.contract_hash)
+     =(t.source_id,p_company,p_environment,t.transaction_id,t.series_id,t.contract_hash)
+   JOIN gridex_utilts_binding.receipts r ON
+     (r.source_message_id,r.company_id,r.environment,r.raw_hash)=(t.source_id,p_company,p_environment,work.payload_sha256)
+   WHERE (t.source_id,t.transaction_id)=(p_source,p_transaction)
+     AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+     AND c.contract#>>'{metering,sourceRequestId}' IS NULL
+     AND c.contract#>>'{billing,sourceRequestId}' IS NULL
+     AND jsonb_array_length(c.contract->'observations')>0
+     AND r.membership->>t.transaction_index=t.transaction_id;
+ IF NOT FOUND THEN
+   RAISE EXCEPTION 'mixed_stage_child_unavailable' USING ERRCODE='55000';
+ END IF;
+
+ INSERT INTO gridex_e66_metering_stage.mixed_jobs(source_id,transaction_id,observation_count)
+ VALUES(p_source,p_transaction,jsonb_array_length(owned_contract->'observations'))
+ ON CONFLICT DO NOTHING;
+ SELECT * INTO STRICT job FROM gridex_e66_metering_stage.mixed_jobs j
+ WHERE (j.source_id,j.transaction_id)=(p_source,p_transaction) FOR UPDATE;
+ SELECT * INTO receipt FROM gridex_e66_metering_stage.mixed_chunk_receipts r
+ WHERE (r.source_id,r.transaction_id,r.start_ordinal)=(p_source,p_transaction,p_next);
+ IF FOUND THEN
+   IF (receipt.actor_id,receipt.requested_limit) IS DISTINCT FROM (p_actor,p_limit) THEN
+     RAISE EXCEPTION 'mixed_stage_replay_changed' USING ERRCODE='55000';
+   END IF;
+   RETURN jsonb_build_object('transactionId',p_transaction,'nextOrdinal',receipt.next_ordinal,'replayed',true);
+ END IF;
+ IF job.next_ordinal <> p_next OR p_next >= job.observation_count
+   OR job.observation_count IS DISTINCT FROM jsonb_array_length(owned_contract->'observations') THEN
+   RAISE EXCEPTION 'mixed_stage_cursor_stale' USING ERRCODE='55000';
+ END IF;
+
+ stop_ordinal := least(p_next+p_limit,job.observation_count);
+ -- Snapshot each ordinal separately, then lock the complete sorted union
+ -- before any canonical consumer may lock a single source message.
+ WITH ordinal_probe AS MATERIALIZED (
+   SELECT i.ordinal, probe.source_ids
+   FROM generate_series(p_next,stop_ordinal-1) AS i(ordinal)
+   CROSS JOIN LATERAL gridex_e66_intake.meter_source_probe_v1(
+     p_company,p_source,p_transaction,i.ordinal) probe
+ )
+ SELECT (SELECT jsonb_object_agg(ordinal,to_jsonb(source_ids)) FROM ordinal_probe),
+   array_agg(DISTINCT source_id ORDER BY source_id)
+ INTO expected_by_ordinal,all_sources
+ FROM ordinal_probe CROSS JOIN LATERAL unnest(source_ids) AS s(source_id);
+ PERFORM m.id FROM public.ediel_messages m
+ WHERE m.id=ANY(all_sources) ORDER BY m.id FOR SHARE;
+ GET DIAGNOSTICS locked_source_count=ROW_COUNT;
+ IF locked_source_count IS DISTINCT FROM cardinality(all_sources) OR EXISTS (
+   SELECT FROM generate_series(p_next,stop_ordinal-1) AS i(ordinal)
+   CROSS JOIN LATERAL gridex_e66_intake.meter_source_probe_v1(
+     p_company,p_source,p_transaction,i.ordinal) AS probe
+   WHERE to_jsonb(probe.source_ids) IS DISTINCT FROM expected_by_ordinal->i.ordinal::text
+ ) THEN
+   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='40001';
+ END IF;
+
+ FOR target_ordinal IN p_next..stop_ordinal-1 LOOP
+   expected_sources := ARRAY(
+     SELECT item::uuid FROM jsonb_array_elements_text(expected_by_ordinal->target_ordinal::text) AS s(item)
+   );
+   SELECT * INTO STRICT saved FROM gridex_e66_intake.consume_owned_e66_meter_scoped_v1(
+     p_company,p_source,p_transaction,target_ordinal,p_actor,owned_contract,expected_sources);
+   normalized_id := gridex_e66_metering_stage.current_mixed_application_v1(
+     p_company,p_environment,p_source,p_transaction,target_ordinal,saved.id,owned_contract);
+   IF normalized_id IS NULL THEN
+     RAISE EXCEPTION 'mixed_stage_application_receipt_unavailable' USING ERRCODE='55000';
+   END IF;
+   INSERT INTO gridex_e66_metering_stage.mixed_effects VALUES
+     (p_source,p_transaction,target_ordinal,saved.id,normalized_id);
+ END LOOP;
+ UPDATE gridex_e66_metering_stage.mixed_jobs SET next_ordinal=stop_ordinal
+ WHERE (source_id,transaction_id)=(p_source,p_transaction);
+ INSERT INTO gridex_e66_metering_stage.mixed_chunk_receipts VALUES
+   (p_source,p_transaction,p_next,p_actor,p_limit,stop_ordinal);
+ RETURN jsonb_build_object('transactionId',p_transaction,'nextOrdinal',stop_ordinal,'replayed',false);
+END
+$$;
+
+--
+-- Name: current_mixed_application_v1(uuid, text, uuid, text, integer, uuid, jsonb); Type: FUNCTION; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_metering_stage.current_mixed_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract jsonb) RETURNS uuid
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT n.id
+ FROM gridex_utilts_binding.metering_application_receipts r
+ JOIN public.metering_values m ON (m.company_id,m.id)=(r.company_id,r.value_id)
+ JOIN public.normalized_metering_values n
+   ON (n.company_id,n.id,n.source_metering_value_id)=(r.company_id,r.normalized_id,r.value_id)
+ JOIN public.metering_value_sources l
+   ON (l.id,l.company_id,l.metering_value_id,l.normalized_metering_value_id,
+       l.source_ediel_message_id,l.source_transaction_reference)
+   =(r.source_link_id,r.company_id,r.value_id,r.normalized_id,r.source_message_id,r.transaction_id)
+ WHERE (r.company_id,r.environment,r.source_message_id,r.transaction_id,r.observation_ordinal,r.value_id)
+   =(p_company,p_environment,p_source,p_transaction,p_ordinal,p_metering_id)
+ AND p_contract->>'transactionId'=p_transaction AND p_contract->>'environment'=p_environment
+ AND l.source_line_reference IS NOT DISTINCT FROM p_contract->'observations'->p_ordinal->>'sourceLineReference'
+ AND r.contract_hash=sha256(convert_to(p_contract::text,'UTF8'))
+ AND r.value_hash=gridex_utilts_binding.application_value_hash_v1(m)
+ AND r.normalized_hash=gridex_utilts_binding.application_normalized_hash_v1(n)
+ AND m.is_current AND m.revision_status='current' AND n.revision_status='current'
+$$;
+
+--
+-- Name: seal_mixed_normalization_v1(uuid, text, uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE FUNCTION gridex_e66_metering_stage.seal_mixed_normalization_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+ work gridex_e66_intake.work;
+ job gridex_e66_metering_stage.mixed_jobs;
+ prior gridex_e66_metering_stage.mixed_normalization_receipts;
+ owned_contract jsonb;
+ contract_hash text;
+ effects jsonb;
+BEGIN
+ PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+ PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+ SELECT * INTO STRICT work FROM gridex_e66_intake.work w
+ WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id)=(p_source,p_company,p_environment,p_mailbox)
+ FOR UPDATE;
+ IF work.phase <> 'mixed_qualified' OR work.lease_token IS NOT NULL
+   OR gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'hold_qualification_unverified'
+   OR NOT EXISTS (
+     SELECT FROM public.ediel_messages m WHERE m.id=p_source AND m.company_id=p_company
+       AND m.environment=p_environment AND m.grid_owner_data_request_id IS NULL
+   ) OR EXISTS (
+     SELECT FROM gridex_e66_intake.matched_request_basis b WHERE b.source_id=p_source
+   ) THEN
+   RAISE EXCEPTION 'mixed_normalization_work_unavailable' USING ERRCODE='55000';
+ END IF;
+
+ owned_contract:=gridex_utilts_binding.stored_contract_v1(p_company,p_source,p_transaction);
+ SELECT c.contract_hash INTO contract_hash
+ FROM gridex_e66_intake.mixed_accepted_transactions t
+ JOIN gridex_utilts_binding.contracts c ON
+   (c.source_message_id,c.company_id,c.environment,c.transaction_id,c.series_id,c.contract_hash)
+   =(t.source_id,p_company,p_environment,t.transaction_id,t.series_id,t.contract_hash)
+ JOIN gridex_utilts_binding.receipts r ON
+   (r.source_message_id,r.company_id,r.environment,r.raw_hash)=(t.source_id,p_company,p_environment,work.payload_sha256)
+ WHERE (t.source_id,t.transaction_id)=(p_source,p_transaction)
+   AND c.contract=owned_contract AND r.membership->>t.transaction_index=t.transaction_id
+   AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+   AND c.contract#>>'{metering,sourceRequestId}' IS NULL
+   AND c.contract#>>'{billing,sourceRequestId}' IS NULL;
+ IF NOT FOUND THEN
+   RAISE EXCEPTION 'mixed_normalization_child_unavailable' USING ERRCODE='55000';
+ END IF;
+ SELECT * INTO job FROM gridex_e66_metering_stage.mixed_jobs j
+ WHERE (j.source_id,j.transaction_id)=(p_source,p_transaction) FOR UPDATE;
+ IF NOT FOUND OR job.next_ordinal<>job.observation_count
+   OR job.observation_count IS DISTINCT FROM jsonb_array_length(owned_contract->'observations') THEN
+   RAISE EXCEPTION 'mixed_normalization_incomplete' USING ERRCODE='55000';
+ END IF;
+
+ SELECT jsonb_agg(jsonb_build_object('ordinal',e.ordinal,'meteringId',e.metering_id,
+                    'normalizedId',e.normalized_id) ORDER BY e.ordinal)
+ INTO effects
+ FROM gridex_e66_metering_stage.mixed_effects e
+ WHERE (e.source_id,e.transaction_id)=(p_source,p_transaction)
+   AND e.ordinal<job.observation_count
+   AND gridex_e66_metering_stage.current_mixed_application_v1(
+     p_company,p_environment,p_source,p_transaction,e.ordinal,e.metering_id,owned_contract
+   )=e.normalized_id;
+ IF jsonb_array_length(effects) IS DISTINCT FROM job.observation_count THEN
+   RAISE EXCEPTION 'mixed_normalization_effect_unavailable' USING ERRCODE='55000';
+ END IF;
+
+ SELECT * INTO prior FROM gridex_e66_metering_stage.mixed_normalization_receipts r
+ WHERE (r.source_id,r.transaction_id)=(p_source,p_transaction);
+ IF FOUND THEN
+   IF (prior.actor_id,prior.contract_hash,prior.ordered_effects) IS DISTINCT FROM (p_actor,contract_hash,effects) THEN
+     RAISE EXCEPTION 'mixed_normalization_replay_changed' USING ERRCODE='55000';
+   END IF;
+   RETURN jsonb_build_object('transactionId',p_transaction,'effects',effects,'replayed',true);
+ END IF;
+ INSERT INTO gridex_e66_metering_stage.mixed_normalization_receipts VALUES
+   (p_source,p_transaction,p_actor,contract_hash,effects);
+ RETURN jsonb_build_object('transactionId',p_transaction,'effects',effects,'replayed',false);
 END
 $$;
 
@@ -24951,6 +29424,51 @@ CREATE FUNCTION gridex_invoice_dispatch_period.period_snapshot(p_company uuid, p
 $$;
 
 --
+-- Name: correction_period_v1(date, date, jsonb); Type: FUNCTION; Schema: gridex_invoice_file_archive; Owner: -
+--
+
+CREATE FUNCTION gridex_invoice_file_archive.correction_period_v1(p_start date, p_end date, p_payload jsonb) RETURNS tstzrange
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  start_text text := p_payload->>'billing_period_start_instant';
+  end_text text := p_payload->>'billing_period_end_instant';
+  exact_timestamp constant text := '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$';
+  starts_at timestamptz;
+  ends_at timestamptz;
+BEGIN
+  IF p_start IS NULL OR p_end IS NULL OR NOT isfinite(p_start) OR NOT isfinite(p_end) THEN
+    RETURN NULL;
+  END IF;
+  IF p_payload ? 'billing_period_start_instant' OR p_payload ? 'billing_period_end_instant' THEN
+    IF jsonb_typeof(p_payload->'billing_period_start_instant') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(p_payload->'billing_period_end_instant') IS DISTINCT FROM 'string'
+      OR start_text !~ exact_timestamp OR end_text !~ exact_timestamp
+      OR NOT pg_input_is_valid(start_text, 'timestamptz')
+      OR NOT pg_input_is_valid(end_text, 'timestamptz')
+      OR (p_payload ? 'billing_period_timezone'
+          AND p_payload->>'billing_period_timezone' IS DISTINCT FROM 'Europe/Stockholm')
+      OR (p_payload ? 'billing_period_end_exclusive'
+          AND p_payload->'billing_period_end_exclusive' IS DISTINCT FROM 'true'::jsonb) THEN
+      RETURN NULL;
+    END IF;
+    starts_at := start_text::timestamptz;
+    ends_at := end_text::timestamptz;
+    IF (starts_at AT TIME ZONE 'Europe/Stockholm')::date IS DISTINCT FROM p_start
+      OR (ends_at AT TIME ZONE 'Europe/Stockholm')::date > p_end THEN
+      RETURN NULL;
+    END IF;
+  ELSE
+    starts_at := p_start::timestamp AT TIME ZONE 'Europe/Stockholm';
+    ends_at := p_end::timestamp AT TIME ZONE 'Europe/Stockholm';
+  END IF;
+  IF ends_at <= starts_at THEN RETURN NULL; END IF;
+  RETURN tstzrange(starts_at, ends_at, '[)');
+END
+$_$;
+
+--
 -- Name: create_file(uuid, text, text, uuid, jsonb, text, uuid, timestamp with time zone, text, jsonb); Type: FUNCTION; Schema: gridex_invoice_file_archive; Owner: -
 --
 
@@ -25422,9 +29940,17 @@ BEGIN
     AND NEW.company_id=OLD.company_id AND NEW.status=OLD.status THEN
     RETURN NEW;
   END IF;
+  -- A transaction snapshot taken before a separate reservation committed
+  -- cannot prove its absence after acquiring the advisory lock.
+  IF current_setting('transaction_isolation') NOT IN ('read committed','read uncommitted') THEN
+    RAISE EXCEPTION 'invoice_source_reservation_read_committed_required' USING ERRCODE='25001';
+  END IF;
   PERFORM gridex_invoice_groups.lock_source(NEW.company_id,NEW.billing_underlay_id);
   IF EXISTS(SELECT FROM gridex_invoice_groups.sources s WHERE s.company_id=NEW.company_id
-            AND s.billing_underlay_id=NEW.billing_underlay_id) THEN
+            AND s.billing_underlay_id=NEW.billing_underlay_id) OR EXISTS(
+    SELECT FROM gridex_billing_source.price_series_reservation_members s
+    WHERE s.company_id=NEW.company_id AND s.billing_underlay_id=NEW.billing_underlay_id
+  ) THEN
     RAISE EXCEPTION 'invoice_group_source_already_reserved' USING ERRCODE='23505';
   END IF;
   RETURN NEW;
@@ -29951,7 +34477,12 @@ BEGIN
  PERFORM gridex_regulated_supply.lock_graph_v1();
  PERFORM u.id FROM public.user_profiles u WHERE u.id=p_actor_user_id FOR SHARE;
  IF p_actor_user_id IS NULL OR NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active') THEN RETURN jsonb_build_object('updated',0);END IF;
- WITH due AS (SELECT p.id FROM public.customer_supply_periods p JOIN gridex_received_sources.supply_source_transitions tr ON tr.source_message_id=p.source_end_message_id AND tr.company_id=p.company_id JOIN public.ediel_messages m ON m.id=tr.source_message_id AND m.company_id=tr.company_id WHERE (p_company_id IS NULL OR p.company_id=p_company_id) AND coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p.company_id,'metering.write'),false) AND EXISTS(SELECT FROM public.company_memberships cm WHERE cm.company_id=p.company_id AND cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL) AND p.status='ending' AND p.market_end_at<=now() AND tr.payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') AND EXISTS(SELECT FROM jsonb_array_elements(tr.resulting_states) s WHERE s->>'id'=p.id::text AND (s->>'market_state_version')::bigint=p.market_state_version AND (s->>'market_end_at')::timestamptz=p.market_end_at) ORDER BY p.market_end_at,p.id LIMIT least(greatest(coalesce(p_limit,100),1),200) FOR UPDATE OF p SKIP LOCKED)
+ WITH due AS (SELECT p.id FROM public.customer_supply_periods p JOIN gridex_received_sources.supply_source_transitions tr ON tr.source_message_id=p.source_end_message_id AND tr.company_id=p.company_id JOIN public.ediel_messages m ON m.id=tr.source_message_id AND m.company_id=tr.company_id WHERE (p_company_id IS NULL OR p.company_id=p_company_id) AND coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p.company_id,'metering.write'),false) AND EXISTS(SELECT FROM public.company_memberships cm WHERE cm.company_id=p.company_id AND cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL) AND p.status='ending' AND p.market_end_at<=now()
+  AND CASE WHEN NOT EXISTS(
+    SELECT FROM gridex_received_sources.supply_object_partitions own
+    WHERE own.company_id=p.company_id AND own.source_message_id=m.id
+  ) THEN gridex_received_sources.legacy_end_authority_v1(p.company_id,m.id) ELSE true END
+  AND tr.payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') AND EXISTS(SELECT FROM jsonb_array_elements(tr.resulting_states) s WHERE s->>'id'=p.id::text AND (s->>'market_state_version')::bigint=p.market_state_version AND (s->>'market_end_at')::timestamptz=p.market_end_at) ORDER BY p.market_end_at,p.id LIMIT least(greatest(coalesce(p_limit,100),1),200) FOR UPDATE OF p SKIP LOCKED)
  UPDATE public.customer_supply_periods p SET status='ended',updated_at=now() FROM due WHERE p.id=due.id AND (p_company_id IS NULL OR p.company_id=p_company_id) AND p.status='ending';
  GET DIAGNOSTICS changed=ROW_COUNT;
  -- These are separate regulated market relationships. No ordinary Z03 or
@@ -31195,7 +35726,8 @@ BEGIN
     count_positive:=count_positive+1;start_day:=gridex_received_sources.permission_date_v1(a->>'reportStart');end_day:=gridex_received_sources.permission_date_v1(a->>'reportEnd');
     IF nullif(a->>'point','') IS NULL OR nullif(a->>'permissionId','') IS NULL OR nullif(a->>'customerIdentity','') IS NULL OR a->>'customerIdentity' IS DISTINCT FROM b->>'customerIdentity'
     
-    OR start_day IS NULL OR gridex_received_sources.permission_time_v1(a->>'reportStart') IS NULL OR (a->>'reportEnd' IS NOT NULL AND gridex_received_sources.permission_time_v1(a->>'reportEnd') IS NULL) OR (a->>'reportEnd' IS NOT NULL AND end_day IS NULL) OR (end_day IS NOT NULL AND end_day<start_day) THEN RETURN jsonb_build_object('applied',false,'reason','permission_approved_object_evidence_invalid'); END IF;
+    OR start_day IS NULL OR gridex_received_sources.permission_time_v1(a->>'reportStart') IS NULL OR (a->>'reportEnd' IS NOT NULL AND gridex_received_sources.permission_time_v1(a->>'reportEnd') IS NULL) OR (a->>'reportEnd' IS NOT NULL AND end_day IS NULL) OR (end_day IS NOT NULL AND gridex_received_sources.permission_time_v1(a->>'reportEnd')
+     <= gridex_received_sources.permission_time_v1(a->>'reportStart')) THEN RETURN jsonb_build_object('applied',false,'reason','permission_approved_object_evidence_invalid'); END IF;
    ELSE RETURN jsonb_build_object('applied',false,'reason','permission_business_reason_unqualified'); END IF;
   END LOOP;
   IF p_validate_only THEN RETURN jsonb_build_object('qualified',true);END IF;
@@ -32895,6 +37427,53 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN RETURN false;END$_$;
 
 --
+-- Name: index_supply_end_retraction_v1(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.index_supply_end_retraction_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF NEW.source_objects @> '[{"reason":"Z24"}]'::jsonb THEN
+    INSERT INTO gridex_received_sources.supply_end_retraction_lookup(
+      company_id,supply_period_id,end_source_id,end_version,cancellation_id
+    )
+    SELECT NEW.company_id,(previous->>'id')::uuid,(previous->>'source_end_message_id')::uuid,
+      previous->>'market_state_version',NEW.source_message_id
+    FROM jsonb_array_elements(NEW.previous_states) previous
+    JOIN LATERAL jsonb_array_elements(NEW.resulting_states) after ON after->>'id'=previous->>'id'
+    WHERE previous->>'company_id'=NEW.company_id::text AND previous->>'status'='ended'
+      AND pg_input_is_valid(previous->>'id','uuid') AND pg_input_is_valid(previous->>'source_end_message_id','uuid')
+      AND pg_input_is_valid(previous->>'market_state_version','bigint')
+      AND after#>>'{metadata,endCancellationSource}'=NEW.source_message_id::text
+      AND after->>'source_end_message_id' IS NULL
+    ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: legacy_end_authority_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.legacy_end_authority_v1(p_company_id uuid, p_source_id uuid) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RETURN gridex_bilateral_prodat.recorded_supply_current_v1(p_company_id,p_source_id) IS TRUE;
+EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM IN ('bilateral_prodat_outbound_recorded_original_required',
+    'bilateral_prodat_outbound_recorded_profile_required','ediel_original_bytes_retention_tombstoned') THEN
+    RETURN false;
+  END IF;
+  RAISE;
+END
+$$;
+
+--
 -- Name: lock_prodat_execution_actor_graph_v1(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -34000,6 +38579,73 @@ CREATE FUNCTION gridex_received_sources.permission_wire_v1(p_raw text) RETURNS j
     LANGUAGE plpgsql IMMUTABLE
     SET search_path TO 'pg_catalog'
     AS $$DECLARE w jsonb:=gridex_received_sources.permission_partition_wire_v1(p_raw);BEGIN IF w IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(w->'objects')x WHERE x->>'projectionHeld'='true') THEN RETURN NULL;END IF;RETURN w;END$$;
+
+--
+-- Name: planned_move_out_supply_window_v1(public.customer_supply_periods, public.customer_contracts, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.planned_move_out_supply_window_v1(period public.customer_supply_periods, contract public.customer_contracts, start_at timestamp with time zone, end_at timestamp with time zone) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+    SELECT coalesce(
+      period.status IN ('active','confirmed_by_grid_owner')
+      AND period.source='ediel_qualified_source' AND period.source_process='supplier_switch_confirmation'
+      AND period.source_message_id IS NOT NULL AND period.source_end_message_id IS NULL
+      AND period.actual_end_date IS NULL AND isfinite(period.end_date)
+      AND period.metadata->>'planned_end_source'='customer_lifecycle_close'
+      AND period.metadata->>'planned_end_reason'='move_out'
+      AND contract.id=coalesce(period.customer_contract_id,period.contract_id)
+      AND (period.contract_id IS NULL OR period.contract_id=contract.id)
+      AND (period.customer_contract_id IS NULL OR period.customer_contract_id=contract.id)
+      AND contract.company_id=period.company_id AND contract.customer_id=period.customer_id
+      AND contract.metering_point_id=period.metering_point_id
+      AND contract.status='terminated' AND contract.termination_reason='move_out'
+      AND isfinite(contract.ended_at)
+      AND ((contract.ended_at AT TIME ZONE 'UTC')::date=period.end_date
+        OR (contract.ended_at AT TIME ZONE 'Europe/Stockholm')::date=period.end_date)
+      AND isfinite(start_at) AND isfinite(end_at) AND start_at<end_at
+      AND isfinite(period.market_start_at) AND period.market_start_at<=start_at
+      AND end_at<=((period.end_date+1)::timestamp AT TIME ZONE 'Europe/Stockholm')
+      AND (period.market_end_at IS NULL OR (isfinite(period.market_end_at) AND end_at<=period.market_end_at))
+      AND EXISTS (
+        SELECT FROM public.customers customer
+        JOIN public.customer_lifecycle_events event
+          ON event.company_id=customer.company_id AND event.customer_id=customer.id
+          AND event.created_at=customer.lifecycle_closed_at AND event.created_by=customer.lifecycle_closed_by
+        JOIN public.metering_points point
+          ON point.company_id=customer.company_id AND point.customer_id=customer.id AND point.id=period.metering_point_id
+          AND point.status='closed' AND point.end_date=period.end_date AND point.closed_at=event.created_at
+        JOIN public.customer_sites site
+          ON site.company_id=customer.company_id AND site.customer_id=customer.id
+          AND site.id=coalesce(point.site_id,point.customer_site_id)
+          AND site.id=coalesce(contract.site_id,contract.customer_site_id)
+          AND (point.customer_site_id IS NULL OR point.customer_site_id=site.id)
+          AND (contract.customer_site_id IS NULL OR contract.customer_site_id=site.id)
+          AND site.status='closed' AND site.move_out_date=period.end_date AND site.closed_at=event.created_at
+        JOIN gridex_received_sources.normal_switch_confirmations confirmation
+          ON confirmation.company_id=period.company_id AND confirmation.period_id=period.id
+          AND confirmation.contract_id=contract.id AND confirmation.source_message_id=period.source_message_id
+          AND coalesce(confirmation.confirmed_switch->>'site_id',confirmation.confirmed_switch->>'customer_site_id')=site.id::text
+        JOIN public.customer_contract_events termination
+          ON termination.company_id=customer.company_id AND termination.customer_id=customer.id
+          AND termination.customer_contract_id=contract.id AND termination.happened_at=event.created_at
+          AND termination.actor_user_id=event.created_by AND termination.event_type='terminated'
+          AND termination.metadata->>'source'='admin_customer_card'
+          AND termination.metadata->>'termination_reason'='move_out'
+          AND termination.metadata->>'ends_at'=period.end_date::text
+        WHERE customer.company_id=period.company_id AND customer.id=period.customer_id
+          AND customer.status='moved' AND customer.moved_out_at=period.end_date
+          AND event.event_type='move_out' AND event.event_status='completed' AND event.effective_date=period.end_date
+          AND event.payload->>'source'='admin_customer_card'
+          AND event.created_at=CASE
+            WHEN period.metadata->>'planned_end_recorded_at'
+              ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?[+-][0-9]{2}:[0-9]{2}$'
+              AND pg_input_is_valid(period.metadata->>'planned_end_recorded_at','timestamptz')
+            THEN (period.metadata->>'planned_end_recorded_at')::timestamptz
+          END
+      ),false)
+  $_$;
 
 --
 -- Name: prelock_recovery_candidate_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
@@ -36339,6 +40985,66 @@ BEGIN
 END$$;
 
 --
+-- Name: supply_end_retracted_v1(uuid, uuid, uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.supply_end_retracted_v1(p_company_id uuid, p_customer_id uuid, p_point_id uuid, p_source_id uuid, p_period_id uuid, p_version text, p_cutoff text) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+  SELECT EXISTS(
+    SELECT FROM public.customer_supply_periods period
+    JOIN public.ediel_messages origin
+      ON origin.id=p_source_id AND origin.company_id=period.company_id
+    JOIN gridex_received_sources.supply_source_transitions ended
+      ON ended.source_message_id=origin.id AND ended.company_id=period.company_id
+      AND ended.source_code='Z05' AND ended.payload_hash=encode(sha256(convert_to(origin.raw_payload,'UTF8')),'hex')
+    JOIN LATERAL (
+      SELECT entry.cancellation_id FROM gridex_received_sources.supply_end_retraction_lookup entry
+      WHERE entry.company_id=period.company_id AND entry.supply_period_id=period.id
+        AND entry.end_source_id=origin.id AND (p_version IS NULL OR entry.end_version=p_version)
+      UNION
+      SELECT CASE WHEN pg_input_is_valid(period.metadata->>'endCancellationSource','uuid')
+        THEN (period.metadata->>'endCancellationSource')::uuid END
+    ) candidates ON true
+    JOIN public.ediel_messages cancellation ON cancellation.id=candidates.cancellation_id
+      AND cancellation.company_id=period.company_id AND cancellation.environment=origin.environment
+    JOIN gridex_received_sources.supply_source_transitions restored
+      ON restored.source_message_id=cancellation.id AND restored.company_id=period.company_id
+      AND restored.source_code='Z05' AND restored.payload_hash=encode(sha256(convert_to(cancellation.raw_payload,'UTF8')),'hex')
+    CROSS JOIN LATERAL jsonb_array_elements(ended.resulting_states) saved
+    WHERE period.company_id=p_company_id AND period.id=p_period_id
+      AND period.customer_id=p_customer_id AND period.metering_point_id=p_point_id
+      AND origin.direction='inbound' AND origin.message_family='PRODAT' AND origin.message_code='Z05'
+      AND cancellation.direction='inbound' AND cancellation.message_family='PRODAT' AND cancellation.message_code='Z05'
+      AND NOT EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones gone
+        WHERE gone.company_id=p_company_id AND gone.message_id IN (origin.id,cancellation.id))
+      AND saved->>'id'=p_period_id::text AND saved->>'company_id'=p_company_id::text
+      AND saved->>'customer_id'=p_customer_id::text AND saved->>'metering_point_id'=p_point_id::text
+      AND saved->>'source_end_message_id'=origin.id::text
+      AND saved->>'market_state_version'=coalesce(p_version,saved->>'market_state_version')
+      AND (saved->>'status' IN ('ending','ended')) IS TRUE
+      AND CASE WHEN pg_input_is_valid(saved->>'market_end_at','timestamptz')
+        THEN (saved->>'market_end_at')::timestamptz<=now()
+          AND (p_cutoff IS NULL OR CASE WHEN pg_input_is_valid(p_cutoff,'timestamptz')
+            THEN (saved->>'market_end_at')::timestamptz=p_cutoff::timestamptz ELSE false END) ELSE false END
+      AND EXISTS(SELECT FROM jsonb_array_elements(restored.source_objects) wire
+        WHERE wire->>'reason'='Z24' AND gridex_received_sources.permission_time_v1(wire->>'end')=(saved->>'market_end_at')::timestamptz)
+      AND EXISTS(SELECT FROM jsonb_array_elements(restored.previous_states) previous
+        WHERE previous->>'id'=p_period_id::text AND previous->>'status'='ended'
+          AND (previous-ARRAY['updated_at','status'])=(saved-ARRAY['updated_at','status']))
+      AND EXISTS(SELECT FROM jsonb_array_elements(restored.resulting_states) after
+        WHERE after->>'id'=p_period_id::text AND after->>'company_id'=p_company_id::text
+          AND after->>'customer_id'=p_customer_id::text AND after->>'metering_point_id'=p_point_id::text
+          AND after#>>'{metadata,endCancellationSource}'=cancellation.id::text
+          AND after->>'source_end_message_id' IS NULL AND after->>'market_end_at' IS NULL
+          AND after->>'status' IN ('active','confirmed_by_grid_owner','ending')
+          AND (after->>'market_state_version')::bigint=(saved->>'market_state_version')::bigint+1)
+  );
+$$;
+
+--
 -- Name: supply_period_source_at_v1(uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -36366,7 +41072,7 @@ CREATE FUNCTION gridex_received_sources.supply_period_source_basis_v1(p_company_
 DECLARE p public.customer_supply_periods%rowtype;proof gridex_received_sources.normal_switch_confirmations%rowtype;
  tr gridex_received_sources.supply_source_transitions%rowtype;activation gridex_received_sources.normal_supply_activations%rowtype;
  m public.ediel_messages%rowtype;origin public.ediel_messages%rowtype;initial_message public.ediel_messages%rowtype;c public.customer_contracts%rowtype;s public.supplier_switch_requests%rowtype;
- expected jsonb;baseline jsonb;legal jsonb;initial_owned jsonb;source_objects jsonb;initial_wire jsonb;accepted_original jsonb;initial_transition gridex_received_sources.supply_source_transitions%rowtype;ids uuid[];version bigint;source_id uuid;
+ expected jsonb;baseline jsonb;legal jsonb;initial_owned jsonb;source_objects jsonb;initial_wire jsonb;accepted_original jsonb;initial_transition gridex_received_sources.supply_source_transitions%rowtype;ids uuid[];version bigint;source_id uuid;planned_move_out boolean;
 BEGIN
  PERFORM gridex_bilateral_prodat.lock_supply_v1();
  PERFORM gridex_regulated_supply.lock_graph_v1();
@@ -36413,14 +41119,25 @@ BEGIN
  SELECT own INTO expected FROM jsonb_array_elements(tr.resulting_states) own WHERE own->>'id'=p.id::text;
  SELECT * INTO activation FROM gridex_received_sources.normal_supply_activations WHERE period_id=p.id AND company_id=p_company_id;
  baseline:=CASE WHEN activation.period_id IS NOT NULL AND tr.source_message_id=proof.source_message_id THEN activation.resulting_period ELSE expected END;
+ SELECT * INTO c FROM public.customer_contracts WHERE id=proof.contract_id AND company_id=p_company_id FOR SHARE;
+ planned_move_out:=CASE WHEN c.status='terminated' AND c.termination_reason='move_out'
+   THEN gridex_received_sources.planned_move_out_supply_window_v1(p,c,p_start,p_end)
+   ELSE false END;
  IF expected IS NULL OR baseline IS NULL OR m.direction IS DISTINCT FROM 'inbound' OR tr.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
-  OR (to_jsonb(p)-ARRAY['updated_at','status']) IS DISTINCT FROM (baseline-ARRAY['updated_at','status'])
+  OR ((to_jsonb(p)-ARRAY['updated_at','status']) IS DISTINCT FROM (baseline-ARRAY['updated_at','status'])
+   AND NOT (planned_move_out
+    AND (baseline->>'end_date' IS NULL OR p.end_date<(baseline->>'end_date')::date)
+    AND NOT (coalesce(nullif(baseline->'metadata','null'::jsonb),'{}'::jsonb)
+      ?| ARRAY['planned_end_source','planned_end_reason','planned_end_recorded_at'])
+    AND (to_jsonb(p)-ARRAY['updated_at','status','end_date','metadata'])
+      IS NOT DISTINCT FROM (baseline-ARRAY['updated_at','status','end_date','metadata'])
+    AND (p.metadata-ARRAY['planned_end_source','planned_end_reason','planned_end_recorded_at'])
+      IS NOT DISTINCT FROM coalesce(nullif(baseline->'metadata','null'::jsonb),'{}'::jsonb)))
   OR (p.status IS DISTINCT FROM baseline->>'status' AND NOT(p.status='ended' AND baseline->>'status'='ending' AND p.market_end_at<=now()))
   OR (s.status IS DISTINCT FROM proof.confirmed_switch->>'status' AND NOT(s.status='completed' AND activation.period_id IS NOT NULL)) THEN RETURN NULL;END IF;
  SELECT * INTO origin FROM public.ediel_messages WHERE id=proof.original_message_id AND company_id=p_company_id AND environment=m.environment;
- SELECT * INTO c FROM public.customer_contracts WHERE id=proof.contract_id AND company_id=p_company_id FOR SHARE;
  IF origin.direction IS DISTINCT FROM 'outbound' OR gridex_received_sources.sent_source_is_current_v1(origin) IS NOT TRUE OR origin.immutable_payload_hash IS DISTINCT FROM proof.original_payload_hash OR origin.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(origin.raw_payload,'UTF8')),'hex')
-  OR c.id IS NULL OR c.customer_id IS DISTINCT FROM p.customer_id OR c.metering_point_id IS DISTINCT FROM p.metering_point_id OR (c.status IN('signed','active') OR c.status='terminated' AND c.termination_reason='supply_end' AND p.end_date IS NOT NULL AND c.ended_at IS NOT NULL
+  OR c.id IS NULL OR c.customer_id IS DISTINCT FROM p.customer_id OR c.metering_point_id IS DISTINCT FROM p.metering_point_id OR (c.status IN('signed','active') OR planned_move_out OR c.status='terminated' AND c.termination_reason='supply_end' AND p.end_date IS NOT NULL AND c.ended_at IS NOT NULL
    AND ((c.ended_at AT TIME ZONE 'UTC')::date=p.end_date OR (c.ended_at AT TIME ZONE 'Europe/Stockholm')::date=p.end_date)) IS NOT TRUE OR gridex_received_sources.production_contract_hash_v1(c) IS DISTINCT FROM proof.protected_contract_hash
   OR legal->>'legalActorId' IS DISTINCT FROM proof.legal_context->>'legalActorId' OR legal->>'actorRole' IS DISTINCT FROM 'electricity_supplier'
   OR NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=m.id AND v.company_id=p_company_id AND v.environment=m.environment AND v.source_payload_hash=tr.payload_hash AND v.facts_text::jsonb->>'syntaxDecision'='accepted' AND ((v.facts_text::jsonb->>'applicationDecision'='accepted' OR gridex_received_sources.supply_effect_assessment_owns_period_v1(p_company_id,v.source_message_id,p.id,v.id)) OR gridex_received_sources.mixed_period_canonical_v1(v.id,p_company_id,proof.period_id,proof.source_message_id)) AND v.facts_text::jsonb->>'functionalDecision'='accepted' AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)) THEN RETURN NULL;END IF;
@@ -41864,59 +46581,6 @@ EXCEPTION WHEN OTHERS THEN RETURN false;
 END $_$;
 
 --
--- Name: normalized_metering_values; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.normalized_metering_values (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    customer_id uuid,
-    customer_site_id uuid,
-    site_id uuid,
-    metering_point_id uuid NOT NULL,
-    facility_id text,
-    price_area text,
-    grid_area text,
-    period_start timestamp with time zone NOT NULL,
-    period_end timestamp with time zone NOT NULL,
-    resolution text,
-    quantity_kwh numeric NOT NULL,
-    quality_status text,
-    source_type text NOT NULL,
-    source_message_id uuid,
-    source_transaction_reference text,
-    source_line_reference text,
-    source_metering_value_id uuid,
-    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    status text DEFAULT 'stored'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    revision_status text DEFAULT 'current'::text NOT NULL,
-    billing_status text DEFAULT 'pending_match'::text NOT NULL,
-    register_code text,
-    product_code text,
-    direction text DEFAULT 'consumption'::text NOT NULL,
-    unit text DEFAULT 'kWh'::text NOT NULL,
-    canonical_dedupe_key text,
-    replaced_by_value_id uuid,
-    previous_value_id uuid,
-    revision_number integer DEFAULT 1 NOT NULL,
-    supply_period_id uuid,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
-    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    billing_gate_evaluated_at timestamp with time zone,
-    CONSTRAINT normalized_metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
-    CONSTRAINT normalized_metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
-    CONSTRAINT normalized_metering_values_direction_check CHECK ((direction = ANY (ARRAY['consumption'::text, 'production'::text, 'net_consumption'::text, 'net_production'::text]))),
-    CONSTRAINT normalized_metering_values_period_check CHECK ((period_end > period_start)),
-    CONSTRAINT normalized_metering_values_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
-    CONSTRAINT normalized_metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text]))),
-    CONSTRAINT normalized_metering_values_unit_check CHECK ((unit = ANY (ARRAY['Wh'::text, 'kWh'::text, 'MWh'::text])))
-);
-
---
 -- Name: application_normalized_hash_v1(public.normalized_metering_values); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -43438,9 +48102,9 @@ BEGIN
  OR stored.contract IS DISTINCT FROM series.raw_transaction->'consumptionContract' THEN
   RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
  IF source.message_code='E66' AND p_ack_message_id IS NULL AND reservation.response_message_id IS NULL
-   AND gridex_e66_intake.request_upgrade_state_v1(source.id) NOT IN ('outside','matched_basis','unmatched')
+   AND gridex_e66_intake.request_upgrade_state_v1(source.id) NOT IN ('outside','matched_basis','unmatched') AND NOT gridex_e66_intake.has_mixed_positive_create_context_v1(p_company_id,p_environment,source.id,p_transaction_id,source_hash,p_ack_message_id)
  THEN RAISE EXCEPTION 'e66_existing_work_held_for_qualified_reply' USING ERRCODE='55000'; END IF;
- IF source.message_code='E66' AND EXISTS(SELECT FROM gridex_e66_intake.work w WHERE w.source_id=source.id) THEN
+ IF source.message_code='E66' AND EXISTS(SELECT FROM gridex_e66_intake.work w WHERE w.source_id=source.id) AND NOT gridex_e66_intake.has_mixed_positive_create_context_v1(p_company_id,p_environment,source.id,p_transaction_id,source_hash,p_ack_message_id) THEN
   IF NOT EXISTS(SELECT FROM gridex_e66_intake.work w
    JOIN gridex_e66_intake.completions d ON d.source_id=w.source_id AND d.company_id=w.company_id
     AND d.environment=w.environment AND d.source_sha256=w.payload_sha256
@@ -48144,6 +52808,33 @@ $$;
 --
 
 COMMENT ON FUNCTION public.canonical_manage_platform_user_access(p_command jsonb) IS 'Atomic service-only platform-role and permission override command with actor validation, idempotency, and immutable audit.';
+
+--
+-- Name: canonical_next_application_number(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_next_application_number(p_company_id uuid) RETURNS text
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$ select public.gridex_next_application_number(p_company_id); $$;
+
+--
+-- Name: canonical_next_contract_number(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_next_contract_number(p_company_id uuid, p_customer_number text DEFAULT NULL::text) RETURNS text
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$ select public.gridex_next_contract_number(p_company_id, p_customer_number); $$;
+
+--
+-- Name: canonical_next_customer_number(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_next_customer_number(p_company_id uuid) RETURNS text
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$ select public.gridex_next_customer_number(p_company_id); $$;
 
 --
 -- Name: canonical_onboard_customer_graph(jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -54948,7 +59639,16 @@ COMMENT ON FUNCTION public.ediel_execute_beneficiary_export_v1(p_beneficiary_com
 CREATE FUNCTION public.ediel_finance_copy_retention_basis_v1(p_company_id uuid, p_actor_user_id uuid, p_retention_class text, p_target_id text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$BEGIN PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,p_retention_class,CASE WHEN gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.read') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);RETURN gridex_ediel_retention.finance_basis_v1(p_company_id,p_retention_class,p_target_id);END$$;
+    AS $_$BEGIN PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,p_retention_class,CASE WHEN gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.read') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);
+    IF p_retention_class='invoice_calculation_body'
+      AND p_target_id~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+      AND EXISTS(SELECT FROM public.customer_invoices i
+        WHERE i.company_id=p_company_id AND i.id::text=p_target_id AND i.source_system='invoice_price_series_test_v1') THEN
+      RETURN gridex_billing_source.price_series_invoice_inspection_basis_v1(p_company_id,p_actor_user_id,p_target_id::uuid,
+        (SELECT spec.body_columns FROM gridex_ediel_retention.finance_class_catalog spec
+          WHERE spec.retention_class=p_retention_class AND spec.source_schema='public' AND spec.source_table='customer_invoices'));
+    END IF;
+    RETURN gridex_ediel_retention.finance_basis_v1(p_company_id,p_retention_class,p_target_id);END$_$;
 
 --
 -- Name: ediel_finish_blob_storage_purge_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -60400,6 +65100,131 @@ end;
 $$;
 
 --
+-- Name: gridex_activate_test_contract_price_addendum_v1(uuid, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_activate_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_review_sha256 text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+    DECLARE
+      contract public.customer_contracts%ROWTYPE;
+      original public.contract_price_snapshots%ROWTYPE;
+      successor public.contract_price_snapshots%ROWTYPE;
+      source gridex_billing_source.test_price_addendum_documents%ROWTYPE;
+      review gridex_billing_source.test_price_addendum_reviews%ROWTYPE;
+      applied gridex_billing_source.test_price_addendum_applications%ROWTYPE;
+      price_ore numeric;
+      area text;
+      components jsonb;
+      published jsonb;
+      new_id uuid;
+      replayed boolean;
+      frozen jsonb;
+    BEGIN
+      PERFORM gridex_billing_source.require_test_price_addendum_actor_v1(p_company_id,p_actor_user_id);
+      IF public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'pricing.write') IS NOT TRUE THEN
+        RAISE EXCEPTION 'price_addendum_pricing_scope_required' USING ERRCODE='42501';
+      END IF;
+      SELECT c.* INTO contract FROM public.customer_contracts c
+        WHERE (c.company_id,c.customer_id,c.id)=(p_company_id,p_customer_id,p_contract_id)
+          AND c.status IN ('signed','active') FOR UPDATE NOWAIT;
+      IF NOT FOUND THEN RAISE EXCEPTION 'price_addendum_original_signature_required' USING ERRCODE='23514'; END IF;
+      SELECT d.* INTO source FROM gridex_billing_source.test_price_addendum_documents d
+        WHERE (d.company_id,d.customer_id,d.contract_id,d.id)=(p_company_id,p_customer_id,p_contract_id,p_document_id);
+      SELECT r.* INTO review FROM gridex_billing_source.test_price_addendum_reviews r
+        WHERE (r.company_id,r.contract_id,r.document_id)=(p_company_id,p_contract_id,p_document_id)
+          AND r.receipt_sha256=p_review_sha256;
+      IF NOT FOUND OR source.id IS NULL
+        OR (source.document_sha256,source.original_signature_sha256,source.original_price_id,source.original_price_sha256)
+          IS DISTINCT FROM (review.receipt->>'documentSha256',review.receipt->>'originalSignatureSha256',
+            (review.receipt->>'originalPriceId')::uuid,review.receipt->>'originalPriceSha256')
+        OR source.document_sha256<>encode(sha256(source.document),'hex')
+        OR (contract.signature_snapshot_sha256,contract.contract_price_snapshot_id)
+          IS DISTINCT FROM (source.original_signature_sha256,source.original_price_id) THEN
+        RAISE EXCEPTION 'price_addendum_review_evidence_changed' USING ERRCODE='23514';
+      END IF;
+      SELECT * INTO applied FROM gridex_billing_source.test_price_addendum_applications a
+        WHERE (a.company_id,a.contract_id)=(p_company_id,p_contract_id);
+      replayed:=FOUND;
+      IF replayed THEN
+        IF (applied.document_id,applied.review_sha256) IS DISTINCT FROM (source.id,review.receipt_sha256) THEN
+          RAISE EXCEPTION 'price_addendum_application_conflict' USING ERRCODE='23505';
+        END IF;
+      ELSE
+        SELECT * INTO original FROM public.contract_price_snapshots s WHERE (s.company_id,s.contract_id,s.id)
+          =(p_company_id,p_contract_id,source.original_price_id) FOR SHARE;
+        IF NOT FOUND OR original.snapshot_hash IS DISTINCT FROM source.original_price_sha256
+          OR NOT gridex_billing_source.has_canonical_signed_series_price_v1(p_company_id,p_customer_id,p_contract_id,
+            original.id,original.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm',
+            (original.valid_from+1)::timestamp AT TIME ZONE 'Europe/Stockholm')
+          OR EXISTS(SELECT FROM public.contract_price_snapshots s
+            WHERE (s.company_id,s.contract_id)=(p_company_id,p_contract_id) AND s.id<>original.id
+              AND (s.valid_to IS NULL OR s.valid_to>=original.valid_from))
+          OR EXISTS(SELECT FROM gridex_billing_source.test_price_addendum_reviews r
+            WHERE (r.company_id,r.contract_id)=(p_company_id,p_contract_id) AND r.document_id<>source.id) THEN
+          RAISE EXCEPTION 'price_addendum_initial_timeline_changed' USING ERRCODE='23514';
+        END IF;
+        price_ore:=(review.receipt#>>'{verification,priceOrePerKwh}')::numeric;
+        area:=original.snapshot_json->>'price_area';
+        IF original.pricing_model<>'fixed' OR original.snapshot_json->>'energy_direction' IS DISTINCT FROM 'consumption'
+          OR area IS NULL OR area NOT IN ('SE1','SE2','SE3','SE4')
+          OR jsonb_typeof(original.base_price_components_snapshot) IS DISTINCT FROM 'array'
+          OR jsonb_array_length(original.base_price_components_snapshot)<>1
+          OR original.base_price_components_snapshot#>>'{0,source_type}' IS DISTINCT FROM 'fixed'
+          OR original.base_price_components_snapshot#>>'{0,weight_percent}' IS DISTINCT FROM '100'
+          OR coalesce(original.snapshot_json->>'vat_rate','') NOT IN ('0.25','25')
+          OR gridex_billing_source.has_zero_only_addendum_invoice_fee_v1(original.price_components_snapshot) IS NOT TRUE
+          OR EXISTS(SELECT FROM jsonb_each(original.snapshot_json) field
+            WHERE field.key IN ('monthly_fee_sek','invoice_fee_sek','start_fee_sek','admin_fee_sek','variable_fee_ore_per_kwh',
+              'discount_value','green_fee_value','spot_markup_ore_per_kwh')
+              AND field.value NOT IN ('null'::jsonb,'0'::jsonb)) THEN
+          RAISE EXCEPTION 'price_addendum_fixed_energy_only_required' USING ERRCODE='23514';
+        END IF;
+        components:=jsonb_build_array(jsonb_build_object('source_type','fixed',
+          'label',coalesce(original.base_price_components_snapshot#>>'{0,label}','Fast pris'),
+          'weight_percent',100,'fixed_price_sek_per_kwh',price_ore/100,'price_area',area));
+        published:=public.gridex_create_or_version_contract_pricing(p_company_id,'TEST prisbilaga '||source.id::text,
+          'fixed','fixed','both',jsonb_build_object('schema','gridex_contract_pricing_v5',
+            'pricing_model','fixed','energy_direction','consumption','interval_resolution','fixed',
+            'vat_rate',0.25,'price_areas',jsonb_build_array(area),'base_components',components,'price_components',original.price_components_snapshot),
+          review.effective_on,original.valid_to,true,p_actor_user_id);
+        new_id:=gen_random_uuid();
+        INSERT INTO gridex_billing_source.test_price_addendum_applications(company_id,contract_id,customer_id,document_id,
+          review_sha256,successor_snapshot_id,price_plan_id,price_plan_version_id,price_book_id,
+          fixed_price_ore_per_kwh,effective_on,actor_user_id)
+        VALUES(p_company_id,p_contract_id,p_customer_id,p_document_id,review.receipt_sha256,new_id,
+          (published->>'price_plan_id')::uuid,(published->>'price_plan_version_id')::uuid,(published->>'price_book_id')::uuid,
+          price_ore,review.effective_on,p_actor_user_id) RETURNING * INTO applied;
+        frozen:=(original.snapshot_json-ARRAY['quote_reference','quote_hash','price_option_reference','area_price_reference',
+          'selected_component_references','base_components','price_components','price_book_hash'])
+          ||jsonb_build_object('snapshot_schema','gridex_contract_pricing_v7_signed_receipt',
+            'source','staff_manually_verified_signed_addendum_v1','addendumReviewSha256',review.receipt_sha256,
+            'price_plan_id',applied.price_plan_id,'price_plan_version_id',applied.price_plan_version_id,
+            'price_book_id',applied.price_book_id,'fixed_price_ore_per_kwh',price_ore,'base_price_components_snapshot',components,
+            'price_components_snapshot',original.price_components_snapshot);
+        INSERT INTO public.contract_price_snapshots(id,company_id,contract_id,customer_id,price_plan_id,
+          price_plan_version_id,price_book_id,pricing_model,base_price_components_snapshot,price_components_snapshot,
+          snapshot_json,valid_from,valid_to,source,contract_number,customer_number,snapshot_quality,snapshot_schema_version)
+        VALUES(new_id,p_company_id,p_contract_id,p_customer_id,applied.price_plan_id,applied.price_plan_version_id,
+          applied.price_book_id,'fixed',components,original.price_components_snapshot,frozen,review.effective_on,original.valid_to,
+          'staff_manually_verified_signed_addendum_v1',original.contract_number,original.customer_number,
+          'canonical','gridex_contract_pricing_v7_signed_receipt');
+      END IF;
+      SELECT * INTO successor FROM public.contract_price_snapshots s WHERE (s.company_id,s.contract_id,s.id)
+        =(p_company_id,p_contract_id,applied.successor_snapshot_id);
+      IF NOT FOUND OR NOT gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(successor)
+        OR successor.snapshot_hash<>encode(sha256(convert_to(successor.snapshot_json::text,'UTF8')),'hex') THEN
+        RAISE EXCEPTION 'price_addendum_activation_readback_invalid' USING ERRCODE='23514';
+      END IF;
+      RETURN jsonb_build_object('kind','applied','documentId',source.id,'reviewSha256',review.receipt_sha256,
+        'priceSnapshotId',successor.id,'priceSnapshotSha256',successor.snapshot_hash,
+        'effectiveAt',review.effective_at,'actorUserId',applied.actor_user_id,
+        'activatedAt',applied.activated_at,'existing',replayed);
+    END $$;
+
+--
 -- Name: gridex_actor_has_company_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -60581,7 +65406,8 @@ begin
     on conflict (company_id, customer_id) do update
       set revision = gridex_private.customer_support_quota_guards.revision + 1;
   select * into v_case from public.customer_cases where company_id = p_company_id and customer_id = p_customer_id
-    and id = p_case_id and metadata->>'support_case' = 'true' for update;
+    and id = p_case_id and metadata->>'support_case' = 'true'
+    and source is distinct from 'ediel_inbound_state_machine' for update;
   if not found then raise exception 'support_case_not_found' using errcode = 'P0002'; end if;
   if v_case.status in ('resolved', 'cancelled', 'closed') then
     raise exception 'support_case_closed' using errcode = 'P0001';
@@ -61234,7 +66060,7 @@ CREATE VIEW public.gridex_actionable_data_quality_issues_v WITH (security_invoke
     q.open_key
    FROM (public.data_quality_issues q
      LEFT JOIN public.gridex_data_quality_rule_catalog_v r ON (((r.issue_type = q.issue_type) AND (r.entity_type = q.entity_type))))
-  WHERE ((q.status = 'open'::text) AND COALESCE(public.gridex_data_quality_source_exists_v1(q.company_id, q.entity_type, q.entity_id, COALESCE(r.requires_active, false)), true) AND ((r.issue_type IS NULL) OR gridex_quality.operational_customer_source_v1(q.company_id, q.entity_type, q.entity_id)) AND ((q.period_month IS NULL) OR (q.period_month = (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)));
+  WHERE ((q.status = 'open'::text) AND COALESCE(public.gridex_data_quality_source_exists_v1(q.company_id, q.entity_type, q.entity_id, COALESCE(r.requires_active, false)), true) AND ((r.issue_type IS NULL) OR gridex_quality.operational_customer_source_v1(q.company_id, q.entity_type, q.entity_id)) AND ((q.period_month IS NULL) OR (q.period_month = (date_trunc('month'::text, (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Stockholm'::text)))::date)));
 
 --
 -- Name: metering_points; Type: TABLE; Schema: public; Owner: -
@@ -63659,6 +68485,10 @@ BEGIN
  IF p_actor_user_id IS NULL OR coalesce(p_review_hash,'') !~ '^[0-9a-f]{64}$' THEN
    RAISE EXCEPTION 'invoice_group_approval_input_invalid' USING ERRCODE='22023';
  END IF;
+ IF EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_drafts d
+   WHERE d.company_id=p_company_id AND d.invoice_id=p_invoice_id) THEN
+   RETURN gridex_billing_source.approve_test_price_series_invoice_v1(p_company_id,p_actor_user_id,p_invoice_id,p_review_hash);
+ END IF;
  SELECT * INTO grouped FROM gridex_invoice_groups.drafts g
  WHERE g.company_id=p_company_id AND g.invoice_id=p_invoice_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_review_missing' USING ERRCODE='P0002'; END IF;
@@ -64525,6 +69355,61 @@ begin
   update public.tenant_contract_channels ch set status='ended',updated_at=now() from public.contract_publications p,public.contract_publication_versions v where v.id=o.contract_publication_version_id and p.id=v.contract_publication_id and ch.assignment_id=p.assignment_id and ch.channel='website';
   return to_jsonb(o);
 end $$;
+
+--
+-- Name: gridex_archive_test_contract_price_addendum_v1(uuid, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_archive_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_submission_key uuid, p_document_base64 text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+    DECLARE
+      original record;
+      bytes bytea;
+      digest text;
+      stored gridex_billing_source.test_price_addendum_documents%ROWTYPE;
+      replayed boolean;
+    BEGIN
+      PERFORM gridex_billing_source.require_test_price_addendum_actor_v1(p_company_id,p_actor_user_id);
+      IF p_submission_key IS NULL OR p_document_base64 IS NULL OR length(p_document_base64)>2796204 THEN
+        RAISE EXCEPTION 'price_addendum_document_invalid' USING ERRCODE='22023';
+      END IF;
+      bytes:=decode(p_document_base64,'base64');
+      IF octet_length(bytes) NOT BETWEEN 8 AND 2097152 OR substring(bytes FROM 1 FOR 5)<>convert_to('%PDF-','UTF8')
+        OR replace(encode(bytes,'base64'),E'\n','')<>p_document_base64 THEN
+        RAISE EXCEPTION 'price_addendum_document_invalid' USING ERRCODE='22023';
+      END IF;
+      digest:=encode(sha256(bytes),'hex');
+      SELECT c.signature_snapshot_sha256,s.id,s.snapshot_hash INTO original
+      FROM public.customer_contracts c
+      JOIN public.contract_price_snapshots s
+        ON (s.company_id,s.customer_id,s.contract_id,s.id)=(c.company_id,c.customer_id,c.id,c.contract_price_snapshot_id)
+      WHERE (c.company_id,c.customer_id,c.id)=(p_company_id,p_customer_id,p_contract_id)
+        AND c.status IN ('signed','active') AND gridex_billing_source.has_canonical_signed_series_price_v1(
+          c.company_id,c.customer_id,c.id,s.id,s.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm',
+          (s.valid_from+1)::timestamp AT TIME ZONE 'Europe/Stockholm')
+      FOR UPDATE OF c NOWAIT;
+      IF NOT FOUND THEN RAISE EXCEPTION 'price_addendum_original_signature_required' USING ERRCODE='23514'; END IF;
+
+      SELECT * INTO stored FROM gridex_billing_source.test_price_addendum_documents
+        WHERE (company_id,contract_id,submission_key)=(p_company_id,p_contract_id,p_submission_key);
+      replayed:=FOUND;
+      IF replayed AND (stored.customer_id,stored.document_sha256,stored.original_signature_sha256,stored.original_price_id,stored.original_price_sha256)
+        IS DISTINCT FROM (p_customer_id,digest,original.signature_snapshot_sha256,original.id,original.snapshot_hash) THEN
+        RAISE EXCEPTION 'price_addendum_submission_conflict' USING ERRCODE='23505';
+      END IF;
+      IF NOT replayed THEN
+        INSERT INTO gridex_billing_source.test_price_addendum_documents(
+          company_id,customer_id,contract_id,submission_key,original_price_id,original_signature_sha256,
+          original_price_sha256,document,document_sha256,submitted_by
+        ) VALUES(p_company_id,p_customer_id,p_contract_id,p_submission_key,original.id,original.signature_snapshot_sha256,
+          original.snapshot_hash,bytes,digest,p_actor_user_id) RETURNING * INTO stored;
+      END IF;
+      RETURN jsonb_build_object('kind','pending','documentId',stored.id,'documentSha256',stored.document_sha256,
+        'byteLength',octet_length(stored.document),'existing',replayed);
+    END
+    $$;
 
 --
 -- Name: gridex_assert_area_price_snapshot_unique_v1(); Type: FUNCTION; Schema: public; Owner: -
@@ -67527,6 +72412,10 @@ BEGIN
   WHERE (w.source_id,w.company_id,w.environment,w.payload_sha256)
    =(source.id,source.company_id,source.environment,source.immutable_payload_hash);
   IF FOUND THEN
+
+   IF work.phase='mixed_qualified' THEN
+    RETURN gridex_e66_intake.mixed_e66_seen_proof_v1(work);
+   END IF;
    RETURN (work.phase='complete' AND EXISTS(SELECT FROM gridex_e66_intake.completions d
     WHERE (d.source_id,d.company_id,d.environment,d.source_sha256)
      =(work.source_id,work.company_id,work.environment,work.payload_sha256)))
@@ -69771,6 +74660,53 @@ end;
 $$;
 
 --
+-- Name: gridex_commit_e66_e50_rejection_v1(uuid, text, uuid, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_commit_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE w gridex_e66_intake.work; saved gridex_e66_intake.registration_rejections; tx jsonb; answer jsonb; digest text; raw text;
+DECLARE reason constant text:='UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION';
+BEGIN
+  w:=gridex_e66_intake.require_registration_rejection_claim_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  IF jsonb_typeof(p_transactions) IS DISTINCT FROM 'array' OR jsonb_array_length(p_transactions)<>1 THEN
+    RAISE EXCEPTION 'e66_e50_command_required' USING ERRCODE='22023';
+  END IF;
+  tx:=p_transactions->0;
+  IF nullif(tx->>'transactionId','') IS NULL OR tx->>'disposition' IS DISTINCT FROM 'processability_rejected'
+    OR tx->>'responseType' IS DISTINCT FROM 'utilts_err' OR tx->'issueCodes' IS DISTINCT FROM jsonb_build_array(reason)
+    OR tx#>'{consumptionContract,observations}' IS DISTINCT FROM '[]'::jsonb
+    OR tx#>>'{consumptionContract,metering,capability}' IS DISTINCT FROM 'skip'
+    OR tx#>>'{consumptionContract,billing,capability}' IS DISTINCT FROM 'skip'
+  THEN RAISE EXCEPTION 'e66_e50_command_required' USING ERRCODE='22023'; END IF;
+  digest:=encode(sha256(convert_to(p_transactions::text,'UTF8')),'hex');
+  SELECT * INTO saved FROM gridex_e66_intake.registration_rejections WHERE source_id=p_source;
+  IF FOUND THEN
+    IF (saved.company_id,saved.environment,saved.mailbox_id,saved.reception_id,saved.payload_sha256,saved.command_sha256,saved.transaction_id,saved.rejection_reason)
+      IS DISTINCT FROM (w.company_id,w.environment,w.mailbox_id,w.reception_id,w.payload_sha256,digest,tx->>'transactionId',reason)
+      OR saved.completed_at IS NOT NULL THEN RAISE EXCEPTION 'e66_e50_replay_changed' USING ERRCODE='55000'; END IF;
+  ELSIF gridex_e66_intake.request_upgrade_state_v1(p_source) IS DISTINCT FROM 'qualify_normally' THEN
+    RAISE EXCEPTION 'e66_e50_conflicting_authority' USING ERRCODE='55000';
+  END IF;
+  SELECT raw_payload INTO STRICT raw FROM public.ediel_messages WHERE id=w.source_id;
+  PERFORM gridex_e66_intake.require_e50_original_v1(w.company_id,w.source_id,raw,tx->>'transactionId');
+  answer:=gridex_e66_intake.persist_owned_utilts_v1(p_company,p_environment,p_source,'E66',raw,p_transactions,p_actor);
+  IF NOT EXISTS(SELECT FROM public.ediel_ack_transaction_results a
+    WHERE (a.company_id,a.environment,a.source_message_id,a.source_transaction_id)=(w.company_id,w.environment,w.source_id,tx->>'transactionId')
+      AND a.disposition='processability_rejected' AND a.planned_response_type='utilts_err' AND a.persisted_series_id IS NULL
+      AND (a.final_response_type IS NULL OR a.final_response_type='utilts_err'))
+  THEN RAISE EXCEPTION 'e66_e50_proof_required' USING ERRCODE='55000'; END IF;
+  INSERT INTO gridex_e66_intake.registration_rejections
+    (source_id,reception_id,company_id,environment,mailbox_id,payload_sha256,command_sha256,transaction_id,rejection_reason)
+  VALUES(w.source_id,w.reception_id,w.company_id,w.environment,w.mailbox_id,w.payload_sha256,digest,tx->>'transactionId',reason)
+  ON CONFLICT(source_id) DO NOTHING;
+  RETURN answer;
+END
+$$;
+
+--
 -- Name: gridex_commit_e66_matched_qualification_v1(uuid, text, uuid, uuid, uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -69896,6 +74832,11 @@ CREATE FUNCTION public.gridex_commit_e66_qualification_v1(p_company uuid, p_envi
 DECLARE w gridex_e66_intake.work%rowtype; q gridex_e66_intake.qualified%rowtype;
  source public.ediel_messages%rowtype; command_hash text; tx_id text; series uuid; contract_hash text; native_results jsonb;
 BEGIN
+ IF p_transactions = '{"operation":"hold_sg11_format_review"}'::jsonb THEN
+  RETURN gridex_e66_intake.hold_sg11_format_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_lease)
+    || jsonb_build_object('kind','sg11_format_review');
+ END IF;
  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
  SELECT * INTO w FROM gridex_e66_intake.work x
@@ -70055,6 +74996,21 @@ BEGIN
     request_basis->>'originalHash',(request_basis->>'requestRange')::tstzrange)
   ON CONFLICT(source_id) DO NOTHING;
   RETURN result;
+END
+$$;
+
+--
+-- Name: gridex_commit_mixed_e66_qualification_v1(uuid, text, uuid, uuid, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_commit_mixed_e66_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  PERFORM gridex_e66_intake.require_supported_mixed_source_v1(p_company,p_environment,p_mailbox,p_source,p_actor);
+  RETURN gridex_e66_intake.commit_mixed_qualification_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_lease,p_assessment,p_transactions);
 END
 $$;
 
@@ -73570,6 +78526,10 @@ BEGIN
   IF coalesce(p_review_hash,'') !~ '^[0-9a-f]{64}$' THEN
     RAISE EXCEPTION 'invoice_group_file_scope_invalid' USING ERRCODE='22023';
   END IF;
+  IF EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_drafts series
+    WHERE (series.company_id,series.invoice_id)=(p_company_id,p_invoice_id)) THEN
+    RETURN gridex_billing_source.create_price_series_neutral_file_v1(p_company_id,p_invoice_id,p_actor_user_id,p_review_hash);
+  END IF;
   PERFORM 1 FROM gridex_invoice_groups.drafts
     WHERE company_id=p_company_id AND invoice_id=p_invoice_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_file_not_issued' USING ERRCODE='23514'; END IF;
@@ -73622,6 +78582,21 @@ begin
      or nullif(p_request->>'target_party_type', '') is null
      or jsonb_typeof(v_categories) <> 'array' or jsonb_array_length(v_categories) = 0 then
     raise exception using errcode = '22023', message = 'customer_info_request_payload_invalid';
+  end if;
+  if p_request->>'automation_origin' = 'batch_2b_operations' then
+    if auth.role() is distinct from 'service_role' then
+      raise exception using errcode='42501', message='customer_info_request_service_role_required';
+    end if;
+
+    perform 1 from public.companies c
+    where c.id = p_company_id and c.is_active is distinct from false and c.is_paused is not true
+      and coalesce(c.status,'active') not in
+        ('paused','suspended','inactive','closed','archived','pending_deletion','deleted','deleted_test_only')
+    for share;
+    if not found or
+      public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'customers.write') is distinct from true then
+      raise exception using errcode='42501', message='customer_info_request_batch2b_actor_or_company_forbidden';
+    end if;
   end if;
   if not exists (select 1 from public.customers where id = v_customer_id and company_id = p_company_id) then
     raise exception using errcode = 'P0002', message = 'customer_not_found_for_company';
@@ -76644,31 +81619,44 @@ CREATE FUNCTION public.gridex_customer_portfolio_assert_read(p_company_id uuid) 
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
-declare
+DECLARE
   v_platform_id uuid;
-begin
-  if p_company_id is null then
-    raise exception 'company_id is required' using errcode = '22023';
-  end if;
+BEGIN
+  IF p_company_id IS NULL THEN
+    RAISE EXCEPTION 'company_id is required' USING ERRCODE = '22023';
+  END IF;
 
-  if coalesce(auth.role(), '') = 'service_role' then
-    return;
-  end if;
+  IF coalesce(auth.role(), '') = 'service_role' THEN
+    RETURN;
+  END IF;
 
-  if public.gridex_can_read_company(p_company_id) then
-    return;
-  end if;
+  IF public.gridex_can_read_company(p_company_id) THEN
+    RETURN;
+  END IF;
 
-  select c.white_label_platform_id into v_platform_id
-  from public.companies c
-  where c.id = p_company_id;
+  IF pg_catalog.to_regclass('public.white_label_platforms') IS NOT NULL
+    AND pg_catalog.to_regclass('public.white_label_platform_memberships') IS NOT NULL
+    AND EXISTS (
+      SELECT FROM pg_catalog.pg_attribute a
+      WHERE a.attrelid = 'public.companies'::regclass
+        AND a.attname = 'white_label_platform_id'
+        AND a.attnum > 0
+        AND NOT a.attisdropped
+    )
+  THEN
+    SELECT c.white_label_platform_id INTO v_platform_id
+    FROM public.companies c
+    WHERE c.id = p_company_id;
 
-  if v_platform_id is not null and public.gridex_user_can_read_whitelabel_platform(v_platform_id) then
-    return;
-  end if;
+    IF v_platform_id IS NOT NULL
+      AND public.gridex_user_can_read_whitelabel_platform(v_platform_id)
+    THEN
+      RETURN;
+    END IF;
+  END IF;
 
-  raise exception 'Not allowed to read portfolio for this company' using errcode = '42501';
-end;
+  RAISE EXCEPTION 'Not allowed to read portfolio for this company' USING ERRCODE = '42501';
+END;
 $$;
 
 --
@@ -81479,6 +86467,180 @@ $$;
 COMMENT ON FUNCTION public.gridex_enqueue_signed_contract_operation_v1() IS 'Atomic signed-contract bridge into existing readiness/supplier-switch/outbound automation; candidate site scope is fail-closed.';
 
 --
+-- Name: gridex_ensure_billing_export_blocker_task_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ensure_billing_export_blocker_task_v1(p_company_id uuid, p_item_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET lock_timeout TO '5s'
+    AS $$
+DECLARE
+  item record;
+  task record;
+  run_id uuid;
+  run_status text;
+  candidate_ids uuid[];
+  task_id uuid;
+  item_key text;
+  automation_key text;
+  outcome text;
+  hold_reason text;
+  linked boolean:=false;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'billing_export_blocker_service_role_required' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_item_id IS NULL OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'billing_export_blocker_command_invalid' USING ERRCODE='22023';
+  END IF;
+
+  PERFORM 1 FROM public.companies
+  WHERE id=p_company_id AND is_active IS DISTINCT FROM false AND is_paused IS NOT TRUE
+    AND coalesce(status,'active') NOT IN
+      ('paused','suspended','inactive','closed','archived','pending_deletion','deleted','deleted_test_only')
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'billing_export_blocker_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+  IF (
+    public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export')
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'cases.write')
+  ) IS DISTINCT FROM true THEN
+    IF (
+      public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write')
+      OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'customers.write')
+    ) IS TRUE THEN
+      RETURN jsonb_build_object('itemId',p_item_id,'outcome','held','taskId',null,
+        'taskCreated',false,'linked',false,'reason','capability_required');
+    END IF;
+    RAISE EXCEPTION 'billing_export_blocker_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  -- The run is locked before the item, like the existing export/result writers.
+  SELECT i.billing_export_run_id INTO run_id FROM public.billing_export_run_items i
+  WHERE i.company_id=p_company_id AND i.id=p_item_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'billing_export_blocker_item_not_found' USING ERRCODE='P0002';
+  END IF;
+  SELECT r.status INTO run_status FROM public.billing_export_runs r
+  WHERE r.company_id=p_company_id AND r.id=run_id FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'billing_export_blocker_run_scope_changed' USING ERRCODE='23514';
+  END IF;
+  SELECT * INTO item FROM public.billing_export_run_items
+  WHERE company_id=p_company_id AND id=p_item_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'billing_export_blocker_item_not_found' USING ERRCODE='P0002';
+  END IF;
+  IF item.billing_export_run_id IS DISTINCT FROM run_id
+    OR (item.export_run_id IS NOT NULL AND item.export_run_id<>run_id) THEN
+    RAISE EXCEPTION 'billing_export_blocker_run_scope_changed' USING ERRCODE='23514';
+  END IF;
+
+  IF item.status<>'blocked' OR item.export_status IN ('queued','sent','acknowledged')
+    OR item.partner_result_type='accepted' OR run_status='cancelled' THEN
+    hold_reason:='not_blocked';
+  ELSIF item.customer_id IS NULL THEN
+    hold_reason:='customer_unbound';
+  END IF;
+  IF hold_reason IS NOT NULL THEN
+    RETURN jsonb_build_object('itemId',p_item_id,'outcome','held','taskId',null,
+      'taskCreated',false,'linked',false,'reason',hold_reason);
+  END IF;
+
+  -- A customer-level blocker can legitimately lack a site, meter or contract.
+  IF NOT EXISTS (SELECT FROM public.customers c
+      WHERE c.company_id=item.company_id AND c.id=item.customer_id)
+    OR (item.site_id IS NOT NULL AND NOT EXISTS (SELECT FROM public.customer_sites s
+      WHERE s.company_id=item.company_id AND s.id=item.site_id AND s.customer_id=item.customer_id))
+    OR (item.metering_point_id IS NOT NULL AND NOT EXISTS (
+      SELECT FROM public.metering_points m
+      LEFT JOIN public.customer_sites s ON s.id=coalesce(m.customer_site_id,m.site_id)
+        AND s.company_id=m.company_id
+      WHERE m.company_id=item.company_id AND m.id=item.metering_point_id
+        AND (m.customer_id IS NOT NULL OR s.customer_id IS NOT NULL)
+        AND (m.customer_id IS NULL OR m.customer_id=item.customer_id)
+        AND (coalesce(m.customer_site_id,m.site_id) IS NULL OR s.customer_id=item.customer_id)
+        AND (m.site_id IS NULL OR m.customer_site_id IS NULL OR m.site_id=m.customer_site_id)
+        AND (item.site_id IS NULL OR coalesce(m.customer_site_id,m.site_id)=item.site_id)))
+    OR (item.contract_id IS NOT NULL AND NOT EXISTS (SELECT FROM public.customer_contracts c
+      WHERE c.company_id=item.company_id AND c.id=item.contract_id AND c.customer_id=item.customer_id))
+    OR (item.billing_underlay_id IS NOT NULL AND NOT EXISTS (SELECT FROM public.billing_underlays u
+      WHERE u.company_id=item.company_id AND u.id=item.billing_underlay_id AND u.customer_id=item.customer_id)) THEN
+    RAISE EXCEPTION 'billing_export_blocker_item_scope_changed' USING ERRCODE='23514';
+  END IF;
+
+  item_key:=item.id::text;
+  automation_key:='billing-export-blocker:'||item_key;
+  SELECT array_agg(matched.id) INTO candidate_ids FROM (
+    SELECT t.id FROM public.customer_operation_tasks t
+    WHERE t.company_id=item.company_id AND t.customer_id=item.customer_id
+      AND t.task_type='billing_export_blocker'
+      AND (t.metadata->>'exportRunItemId'=item_key OR t.metadata->>'billingExportRunItemId'=item_key
+        OR t.metadata->>'automationKey'=automation_key)
+    ORDER BY t.id LIMIT 2 FOR UPDATE
+  ) matched;
+  IF coalesce(cardinality(candidate_ids),0)>1 THEN
+    RAISE EXCEPTION 'billing_export_blocker_task_ambiguous' USING ERRCODE='23514';
+  END IF;
+  task_id:=coalesce(item.blocker_case_id,candidate_ids[1]);
+  IF task_id IS NOT NULL THEN
+    SELECT * INTO task FROM public.customer_operation_tasks
+    WHERE company_id=item.company_id AND id=task_id FOR UPDATE;
+    IF NOT FOUND OR task.id IS DISTINCT FROM candidate_ids[1] OR task.customer_id IS DISTINCT FROM item.customer_id
+      OR task.site_id IS DISTINCT FROM item.site_id OR task.metering_point_id IS DISTINCT FROM item.metering_point_id
+      OR task.task_type IS DISTINCT FROM 'billing_export_blocker'
+      OR (task.metadata->>'source' IS NOT DISTINCT FROM 'billing_export_blocker'
+        AND (task.metadata->>'exportRunItemId',task.metadata->>'exportRunId') IS DISTINCT FROM (item_key,run_id::text))
+      OR (task.metadata->>'source' IS NOT DISTINCT FROM 'batch_2b_operations'
+        AND (task.metadata->>'billingExportRunItemId',task.metadata->>'automationKey') IS DISTINCT FROM (item_key,automation_key))
+      OR (coalesce(task.metadata->>'source','') NOT IN ('billing_export_blocker','batch_2b_operations'))
+      OR (task.metadata ? 'billingExportRunItemId' AND task.metadata->>'billingExportRunItemId' IS DISTINCT FROM item_key)
+      OR (task.metadata ? 'exportRunItemId' AND task.metadata->>'exportRunItemId' IS DISTINCT FROM item_key)
+      OR (task.metadata ? 'automationKey' AND task.metadata->>'automationKey' IS DISTINCT FROM automation_key)
+      OR (task.metadata ? 'exportRunId' AND task.metadata->>'exportRunId' IS DISTINCT FROM run_id::text)
+      OR (task.metadata ? 'billingUnderlayId' AND task.metadata->>'billingUnderlayId' IS DISTINCT FROM item.billing_underlay_id::text)
+      OR (task.metadata ? 'contractId' AND task.metadata->>'contractId' IS DISTINCT FROM item.contract_id::text) THEN
+      RAISE EXCEPTION 'billing_export_blocker_task_scope_changed' USING ERRCODE='23514';
+    END IF;
+    IF task.status NOT IN ('open','in_progress','blocked') THEN
+      RETURN jsonb_build_object('itemId',p_item_id,'outcome','held','taskId',task_id,
+        'taskCreated',false,'linked',false,'reason','task_terminal');
+    END IF;
+    outcome:='reused';
+  ELSE
+    INSERT INTO public.customer_operation_tasks
+      (company_id,customer_id,site_id,metering_point_id,task_type,status,priority,title,description,
+       metadata,created_by,updated_by)
+    VALUES (item.company_id,item.customer_id,item.site_id,item.metering_point_id,'billing_export_blocker','open','high',
+      'Faktureringsrad blockerad','Faktureringsunderlaget behöver granskas innan den här raden kan exporteras.',
+      jsonb_build_object('reasonCategory','billing_export_blocker','billingBlocked',true,'billingManualReview',true,
+        'nextAction','Granska blockeraren i faktureringsunderlaget och kör om den berörda raden.',
+        'source','billing_export_blocker','contractId',item.contract_id,'exportRunId',run_id,
+        'exportRunItemId',item.id,'billingExportRunItemId',item.id,'billingUnderlayId',item.billing_underlay_id,
+        'automationKey',automation_key),
+      p_actor_user_id,p_actor_user_id)
+    RETURNING id INTO task_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'billing_export_blocker_task_insert_missing' USING ERRCODE='23514';
+    END IF;
+    outcome:='created';
+  END IF;
+  IF item.blocker_case_id IS NULL THEN
+    UPDATE public.billing_export_run_items SET blocker_case_id=task_id,updated_at=clock_timestamp()
+    WHERE company_id=item.company_id AND id=item.id AND blocker_case_id IS NULL;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'billing_export_blocker_task_link_missing' USING ERRCODE='23514';
+    END IF;
+    linked:=true;
+  END IF;
+  RETURN jsonb_build_object('itemId',p_item_id,'outcome',outcome,'taskId',task_id,
+    'taskCreated',outcome='created','linked',linked,'reason',null);
+END
+$$;
+
+--
 -- Name: gridex_ensure_internal_contract_publication(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -82065,8 +87227,13 @@ begin
   v_snapshot_area:=upper(nullif(btrim(new.snapshot_json->>'price_area'),''));
   if v_snapshot_area is not null and v_snapshot_area not in ('SE1','SE2','SE3','SE4') then raise exception using errcode='23514',message='contract_snapshot_price_area_invalid'; end if;
   if v_snapshot_area is not null and v_area is not null and v_snapshot_area<>v_area then raise exception using errcode='23514',message='contract_snapshot_price_area_mismatch'; end if;
+  IF new.source='staff_manually_verified_signed_addendum_v1'
+    AND gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(new) IS NOT TRUE THEN
+    RAISE EXCEPTION 'price_addendum_snapshot_native_authority_required' USING ERRCODE='23514';
+  END IF;
   v_snapshot_ppv:=nullif(new.snapshot_json->>'price_plan_version_id','')::uuid;
-  if v_snapshot_ppv is not null and v_contract.price_plan_version_id is not null and v_snapshot_ppv<>v_contract.price_plan_version_id then raise exception using errcode='23514',message='contract_snapshot_price_plan_version_mismatch'; end if;
+  if v_snapshot_ppv is not null and v_contract.price_plan_version_id is not null and v_snapshot_ppv<>v_contract.price_plan_version_id
+    AND new.source IS DISTINCT FROM 'staff_manually_verified_signed_addendum_v1' then raise exception using errcode='23514',message='contract_snapshot_price_plan_version_mismatch'; end if;
   new.price_plan_id:=coalesce(new.price_plan_id,v_contract.price_plan_id);
   new.price_plan_version_id:=coalesce(new.price_plan_version_id,v_contract.price_plan_version_id);
   new.price_book_id:=coalesce(new.price_book_id,v_contract.price_book_id);
@@ -84410,6 +89577,74 @@ end
 $$;
 
 --
+-- Name: gridex_finalize_utilts_transaction_ack_v1(uuid, text, uuid, text, text, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finalize_utilts_transaction_ack_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_response_type text, p_response_message_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid, p_mailbox_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  result public.ediel_ack_transaction_results;
+  recovery jsonb;
+  finalization_time timestamptz;
+BEGIN
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'utilts_transaction_ack_finalizer_forbidden' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_source_message_id IS NULL OR p_response_message_id IS NULL
+    OR nullif(p_transaction_id,'') IS NULL OR (p_environment IN ('test','production')) IS NOT TRUE
+    OR (p_response_type IN ('positive_aperak','negative_aperak','utilts_err')) IS NOT TRUE
+  THEN RAISE EXCEPTION 'utilts_transaction_ack_finalizer_invalid_scope' USING ERRCODE='22023'; END IF;
+
+  -- Take the same graph before obtaining the target ledger row as normalization does.
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF EXISTS (
+    SELECT FROM gridex_e66_intake.work w
+    WHERE (w.source_id,w.company_id,w.environment)=(p_source_message_id,p_company_id,p_environment)
+      AND w.phase='mixed_qualified'
+  ) THEN
+    IF p_actor_user_id IS NULL OR p_mailbox_id IS NULL OR p_response_type NOT IN ('positive_aperak','utilts_err') THEN
+      RAISE EXCEPTION 'mixed_finalizer_scope_required' USING ERRCODE='42501';
+    END IF;
+    IF p_response_type='utilts_err' THEN
+      IF NOT EXISTS(SELECT FROM gridex_e66_intake.mixed_e50_finalize_context ctx
+        WHERE (ctx.tx,ctx.source_id,ctx.transaction_id,ctx.actor_id,ctx.mailbox_id,ctx.response_id)
+          =(pg_current_xact_id_if_assigned(),p_source_message_id,p_transaction_id,p_actor_user_id,p_mailbox_id,p_response_message_id))
+      THEN RAISE EXCEPTION 'mixed_e50_finalizer_context_required' USING ERRCODE='42501'; END IF;
+    ELSE
+    recovery:=gridex_e66_intake.read_mixed_positive_recovery_v1(
+      p_company_id,p_environment,p_mailbox_id,p_source_message_id,p_actor_user_id,p_transaction_id);
+    IF (recovery->>'status' IN ('recovered_draft','already_finalized')) IS NOT TRUE
+      OR recovery->>'ackId' IS DISTINCT FROM p_response_message_id::text
+    THEN RAISE EXCEPTION 'mixed_finalization_not_ready: %',coalesce(recovery->>'reason','native_draft_mismatch')
+      USING ERRCODE='55000'; END IF;
+    END IF;
+  END IF;
+
+  finalization_time:=clock_timestamp();
+  UPDATE public.ediel_ack_transaction_results a SET
+    final_response_type=p_response_type,
+    response_message_id=p_response_message_id,
+    finalized_at=finalization_time,
+    updated_at=finalization_time
+  WHERE (a.company_id,a.environment,a.source_message_id,a.source_transaction_id)
+    =(p_company_id,p_environment,p_source_message_id,p_transaction_id)
+    AND a.finalized_at IS NULL
+  RETURNING a.* INTO result;
+  IF FOUND THEN RETURN jsonb_build_object('status','finalized','responseMessageId',result.response_message_id); END IF;
+
+  SELECT a.* INTO result FROM public.ediel_ack_transaction_results a
+  WHERE (a.company_id,a.environment,a.source_message_id,a.source_transaction_id)
+    =(p_company_id,p_environment,p_source_message_id,p_transaction_id);
+  IF result.finalized_at IS NOT NULL
+    AND (result.final_response_type,result.response_message_id)=(p_response_type,p_response_message_id)
+  THEN RETURN jsonb_build_object('status','already_finalized','responseMessageId',result.response_message_id); END IF;
+  RETURN jsonb_build_object('status','conflict');
+END
+$$;
+
+--
 -- Name: gridex_finalize_website_contract_signature(uuid, uuid, uuid, uuid, text, timestamp with time zone, jsonb, jsonb, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -84916,6 +90151,10 @@ BEGIN
     (p_outcome='cancelled' AND (reason_value IS NULL OR char_length(reason_value)>1000)) THEN
     RAISE EXCEPTION 'invoice_group_issue_input_invalid' USING ERRCODE='22023';
   END IF;
+  IF EXISTS(SELECT FROM gridex_billing_source.price_series_invoice_drafts series
+    WHERE (series.company_id,series.invoice_id)=(p_company_id,p_invoice_id)) THEN
+    RETURN gridex_billing_source.finish_test_price_series_invoice_v1(p_company_id,p_invoice_id,p_actor_user_id,p_review_hash,p_outcome);
+  END IF;
   SELECT * INTO draft FROM gridex_invoice_groups.drafts g
     WHERE g.company_id=p_company_id AND g.invoice_id=p_invoice_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_review_missing' USING ERRCODE='P0002'; END IF;
@@ -85137,6 +90376,17 @@ BEGIN
  IF (w.reception_id,w.company_id,w.environment,w.mailbox_id,w.mail_id,w.payload_sha256) IS DISTINCT FROM
     ((receipt->>'receptionId')::uuid,p_company,p_environment,p_mailbox,mail_id,receipt->>'canonicalPayloadHash')
  THEN RAISE EXCEPTION 'e66_bridge_work_scope_changed'; END IF;
+
+ IF EXISTS (SELECT FROM gridex_e66_intake.sg11_compatibility_holds WHERE source_id=p_message) THEN
+  IF NOT EXISTS (SELECT FROM gridex_e66_intake.sg11_compatibility_holds h WHERE
+    (h.source_id,h.company_id,h.environment,h.mailbox_id,h.reception_id,h.source_sha256)
+     =(w.source_id,w.company_id,w.environment,w.mailbox_id,w.reception_id,w.payload_sha256))
+   OR w.phase IS DISTINCT FROM 'qualification'
+   OR w.lease_token IS NOT NULL THEN
+   RAISE EXCEPTION 'e66_sg11_native_handoff_review_changed' USING ERRCODE='55000';
+  END IF;
+  UPDATE gridex_e66_intake.work SET phase='sg11_format_review' WHERE source_id=p_message;
+ END IF;
  ts:=clock_timestamp();
  UPDATE public.inbound_processing_jobs SET status=p_outcome,step=CASE p_outcome WHEN 'done' THEN 'processed' ELSE 'manual_review' END,
    locked_at=NULL,locked_by=NULL,finished_at=ts,updated_at=ts,error_message=NULL,
@@ -85150,6 +90400,51 @@ BEGIN
  INSERT INTO gridex_e66_intake.handoffs VALUES(p_job,p_message,w.reception_id,p_actor,p_worker,p_claimed_at,p_outcome);
  RETURN jsonb_build_object('sourceId',p_message,'classificationStatus',p_outcome,'replayed',false);
 END $$;
+
+--
+-- Name: gridex_finish_e66_e50_rejection_v1(uuid, text, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE w gridex_e66_intake.work; saved gridex_e66_intake.registration_rejections; ack public.ediel_messages; tokens jsonb;
+BEGIN
+  w:=gridex_e66_intake.require_registration_rejection_claim_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  SELECT * INTO saved FROM gridex_e66_intake.registration_rejections
+  WHERE (source_id,reception_id,company_id,environment,mailbox_id,payload_sha256)
+    =(w.source_id,w.reception_id,w.company_id,w.environment,w.mailbox_id,w.payload_sha256)
+    AND rejection_reason='UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION' AND completed_at IS NULL FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'e66_e50_proof_required' USING ERRCODE='55000'; END IF;
+  SELECT m.* INTO ack FROM public.ediel_ack_transaction_results a JOIN public.ediel_messages m
+    ON (m.company_id,m.environment,m.id)=(a.company_id,a.environment,a.response_message_id)
+  WHERE (a.company_id,a.environment,a.source_message_id,a.source_transaction_id)
+      =(saved.company_id,saved.environment,saved.source_id,saved.transaction_id)
+    AND a.disposition='processability_rejected' AND a.planned_response_type='utilts_err' AND a.final_response_type='utilts_err'
+    AND a.finalized_at IS NOT NULL AND a.persisted_series_id IS NULL
+    AND (m.direction,m.message_standard,m.message_family,m.related_message_id)=('outbound','edifact','UTILTS_ERR',saved.source_id)
+    AND m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  FOR SHARE OF a,m;
+  tokens:=gridex_utilts_binding.wire_tokens_v1(ack.raw_payload);
+  IF ack.id IS NULL OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t
+      WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='ERR')
+    OR (SELECT jsonb_agg(jsonb_build_array(t#>'{elements,1}',t#>'{elements,2}',t#>'{elements,3}'))
+      FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='E01')
+      IS DISTINCT FROM '[[["E01","","260"],["41"],["E50","","260"]]]'::jsonb
+    OR (SELECT jsonb_agg(t#>>'{elements,1,1}') FROM jsonb_array_elements(tokens) t
+      WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='TN') IS DISTINCT FROM jsonb_build_array(saved.transaction_id)
+  THEN RAISE EXCEPTION 'e66_e50_canonical_err_required' USING ERRCODE='55000'; END IF;
+  UPDATE gridex_e66_intake.registration_rejections SET response_message_id=ack.id,
+    response_sha256=ack.immutable_payload_hash,completed_at=clock_timestamp() WHERE source_id=saved.source_id;
+  INSERT INTO public.ediel_message_events(company_id,ediel_message_id,event_type,event_status,message,payload,created_by)
+  VALUES(w.company_id,w.source_id,'validated','warning','E66-leveransperioden slutar efter registreringstiden.',
+    jsonb_build_object('reason',saved.rejection_reason,'responseMessageId',ack.id),p_actor);
+  UPDATE gridex_e66_intake.work SET phase='registration_rejected',lease_actor=NULL,lease_token=NULL,lease_until=NULL
+    WHERE source_id=w.source_id;
+  RETURN ack.id;
+END
+$$;
 
 --
 -- Name: gridex_finish_e66_registration_rejection_v1(uuid, text, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -85203,6 +90498,83 @@ BEGIN
   RETURN ack.id;
 END
 $$;
+
+--
+-- Name: gridex_finish_e66_technical_rejection_v1(uuid, text, uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_e66_technical_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_ack uuid) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE w gridex_e66_intake.work; prior gridex_e66_intake.technical_rejections;
+  owned jsonb; source_wire text; tokens jsonb; unt_value text; own_unh integer; own_unt integer; owned_ack_hash text;
+BEGIN
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role' OR p_lease IS NULL OR p_ack IS NULL THEN
+    RAISE EXCEPTION 'e66_technical_rejection_scope_required' USING ERRCODE='42501';
+  END IF;
+
+  -- Acquire the existing technical read owner's locks before the durable
+  -- graph, and require a protected reply for the exact current actor.
+  owned:=gridex_ediel_technical_ack.read_persisted_contrl_v2(p_company,p_environment,p_ack,p_actor,'prepare');
+  owned_ack_hash:=owned#>>'{ackMessage,immutable_payload_hash}';
+  IF owned#>>'{technicalSyntaxAckEvidence,syntaxDecision}' IS DISTINCT FROM 'rejected'
+    OR owned#>>'{technicalSyntaxAckEvidence,sourceMessageId}' IS DISTINCT FROM p_source::text
+    OR owned#>>'{ackMessage,id}' IS DISTINCT FROM p_ack::text
+    OR owned#>>'{ackMessage,related_message_id}' IS DISTINCT FROM p_source::text
+    OR owned_ack_hash IS DISTINCT FROM encode(sha256(convert_to(owned#>>'{ackMessage,raw_payload}','UTF8')),'hex')
+    OR NOT coalesce(owned_ack_hash ~ '^[0-9a-f]{64}$',false)
+  THEN RAISE EXCEPTION 'e66_technical_rejection_ack_required' USING ERRCODE='55000'; END IF;
+
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  SELECT * INTO w FROM gridex_e66_intake.work WHERE source_id=p_source FOR UPDATE;
+  IF w.source_id IS NULL OR (w.company_id,w.environment,w.mailbox_id) IS DISTINCT FROM (p_company,p_environment,p_mailbox)
+    OR w.payload_sha256 IS DISTINCT FROM owned#>>'{technicalSyntaxAckEvidence,sourceHash}'
+  THEN RAISE EXCEPTION 'e66_technical_rejection_scope_changed' USING ERRCODE='42501'; END IF;
+
+  SELECT * INTO prior FROM gridex_e66_intake.technical_rejections WHERE source_id=p_source;
+  IF FOUND THEN
+    IF w.phase IS DISTINCT FROM 'technical_rejected'
+      OR (prior.reception_id,prior.company_id,prior.environment,prior.mailbox_id,prior.payload_sha256,
+        prior.actor_id,prior.lease_token,prior.ack_id,prior.ack_sha256) IS DISTINCT FROM
+        (w.reception_id,p_company,p_environment,p_mailbox,w.payload_sha256,p_actor,p_lease,p_ack,owned_ack_hash)
+    THEN RAISE EXCEPTION 'e66_technical_rejection_replay_conflict' USING ERRCODE='55000'; END IF;
+    RETURN p_ack;
+  END IF;
+  w:=gridex_e66_intake.require_registration_rejection_claim_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_lease);
+  SELECT raw_payload INTO STRICT source_wire FROM public.ediel_messages WHERE id=p_source;
+  IF NOT EXISTS (
+    SELECT FROM gridex_ediel_technical_ack.syntax_facets f WHERE f.source_message_id=w.source_id
+      AND f.company_id=w.company_id AND f.environment=w.environment AND f.payload_sha256=w.payload_sha256
+      AND f.facts_text::jsonb->>'syntaxDecision'='rejected'
+      AND (f.facts_text::jsonb->'reasonCodes') ? 'unt_count_mismatch'
+  ) THEN RAISE EXCEPTION 'e66_technical_rejection_syntax_receipt_required' USING ERRCODE='55000'; END IF;
+
+  tokens:=gridex_utilts_binding.wire_tokens_v1(source_wire);
+  IF (SELECT count(*) FROM jsonb_array_elements(tokens) s WHERE s->>'tag'='UNH')<>1
+    OR (SELECT count(*) FROM jsonb_array_elements(tokens) s WHERE s->>'tag'='UNT')<>1
+  THEN RAISE EXCEPTION 'e66_technical_rejection_own_message_required' USING ERRCODE='55000'; END IF;
+  SELECT ordinal INTO own_unh FROM jsonb_array_elements(tokens) WITH ORDINALITY AS s(token,ordinal)
+  WHERE token->>'tag'='UNH' AND token#>>'{elements,2,0}'='UTILTS';
+  SELECT ordinal,token#>>'{elements,1,0}' INTO own_unt,unt_value
+  FROM jsonb_array_elements(tokens) WITH ORDINALITY AS s(token,ordinal) WHERE token->>'tag'='UNT';
+  IF own_unh IS NULL OR own_unt<=own_unh OR NOT coalesce(unt_value ~ '^[0-9]{1,6}$',false)
+
+  THEN RAISE EXCEPTION 'e66_technical_rejection_unt_mismatch_required' USING ERRCODE='55000'; END IF;
+
+  IF own_unt-own_unh+1=unt_value::integer THEN
+    RAISE EXCEPTION 'e66_technical_rejection_unt_mismatch_required' USING ERRCODE='55000';
+  END IF;
+
+  INSERT INTO gridex_e66_intake.technical_rejections(source_id,reception_id,company_id,environment,mailbox_id,
+    payload_sha256,actor_id,lease_token,ack_id,ack_sha256)
+  VALUES(w.source_id,w.reception_id,w.company_id,w.environment,w.mailbox_id,w.payload_sha256,p_actor,p_lease,p_ack,owned_ack_hash);
+  UPDATE gridex_e66_intake.work SET phase='technical_rejected',lease_actor=NULL,lease_token=NULL,lease_until=NULL
+  WHERE source_id=w.source_id;
+  RETURN p_ack;
+END
+$_$;
 
 --
 -- Name: gridex_finish_monthly_billing_run_v1(uuid, text, uuid, uuid, uuid, text, integer, integer, integer, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -88680,6 +94052,21 @@ begin
 end $_$;
 
 --
+-- Name: gridex_hold_prelinked_mixed_e66_v1(uuid, text, uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_hold_prelinked_mixed_e66_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  PERFORM gridex_e66_intake.require_supported_mixed_source_v1(p_company,p_environment,p_mailbox,p_source,p_actor);
+  RETURN gridex_e66_intake.hold_prelinked_mixed_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_lease,p_assessment);
+END
+$$;
+
+--
 -- Name: gridex_identity_request_staff_origin_immutable_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -90329,6 +95716,10 @@ BEGIN
   JOIN public.customers c ON c.company_id=g.company_id AND c.id=g.customer_id
   LEFT JOIN gridex_invoice_groups.approvals a ON a.company_id=g.company_id AND a.invoice_id=g.invoice_id
   LEFT JOIN gridex_invoice_groups.issue_outcomes o ON o.company_id=g.company_id AND o.invoice_id=g.invoice_id;
+  SELECT coalesce(jsonb_agg(row ORDER BY row->>'invoiceId'),'[]'::jsonb) INTO items FROM (
+    SELECT row FROM jsonb_array_elements(items || gridex_billing_source.list_test_price_series_reviews_v1(
+      p_company_id,p_billing_month,p_customer_id,p_after_invoice_id)) row ORDER BY row->>'invoiceId' LIMIT 21
+  ) combined;
   RETURN items;
 END
 $_$;
@@ -90460,6 +95851,69 @@ CREATE FUNCTION public.gridex_list_due_invoice_export_period_reconciliations_v1(
    AND (j.reason IS NULL OR j.updated_at<=now()-interval '30 seconds')
  ORDER BY j.updated_at,j.company_id,j.file_id
  LIMIT greatest(1,least(coalesce(p_limit,10),50));
+$$;
+
+--
+-- Name: gridex_list_due_legacy_supply_end_followups_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_list_due_legacy_supply_end_followups_v1(p_company_id uuid, p_actor_user_id uuid) RETURNS TABLE(company_id uuid, source_message_id uuid, supply_period_id uuid)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  scan_key text:='legacy:'||coalesce(p_company_id::text,'all')||':'||p_actor_user_id::text;
+  cursor_row gridex_received_sources.supply_end_followup_scan_positions%rowtype;
+  selected record;
+BEGIN
+  IF p_actor_user_id IS NULL OR NOT EXISTS(
+    SELECT FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active'
+  ) OR NOT EXISTS(
+    SELECT FROM public.company_memberships cm
+    WHERE cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+      AND (p_company_id IS NULL OR cm.company_id=p_company_id)
+      AND public.gridex_actor_has_company_permission(p_actor_user_id,cm.company_id,'metering.write') IS TRUE
+  ) THEN RETURN; END IF;
+  INSERT INTO gridex_received_sources.supply_end_followup_scan_positions(scope_key) VALUES(scan_key) ON CONFLICT DO NOTHING;
+  SELECT * INTO STRICT cursor_row FROM gridex_received_sources.supply_end_followup_scan_positions
+    WHERE scope_key=scan_key FOR UPDATE;
+  FOR pass IN 1..2 LOOP
+    WITH eligible AS MATERIALIZED (
+      SELECT DISTINCT cm.company_id
+      FROM public.company_memberships cm
+      WHERE cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+        AND (p_company_id IS NULL OR cm.company_id=p_company_id)
+        AND public.gridex_actor_has_company_permission(p_actor_user_id,cm.company_id,'metering.write') IS TRUE
+    )
+    SELECT p.company_id,p.source_end_message_id,p.id,p.market_end_at INTO selected
+    FROM eligible
+    JOIN public.customer_supply_periods p ON p.company_id=eligible.company_id
+    JOIN gridex_received_sources.supply_source_transitions transition
+      ON transition.company_id=p.company_id AND transition.source_message_id=p.source_end_message_id
+    WHERE p.status='ended' AND isfinite(p.market_end_at) AND p.market_end_at<=now()
+      AND transition.source_code='Z05'
+      AND (cursor_row.last_end_at IS NULL OR (p.market_end_at,p.id)>(cursor_row.last_end_at,cursor_row.last_receipt))
+      AND NOT EXISTS(SELECT FROM gridex_received_sources.legacy_supply_end_cases projected
+        WHERE projected.company_id=p.company_id AND projected.source_message_id=p.source_end_message_id
+          AND projected.supply_period_id=p.id)
+      AND NOT EXISTS(SELECT FROM gridex_received_sources.supply_object_partitions own
+        WHERE own.company_id=p.company_id AND own.source_message_id=p.source_end_message_id)
+      AND NOT EXISTS(SELECT FROM gridex_received_sources.supply_object_effect_receipts own
+        WHERE own.company_id=p.company_id AND own.source_message_id=p.source_end_message_id)
+      AND NOT EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones gone
+        WHERE gone.company_id=p.company_id AND gone.message_id=p.source_end_message_id)
+    ORDER BY p.market_end_at,p.id LIMIT 1;
+    EXIT WHEN selected.id IS NOT NULL OR cursor_row.last_end_at IS NULL;
+    cursor_row.last_end_at:=NULL;
+    cursor_row.last_receipt:=NULL;
+  END LOOP;
+  UPDATE gridex_received_sources.supply_end_followup_scan_positions
+    SET last_end_at=selected.market_end_at,last_receipt=selected.id WHERE scope_key=scan_key;
+  IF selected.id IS NOT NULL THEN
+    RETURN QUERY SELECT selected.company_id,selected.source_end_message_id,selected.id;
+  END IF;
+END
 $$;
 
 --
@@ -90680,6 +96134,74 @@ $$;
 COMMENT ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uuid, p_customer_type text) IS 'Tenant-scoped external feed for contracts published to the api channel.';
 
 --
+-- Name: gridex_list_held_e66_technical_imap_uids_v1(uuid, text, timestamp with time zone, text, text, bigint, bigint[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_list_held_e66_technical_imap_uids_v1(p_mailbox uuid, p_worker text, p_claimed_at timestamp with time zone, p_scope text, p_folder text, p_validity bigint, p_uids bigint[]) RETURNS bigint[]
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE box public.ediel_mailboxes;
+BEGIN
+  IF current_setting('role',true) IS DISTINCT FROM 'service_role'
+    OR coalesce(cardinality(p_uids),0) NOT BETWEEN 1 AND 256
+    OR NOT coalesce(p_scope ~ '^[a-f0-9]{64}$',false)
+    OR nullif(btrim(p_folder),'') IS NULL OR octet_length(p_folder)>1024
+    OR NOT coalesce(p_validity BETWEEN 1 AND 4294967295,false)
+    OR EXISTS (SELECT FROM unnest(p_uids) u WHERE u IS NULL OR u NOT BETWEEN 1 AND 4294967295)
+  THEN RAISE EXCEPTION 'imap_technical_hold_read_scope_required' USING ERRCODE='42501'; END IF;
+
+  SELECT * INTO box FROM public.ediel_mailboxes b
+  WHERE (b.id,b.locked_by,b.locked_at)=(p_mailbox,p_worker,p_claimed_at) FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'imap_technical_hold_mailbox_claim_required' USING ERRCODE='42501'; END IF;
+
+  RETURN ARRAY(
+    SELECT DISTINCT m.imap_uid
+    FROM public.inbound_email_messages m
+    JOIN gridex_e66_intake.work w ON (w.mail_id,w.mailbox_id,w.environment)=(m.id,box.id,box.environment)
+    JOIN public.ediel_messages s ON (s.id,s.inbound_email_message_id,s.company_id,s.environment)
+      =(w.source_id,m.id,w.company_id,w.environment)
+    JOIN gridex_ediel_inbound_receptions.receptions r
+      ON (r.id,r.inbound_email_message_id,r.source_message_id,r.company_id,r.environment,r.received_payload_hash)
+      =(w.reception_id,m.id,w.source_id,w.company_id,w.environment,w.payload_sha256)
+    JOIN gridex_e66_intake.technical_rejections t
+      ON (t.source_id,t.reception_id,t.company_id,t.environment,t.mailbox_id,t.payload_sha256)
+      =(w.source_id,w.reception_id,w.company_id,w.environment,w.mailbox_id,w.payload_sha256)
+    JOIN public.ediel_messages a ON (a.id,a.related_message_id,a.company_id,a.environment,a.immutable_payload_hash)
+      =(t.ack_id,t.source_id,t.company_id,t.environment,t.ack_sha256)
+    JOIN gridex_ediel_ack_replay.creation_receipts c
+      ON (c.ack_message_id,c.source_message_id,c.company_id,c.environment,c.source_payload_hash,c.ack_payload_hash)
+      =(a.id,t.source_id,t.company_id,t.environment,t.payload_sha256,t.ack_sha256)
+    WHERE (m.mailbox_id,m.environment,m.imap_account_scope,m.imap_folder,m.imap_uid_validity)
+      =(box.id,box.environment,p_scope,p_folder,p_validity)
+      AND m.imap_uid=ANY(p_uids)
+      -- Intake freezes the physical digest and UID tuple. Scope the held
+      -- shortcut to byte-identical retained MIME with an explicit reception
+      -- hash; transformed or unsupported custody remains on the normal path.
+      AND m.raw_mailbox_bytes_sha256 ~ '^[a-f0-9]{64}$'
+      AND m.raw_mailbox_bytes_sha256=m.raw_message_sha256
+      AND m.received_at_source IN ('imap_internal_date','poll_observed_at')
+      AND (m.received_at,s.message_received_at)=(r.received_at,r.received_at)
+      AND s.mailbox_message_id=m.id::text
+      AND (box.company_id IS NULL OR box.company_id=w.company_id)
+      AND r.classification='first_reception'
+      AND r.transport_source_snapshot->>'mailboxId'=box.id::text
+      AND r.transport_source_snapshot->>'rawMessageSha256'=m.raw_message_sha256
+      AND w.phase='technical_rejected' AND w.lease_token IS NULL
+      AND (s.direction,s.message_family,s.message_code)=('inbound','UTILTS','E66')
+      AND encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')=t.payload_sha256
+      AND (a.direction,a.message_family,c.family,c.outcome)=('outbound','CONTRL','CONTRL','negative')
+      AND encode(sha256(convert_to(a.raw_payload,'UTF8')),'hex')=t.ack_sha256
+      AND NOT EXISTS (
+        SELECT FROM public.ediel_messages other
+        WHERE other.inbound_email_message_id=m.id AND other.direction='inbound' AND other.id<>s.id
+      )
+    ORDER BY m.imap_uid
+  );
+END
+$_$;
+
+--
 -- Name: gridex_list_legacy_facility_domain_events_v1(uuid, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -90750,6 +96272,135 @@ CREATE FUNCTION public.gridex_list_portal_billing_review_months_v1(p_company_id 
   ORDER BY u.underlay_year DESC,u.underlay_month DESC
   LIMIT 3;
 $_$;
+
+--
+-- Name: gridex_list_portal_contract_delivery_ends_v1(uuid, uuid[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_list_portal_contract_delivery_ends_v1(p_company_id uuid, p_customer_ids uuid[], p_contract_ids uuid[]) RETURNS TABLE(contract_id uuid, period_id uuid, last_delivery_date date, market_end_at timestamp with time zone, supply_status text)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+    WITH scoped_periods AS MATERIALIZED (
+      SELECT c.id AS contract_id,p.id,p.customer_id,p.market_state_version,
+             p.end_date,p.market_end_at,p.status,
+             (row_number() OVER (PARTITION BY p.customer_id ORDER BY p.id)-1)/1000 AS batch
+      FROM public.customer_contracts c
+      JOIN public.customer_supply_periods p ON p.company_id=c.company_id AND p.customer_id=c.customer_id
+        AND p.metering_point_id=c.metering_point_id
+        AND coalesce(p.customer_contract_id,p.contract_id)=c.id
+        AND (p.contract_id IS NULL OR p.contract_id=c.id)
+      JOIN gridex_received_sources.normal_switch_confirmations accepted
+        ON (accepted.company_id,accepted.period_id,accepted.contract_id,accepted.source_message_id)
+           =(p.company_id,p.id,c.id,p.source_message_id)
+      WHERE (current_setting('role',true)='service_role' OR session_user='service_role')
+        AND c.company_id=p_company_id AND c.customer_id=ANY(p_customer_ids) AND c.id=ANY(p_contract_ids)
+        AND cardinality(p_customer_ids) BETWEEN 1 AND 100
+        AND cardinality(p_contract_ids) BETWEEN 1 AND 100
+        AND p.status IN ('ending','ended') AND p.actual_end_date IS NULL
+        AND isfinite(p.end_date) AND isfinite(p.market_end_at)
+    ), scoped_batches AS MATERIALIZED (
+      SELECT p.customer_id,array_agg(p.id ORDER BY p.id) AS period_ids
+      FROM scoped_periods p GROUP BY p.customer_id,p.batch
+    ), verified_ends AS MATERIALIZED (
+      SELECT batch.customer_id,q.period_id,q.market_state_version,q.effective_end_at
+      FROM scoped_batches batch
+      CROSS JOIN LATERAL public.gridex_portal_verified_supply_ends_v1(
+        p_company_id,batch.customer_id,batch.period_ids) q
+    ), legacy_ends AS MATERIALIZED (
+      -- A normal Z22 end committed by the object owner on a legacy start.
+      -- Keep the established normal-switch and consumption readers unchanged.
+      SELECT c.id AS contract_id,p.id AS period_id,p.end_date AS last_delivery_date,
+             p.market_end_at,p.status AS supply_status,
+             count(*) OVER (PARTITION BY p.id) AS matches
+      FROM public.customer_contracts c
+      JOIN public.customer_supply_periods p ON p.company_id=c.company_id AND p.customer_id=c.customer_id
+        AND p.metering_point_id=c.metering_point_id
+        AND coalesce(p.customer_contract_id,p.contract_id)=c.id
+        AND (p.contract_id IS NULL OR p.contract_id=c.id)
+      JOIN public.metering_points point ON (point.company_id,point.customer_id,point.id)
+        =(p.company_id,p.customer_id,p.metering_point_id)
+      JOIN public.ediel_messages ending ON (ending.company_id,ending.id)=(p.company_id,p.source_end_message_id)
+        AND (ending.direction,ending.message_family,ending.message_code)=('inbound','PRODAT','Z05')
+      JOIN public.ediel_messages initial ON (initial.company_id,initial.environment,initial.id)
+        =(p.company_id,ending.environment,p.source_message_id)
+        AND (initial.direction,initial.message_family,initial.message_code)=('inbound','PRODAT','Z04')
+      JOIN gridex_received_sources.supply_object_partitions partitioned
+        ON (partitioned.company_id,partitioned.environment,partitioned.source_message_id)
+          =(ending.company_id,ending.environment,ending.id)
+      JOIN gridex_received_sources.supply_object_effect_receipts receipt
+        ON (receipt.company_id,receipt.environment,receipt.source_message_id,receipt.canonical_assessment_id,receipt.payload_hash)
+          =(partitioned.company_id,partitioned.environment,partitioned.source_message_id,
+            partitioned.canonical_assessment_id,partitioned.payload_hash)
+      JOIN gridex_received_sources.supply_source_transitions transition
+        ON (transition.company_id,transition.source_message_id,transition.source_code,transition.payload_hash)
+          =(ending.company_id,ending.id,'Z05',partitioned.payload_hash)
+      JOIN gridex_received_sources.validation_assessments assessed
+        ON (assessed.company_id,assessed.environment,assessed.source_message_id,assessed.id,assessed.source_payload_hash)
+          =(ending.company_id,ending.environment,ending.id,partitioned.canonical_assessment_id,partitioned.payload_hash)
+      CROSS JOIN LATERAL (SELECT receipt.effect_text::jsonb AS facts) effect
+      CROSS JOIN LATERAL jsonb_array_elements(effect.facts->'resultingStates') saved
+      WHERE (current_setting('role',true)='service_role' OR session_user='service_role')
+        AND c.company_id=p_company_id AND c.customer_id=ANY(p_customer_ids) AND c.id=ANY(p_contract_ids)
+        AND cardinality(p_customer_ids) BETWEEN 1 AND 100
+        AND cardinality(p_contract_ids) BETWEEN 1 AND 100
+        AND p.source='ediel_qualified_source' AND p.actual_start_date IS NOT NULL AND p.actual_end_date IS NULL
+        AND isfinite(p.end_date) AND isfinite(p.market_start_at) AND isfinite(p.market_end_at)
+        AND p.market_start_at<p.market_end_at AND p.market_state_version IS NOT NULL
+        AND (p.status='ending' OR (p.status='ended' AND p.market_end_at<=statement_timestamp()))
+        AND (c.status IN ('signed','active') OR (c.status='terminated' AND c.termination_reason='supply_end'
+          AND p.end_date IN ((c.ended_at AT TIME ZONE 'UTC')::date,(c.ended_at AT TIME ZONE 'Europe/Stockholm')::date)))
+        AND NOT EXISTS(SELECT FROM gridex_received_sources.normal_switch_confirmations known
+          WHERE known.company_id=p.company_id AND known.period_id=p.id)
+        AND NOT EXISTS(SELECT FROM gridex_ediel_retention.customer_tombstones gone
+          WHERE gone.company_id=p.company_id AND gone.customer_id=p.customer_id)
+        AND NOT EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones gone
+          WHERE gone.company_id=p.company_id AND gone.message_id IN (ending.id,initial.id))
+        AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments newer
+          WHERE newer.previous_assessment_id=assessed.id)
+        AND assessed.facts_text::jsonb->>'syntaxDecision'='accepted'
+        AND assessed.facts_text::jsonb->>'functionalDecision'='accepted'
+        AND partitioned.payload_hash=encode(sha256(convert_to(ending.raw_payload,'UTF8')),'hex')
+        AND partitioned.partition_hash=encode(sha256(convert_to(partitioned.partition_text,'UTF8')),'hex')
+        AND receipt.effect_hash=encode(sha256(convert_to(receipt.effect_text,'UTF8')),'hex')
+        AND effect.facts->>'version'='1' AND effect.facts->>'owner'='inbound-supply-object-v1'
+        AND effect.facts->>'companyId'=p.company_id::text AND effect.facts->>'environment'=ending.environment
+        AND effect.facts->>'sourceMessageId'=ending.id::text AND effect.facts->>'sourcePayloadHash'=partitioned.payload_hash
+        AND effect.facts->>'canonicalAssessmentId'=assessed.id::text AND effect.facts->'object'=receipt.object_scope
+        AND effect.facts#>>'{legalContext,actorRole}'='electricity_supplier'
+        AND effect.facts#>>'{legalContext,code}'='Z05' AND effect.facts#>>'{legalContext,family}'='PRODAT'
+        AND effect.facts#>>'{plan,kind}'='end' AND effect.facts#>>'{plan,periodId}'=p.id::text
+        AND effect.facts#>>'{wire,reason}'='Z22' AND effect.facts#>>'{wire,point}'=point.ediel_metering_point_id
+        AND effect.facts#>>'{wire,point}'=receipt.object_scope->>'objectId'
+        AND effect.facts#>>'{wire,identityAgency}'=receipt.object_scope->>'identityAgency'
+        AND effect.facts#>>'{wire,gridArea}'=point.grid_area_code
+        AND gridex_received_sources.permission_time_v1(effect.facts#>>'{wire,end}')=p.market_end_at
+        AND gridex_received_sources.permission_date_v1(effect.facts#>>'{wire,end}')=p.end_date
+        AND jsonb_array_length(effect.facts->'resultingStates')=1
+        AND saved->>'id'=p.id::text AND saved->>'status' IN ('ending','ended')
+        AND saved-ARRAY['updated_at','status']=to_jsonb(p)-ARRAY['updated_at','status']
+        AND transition.resulting_states@>jsonb_build_array(saved)
+        AND transition.source_objects@>jsonb_build_array(effect.facts->'wire')
+        AND EXISTS(SELECT FROM jsonb_array_elements(partitioned.partition_text::jsonb) part
+          WHERE part->'object'=receipt.object_scope AND part->>'disposition'='applied'
+            AND part->>'effectReceiptId'=receipt.id::text AND part->>'effectFactsHash'=receipt.effect_hash)
+        AND NOT EXISTS(SELECT FROM gridex_bilateral_prodat.supply_effect_receipts other
+          WHERE other.company_id=p.company_id AND other.source_message_id=ending.id)
+        AND NOT EXISTS(SELECT FROM gridex_bilateral_prodat.closure_end_receipts other
+          WHERE other.company_id=p.company_id AND other.source_message_id=ending.id)
+        AND NOT EXISTS(SELECT FROM gridex_supply_rescission.end_receipts other
+          WHERE other.company_id=p.company_id AND other.source_message_id=ending.id)
+    )
+    SELECT p.contract_id,p.id AS period_id,p.end_date AS last_delivery_date,ended.effective_end_at AS market_end_at,p.status AS supply_status
+    FROM scoped_periods p
+    JOIN verified_ends ended ON (ended.customer_id,ended.period_id,ended.market_state_version,ended.effective_end_at)
+      =(p.customer_id,p.id,p.market_state_version,p.market_end_at)
+    UNION ALL
+    SELECT l.contract_id,l.period_id,l.last_delivery_date,l.market_end_at,l.supply_status
+    FROM legacy_ends l WHERE l.matches=1
+    ORDER BY contract_id,market_end_at,period_id
+  $$;
 
 --
 -- Name: gridex_list_portal_contract_notice_dates_v1(uuid, uuid[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
@@ -97204,12 +102855,17 @@ begin
   insert into public.pricing_interval_evidence(
     company_id,pricing_run_id,billing_underlay_id,billing_underlay_item_id,customer_contract_id,
     metering_interval_start,metering_interval_end,resolution,consumption_kwh,price_sek_per_kwh,
-    amount_ex_vat,price_source_id,price_area,evidence_sha256
+    amount_ex_vat,price_source_id,price_source_ids,price_area,evidence_sha256
   )
   select p_company_id,v_run_id,p_billing_underlay_id,nullif(x->>'billing_underlay_item_id','')::uuid,
     v_underlay.contract_id,(x->>'metering_interval_start')::timestamptz,(x->>'metering_interval_end')::timestamptz,
     x->>'resolution',(x->>'consumption_kwh')::numeric,(x->>'price_sek_per_kwh')::numeric,
-    (x->>'amount_ex_vat')::numeric,nullif(x->>'price_source_id','')::uuid,x->>'price_area',
+    (x->>'amount_ex_vat')::numeric,nullif(x->>'price_source_id','')::uuid,
+    case when x ? 'price_source_ids' then array(
+      select source.value::uuid
+      from jsonb_array_elements_text(x->'price_source_ids') with ordinality source(value, position)
+      order by source.position
+    ) end,x->>'price_area',
     encode(digest((x||jsonb_build_object('pricing_run_id',v_run_id))::text,'sha256'),'hex')
   from jsonb_array_elements(coalesce(p_result->'interval_evidence','[]'::jsonb)) x;
 
@@ -97271,6 +102927,15 @@ BEGIN
     SELECT FROM gridex_e66_intake.work w
      WHERE w.source_id=p_source_message_id AND w.company_id=p_company_id AND w.environment=p_environment
  ) THEN RAISE EXCEPTION 'e66_persistence_owned_by_durable_worker' USING ERRCODE='55000'; END IF;
+
+ IF p_message_code='E66' THEN
+  IF p_transactions='{"operation":"hold_sg11_format_review"}'::jsonb THEN
+   RETURN gridex_e66_intake.hold_compatible_sg11_format_v1(source,p_actor_user_id);
+  END IF;
+  IF EXISTS (SELECT FROM gridex_e66_intake.sg11_compatibility_holds WHERE source_id=p_source_message_id) THEN
+   RAISE EXCEPTION 'e66_sg11_format_review_active' USING ERRCODE='55000';
+  END IF;
+ END IF;
  RETURN gridex_e66_intake.persist_owned_utilts_v1(
    p_company_id,p_environment,p_source_message_id,p_message_code,p_raw_payload,p_transactions,p_actor_user_id);
 END
@@ -98082,6 +103747,121 @@ CREATE FUNCTION public.gridex_postal_address_has_street(p_value jsonb) RETURNS b
     AS $$ select public.gridex_address_complete(coalesce(p_value,'{}'::jsonb)) $$;
 
 --
+-- Name: gridex_prepare_batch2b_metering_request_v1(uuid, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_prepare_batch2b_metering_request_v1(p_company_id uuid, p_point_id uuid, p_month_start date, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET lock_timeout TO '5s'
+    AS $$
+DECLARE
+  scope record;
+  period_month_key text;
+  month_end date;
+  held_result jsonb;
+  gap_id uuid;
+  gap_created boolean:=false;
+  effect jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'batch2b_metering_service_role_required' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_point_id IS NULL OR p_month_start IS NULL
+    OR NOT isfinite(p_month_start) OR extract(day FROM p_month_start) IS DISTINCT FROM 1::numeric
+    OR p_month_start<DATE '0001-01-01' OR p_month_start>=DATE '9999-12-01' THEN
+    RAISE EXCEPTION 'batch2b_metering_command_invalid' USING ERRCODE='22023';
+  END IF;
+
+  PERFORM 1 FROM public.companies c WHERE c.id=p_company_id
+    AND c.is_active IS DISTINCT FROM false AND c.is_paused IS NOT TRUE
+    AND coalesce(c.status,'active') NOT IN
+      ('paused','suspended','inactive','closed','archived','pending_deletion','deleted','deleted_test_only')
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'batch2b_metering_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  period_month_key:=to_char(p_month_start,'YYYY-MM');
+  month_end:=(p_month_start+interval '1 month')::date;
+  held_result:=jsonb_build_object('pointId',p_point_id,'periodMonth',period_month_key,'outcome','held',
+    'gapId',null,'status',null,'outboundRequestId',null,'customerCaseId',null,
+    'gapCreated',false,'requestCreated',false,'caseCreated',false,'gapChanged',false,'caseRequestLinked',false);
+
+  IF public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS DISTINCT FROM true THEN
+    IF (
+      public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'customers.write')
+      OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export')
+      OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'cases.write')
+    ) IS TRUE THEN
+      RETURN held_result || jsonb_build_object('reason','capability_required');
+    END IF;
+    RAISE EXCEPTION 'batch2b_metering_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  -- The inner command acquires the point/site/customer locks after the gap.
+  -- This initial scope read does not take those row locks in reverse order.
+  SELECT s.id AS site_id,s.customer_id,coalesce(m.grid_owner_id,s.grid_owner_id) AS grid_owner_id,
+    coalesce(m.meter_point_id,m.metering_point_id) AS external_point,s.facility_id
+  INTO scope
+  FROM public.metering_points m
+  JOIN public.customer_sites s ON s.id=coalesce(m.customer_site_id,m.site_id) AND s.company_id=m.company_id
+  JOIN public.customers c ON c.id=s.customer_id AND c.company_id=s.company_id
+  WHERE m.company_id=p_company_id AND m.id=p_point_id
+    AND (m.customer_id IS NULL OR m.customer_id=s.customer_id)
+    AND (m.site_id IS NULL OR m.site_id=s.id)
+    AND (m.customer_site_id IS NULL OR m.customer_site_id=s.id);
+  IF NOT FOUND THEN
+    RETURN held_result || jsonb_build_object('reason','metering_scope_unavailable');
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.metering_values v
+    WHERE v.company_id=p_company_id AND v.metering_point_id=p_point_id
+      AND v.period_start >= (p_month_start::timestamp AT TIME ZONE 'UTC')
+      AND v.period_start < (month_end::timestamp AT TIME ZONE 'UTC')
+  ) THEN
+    RETURN held_result || jsonb_build_object('reason','meter_already_present');
+  END IF;
+
+  BEGIN
+    SELECT g.id INTO gap_id FROM public.metering_period_gaps g
+    WHERE g.company_id=p_company_id AND g.metering_point_id=p_point_id AND g.period_month=period_month_key FOR UPDATE;
+    IF NOT FOUND THEN
+      INSERT INTO public.metering_period_gaps(
+        company_id,customer_id,site_id,metering_point_id,grid_owner_id,period_month,period_start,period_end,
+        status,severity,metadata,created_by
+      ) VALUES (
+        p_company_id,scope.customer_id,scope.site_id,p_point_id,scope.grid_owner_id,period_month_key,p_month_start,month_end,
+        'open','warning',jsonb_build_object('meterPointId',scope.external_point,'siteFacilityId',scope.facility_id,
+          'detectedBy','batch_2b_operations'),p_actor_user_id
+      ) ON CONFLICT (company_id,metering_point_id,period_month) DO NOTHING
+      RETURNING id INTO gap_id;
+      gap_created:=FOUND;
+      IF NOT gap_created THEN
+        SELECT g.id INTO gap_id FROM public.metering_period_gaps g
+        WHERE g.company_id=p_company_id AND g.metering_point_id=p_point_id AND g.period_month=period_month_key FOR UPDATE;
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'batch2b_metering_gap_lookup_changed' USING ERRCODE='40001';
+        END IF;
+      END IF;
+    END IF;
+
+    effect:=public.gridex_reconcile_metering_period_gap_v1(p_company_id,gap_id,p_actor_user_id,'request_only');
+    IF gap_created AND effect->>'outcome'<>'linked' THEN
+      -- Rolling back the private subtransaction also discards INSERT trigger effects.
+      RAISE EXCEPTION 'batch2b_metering_discard_new_gap' USING ERRCODE='PZB01';
+    END IF;
+  EXCEPTION WHEN SQLSTATE 'PZB01' THEN
+    IF NOT gap_created OR effect IS NULL OR effect->>'outcome'='linked' THEN RAISE; END IF;
+    RETURN held_result || jsonb_build_object('reason',coalesce(effect->>'reason','not_actionable_after_insert'));
+  END;
+
+  RETURN effect || jsonb_build_object('pointId',p_point_id,'periodMonth',period_month_key,'gapCreated',gap_created);
+END
+$$;
+
+--
 -- Name: gridex_prepare_billing_export_retry(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -98435,9 +104215,14 @@ BEGIN
     AND public.gridex_actor_has_company_permission(p_actor,w.company_id,'communication.write')
     AND public.gridex_actor_has_company_permission(p_actor,w.company_id,'metering.write')
  ), due AS (
-   SELECT w.company_id,w.mailbox_id,min(w.ready_at) AS first_at FROM permitted w
+   SELECT w.company_id,w.mailbox_id,
+     min(CASE WHEN w.phase='mixed_qualified' THEN mixed.due_at ELSE w.ready_at END) AS first_at FROM permitted w
+   LEFT JOIN LATERAL (
+     SELECT min(x.due_at) AS due_at
+     FROM gridex_e66_intake.due_mixed_worker_members_v1(w,p_actor,statement_timestamp()) x
+   ) mixed ON w.phase='mixed_qualified'
    WHERE w.ready_at<=clock_timestamp() AND (w.lease_until IS NULL OR w.lease_until<=clock_timestamp())
-     AND ((w.phase='qualification' AND gridex_e66_intake.request_upgrade_state_v1(w.source_id)='qualify_normally')
+     AND (mixed.due_at IS NOT NULL OR (w.phase='qualification' AND gridex_e66_intake.request_upgrade_state_v1(w.source_id)='qualify_normally')
        OR (w.phase IN ('normalization','readiness') AND gridex_e66_intake.request_upgrade_state_v1(w.source_id) IN ('matched_basis','unmatched')) OR (
        w.phase='complete' AND gridex_e66_intake.matched_request_ack_eligible_v1(w.source_id) AND EXISTS(
          SELECT FROM gridex_e66_intake.qualified q
@@ -98647,6 +104432,115 @@ begin
     'source_of_truth','contract_publication_versions'
   );
 end $$;
+
+--
+-- Name: gridex_prepare_mixed_e66_finance_replacement_v1(uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_prepare_mixed_e66_finance_replacement_v1(p_company uuid, p_mailbox uuid, p_actor uuid, p_source uuid, p_predecessor uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  prior public.billing_underlays;
+  fresh public.billing_underlays;
+  relation gridex_e66_intake.mixed_billing_replacements;
+  source_receipt gridex_e66_intake.billing_calendar_receipts;
+  scoped jsonb;
+  original_contracts jsonb;
+  old_hash text;
+  new_hash text;
+  allowed boolean;
+BEGIN
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,'test',p_mailbox,p_actor);
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF public.gridex_actor_has_company_permission(p_actor,p_company,'billing_underlay.write') IS NOT TRUE THEN
+    RAISE EXCEPTION 'mixed_billing_replacement_forbidden' USING ERRCODE='42501';
+  END IF;
+  PERFORM 1 FROM gridex_e66_intake.work w
+   JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=w.source_id AND q.actor_id=p_actor
+   WHERE (w.company_id,w.mailbox_id,w.environment,w.source_id,w.phase)=(p_company,p_mailbox,'test',p_source,'mixed_qualified')
+   FOR SHARE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('kind','held','reason','correction_source_unavailable'); END IF;
+  SELECT b.* INTO prior FROM public.billing_underlays b WHERE (b.company_id,b.id)=(p_company,p_predecessor) FOR UPDATE NOWAIT;
+  IF NOT FOUND THEN RETURN jsonb_build_object('kind','held','reason','predecessor_unavailable'); END IF;
+  SELECT c.* INTO source_receipt FROM gridex_e66_intake.billing_calendar_receipts c
+    WHERE (c.company_id,c.underlay_id,c.environment)=(p_company,p_predecessor,'test');
+  old_hash:=gridex_e66_intake.bound_underlay_fingerprint_v1(p_company,source_receipt.source_id,p_predecessor);
+  IF old_hash IS NULL OR prior.payload#>>'{e73BillingScope,basisVersion}' IS DISTINCT FROM 'mixed-e73-ide-finance-v1'
+    OR source_receipt.source_id=p_source
+    OR (SELECT count(*) FROM gridex_e66_intake.billing_calendar_receipts c
+      WHERE (c.company_id,c.source_id,c.environment)=(p_company,source_receipt.source_id,'test'))<>1
+  THEN RETURN jsonb_build_object('kind','held','reason','predecessor_not_exact_single_month'); END IF;
+
+  SELECT * INTO relation FROM gridex_e66_intake.mixed_billing_replacements e WHERE e.predecessor_id=p_predecessor;
+  IF FOUND THEN
+    IF (relation.company_id,relation.source_id,relation.actor_id,relation.old_fingerprint) IS DISTINCT FROM (p_company,p_source,p_actor,old_hash)
+      OR relation.new_fingerprint IS DISTINCT FROM gridex_e66_intake.bound_underlay_fingerprint_v1(p_company,p_source,relation.replacement_id)
+    THEN RETURN jsonb_build_object('kind','held','reason','replacement_conflict'); END IF;
+    IF EXISTS (SELECT FROM gridex_e66_intake.mixed_billing_correction_holds h
+      WHERE (h.company_id,h.underlay_id)=(p_company,relation.replacement_id)) THEN
+      RETURN jsonb_build_object('kind','held','reason','replacement_requires_new_correction_review');
+    END IF;
+    RETURN jsonb_build_object('kind','prepared','replacementId',relation.replacement_id,'replayed',true,'approvalRequired',true);
+  END IF;
+
+  IF (prior.status,prior.readiness_status) IS DISTINCT FROM ('received','not_checked')
+    OR EXISTS (SELECT FROM public.customer_invoices i WHERE (i.company_id,i.billing_underlay_id)=(p_company,p_predecessor))
+    OR EXISTS (SELECT FROM public.invoice_export_items i WHERE (i.company_id,i.billing_underlay_id)=(p_company,p_predecessor))
+    OR EXISTS (SELECT FROM gridex_invoice_groups.sources i WHERE (i.company_id,i.billing_underlay_id)=(p_company,p_predecessor))
+    OR EXISTS (SELECT FROM public.partner_exports i WHERE (i.company_id,i.billing_underlay_id)=(p_company,p_predecessor))
+    OR EXISTS (SELECT FROM public.billing_export_run_items i WHERE (i.company_id,i.billing_underlay_id)=(p_company,p_predecessor))
+    OR EXISTS (SELECT FROM gridex_billing_source.underlay_bindings i WHERE (i.company_id,i.underlay_id)=(p_company,p_predecessor))
+  THEN RETURN jsonb_build_object('kind','held','reason','financial_history_requires_review'); END IF;
+
+  scoped:=gridex_e66_intake.mixed_billing_admission_v2(p_company,p_source,p_actor,p_predecessor);
+  IF scoped IS NULL OR (scoped#>>'{context,sourceRequestId}',scoped->>'sentSourceId',scoped->>'sentHash')
+    IS DISTINCT FROM (prior.source_request_id::text,prior.payload#>>'{e73BillingScope,sentSourceId}',prior.payload#>>'{e73BillingScope,sentHash}')
+  THEN RETURN jsonb_build_object('kind','held','reason','current_e73_basis_unavailable'); END IF;
+
+  WITH old_contributors AS (
+    SELECT (item->>'normalizedId')::uuid AS id
+    FROM gridex_e66_intake.mixed_e73_request_basis b CROSS JOIN LATERAL jsonb_array_elements(b.evidence->'childEffects') item
+    WHERE b.source_id=source_receipt.source_id AND b.request_id=prior.source_request_id AND b.company_id=p_company
+      AND prior.payload#>'{e73BillingScope,ideBasisHashes}' @> jsonb_build_array(jsonb_build_array(b.transaction_id,b.evidence_sha256))
+      AND prior.payload#>'{billingCalendar,contributors}' @> jsonb_build_array(jsonb_build_array(b.transaction_id,(item->>'ordinal')::integer))
+  ), new_contributors AS (
+    SELECT (item->>'normalizedId')::uuid AS id
+    FROM jsonb_array_elements(scoped->'contracts') c CROSS JOIN LATERAL jsonb_array_elements(c->'billingContributionOrdinals') ordinal
+    JOIN gridex_e66_intake.mixed_e73_request_basis b ON b.source_id=p_source AND b.transaction_id=c->>'transactionId'
+    CROSS JOIN LATERAL jsonb_array_elements(b.evidence->'childEffects') item
+    WHERE b.company_id=p_company AND b.request_id=prior.source_request_id AND item->>'ordinal'=ordinal::text
+  ), pairs AS (
+    SELECT o.id AS old_id,n.id AS new_id,h.new_normalized_value_id AS sealed
+    FROM old_contributors a JOIN public.normalized_metering_values o ON (o.company_id,o.id)=(p_company,a.id)
+    JOIN public.normalized_metering_values n ON (n.company_id,n.metering_point_id,n.period_start,n.period_end)
+      =(o.company_id,o.metering_point_id,o.period_start,o.period_end) AND n.revision_status='current'
+    JOIN new_contributors b ON b.id=n.id
+    LEFT JOIN gridex_e66_intake.mixed_billing_correction_holds h
+      ON (h.company_id,h.underlay_id,h.previous_normalized_value_id,h.new_normalized_value_id,h.new_source_id)
+        =(p_company,p_predecessor,o.id,n.id,p_source)
+      AND h.underlay_fingerprint=source_receipt.row_fingerprint
+  )
+  SELECT count(*)=prior.source_meter_value_count AND count(*)=(SELECT count(*) FROM new_contributors)
+    AND count(*)=(SELECT count(*) FROM old_contributors) AND bool_and(old_id=new_id OR sealed=new_id)
+    AND bool_or(old_id<>new_id)
+  INTO allowed FROM pairs;
+  IF allowed IS NOT TRUE THEN RETURN jsonb_build_object('kind','held','reason','exact_correction_lineage_required'); END IF;
+
+  SELECT jsonb_agg(gridex_utilts_binding.stored_contract_v1(p_company,p_source,t.transaction_id) ORDER BY t.transaction_id)
+    INTO original_contracts FROM gridex_e66_intake.mixed_accepted_transactions t WHERE t.source_id=p_source;
+  fresh:=gridex_e66_intake.consume_owned_utilts_billing_v2(p_company,p_source,p_actor,original_contracts,p_predecessor);
+  new_hash:=gridex_e66_intake.bound_underlay_fingerprint_v1(p_company,p_source,fresh.id);
+  IF new_hash IS NULL OR (fresh.underlay_year,fresh.underlay_month) IS DISTINCT FROM (prior.underlay_year,prior.underlay_month) THEN
+    RAISE EXCEPTION 'mixed_billing_replacement_not_sealed' USING ERRCODE='55000';
+  END IF;
+  INSERT INTO gridex_e66_intake.mixed_billing_replacements
+    (predecessor_id,replacement_id,company_id,source_id,actor_id,old_fingerprint,new_fingerprint)
+  VALUES (p_predecessor,fresh.id,p_company,p_source,p_actor,old_hash,new_hash);
+  RETURN jsonb_build_object('kind','prepared','replacementId',fresh.id,'replayed',false,'approvalRequired',true);
+END
+$$;
 
 --
 -- Name: gridex_prepare_mixed_invoice_month_file_v1(uuid, text, text, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -99142,6 +105036,46 @@ BEGIN
  VALUES(delivery_id,i.company_id,(p_command->>'api_client_id')::uuid,(p_command->>'provider_id')::uuid,i.id,actor,registration->>'auth_issuer',lower(btrim(i.email)),payload,public.canonical_json_sha256(payload));
  RETURN payload||jsonb_build_object('request_hash',public.canonical_json_sha256(payload));
 END $$;
+
+--
+-- Name: gridex_prepare_test_price_series_by_underlays_v1(uuid, uuid, text, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_prepare_test_price_series_by_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_underlay_ids uuid[]) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  scope public.billing_underlays%ROWTYPE;
+  expected jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'invoice_price_series_service_role_required' USING ERRCODE='42501';
+  END IF;
+  IF coalesce(cardinality(p_underlay_ids),0) NOT BETWEEN 2 AND 32 OR array_position(p_underlay_ids,NULL) IS NOT NULL THEN
+    RAISE EXCEPTION 'invoice_price_series_scope_required' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO scope FROM public.billing_underlays WHERE company_id=p_company_id AND id=p_underlay_ids[1];
+  IF NOT FOUND THEN RAISE EXCEPTION 'invoice_price_series_source_changed' USING ERRCODE='23514'; END IF;
+  SELECT jsonb_agg(jsonb_build_object('underlayId',u.id,'pricingRunId',r.id) ORDER BY u.billing_period_start,u.billing_period_end,u.id)
+    INTO expected FROM public.billing_underlays u
+    JOIN public.pricing_runs r ON r.company_id=u.company_id AND r.billing_underlay_id=u.id AND r.status='locked' AND r.locked_at IS NOT NULL
+    WHERE u.company_id=p_company_id AND u.id=ANY(p_underlay_ids) AND u.customer_id=scope.customer_id
+      AND coalesce(u.customer_contract_id,u.contract_id)=coalesce(scope.customer_contract_id,scope.contract_id)
+      AND coalesce(u.customer_site_id,u.site_id)=coalesce(scope.customer_site_id,scope.site_id)
+      AND u.metering_point_id=scope.metering_point_id;
+  IF jsonb_array_length(expected) IS DISTINCT FROM cardinality(p_underlay_ids) THEN
+    RAISE EXCEPTION 'invoice_price_series_source_changed' USING ERRCODE='23514';
+  END IF;
+  BEGIN
+    RETURN gridex_billing_source.prepare_test_price_series_invoice_v1(p_company_id,p_actor_user_id,scope.customer_id,
+      coalesce(scope.customer_contract_id,scope.contract_id),coalesce(scope.customer_site_id,scope.site_id),scope.metering_point_id,
+      p_billing_month,expected);
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
+    RAISE EXCEPTION 'price_timeline_invoice_review_required' USING ERRCODE='23514';
+  END;
+END
+$$;
 
 --
 -- Name: gridex_prevent_locked_portfolio_price_mutation(); Type: FUNCTION; Schema: public; Owner: -
@@ -99992,6 +105926,123 @@ BEGIN
     jsonb_build_object('event_type','invoice.sent','aggregate_type','invoice_export_item','aggregate_id',p_item::text));
   UPDATE gridex_capway_dispatch.direct_invoice_projection SET projection_at=finished WHERE entry_id=receipt.entry_id;
   RETURN jsonb_build_object('id',p_item,'status','sent','invoiceGuid',receipt.provider_invoice_guid);
+END
+$$;
+
+--
+-- Name: gridex_project_legacy_supply_end_followup_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_project_legacy_supply_end_followup_v1(p_company_id uuid, p_source_message_id uuid, p_supply_period_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  source public.ediel_messages%rowtype;
+  transition gridex_received_sources.supply_source_transitions%rowtype;
+  period public.customer_supply_periods%rowtype;
+  saved jsonb;
+  previous jsonb;
+  wire jsonb;
+  identity jsonb;
+  case_ids uuid[];
+  case_id uuid;
+  recorded_id uuid;
+BEGIN
+  IF p_company_id IS NULL OR p_source_message_id IS NULL OR p_supply_period_id IS NULL OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'legacy_end_followup_scope_required' USING ERRCODE='22023';
+  END IF;
+  IF NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active')
+    OR NOT EXISTS(SELECT FROM public.company_memberships cm
+      WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id AND cm.status='active'
+        AND cm.is_active AND cm.accepted_at IS NOT NULL)
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS NOT TRUE THEN
+    RAISE EXCEPTION 'legacy_end_followup_actor_unqualified' USING ERRCODE='42501';
+  END IF;
+  PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+  identity:=jsonb_build_object('sourceMessageId',p_source_message_id,'supplyPeriodId',p_supply_period_id);
+  SELECT * INTO source FROM public.ediel_messages m WHERE m.id=p_source_message_id AND m.company_id=p_company_id FOR UPDATE;
+  SELECT * INTO transition FROM gridex_received_sources.supply_source_transitions t
+    WHERE t.source_message_id=source.id AND t.company_id=source.company_id;
+  IF source.id IS NULL OR source.environment IS NULL OR source.direction IS DISTINCT FROM 'inbound'
+    OR source.message_family IS DISTINCT FROM 'PRODAT' OR source.message_code IS DISTINCT FROM 'Z05'
+    OR transition.source_code IS DISTINCT FROM 'Z05'
+    OR transition.payload_hash IS NULL
+    OR transition.payload_hash IS DISTINCT FROM encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex')
+    OR EXISTS(SELECT FROM gridex_received_sources.supply_object_partitions own
+      WHERE own.company_id=p_company_id AND own.source_message_id=source.id)
+    OR EXISTS(SELECT FROM gridex_received_sources.supply_object_effect_receipts own
+      WHERE own.company_id=p_company_id AND own.source_message_id=source.id)
+    OR EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones gone
+      WHERE gone.company_id=p_company_id AND gone.message_id=source.id) THEN
+    RETURN identity||'{"status":"not_applicable","reason":"legacy_end_source_unavailable"}';
+  END IF;
+  SELECT * INTO period FROM public.customer_supply_periods p
+    WHERE p.id=p_supply_period_id AND p.company_id=p_company_id AND p.source_end_message_id=source.id FOR UPDATE;
+  IF period.id IS NULL OR period.status NOT IN ('ending','ended') OR NOT coalesce(isfinite(period.market_end_at),false) THEN
+    RETURN identity||'{"status":"not_applicable","reason":"legacy_end_no_longer_current"}';
+  END IF;
+  SELECT value INTO STRICT saved FROM jsonb_array_elements(transition.resulting_states)
+    WHERE value->>'id'=period.id::text;
+  SELECT value INTO STRICT previous FROM jsonb_array_elements(transition.previous_states)
+    WHERE value->>'id'=period.id::text;
+  wire:=gridex_received_sources.normal_switch_wire_v1(source.raw_payload);
+  IF wire->>'code' IS DISTINCT FROM 'Z05' OR wire->'objects' IS DISTINCT FROM transition.source_objects
+    OR (saved->>'status' IN ('ending','ended')) IS NOT TRUE
+    OR (previous->>'status' IN ('active','confirmed_by_grid_owner','ending')) IS NOT TRUE
+    OR previous->>'company_id' IS DISTINCT FROM p_company_id::text
+    OR previous->>'customer_id' IS DISTINCT FROM period.customer_id::text
+    OR previous->>'metering_point_id' IS DISTINCT FROM period.metering_point_id::text
+    OR previous->>'source_message_id' IS DISTINCT FROM saved->>'source_message_id'
+    OR previous->>'market_state_version' IS DISTINCT FROM (period.market_state_version-1)::text
+    OR coalesce(previous->>'customer_contract_id',previous->>'contract_id')
+      IS DISTINCT FROM coalesce(period.customer_contract_id,period.contract_id)::text
+    OR (to_jsonb(period)-ARRAY['status','updated_at']) IS DISTINCT FROM (saved-ARRAY['status','updated_at'])
+    OR (SELECT count(*) FROM public.metering_points mp
+        CROSS JOIN LATERAL jsonb_array_elements(wire->'objects') own
+        WHERE mp.id=period.metering_point_id AND mp.company_id=p_company_id
+          AND mp.customer_id=period.customer_id AND mp.ediel_metering_point_id=own->>'point'
+          AND mp.grid_area_code=own->>'gridArea' AND own->>'reason' IN ('Z22','Z23','Z25')
+          AND gridex_received_sources.permission_time_v1(own->>'end')=period.market_end_at
+          AND gridex_received_sources.permission_date_v1(own->>'end')=period.end_date)<>1 THEN
+    RAISE EXCEPTION 'legacy_end_followup_effect_conflict';
+  END IF;
+  IF period.status<>'ended' OR period.market_end_at>now() THEN
+    RETURN identity||jsonb_build_object('status','scheduled','dueAt',period.market_end_at);
+  END IF;
+  IF gridex_received_sources.legacy_end_authority_v1(p_company_id,source.id) IS NOT TRUE THEN
+    RETURN identity||'{"status":"not_applicable","reason":"legacy_end_authority_unavailable"}';
+  END IF;
+  SELECT mapping.case_id INTO recorded_id FROM gridex_received_sources.legacy_supply_end_cases mapping
+    WHERE mapping.company_id=p_company_id AND mapping.source_message_id=source.id AND mapping.supply_period_id=period.id;
+  SELECT array_agg(c.id ORDER BY c.id) INTO case_ids FROM public.customer_cases c
+    WHERE c.company_id=p_company_id AND c.customer_id=period.customer_id AND c.metering_point_id=period.metering_point_id
+      AND c.reason_category='final_metering_and_billing' AND c.source IN ('ediel_inbound_state_machine','ediel_supply_end_legacy')
+      AND c.metadata->>'source_ediel_message_id'=source.id::text
+      AND (c.metadata->>'supply_period_id' IS NULL OR c.metadata->>'supply_period_id'=period.id::text);
+  IF coalesce(cardinality(case_ids),0)>1 OR (recorded_id IS NOT NULL AND recorded_id IS DISTINCT FROM case_ids[1]) THEN
+    RAISE EXCEPTION 'legacy_end_followup_case_conflict';
+  END IF;
+  case_id:=case_ids[1];
+  IF case_id IS NULL THEN
+    INSERT INTO public.customer_cases(company_id,customer_id,site_id,metering_point_id,customer_contract_id,case_type,status,
+      priority,title,description,reason_category,next_action,source,metadata,created_by,updated_by,
+      source_ediel_message_id,source_business_process)
+    SELECT p_company_id,period.customer_id,mp.site_id,period.metering_point_id,
+      coalesce(period.customer_contract_id,period.contract_id),'other','open','normal',
+      'Leveransen har upphört – slutför mätvärden och fakturering',
+      'Ett kvalificerat leveransslut har trätt i kraft.',
+      'final_metering_and_billing','Kontrollera slutmätvärden och faktureringsberedskap.','ediel_supply_end_legacy',
+      jsonb_build_object('review_intent','final_metering_and_billing','source_ediel_message_id',source.id,
+        'supply_period_id',period.id,'market_end_at',period.market_end_at),
+      p_actor_user_id,p_actor_user_id,source.id,'supply_termination'
+    FROM public.metering_points mp WHERE mp.company_id=p_company_id AND mp.id=period.metering_point_id
+    RETURNING id INTO STRICT case_id;
+  END IF;
+  INSERT INTO gridex_received_sources.legacy_supply_end_cases(company_id,source_message_id,supply_period_id,case_id)
+    VALUES(p_company_id,source.id,period.id,case_id) ON CONFLICT DO NOTHING;
+  RETURN identity||jsonb_build_object('status',CASE WHEN case_ids[1] IS NULL THEN 'created' ELSE 'existing' END,'caseId',case_id);
 END
 $$;
 
@@ -103056,14 +109107,14 @@ CREATE FUNCTION public.gridex_read_billing_ediel_blocker_sources_v1(p_actor_user
 $$;
 
 --
--- Name: gridex_read_billing_source_values_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+-- Name: gridex_read_billing_source_values_compact_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.gridex_read_billing_source_values_v1(p_company_id uuid, p_value_ids uuid[]) RETURNS jsonb
+CREATE FUNCTION public.gridex_read_billing_source_values_compact_v1(p_company_id uuid, p_value_ids uuid[]) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE n public.normalized_metering_values%rowtype;s public.ediel_messages%rowtype;b jsonb;result jsonb[]:='{}';bases jsonb;i integer:=0;
+DECLARE admin_close jsonb; n public.normalized_metering_values%rowtype;s public.ediel_messages%rowtype;b jsonb;result jsonb[]:='{}';bases jsonb;i integer:=0;
 BEGIN
  IF coalesce(current_setting('role',true),'')<>'service_role' AND current_user<>'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501'; END IF;
  IF p_company_id IS NULL OR p_value_ids IS NULL OR cardinality(p_value_ids)>1000 OR array_position(p_value_ids,NULL) IS NOT NULL THEN RAISE EXCEPTION 'billing_source_scope_required' USING ERRCODE='22023'; END IF;
@@ -103072,9 +109123,48 @@ BEGIN
  bases:=gridex_billing_source.bases_v1(p_company_id,ARRAY(SELECT id FROM public.normalized_metering_values WHERE company_id=p_company_id AND id=ANY(p_value_ids) ORDER BY id),true,false);
  FOR n IN SELECT * FROM public.normalized_metering_values WHERE company_id=p_company_id AND id=ANY(p_value_ids) ORDER BY id LOOP
   b:=gridex_billing_source.basis_entry_v1(bases->i);i:=i+1;
+  admin_close:=CASE WHEN n.billing_status='billable' AND n.billing_gate_status='eligible'
+    THEN gridex_billing_source.read_planned_move_out_receipt_v1(n,b) END;
+  IF jsonb_typeof(n.billing_gate_snapshot)='object' THEN
+   n.billing_gate_snapshot:=n.billing_gate_snapshot-'administrative_close_basis';
+  END IF;
+  SELECT * INTO s FROM public.ediel_messages WHERE id=n.source_message_id AND company_id=p_company_id;
+  -- This is the local row variable; the authoritative stored copy remains untouched.
+  n.raw_payload:=NULL;
+  result:=array_append(result,(to_jsonb(n)-'raw_payload')||jsonb_build_object('quantity_kwh',b->'quantityKwh','product_code',CASE WHEN b->'qualified'='true'::jsonb THEN b->'productCode' ELSE to_jsonb(n.product_code) END,'register_code',CASE WHEN b->'qualified'='true'::jsonb THEN b->'registerCode' ELSE to_jsonb(n.register_code) END,'quality_status',CASE WHEN b->'qualified'='true'::jsonb THEN b->'quality' ELSE to_jsonb(n.quality_status) END,
+   'billing_source_basis',b,'billing_source_message',CASE WHEN s.id IS NULL THEN NULL ELSE jsonb_build_object('id',s.id,'company_id',s.company_id,'message_family',s.message_family,'message_code',s.message_code,'status',s.status) END)
+   || CASE WHEN admin_close IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('billing_administrative_close_basis',admin_close) END);
+ END LOOP;
+ -- G-6: rows are accumulated in an array and serialized once (was an O(n^2) jsonb concatenation of ~43 kB rows).
+ RETURN to_jsonb(result);
+END $$;
+
+--
+-- Name: gridex_read_billing_source_values_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_billing_source_values_v1(p_company_id uuid, p_value_ids uuid[]) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE admin_close jsonb; n public.normalized_metering_values%rowtype;s public.ediel_messages%rowtype;b jsonb;result jsonb[]:='{}';bases jsonb;i integer:=0;
+BEGIN
+ IF coalesce(current_setting('role',true),'')<>'service_role' AND current_user<>'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501'; END IF;
+ IF p_company_id IS NULL OR p_value_ids IS NULL OR cardinality(p_value_ids)>1000 OR array_position(p_value_ids,NULL) IS NOT NULL THEN RAISE EXCEPTION 'billing_source_scope_required' USING ERRCODE='22023'; END IF;
+ PERFORM gridex_billing_source.lock_values_v1(p_company_id,p_value_ids);
+ -- G-6 (20261024130000): every basis of this call in one bases_v1 evaluation (same values, same id order).
+ bases:=gridex_billing_source.bases_v1(p_company_id,ARRAY(SELECT id FROM public.normalized_metering_values WHERE company_id=p_company_id AND id=ANY(p_value_ids) ORDER BY id),true,false);
+ FOR n IN SELECT * FROM public.normalized_metering_values WHERE company_id=p_company_id AND id=ANY(p_value_ids) ORDER BY id LOOP
+  b:=gridex_billing_source.basis_entry_v1(bases->i);i:=i+1;
+  admin_close:=CASE WHEN n.billing_status='billable' AND n.billing_gate_status='eligible'
+    THEN gridex_billing_source.read_planned_move_out_receipt_v1(n,b) END;
+  IF jsonb_typeof(n.billing_gate_snapshot)='object' THEN
+   n.billing_gate_snapshot:=n.billing_gate_snapshot-'administrative_close_basis';
+  END IF;
   SELECT * INTO s FROM public.ediel_messages WHERE id=n.source_message_id AND company_id=p_company_id;
   result:=array_append(result,to_jsonb(n)||jsonb_build_object('quantity_kwh',b->'quantityKwh','product_code',CASE WHEN b->'qualified'='true'::jsonb THEN b->'productCode' ELSE to_jsonb(n.product_code) END,'register_code',CASE WHEN b->'qualified'='true'::jsonb THEN b->'registerCode' ELSE to_jsonb(n.register_code) END,'quality_status',CASE WHEN b->'qualified'='true'::jsonb THEN b->'quality' ELSE to_jsonb(n.quality_status) END,
-   'billing_source_basis',b,'billing_source_message',CASE WHEN s.id IS NULL THEN NULL ELSE jsonb_build_object('id',s.id,'company_id',s.company_id,'message_family',s.message_family,'message_code',s.message_code,'status',s.status) END));
+   'billing_source_basis',b,'billing_source_message',CASE WHEN s.id IS NULL THEN NULL ELSE jsonb_build_object('id',s.id,'company_id',s.company_id,'message_family',s.message_family,'message_code',s.message_code,'status',s.status) END)
+   || CASE WHEN admin_close IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('billing_administrative_close_basis',admin_close) END);
  END LOOP;
  -- G-6: rows are accumulated in an array and serialized once (was an O(n^2) jsonb concatenation of ~43 kB rows).
  RETURN to_jsonb(result);
@@ -103088,7 +109178,7 @@ CREATE FUNCTION public.gridex_read_billing_underlay_source_basis_v1(p_company_id
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE result jsonb:='[]';u public.billing_underlays%rowtype;b gridex_billing_source.underlay_bindings%rowtype;qualified boolean;ended_contract jsonb;
+DECLARE result jsonb:='[]';u public.billing_underlays%rowtype;b gridex_billing_source.underlay_bindings%rowtype;qualified boolean;ended_contract jsonb;planned_move_out boolean;correction_required boolean;
 BEGIN
  IF coalesce(current_setting('role',true),'')<>'service_role' AND current_user<>'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501'; END IF;
  IF p_company_id IS NULL OR p_underlay_ids IS NULL OR cardinality(p_underlay_ids)>1000 OR array_position(p_underlay_ids,NULL) IS NOT NULL THEN RAISE EXCEPTION 'billing_underlay_read_scope_required'; END IF;
@@ -103099,7 +109189,9 @@ BEGIN
   EXCEPTION WHEN check_violation THEN qualified:=false; END;
   -- The source owner has revalidated the exact stored underlay. Expose only
   -- the contract facts that the historic pricing engine needs.
-  IF qualified AND b.source_basis->>'contractStatus'='terminated' AND gridex_billing_source.ordinary_ended_pricing_v1(u) THEN
+  planned_move_out:=qualified AND gridex_billing_source.is_planned_move_out_underlay_v1(u,b.source_basis);
+  IF qualified AND (b.source_basis->>'contractStatus'='terminated' OR planned_move_out)
+    AND gridex_billing_source.ordinary_ended_pricing_v1(u) THEN
    SELECT jsonb_build_object('id',c.id,'contract_type',c.contract_type,
      'actual_start_date',to_jsonb(c)->'actual_start_date','actual_start_at',to_jsonb(c)->'actual_start_at',
      'starts_at',c.starts_at,'ends_at',c.ends_at,'fixed_price_ore_per_kwh',c.fixed_price_ore_per_kwh)
@@ -103107,7 +109199,12 @@ BEGIN
   ELSE
    ended_contract:=NULL;
   END IF;
-  result:=result||jsonb_build_array(jsonb_build_object('id',u.id,'qualified',qualified,'totalKwh',gridex_utilts_binding.canonical_decimal_v2(u.total_kwh::text),'sourceBasisHash',b.source_basis_hash,'correctionRequired',EXISTS(SELECT FROM gridex_billing_source.correction_journal j WHERE j.underlay_id=u.id)) || CASE WHEN ended_contract IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('terminatedPricingContract',ended_contract) END);
+  correction_required:=EXISTS(SELECT FROM gridex_billing_source.correction_journal j WHERE j.underlay_id=u.id);
+  result:=result||jsonb_build_array(jsonb_build_object('id',u.id,'qualified',qualified,'totalKwh',gridex_utilts_binding.canonical_decimal_v2(u.total_kwh::text),'sourceBasisHash',b.source_basis_hash,'correctionRequired',correction_required)
+    || CASE WHEN ended_contract IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('terminatedPricingContract',ended_contract) END
+    || CASE WHEN planned_move_out AND ended_contract IS NOT NULL AND NOT correction_required THEN
+      jsonb_build_object('plannedMoveOutContractId',u.contract_id,'plannedMoveOutSupplyPeriodId',u.supply_period_id)
+      ELSE '{}'::jsonb END);
  END LOOP;
  RETURN result;
 END $$;
@@ -103280,7 +109377,7 @@ BEGIN
  JOIN gridex_invoice_groups.issue_outcomes o ON o.company_id=d.company_id AND o.invoice_id=d.invoice_id
  WHERE d.company_id=p_company_id AND d.customer_id=ANY(p_customer_ids) AND d.invoice_id=p_invoice_id
    AND i.status IN ('issued','sent','paid','overdue','credited') AND o.outcome='issued' AND o.number=i.invoice_number;
- IF NOT FOUND THEN RETURN NULL; END IF;
+ IF NOT FOUND THEN RETURN gridex_billing_source.read_price_series_customer_document_v1(p_company_id,p_customer_ids,p_invoice_id); END IF;
  PERFORM public.ediel_require_portal_retention_access_v1(p_company_id,document.customer_id);
  BEGIN
    PERFORM public.ediel_require_invoice_source_copies_available_v1(p_company_id,NULL,p_invoice_id);
@@ -103313,7 +109410,7 @@ BEGIN
     RAISE EXCEPTION 'invoice_group_file_forbidden' USING ERRCODE='42501';
   END IF;
   SELECT * INTO file FROM gridex_invoice_groups.neutral_files WHERE company_id=p_company_id AND file_id=p_file_id;
-  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF NOT FOUND THEN RETURN gridex_billing_source.read_price_series_neutral_file_v1(p_company_id,p_file_id); END IF;
   source:=gridex_invoice_groups.verified_neutral_file_source(p_company_id,file.invoice_id,file.issue_hash);
   IF file.body_sha256 IS DISTINCT FROM source.body_sha256 THEN
     RAISE EXCEPTION 'invoice_group_file_receipt_invalid' USING ERRCODE='23514';
@@ -103824,6 +109921,25 @@ CREATE FUNCTION public.gridex_read_ediel_outbox_reconciliation_attempt_v1(p_outb
 $$;
 
 --
+-- Name: gridex_read_effective_contract_price_timeline_v1(uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_effective_contract_price_timeline_v1(p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_start timestamp with time zone, p_end timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+    BEGIN
+      IF auth.role() IS DISTINCT FROM 'service_role' THEN
+        RAISE EXCEPTION 'price_addendum_timeline_scope_required' USING ERRCODE='42501';
+      END IF;
+      IF p_start IS NULL OR p_end IS NULL OR NOT isfinite(p_start) OR NOT isfinite(p_end) OR p_end<=p_start THEN
+        RAISE EXCEPTION 'billing_price_timeline_invalid' USING ERRCODE='22023';
+      END IF;
+      RETURN gridex_billing_source.resolve_test_contract_price_timeline_v1(p_company_id,p_customer_id,p_contract_id,p_start,p_end);
+    END
+    $$;
+
+--
 -- Name: gridex_read_facility_diagnostics_support_v1(uuid, uuid, uuid[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -104211,6 +110327,101 @@ END
 $$;
 
 --
+-- Name: gridex_read_mixed_e66_billing_readiness_batch_v1(uuid, uuid, uuid, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_mixed_e66_billing_readiness_batch_v1(p_company_id uuid, p_actor_user_id uuid, p_raw_underlay_id uuid, p_offset integer DEFAULT 0, p_limit integer DEFAULT 8) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+  scope record;
+  members jsonb;
+  total integer;
+  batch jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role'
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS NOT TRUE
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.write') IS NOT TRUE
+  THEN RAISE EXCEPTION 'mixed_e66_billing_readiness_forbidden' USING ERRCODE='42501'; END IF;
+  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company_id,p_actor_user_id);
+
+  IF p_raw_underlay_id IS NULL OR p_offset IS NULL OR p_offset<0 OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 16
+  THEN RAISE EXCEPTION 'mixed_e66_billing_readiness_invalid_window' USING ERRCODE='22023'; END IF;
+
+  SELECT raw.metering_point_id,raw.customer_id,coverage.evidence
+  INTO scope
+  FROM gridex_e66_intake.mixed_e73_billing_projections projection
+  JOIN gridex_e66_intake.mixed_e73_billing_coverage coverage
+    ON (coverage.company_id,coverage.environment,coverage.request_id,coverage.evidence_sha256)
+       =(projection.company_id,projection.environment,projection.request_id,projection.coverage_sha256)
+  JOIN public.billing_underlays raw ON (raw.company_id,raw.id)=(projection.company_id,projection.primary_underlay_id)
+  JOIN public.grid_owner_data_requests q ON (q.company_id,q.id)=(projection.company_id,projection.request_id)
+  WHERE (projection.company_id,projection.environment,projection.primary_underlay_id)=(p_company_id,'test',p_raw_underlay_id)
+    AND raw.source_request_id=projection.request_id
+    AND (raw.status,raw.readiness_status,raw.billing_block_reason)=('received','blocked','mixed_e66_multisource_pricing_unqualified')
+    AND raw.contract_id IS NULL AND raw.pricing_snapshot_id IS NULL AND raw.contract_price_snapshot_id IS NULL
+    AND (q.customer_id,q.site_id,q.metering_point_id)=(raw.customer_id,raw.site_id,raw.metering_point_id)
+    AND q.request_scope='billing_underlay' AND q.status IN ('sent','received');
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'mixed_e66_billing_readiness_projection_missing' USING ERRCODE='P0002';
+  END IF;
+
+  members:=scope.evidence->'members';
+  total:=jsonb_array_length(members);
+  IF p_offset>=total OR total IS DISTINCT FROM (scope.evidence->>'contributionCount')::integer
+  THEN RAISE EXCEPTION 'mixed_e66_billing_readiness_invalid_window' USING ERRCODE='22023'; END IF;
+
+  WITH wanted AS MATERIALIZED (
+    SELECT member,position
+    FROM jsonb_array_elements(members) WITH ORDINALITY AS receipt(member,position)
+    ORDER BY position OFFSET p_offset LIMIT p_limit
+  )
+  SELECT jsonb_agg(jsonb_build_object('normalizedId',n.id,'sourceId',s.source_message_id,
+    'meterValue',jsonb_build_object('id',m.id,'company_id',m.company_id,'metering_point_id',m.metering_point_id,
+      'period_start',m.period_start,'period_end',m.period_end,'source_ediel_message_id',m.source_ediel_message_id,
+      'canonical_dedupe_key',m.canonical_dedupe_key,'source_transaction_reference',m.source_transaction_reference,
+      'source_system',m.source_system)) ORDER BY wanted.position)
+  INTO batch
+  FROM wanted
+  JOIN gridex_utilts_binding.metering_application_receipts receipt
+    ON (receipt.company_id,receipt.environment,receipt.source_message_id,receipt.transaction_id,receipt.observation_ordinal)
+      =(p_company_id,'test',(wanted.member->>'sourceId')::uuid,wanted.member->>'transactionId',(wanted.member->>'ordinal')::integer)
+  JOIN gridex_received_sources.sources s
+    ON (s.company_id,s.environment,s.source_message_id)=(receipt.company_id,receipt.environment,receipt.source_message_id)
+  JOIN public.meter_reading_series serie
+    ON (serie.company_id,serie.source_ediel_message_id,serie.id)=(receipt.company_id,receipt.source_message_id,(wanted.member->>'seriesId')::uuid)
+    AND serie.is_current
+  JOIN public.metering_values m ON (m.company_id,m.id)=(receipt.company_id,receipt.value_id)
+  JOIN public.normalized_metering_values n
+    ON (n.company_id,n.id,n.source_metering_value_id,n.source_message_id)
+     =(receipt.company_id,receipt.normalized_id,receipt.value_id,receipt.source_message_id)
+  JOIN public.metering_value_sources link
+    ON (link.company_id,link.id,link.metering_value_id,link.normalized_metering_value_id,link.source_ediel_message_id,link.source_transaction_reference)
+      =(receipt.company_id,receipt.source_link_id,receipt.value_id,receipt.normalized_id,receipt.source_message_id,receipt.transaction_id)
+  WHERE (receipt.value_id,receipt.normalized_id,receipt.source_link_id)=(
+    (wanted.member->>'meteringId')::uuid,(wanted.member->>'normalizedId')::uuid,(wanted.member->>'sourceLinkId')::uuid)
+    AND (receipt.contract_hash,receipt.value_hash,receipt.normalized_hash)=(
+      decode(wanted.member->>'contractSha256','hex'),decode(wanted.member->>'meteringHash','hex'),decode(wanted.member->>'normalizedHash','hex'))
+    AND s.payload_hash=wanted.member->>'sourceSha256' AND s.message_code='E66'
+    AND s.retention_purged_at IS NULL AND s.raw_payload IS NOT NULL
+    AND m.is_current AND m.revision_status='current' AND n.revision_status='current'
+    AND (m.customer_id,m.metering_point_id)=(scope.customer_id,scope.metering_point_id)
+    AND (n.customer_id,n.metering_point_id)=(scope.customer_id,scope.metering_point_id)
+    AND (m.period_start,m.period_end)=(n.period_start,n.period_end)
+    AND (n.period_start,n.period_end)=((wanted.member->>'periodStart')::timestamptz,(wanted.member->>'periodEnd')::timestamptz)
+    AND receipt.value_hash=gridex_utilts_binding.application_value_hash_v1(m)
+    AND receipt.normalized_hash=gridex_utilts_binding.application_normalized_hash_v1(n);
+
+  IF jsonb_array_length(batch) IS DISTINCT FROM least(p_limit,total-p_offset) THEN
+    RAISE EXCEPTION 'mixed_e66_billing_readiness_current_receipt_required' USING ERRCODE='55000';
+  END IF;
+  RETURN jsonb_build_object('offset',p_offset,'total',total,'members',batch);
+END
+$$;
+
+--
 -- Name: gridex_read_outbound_acks_for_source_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -104417,6 +110628,259 @@ END
 $$;
 
 --
+-- Name: gridex_read_staff_e66_import_progress_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_staff_e66_import_progress_v1(p_company uuid, p_request uuid DEFAULT NULL::uuid) RETURNS TABLE(company_id uuid, request_id uuid, customer_id uuid, customer_label text, started_at timestamp with time zone, environment text, retry_required boolean)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE actor uuid:=auth.uid();
+BEGIN
+  IF current_setting('role',true) IS DISTINCT FROM 'authenticated' OR actor IS NULL OR p_company IS NULL
+    OR public.gridex_is_current_session_allowed() IS NOT TRUE
+    OR NOT (
+      coalesce(public.gridex_actor_has_company_permission(actor,p_company,'metering.read'),false)
+      OR coalesce(public.gridex_actor_has_company_permission(actor,p_company,'switching.read'),false)
+      OR coalesce(public.gridex_actor_has_company_permission(actor,p_company,'billing_underlay.read'),false)
+      OR (p_request IS NOT NULL AND coalesce(public.gridex_actor_has_company_permission(actor,p_company,'communication.read'),false))
+    ) THEN RAISE EXCEPTION 'e66_staff_import_progress_forbidden' USING ERRCODE='42501'; END IF;
+
+  RETURN QUERY
+  SELECT w.company_id,r.id,r.customer_id,
+    coalesce(nullif(c.company_name,''),nullif(c.full_name,''),nullif(trim(concat_ws(' ',c.first_name,c.last_name)),''),'Kund'),
+    min(w.created_at),w.environment,
+    bool_or(EXISTS(
+      SELECT FROM gridex_e66_intake.customer_import_failures f
+      WHERE (f.source_id,f.company_id,f.environment,f.request_id,f.customer_id,f.site_id,f.metering_point_id,
+        f.requested_period_start,f.requested_period_end,f.source_hash,f.transaction_id,f.contract_hash,f.stage)
+        =(b.source_id,b.company_id,b.environment,b.request_id,b.customer_id,b.site_id,b.metering_point_id,
+          b.requested_period_start,b.requested_period_end,b.source_hash,b.transaction_id,b.contract_hash,w.phase)
+    ))
+  FROM gridex_e66_intake.work w
+  JOIN gridex_e66_intake.customer_import_binding b
+    ON (b.company_id,b.environment,b.source_id,b.source_hash)=(w.company_id,w.environment,w.source_id,w.payload_sha256)
+  JOIN gridex_ediel_inbound_receptions.receptions receipt
+    ON (receipt.id,receipt.company_id,receipt.environment,receipt.source_message_id,receipt.canonical_payload_hash)
+      =(w.reception_id,w.company_id,w.environment,w.source_id,w.payload_sha256)
+    AND receipt.classification='first_reception'
+  JOIN public.ediel_messages m
+    ON (m.company_id,m.environment,m.id,m.immutable_payload_hash)=(w.company_id,w.environment,w.source_id,w.payload_sha256)
+    AND m.direction='inbound' AND m.message_family='UTILTS' AND m.message_code='E66' AND m.raw_payload IS NOT NULL
+  JOIN public.grid_owner_data_requests r ON (r.company_id,r.id)=(b.company_id,b.request_id)
+  JOIN public.customers c ON (c.company_id,c.id)=(r.company_id,r.customer_id)
+  WHERE w.company_id=p_company AND w.phase IN ('normalization','readiness')
+    AND ((p_request IS NULL AND r.status='received') OR (r.id=p_request AND r.status IN ('pending','sent','received')))
+    AND coalesce(c.source,'')<>'ediel_portal_test'
+    AND coalesce(c.status,'') NOT IN ('archived','deleted','deleted_test_only','pending_deletion')
+    AND NOT EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones gone
+      WHERE (gone.company_id,gone.message_id)=(w.company_id,w.source_id))
+  GROUP BY w.company_id,r.id,r.customer_id,c.company_name,c.full_name,c.first_name,c.last_name,w.environment
+  ORDER BY min(w.created_at),r.id,w.environment
+  LIMIT 250;
+END
+$$;
+
+--
+-- Name: gridex_read_supplier_switch_status_basis_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_supplier_switch_status_basis_v1(p_company_id uuid, p_customer_ids uuid[]) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'Europe/Stockholm'
+    AS $_$
+DECLARE
+  checked_at constant timestamptz := statement_timestamp();
+  civil_today constant date := (checked_at AT TIME ZONE 'Europe/Stockholm')::date;
+  selected record;
+  decision jsonb;
+  unknown_basis constant jsonb := '{"ready":false,"fullmakt":"unverified"}'::jsonb;
+BEGIN
+  IF p_company_id IS NULL OR cardinality(p_customer_ids) IS NULL OR cardinality(p_customer_ids) = 0 THEN
+    RETURN unknown_basis;
+  END IF;
+
+  SELECT min(rows.customer_id::text)::uuid AS customer_id, min(rows.id::text)::uuid AS contract_id
+  INTO selected
+  FROM (
+    SELECT c.id, c.customer_id
+    FROM public.customer_contracts c
+    WHERE c.company_id = p_company_id AND c.customer_id = ANY(p_customer_ids)
+      AND c.status IN ('signed','pending_supplier_switch','pending_switch','pending_start')
+      AND (c.ends_at IS NULL OR c.ends_at >= civil_today)
+    LIMIT 2
+  ) rows
+  HAVING count(*) = 1;
+  IF NOT FOUND THEN RETURN unknown_basis; END IF;
+
+  -- The canonical owner holds the same customer row as retention writers.
+  PERFORM public.ediel_require_portal_retention_access_v1(p_company_id, selected.customer_id);
+
+  WITH candidates AS MATERIALIZED (
+    SELECT c.id, c.company_id, c.customer_id, c.site_id, c.customer_site_id, c.metering_point_id,
+      c.legal_bundle_version_id, c.ends_at, coalesce(c.customer_site_id,c.site_id) AS exact_site,
+      coalesce(c.requested_start_date,c.expected_start_at,c.starts_at) AS planned_start
+    FROM public.customer_contracts c
+    WHERE c.company_id = p_company_id AND c.customer_id = ANY(p_customer_ids)
+      AND c.status IN ('signed','pending_supplier_switch','pending_switch','pending_start')
+      AND (c.ends_at IS NULL OR c.ends_at >= civil_today)
+    LIMIT 2
+  ), agreement AS (
+    SELECT c.*
+    FROM candidates c
+    WHERE (SELECT count(*) FROM candidates) = 1
+      AND c.id = selected.contract_id AND c.customer_id = selected.customer_id
+      AND c.exact_site IS NOT NULL AND c.legal_bundle_version_id IS NOT NULL
+      AND (c.customer_site_id IS NULL OR c.site_id IS NULL OR c.customer_site_id = c.site_id)
+      AND c.planned_start IS NOT NULL AND (c.ends_at IS NULL OR c.ends_at >= c.planned_start)
+  ), points AS MATERIALIZED (
+    SELECT m.id
+    FROM agreement c
+    JOIN public.metering_points m ON m.company_id = c.company_id AND m.customer_id = c.customer_id
+      AND (m.site_id = c.exact_site OR m.customer_site_id = c.exact_site)
+      AND (c.metering_point_id IS NULL OR m.id = c.metering_point_id)
+    LIMIT 2
+  ), portal_basis AS (
+    SELECT c.*, m.id AS point_id
+    FROM agreement c
+    JOIN public.metering_points m ON (SELECT count(*) FROM points) = 1 AND m.id = (SELECT id FROM points LIMIT 1)
+      AND coalesce(m.customer_site_id,m.site_id) = c.exact_site
+      AND (m.customer_site_id IS NULL OR m.site_id IS NULL OR m.customer_site_id = m.site_id)
+      AND m.status NOT IN ('inactive','closed')
+      AND (m.start_date IS NULL OR m.start_date <= c.planned_start)
+      AND (m.end_date IS NULL OR m.end_date >= c.planned_start)
+  ), fullmakt AS (
+    SELECT c.*, coalesce(history.signed, false) AS observed_signed,
+      coalesce(history.signed AND history.current AND EXISTS (
+        SELECT 1 FROM public.customer_authorization_documents d
+        JOIN public.authorization_scopes s ON s.company_id = d.company_id
+          AND s.customer_id = d.customer_id AND s.authorization_document_id = d.id
+        WHERE d.company_id = c.company_id AND d.customer_id = c.customer_id AND d.site_id = c.exact_site
+          AND d.power_of_attorney_id = history.id AND d.status IN ('active','signed')
+          AND (d.customer_contract_id IS NULL OR d.customer_contract_id = c.id)
+          AND (d.metering_point_id IS NULL OR d.metering_point_id = c.point_id)
+          AND (history.metering_point_id = c.point_id OR (history.metering_point_id IS NULL AND (
+            c.metering_point_id IS NULL OR
+            (d.id = history.document_id AND d.metering_point_id = c.point_id AND d.customer_contract_id = c.id)
+          )))
+          AND s.status = 'active' AND s.revoked_at IS NULL AND s.covers_current_supplier_contract
+          AND (s.valid_from IS NULL OR s.valid_from <= civil_today)
+          AND (s.valid_to IS NULL OR s.valid_to >= civil_today)
+      ), false) AS effective
+    FROM portal_basis c
+    LEFT JOIN LATERAL (
+      SELECT p.id, p.document_id, p.metering_point_id,
+        p.status = 'signed' AND coalesce(p.accepted_at,p.signed_at) <= checked_at
+          AND (p.contract_id IS NULL OR p.customer_contract_id IS NULL OR p.contract_id = p.customer_contract_id)
+          AND (p.site_id IS NULL OR p.customer_site_id IS NULL OR p.site_id = p.customer_site_id)
+          AND (p.metering_point_id IS NULL OR p.metering_point_id = c.point_id)
+          AS signed,
+        p.revoked_at IS NULL AND (p.valid_from IS NULL OR p.valid_from <= civil_today)
+          AND (p.valid_to IS NULL OR p.valid_to >= civil_today)
+          AND (p.valid_until IS NULL OR p.valid_until >= civil_today)
+          AND (p.expires_at IS NULL OR checked_at < p.expires_at)
+          AS current
+      FROM public.powers_of_attorney p
+      WHERE p.company_id = c.company_id AND p.customer_id = c.customer_id AND p.scope = 'supplier_switch'
+        AND (p.contract_id = c.id OR p.customer_contract_id = c.id)
+        AND (p.site_id = c.exact_site OR p.customer_site_id = c.exact_site)
+      ORDER BY p.created_at DESC,p.id DESC
+      LIMIT 1
+    ) history ON true
+  )
+  SELECT jsonb_build_object(
+    'ready', f.effective AND EXISTS (
+      SELECT 1 FROM public.customer_contract_lifecycle_readiness_v v
+      WHERE v.company_id = f.company_id AND v.customer_id = f.customer_id AND v.customer_contract_id = f.id
+        AND v.customer_site_id = f.exact_site AND v.metering_point_id IS NOT DISTINCT FROM f.metering_point_id
+        AND v.switch_ready IS TRUE AND cardinality(v.blockers) = 0
+        AND v.legal_document_count BETWEEN 1 AND 100 AND v.legal_document_count = v.accepted_document_count
+        AND NOT EXISTS (
+          SELECT 1 FROM public.legal_bundle_version_documents d
+          WHERE d.legal_bundle_version_id = f.legal_bundle_version_id
+            AND (d.content_sha256 !~ '^[a-f0-9]{64}$' OR NOT EXISTS (
+              SELECT 1 FROM public.customer_legal_acceptances a
+              WHERE a.company_id = f.company_id AND a.customer_id = f.customer_id AND a.contract_id = f.id
+                AND a.legal_bundle_version_document_id = d.id AND a.legal_document_sha256 = d.content_sha256
+                AND a.accepted_at <= checked_at
+            ))
+        )
+    ),
+    'fullmakt', CASE WHEN f.effective THEN 'effective' WHEN f.observed_signed THEN 'signed_unverified' ELSE 'unverified' END
+  ) INTO decision FROM fullmakt f;
+  RETURN coalesce(decision, unknown_basis);
+END
+$_$;
+
+--
+-- Name: gridex_read_supply_end_followup_disposition_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_supply_end_followup_disposition_v1(p_company_id uuid, p_case_id uuid) RETURNS jsonb
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+  SELECT jsonb_build_object('caseId',c.id,'sourceMessageId',binding.source_message_id,'status','review_required')
+  FROM public.customer_cases c
+  JOIN LATERAL (
+    SELECT legacy.source_message_id,legacy.supply_period_id
+    FROM gridex_received_sources.legacy_supply_end_cases legacy
+    WHERE legacy.company_id=c.company_id AND legacy.case_id=c.id
+    UNION
+    SELECT own.source_message_id,own.supply_period_id
+    FROM gridex_received_sources.supply_end_followups own
+    WHERE own.company_id=c.company_id AND own.case_id=c.id
+    UNION
+    SELECT transition.source_message_id,(min(saved->>'id'))::uuid
+    FROM gridex_received_sources.supply_source_transitions transition
+    CROSS JOIN LATERAL jsonb_array_elements(transition.resulting_states) saved
+    WHERE c.source='ediel_inbound_state_machine' AND transition.company_id=c.company_id
+      AND transition.source_message_id::text=c.metadata->>'source_ediel_message_id'
+      AND saved->>'customer_id'=c.customer_id::text AND saved->>'metering_point_id'=c.metering_point_id::text
+      AND saved->>'source_end_message_id'=transition.source_message_id::text
+      AND pg_input_is_valid(saved->>'id','uuid')
+    GROUP BY transition.source_message_id HAVING count(*)=1
+  ) binding ON true
+  WHERE c.id=p_case_id AND c.company_id=p_company_id
+    AND c.reason_category='final_metering_and_billing'
+    AND c.metadata->>'source_ediel_message_id'=binding.source_message_id::text
+    AND gridex_received_sources.supply_end_retracted_v1(c.company_id,c.customer_id,c.metering_point_id,
+      binding.source_message_id,binding.supply_period_id,NULL,NULL);
+$$;
+
+--
+-- Name: gridex_read_supply_end_task_review_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_supply_end_task_review_v1(p_company_id uuid, p_task_ids uuid[]) RETURNS TABLE(task_id uuid, company_id uuid, customer_id uuid)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+BEGIN
+  IF p_company_id IS NULL OR p_task_ids IS NULL OR cardinality(p_task_ids)>200 THEN
+    RAISE EXCEPTION 'supply_end_task_review_scope_required' USING ERRCODE='22023';
+  END IF;
+  RETURN QUERY
+  SELECT task.id,task.company_id,task.customer_id
+  FROM public.customer_operation_tasks task
+  WHERE task.company_id=p_company_id AND task.id=ANY(p_task_ids) AND task.customer_id IS NOT NULL
+    AND task.task_type='final_invoice_pending'
+    AND task.status IN ('open','in_progress','blocked','new','pending','action_required','pending_review')
+    AND task.metadata->>'end_key'='source-end:'||(task.metadata->>'supply_period_id')||':'||(task.metadata->>'supply_end_date')
+    AND CASE WHEN pg_input_is_valid(task.metadata->>'source_end_message_id','uuid')
+        AND pg_input_is_valid(task.metadata->>'supply_period_id','uuid')
+        AND task.metadata->>'market_state_version' IS NOT NULL AND task.metadata->>'market_end_at' IS NOT NULL
+      THEN gridex_received_sources.supply_end_retracted_v1(task.company_id,task.customer_id,task.metering_point_id,
+        (task.metadata->>'source_end_message_id')::uuid,(task.metadata->>'supply_period_id')::uuid,
+        task.metadata->>'market_state_version',task.metadata->>'market_end_at')
+      ELSE false END;
+END
+$$;
+
+--
 -- Name: gridex_read_system_health_tenant_email_review_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -104469,6 +110933,29 @@ BEGIN
     w.withdrawal_uncertain_attempt_id,w.review_state,w.accepted_at,w.acceptance_token
   FROM work w ORDER BY w.sort_at,w.id LIMIT 20;
 END $$;
+
+--
+-- Name: gridex_read_test_contract_price_addendum_review_source_v1(uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_test_contract_price_addendum_review_source_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+    DECLARE
+      source gridex_billing_source.test_price_addendum_documents%ROWTYPE;
+    BEGIN
+      PERFORM gridex_billing_source.require_test_price_addendum_actor_v1(p_company_id,p_actor_user_id);
+      SELECT d.* INTO source FROM gridex_billing_source.test_price_addendum_documents d
+        JOIN public.customer_contracts c ON (c.company_id,c.customer_id,c.id)=(d.company_id,d.customer_id,d.contract_id)
+        WHERE (d.company_id,d.customer_id,d.contract_id,d.id)=(p_company_id,p_customer_id,p_contract_id,p_document_id)
+          AND c.status IN ('signed','active') AND c.signature_snapshot_sha256=d.original_signature_sha256
+          AND c.contract_price_snapshot_id=d.original_price_id;
+      IF NOT FOUND OR source.document_sha256 IS DISTINCT FROM encode(sha256(source.document),'hex') THEN RETURN NULL; END IF;
+      RETURN jsonb_build_object('kind','review_source','documentId',source.id,'documentSha256',source.document_sha256,
+        'byteLength',octet_length(source.document),'bodyBase64',replace(encode(source.document,'base64'),E'\n',''));
+    END
+    $$;
 
 --
 -- Name: gridex_read_underlay_generation_receipt_v1(uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -105826,6 +112313,369 @@ END
 $$;
 
 --
+-- Name: gridex_reconcile_metering_period_gap_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_reconcile_metering_period_gap_v1(p_company_id uuid, p_gap_id uuid, p_actor_user_id uuid, p_mode text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET lock_timeout TO '5s'
+    AS $$
+DECLARE
+  gap record;
+  request record;
+  follow_up record;
+  configured_grid_owner uuid;
+  external_point text;
+  request_key text;
+  legacy_request_key text;
+  candidate_ids uuid[];
+  request_created boolean:=false;
+  case_created boolean:=false;
+  case_request_linked boolean:=false;
+  gap_changed boolean:=false;
+  held_result jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'period_gap_service_role_required' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_gap_id IS NULL OR p_actor_user_id IS NULL
+     OR p_mode IS NULL OR p_mode NOT IN ('motor','case_only','request_only') THEN
+    RAISE EXCEPTION 'period_gap_command_invalid' USING ERRCODE='22023';
+  END IF;
+
+  PERFORM 1 FROM public.companies
+  WHERE id=p_company_id AND is_active IS DISTINCT FROM false
+    AND coalesce(status,'active') NOT IN
+      ('paused','suspended','inactive','closed','archived','pending_deletion','deleted','deleted_test_only')
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'period_gap_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+  IF p_mode='request_only' AND
+    public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS DISTINCT FROM true THEN
+    IF (
+      public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'customers.write')
+      OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export')
+      OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'cases.write')
+    ) IS TRUE THEN
+      RETURN jsonb_build_object('outcome','held','gapId',p_gap_id,'status',null,
+        'outboundRequestId',null,'customerCaseId',null,'requestCreated',false,'caseCreated',false,
+        'gapChanged',false,'caseRequestLinked',false,'reason','capability_required');
+    END IF;
+    RAISE EXCEPTION 'period_gap_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+  IF (
+    public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write')
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export')
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'cases.write')
+  ) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'period_gap_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  SELECT * INTO gap FROM public.metering_period_gaps
+  WHERE company_id=p_company_id AND id=p_gap_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'period_gap_not_found' USING ERRCODE='P0002'; END IF;
+  held_result:=jsonb_build_object('outcome','held','gapId',gap.id,'status',gap.status,
+    'outboundRequestId',null,'customerCaseId',null,'requestCreated',false,'caseCreated',false,'gapChanged',false,'caseRequestLinked',false);
+  IF gap.status IN ('resolved','ignored')
+     OR (p_mode IN ('motor','request_only') AND gap.status NOT IN ('open','request_queued')) THEN
+    RETURN held_result;
+  END IF;
+
+  SELECT coalesce(m.grid_owner_id,s.grid_owner_id),coalesce(m.meter_point_id,m.metering_point_id)
+    INTO configured_grid_owner,external_point
+  FROM public.metering_points m
+  JOIN public.customer_sites s ON s.id=gap.site_id AND s.company_id=m.company_id
+  JOIN public.customers c ON c.id=s.customer_id AND c.company_id=s.company_id
+  WHERE m.id=gap.metering_point_id AND m.company_id=gap.company_id
+    AND s.customer_id=gap.customer_id AND (m.customer_id IS NULL OR m.customer_id=s.customer_id)
+    AND (m.site_id IS NOT NULL OR m.customer_site_id IS NOT NULL)
+    AND (m.site_id IS NULL OR m.site_id=s.id)
+    AND (m.customer_site_id IS NULL OR m.customer_site_id=s.id)
+  FOR SHARE OF m,s,c;
+  IF NOT FOUND OR gap.period_month IS DISTINCT FROM to_char(gap.period_start,'YYYY-MM')
+     OR gap.period_start IS DISTINCT FROM date_trunc('month',gap.period_start)::date
+     OR gap.period_end IS DISTINCT FROM (gap.period_start+interval '1 month')::date THEN
+    RAISE EXCEPTION 'period_gap_scope_changed' USING ERRCODE='23514';
+  END IF;
+
+  -- A completed value read after the gap lock supersedes the earlier scan's
+  -- missing observation. Keep the same half-open UTC bounds as that scan.
+  IF p_mode IN ('motor','request_only') AND EXISTS (
+    SELECT 1 FROM public.metering_values v
+    WHERE v.company_id=gap.company_id AND v.metering_point_id=gap.metering_point_id
+      AND v.period_start >= (gap.period_start::timestamp AT TIME ZONE 'UTC')
+      AND v.period_start < (gap.period_end::timestamp AT TIME ZONE 'UTC')
+  ) THEN
+    RETURN held_result;
+  END IF;
+
+  request_key:='batch2c:meter-values:'||gap.metering_point_id::text||':'||gap.period_month;
+  legacy_request_key:='missing-meter-values:'||gap.metering_point_id::text||':'||gap.period_month;
+  SELECT array_agg(match.id) INTO candidate_ids FROM (
+    SELECT r.id FROM public.outbound_requests r
+    WHERE r.company_id=gap.company_id
+      AND (r.automation_key IN (request_key,legacy_request_key) OR r.id=gap.outbound_request_id
+        OR (r.source_type='bulk_generation' AND r.source_id=gap.id AND r.request_type='meter_values'))
+    ORDER BY r.id LIMIT 2 FOR UPDATE
+  ) match;
+  IF coalesce(cardinality(candidate_ids),0)>1 THEN
+    RAISE EXCEPTION 'period_gap_request_ambiguous' USING ERRCODE='23514';
+  END IF;
+  SELECT * INTO request FROM public.outbound_requests
+  WHERE company_id=gap.company_id AND id=candidate_ids[1];
+  IF gap.outbound_request_id IS NOT NULL OR candidate_ids IS NOT NULL THEN
+    IF NOT FOUND OR (gap.outbound_request_id IS NOT NULL AND request.id<>gap.outbound_request_id)
+       OR request.customer_id IS DISTINCT FROM gap.customer_id
+       OR request.site_id IS DISTINCT FROM gap.site_id OR request.metering_point_id IS DISTINCT FROM gap.metering_point_id
+       OR request.grid_owner_id IS DISTINCT FROM configured_grid_owner
+       OR request.request_type IS DISTINCT FROM 'meter_values'
+       OR request.source_type IS DISTINCT FROM 'bulk_generation'
+       OR (
+         (request.automation_key=request_key AND request.automation_origin='batch_2c_period_motor'
+           AND (request.source_id IS NULL OR request.source_id=gap.id))
+         OR (request.automation_key=legacy_request_key AND request.automation_origin='batch_2b_operations'
+           AND request.source_id IS NULL)
+       ) IS DISTINCT FROM true
+       OR request.period_start IS DISTINCT FROM gap.period_start OR request.period_end IS DISTINCT FROM gap.period_end THEN
+      RAISE EXCEPTION 'period_gap_request_scope_changed' USING ERRCODE='23514';
+    END IF;
+    IF p_mode IN ('motor','request_only') AND request.status IN ('failed','cancelled') THEN
+      RETURN held_result || jsonb_build_object('reason','request_terminal');
+    END IF;
+  END IF;
+  IF p_mode IN ('motor','request_only') AND gap.status='request_queued' AND request.id IS NULL THEN
+    RAISE EXCEPTION 'period_gap_queued_request_unavailable' USING ERRCODE='23514';
+  END IF;
+
+  IF gap.customer_case_id IS NULL THEN
+    SELECT array_agg(id) INTO candidate_ids FROM (
+      SELECT id FROM public.customer_cases
+      WHERE company_id=gap.company_id AND source='batch_2c_operations'
+        AND metadata->>'metering_period_gap_id'=gap.id::text ORDER BY id LIMIT 2
+    ) candidates;
+    IF coalesce(cardinality(candidate_ids),0)>1 THEN
+      RAISE EXCEPTION 'period_gap_case_ambiguous' USING ERRCODE='23514';
+    END IF;
+  ELSE
+    candidate_ids:=ARRAY[gap.customer_case_id];
+  END IF;
+  SELECT * INTO follow_up FROM public.customer_cases
+  WHERE company_id=gap.company_id AND id=candidate_ids[1] FOR UPDATE;
+  IF candidate_ids IS NOT NULL THEN
+    IF NOT FOUND OR follow_up.customer_id IS DISTINCT FROM gap.customer_id
+       OR follow_up.site_id IS DISTINCT FROM gap.site_id OR follow_up.metering_point_id IS DISTINCT FROM gap.metering_point_id
+       OR follow_up.source IS DISTINCT FROM 'batch_2c_operations'
+       OR follow_up.case_type IS DISTINCT FROM 'technical_blocker'
+       OR follow_up.reason_category IS NULL OR follow_up.reason_category NOT IN ('missing_meter_values','metering_period_gap')
+       OR (follow_up.metadata ? 'metering_period_gap_id' AND follow_up.metadata->>'metering_period_gap_id' IS DISTINCT FROM gap.id::text)
+       OR (follow_up.outbound_request_id IS NOT NULL AND follow_up.outbound_request_id IS DISTINCT FROM request.id) THEN
+      RAISE EXCEPTION 'period_gap_case_scope_changed' USING ERRCODE='23514';
+    END IF;
+    IF follow_up.status IN ('resolved','cancelled','closed') THEN
+      RETURN held_result || jsonb_build_object('outcome','case_closed');
+    END IF;
+  END IF;
+
+  IF request.customer_case_id IS NOT NULL AND request.customer_case_id IS DISTINCT FROM follow_up.id THEN
+    RAISE EXCEPTION 'period_gap_request_case_scope_changed' USING ERRCODE='23514';
+  END IF;
+
+  IF p_mode IN ('motor','request_only') AND request.id IS NULL THEN
+    INSERT INTO public.outbound_requests(
+      company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_type,source_type,source_id,
+      status,channel_type,payload,period_start,period_end,automation_origin,automation_key,created_by,updated_by
+    ) VALUES (
+      gap.company_id,gap.customer_id,gap.site_id,gap.metering_point_id,configured_grid_owner,'meter_values','bulk_generation',gap.id,
+      'queued','unresolved',jsonb_build_object('automation','batch_2c_period_motor','periodMonth',gap.period_month,
+        'meterPointId',external_point,'periodStart',gap.period_start,'periodEnd',gap.period_end),
+      gap.period_start,gap.period_end,'batch_2c_period_motor',request_key,p_actor_user_id,p_actor_user_id
+    ) RETURNING * INTO request;
+    request_created:=true;
+  END IF;
+
+  IF p_mode='request_only' THEN
+    gap_changed:=gap.outbound_request_id IS NULL OR gap.status='open';
+    IF gap_changed THEN
+      UPDATE public.metering_period_gaps SET outbound_request_id=request.id,status='request_queued',updated_at=now()
+      WHERE company_id=gap.company_id AND id=gap.id RETURNING * INTO gap;
+    END IF;
+    RETURN jsonb_build_object('outcome','linked','gapId',gap.id,'status',gap.status,
+      'outboundRequestId',request.id,'customerCaseId',follow_up.id,'requestCreated',request_created,
+      'caseCreated',false,'gapChanged',gap_changed,'caseRequestLinked',false);
+  END IF;
+
+  IF follow_up.id IS NULL THEN
+    INSERT INTO public.customer_cases(
+      company_id,customer_id,site_id,metering_point_id,outbound_request_id,case_type,status,priority,title,description,
+      reason_category,billing_manual_review,next_action,source,metadata,created_by,updated_by
+    ) VALUES (
+      gap.company_id,gap.customer_id,gap.site_id,gap.metering_point_id,request.id,'technical_blocker','action_required','high',
+      'Saknade mätvärden','Mätvärden saknas för '||gap.period_month||'.',
+      'missing_meter_values',true,'Granska underlaget och komplettera saknade mätvärden.','batch_2c_operations',
+      jsonb_build_object('metering_period_gap_id',gap.id,'periodMonth',gap.period_month,'meterPointId',external_point),
+      p_actor_user_id,p_actor_user_id
+    ) RETURNING * INTO follow_up;
+    INSERT INTO public.customer_case_events(company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by)
+    VALUES (gap.company_id,follow_up.id,gap.customer_id,'created','info','Driftuppgift om saknade mätvärden registrerad.',
+      jsonb_build_object('metering_period_gap_id',gap.id),p_actor_user_id);
+    INSERT INTO public.audit_logs(company_id,actor_user_id,actor_type,entity_type,entity_id,resource_type,resource_id,action,new_values,metadata)
+    VALUES (gap.company_id,p_actor_user_id,'user','customer_case',follow_up.id::text,'customer_case',follow_up.id::text,
+      'customer_case_registered',jsonb_build_object('case_type',follow_up.case_type,'status',follow_up.status),
+      jsonb_build_object('customer_id',gap.customer_id,'metering_period_gap_id',gap.id));
+    case_created:=true;
+  ELSIF follow_up.outbound_request_id IS NULL AND request.id IS NOT NULL THEN
+    UPDATE public.customer_cases SET outbound_request_id=request.id,updated_by=p_actor_user_id,updated_at=now()
+    WHERE company_id=gap.company_id AND id=follow_up.id;
+    case_request_linked:=true;
+  END IF;
+
+  IF request.id IS NOT NULL AND request.customer_case_id IS NULL
+     AND request.status='queued' AND request.channel_type='unresolved' THEN
+    UPDATE public.outbound_requests SET customer_case_id=follow_up.id,updated_by=p_actor_user_id,updated_at=now()
+    WHERE company_id=gap.company_id AND id=request.id;
+  END IF;
+
+  gap_changed:=gap.customer_case_id IS DISTINCT FROM follow_up.id
+    OR (request.id IS NOT NULL AND gap.outbound_request_id IS NULL)
+    OR (p_mode='motor' AND gap.status='open' AND request.id IS NOT NULL);
+  IF gap_changed THEN
+    UPDATE public.metering_period_gaps SET
+      customer_case_id=follow_up.id,outbound_request_id=coalesce(gap.outbound_request_id,request.id),
+      status=CASE WHEN p_mode='motor' AND gap.status='open' AND request.id IS NOT NULL THEN 'request_queued' ELSE gap.status END,
+      updated_at=now()
+    WHERE company_id=gap.company_id AND id=gap.id RETURNING * INTO gap;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'outcome','linked','gapId',gap.id,'status',gap.status,'outboundRequestId',request.id,'customerCaseId',follow_up.id,
+    'requestCreated',request_created,'caseCreated',case_created,'gapChanged',gap_changed,'caseRequestLinked',case_request_linked);
+END
+$$;
+
+--
+-- Name: gridex_reconcile_partner_export_case_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_reconcile_partner_export_case_v1(p_company_id uuid, p_export_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET lock_timeout TO '5s'
+    AS $$
+DECLARE
+  export_row public.partner_exports%rowtype;
+  follow_up public.customer_cases%rowtype;
+BEGIN
+  IF current_user <> 'service_role' THEN
+    RAISE EXCEPTION 'partner_export_case_service_role_required' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_export_id IS NULL OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'partner_export_case_command_invalid' USING ERRCODE='22023';
+  END IF;
+
+  PERFORM 1 FROM public.companies
+  WHERE id=p_company_id AND is_active IS DISTINCT FROM false
+    AND coalesce(status,'active') NOT IN
+      ('paused','suspended','inactive','closed','archived','pending_deletion','deleted','deleted_test_only')
+  FOR SHARE;
+  IF NOT FOUND OR (
+    public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'cases.write')
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write')
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export')
+  ) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'partner_export_case_actor_or_company_forbidden' USING ERRCODE='42501';
+  END IF;
+
+  SELECT * INTO export_row FROM public.partner_exports
+  WHERE company_id=p_company_id AND id=p_export_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'partner_export_case_source_not_found' USING ERRCODE='P0002';
+  END IF;
+  IF export_row.status NOT IN ('queued','failed') OR export_row.customer_id IS NULL THEN
+    RETURN jsonb_build_object('outcome','held','partnerExportId',export_row.id,
+      'customerCaseId',null,'caseCreated',false);
+  END IF;
+
+  PERFORM 1 FROM public.customers
+  WHERE id=export_row.customer_id AND company_id=p_company_id FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'partner_export_case_customer_scope_invalid' USING ERRCODE='23514';
+  END IF;
+  IF export_row.site_id IS NOT NULL THEN
+    PERFORM 1 FROM public.customer_sites WHERE id=export_row.site_id
+      AND company_id=p_company_id AND customer_id=export_row.customer_id FOR SHARE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'partner_export_case_site_scope_invalid' USING ERRCODE='23514';
+    END IF;
+  END IF;
+  IF export_row.metering_point_id IS NOT NULL THEN
+    PERFORM 1 FROM public.metering_points m
+    JOIN public.customer_sites s ON s.id=m.site_id AND s.company_id=m.company_id
+    WHERE m.id=export_row.metering_point_id AND m.company_id=p_company_id
+      AND s.customer_id=export_row.customer_id
+      AND (export_row.site_id IS NULL OR s.id=export_row.site_id)
+    FOR SHARE OF m,s;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'partner_export_case_meter_scope_invalid' USING ERRCODE='23514';
+    END IF;
+  END IF;
+
+  IF export_row.customer_case_id IS NOT NULL THEN
+    SELECT * INTO follow_up FROM public.customer_cases
+    WHERE id=export_row.customer_case_id AND company_id=p_company_id
+      AND customer_id=export_row.customer_id
+      AND site_id IS NOT DISTINCT FROM export_row.site_id
+      AND metering_point_id IS NOT DISTINCT FROM export_row.metering_point_id
+    FOR SHARE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'partner_export_case_existing_link_invalid' USING ERRCODE='23514';
+    END IF;
+    RETURN jsonb_build_object('outcome','linked','partnerExportId',export_row.id,
+      'customerCaseId',follow_up.id,'caseCreated',false);
+  END IF;
+
+  INSERT INTO public.customer_cases(
+    company_id,customer_id,site_id,metering_point_id,case_type,status,priority,title,description,
+    reason_category,next_action,source,metadata,created_by,updated_by
+  ) VALUES (
+    p_company_id,export_row.customer_id,export_row.site_id,export_row.metering_point_id,
+    'technical_blocker','action_required',
+    CASE WHEN export_row.status='failed' THEN 'high' ELSE 'normal' END,
+    'Partnerexport kräver uppföljning','Partnerexporten behöver följas upp i exportflödet.',
+    'partner_export','Granska exportens status och kvittens i partnerexporten.',
+    'batch_2c_operations',jsonb_build_object('partner_export_id',export_row.id),
+    p_actor_user_id,p_actor_user_id
+  ) RETURNING * INTO follow_up;
+
+  INSERT INTO public.customer_case_events(
+    company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by
+  ) VALUES (
+    p_company_id,follow_up.id,export_row.customer_id,'created','info',
+    'Driftuppgift för partnerexport registrerad.',
+    jsonb_build_object('partner_export_id',export_row.id),p_actor_user_id
+  );
+
+  INSERT INTO public.audit_logs(
+    company_id,actor_user_id,actor_type,entity_type,entity_id,resource_type,resource_id,action,new_values,metadata
+  ) VALUES (
+    p_company_id,p_actor_user_id,'user','customer_case',follow_up.id::text,'customer_case',follow_up.id::text,
+    'customer_case_registered',jsonb_build_object('case_type',follow_up.case_type,'status',follow_up.status),
+    jsonb_build_object('customer_id',export_row.customer_id,'partner_export_id',export_row.id)
+  );
+
+  UPDATE public.partner_exports SET customer_case_id=follow_up.id
+  WHERE company_id=p_company_id AND id=export_row.id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'partner_export_case_attachment_not_saved' USING ERRCODE='23514';
+  END IF;
+
+  RETURN jsonb_build_object('outcome','linked','partnerExportId',export_row.id,
+    'customerCaseId',follow_up.id,'caseCreated',true);
+END
+$$;
+
+--
 -- Name: gridex_reconcile_withdrawal_email_acceptance_v1(uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -106490,6 +113340,48 @@ end
 $$;
 
 --
+-- Name: gridex_record_late_contrl_resolution_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_late_contrl_resolution_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+  DECLARE
+    v_ack_id uuid;
+    v_sent_at timestamptz;
+  BEGIN
+    -- Only the existing service sweep can add evidence, using the same
+    -- company, environment, source and evaluation time as its resolution.
+    IF current_user IS DISTINCT FROM 'service_role' OR NEW.company_id IS NULL
+      OR (NEW.company_id,NEW.ediel_message_id,NEW.due_at)
+        IS DISTINCT FROM (OLD.company_id,OLD.ediel_message_id,OLD.due_at)
+      OR NOT isfinite(NEW.due_at) OR NOT isfinite(NEW.updated_at)
+    THEN RETURN NEW; END IF;
+
+    SELECT ack.id,ack.message_sent_at INTO v_ack_id,v_sent_at
+    FROM public.ediel_messages source
+    JOIN public.ediel_messages ack
+      ON (ack.company_id,ack.environment,ack.related_message_id)=(source.company_id,source.environment,source.id)
+    WHERE (source.company_id,source.id)=(NEW.company_id,NEW.ediel_message_id)
+      AND source.direction='inbound' AND source.message_standard='edifact'
+      AND ack.direction='outbound' AND ack.message_family='CONTRL' AND ack.status='sent'
+      AND isfinite(ack.message_sent_at) AND ack.message_sent_at<=NEW.updated_at
+    ORDER BY ack.message_sent_at,ack.id LIMIT 1;
+
+    IF v_ack_id IS NOT NULL AND v_sent_at>NEW.due_at THEN
+      NEW.payload:=CASE WHEN jsonb_typeof(NEW.payload)='object' THEN NEW.payload
+        ELSE jsonb_build_object('previousPayload',NEW.payload) END
+        ||jsonb_build_object('lateContrl',jsonb_build_object(
+          'acknowledgementId',v_ack_id,'dueAt',NEW.due_at,'sentAt',v_sent_at
+        ));
+    END IF;
+    RETURN NEW;
+  END
+  $$;
+
+--
 -- Name: gridex_record_legacy_api_key_use_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -106798,6 +113690,136 @@ BEGIN
  IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
  RETURN gridex_received_sources.append_utilts_validation_v4(p_company_id,p_environment,p_source_message_id,p_source_payload_hash,p_facts_text,p_transaction_facts_text,p_header_facts_text,p_functional_facts_text);
 END $$;
+
+--
+-- Name: gridex_record_website_facility_request_v1(uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_website_facility_request_v1(p_company_id uuid, p_application_id uuid, p_request_id uuid, p_actor_user_id uuid, p_next_step text, p_warnings jsonb) RETURNS uuid
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  application public.website_customer_applications%ROWTYPE;
+  request public.grid_owner_information_requests%ROWTYPE;
+  occurrence timestamptz := statement_timestamp();
+  request_event constant text := 'grid_owner_information_request_created';
+  action_key constant text := 'facility_data_requested';
+  action_source constant text := 'website_application_review';
+  entity_kind constant text := 'grid_owner_data_request';
+  unit_name constant text := 'facility_data_request';
+  action_label constant text := 'Anläggningsuppgifter begärda från nätägare';
+  original_actor uuid;
+  history jsonb;
+  application_audit jsonb;
+  effect_metadata jsonb;
+  advance_application boolean;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' OR NOT (
+    public.canonical_actor_is_platform_admin(p_actor_user_id) IS TRUE
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'customers.write') IS TRUE
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'switching.write') IS TRUE
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS TRUE
+    OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'poa.write') IS TRUE
+  ) THEN
+    RAISE EXCEPTION 'website_facility_request_forbidden' USING ERRCODE='42501';
+  END IF;
+  IF p_company_id IS NULL OR p_application_id IS NULL OR p_request_id IS NULL
+     OR coalesce(length(btrim(p_next_step)),0) NOT BETWEEN 1 AND 1000
+     OR jsonb_typeof(p_warnings) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'website_facility_request_invalid_arguments' USING ERRCODE='22023';
+  END IF;
+
+  -- All website reviewers sharing a physical request serialize here. A retry
+  -- can repair missing usage even if the original request or audit committed.
+  SELECT * INTO request
+  FROM public.grid_owner_information_requests r
+  WHERE r.company_id=p_company_id AND r.id=p_request_id AND r.request_type='facility_lookup'
+    AND r.status IN ('draft','ready_to_send','sent','waiting_response','needs_review')
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'website_facility_request_not_found' USING ERRCODE='P0002';
+  END IF;
+
+  SELECT * INTO application
+  FROM public.website_customer_applications a
+  WHERE a.company_id=p_company_id AND a.id=p_application_id
+  FOR UPDATE;
+  IF NOT FOUND OR request.customer_id IS DISTINCT FROM application.customer_id
+     OR request.customer_site_id IS DISTINCT FROM application.customer_site_id
+     OR (request.customer_site_id IS NULL AND request.customer_application_id IS DISTINCT FROM application.id) THEN
+    RAISE EXCEPTION 'website_facility_request_scope_mismatch' USING ERRCODE='23514';
+  END IF;
+
+  history := CASE WHEN jsonb_typeof(application.timeline)='array' THEN application.timeline ELSE '[]'::jsonb END;
+  application_audit := CASE WHEN jsonb_typeof(application.audit_log)='array' THEN application.audit_log ELSE '[]'::jsonb END;
+  IF NOT EXISTS(SELECT FROM jsonb_array_elements(history) event
+    WHERE event->>'type'=request_event AND event#>>'{metadata,request_id}'=request.id::text) THEN
+    history := history||jsonb_build_array(jsonb_build_object(
+      'type',request_event,'label','Begäran om anläggningsuppgifter skapades','occurred_at',occurrence,
+      'metadata',jsonb_build_object('request_id',request.id,'status',request.status)
+    ));
+  END IF;
+  IF NOT EXISTS(SELECT FROM jsonb_array_elements(application_audit) event
+    WHERE event->>'action'=request_event AND event#>>'{new_values,request,requestId}'=request.id::text) THEN
+    application_audit := application_audit||jsonb_build_array(jsonb_build_object(
+      'action',request_event,'actor_user_id',p_actor_user_id,'created_at',occurrence,'old_values','{}'::jsonb,
+      'new_values',jsonb_build_object('request',jsonb_build_object(
+        'requestId',request.id,'status',request.status,'channel',request.channel,
+        'nextStep',p_next_step,'warnings',p_warnings,
+        'routeId',coalesce(request.communication_route_id,request.contact_route_id,request.actor_route_id),
+        'communicationRouteId',request.communication_route_id,'edielRouteProfileId',request.ediel_route_profile_id,
+        'outboundRequestId',request.outbound_request_id,'edielMessageId',request.ediel_message_id,
+        'operationId',request.operation_id,'dispatchStatus',request.dispatch_status
+      ))
+    ));
+  END IF;
+
+  -- A replay may repair missing audit or usage without restarting the lifecycle.
+  advance_application := application.grid_owner_information_request_id IS DISTINCT FROM request.id
+    AND application.status IN ('application_received','received','customer_created','customer_matched',
+      'linked_existing_customer','needs_address_resolution','address_resolved','grid_area_resolved',
+      'needs_information','needs_facility_data','pending_review','manual_review','facility_data_invalid',
+      'customer_information_mismatch','needs_customer_correction','needs_grid_owner_followup')
+    OR (application.grid_owner_information_request_id=request.id
+      AND application.status='needs_facility_data' AND request.status='ready_to_send');
+  UPDATE public.website_customer_applications a
+  SET grid_owner_information_request_id=CASE WHEN advance_application THEN request.id ELSE a.grid_owner_information_request_id END,
+      status=CASE WHEN NOT advance_application THEN a.status
+                  WHEN request.status='ready_to_send' THEN 'information_request_ready' ELSE 'needs_facility_data' END,
+      response_payload=CASE WHEN advance_application
+        THEN (CASE WHEN jsonb_typeof(a.response_payload)='object' THEN a.response_payload ELSE '{}'::jsonb END)
+          ||jsonb_build_object('grid_owner_information_request_id',request.id,
+            'grid_owner_information_request_status',request.status,'grid_owner_information_request_channel',request.channel)
+        ELSE a.response_payload END,
+      next_step=CASE WHEN advance_application THEN p_next_step ELSE a.next_step END,
+      warnings=CASE WHEN advance_application THEN p_warnings ELSE a.warnings END,
+      timeline=history,audit_log=application_audit,updated_at=occurrence
+  WHERE a.company_id=p_company_id AND a.id=application.id
+    AND (advance_application OR history IS DISTINCT FROM a.timeline OR application_audit IS DISTINCT FROM a.audit_log);
+
+  effect_metadata := jsonb_build_object('application_id',application.id,'request_status',request.status,
+    'channel',request.channel,'next_step',p_next_step,'action_label',action_label,'source',action_source,'billable',true);
+  SELECT a.actor_user_id INTO original_actor FROM public.audit_logs a
+  WHERE a.company_id=p_company_id AND a.entity_type=entity_kind AND a.entity_id=request.id::text
+    AND a.action=action_key AND a.metadata->>'source'=action_source
+  ORDER BY a.created_at,a.id LIMIT 1;
+  IF NOT FOUND THEN
+    INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,metadata)
+    VALUES(p_company_id,p_actor_user_id,entity_kind,request.id::text,action_key,effect_metadata);
+  END IF;
+
+  IF NOT EXISTS(SELECT FROM public.platform_usage_events u
+    WHERE u.company_id=p_company_id AND u.entity_type=entity_kind AND u.entity_id=request.id::text
+      AND u.event_key=action_key AND u.source=action_source AND u.billing_unit=unit_name AND u.is_billable) THEN
+    INSERT INTO public.platform_usage_events(company_id,actor_user_id,customer_id,entity_type,entity_id,
+      event_key,action_label,source,billable_quantity,billing_unit,is_billable,metadata)
+    VALUES(p_company_id,coalesce(original_actor,p_actor_user_id),application.customer_id,entity_kind,request.id::text,
+      action_key,action_label,action_source,1,unit_name,true,effect_metadata);
+  END IF;
+  RETURN request.id;
+END
+$$;
 
 --
 -- Name: gridex_recover_invoice_file_receipt_v2(uuid, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -107477,6 +114499,12 @@ BEGIN
     JOIN public.billing_underlay_items li ON li.company_id=u.company_id AND li.billing_underlay_id=u.id
     JOIN public.normalized_metering_values m ON m.company_id=u.company_id AND m.id=p_source_value_id
       AND m.id=li.source_normalized_metering_value_id
+    JOIN public.billing_underlays original_underlay ON original_underlay.company_id=u.company_id
+      AND original_underlay.id=source_row.billing_underlay_id
+      AND original_underlay.billing_period_start=(source_row.snapshot->>'periodStart')::date
+      AND original_underlay.billing_period_end=(source_row.snapshot->>'periodEnd')::date
+    CROSS JOIN LATERAL (SELECT gridex_invoice_file_archive.correction_period_v1(
+      u.billing_period_start,u.billing_period_end,u.payload) AS bounds) corrected_period
     WHERE u.company_id=p_company_id AND u.id=p_corrected_underlay_id AND u.customer_id=target.customer_id
       AND coalesce(u.customer_site_id,u.site_id)=(source_row.snapshot->>'siteId')::uuid
       AND u.metering_point_id=(source_row.snapshot->>'meteringPointId')::uuid
@@ -107493,11 +114521,19 @@ BEGIN
       AND coalesce(m.customer_site_id,m.site_id)=coalesce(u.customer_site_id,u.site_id)
       AND m.revision_status='current' AND m.billing_gate_status='eligible' AND m.billing_status='billable'
       AND lower(coalesce(m.quality_status,'')) NOT IN ('estimated','preliminary','temp','temporary','calculated')
+      AND corrected_period.bounds=gridex_invoice_file_archive.correction_period_v1(
+        original_underlay.billing_period_start,original_underlay.billing_period_end,original_underlay.payload)
+      -- For a direct E66 consumption line the current normalized reading owns both kWh quantities.
+      AND (
+        m.source_type <> 'ediel_utilts' OR m.source_message_id IS NULL
+        OR m.source_metering_value_id IS NULL OR m.direction <> 'consumption'
+        OR m.quantity_kwh < 0 OR m.unit <> 'kWh' OR li.unit <> 'kWh'
+        OR (li.quantity = m.quantity_kwh AND (li.quantity_kwh IS NULL OR li.quantity_kwh = m.quantity_kwh))
+      )
       AND li.period_end>li.period_start
-      AND li.period_start>=m.period_start AND li.period_end<=m.period_end
-      AND li.period_start>=(u.billing_period_start::timestamp AT TIME ZONE 'Europe/Stockholm')
-      AND li.period_end<=(u.billing_period_end::timestamp AT TIME ZONE 'Europe/Stockholm')
-    FOR SHARE OF u,li,m;
+      AND li.period_start=m.period_start AND li.period_end=m.period_end
+      AND li.period_start>=lower(corrected_period.bounds) AND li.period_end<=upper(corrected_period.bounds)
+    FOR SHARE OF u,li,m,original_underlay;
     IF NOT FOUND THEN RAISE EXCEPTION 'invoice_group_correction_source_unqualified' USING ERRCODE='23514'; END IF;
 
     INSERT INTO public.billing_adjustment_cases(company_id,environment,original_billing_underlay_id,corrected_billing_underlay_id,
@@ -107557,7 +114593,7 @@ BEGIN
     e.id AS item_id,f.id AS file_id,f.environment,f.billing_month,f.rows,f.rows_sha256,
     e.metadata->'approval' AS approval,i.metadata->'approval' AS mirror_approval,r.selection,r.created_at_wire,
     coalesce(u.customer_site_id,u.site_id) AS site_id,u.metering_point_id,
-    coalesce(u.customer_contract_id,u.contract_id) AS contract_id,u.billing_period_start,u.billing_period_end
+    coalesce(u.customer_contract_id,u.contract_id) AS contract_id,u.billing_period_start,u.billing_period_end,u.payload AS period_payload
   INTO original
   FROM public.customer_invoices i
   JOIN public.invoice_export_items e ON e.company_id=i.company_id AND e.id=i.invoice_export_item_id
@@ -107638,6 +114674,8 @@ BEGIN
     JOIN public.billing_underlay_items li ON li.company_id=u.company_id AND li.billing_underlay_id=u.id
     JOIN public.normalized_metering_values m ON m.company_id=u.company_id AND m.id=p_source_value_id
       AND m.id=li.source_normalized_metering_value_id
+    CROSS JOIN LATERAL (SELECT gridex_invoice_file_archive.correction_period_v1(
+      u.billing_period_start,u.billing_period_end,u.payload) AS bounds) corrected_period
     WHERE u.company_id=p_company_id AND u.id=p_corrected_underlay_id AND u.customer_id=original.customer_id
       AND coalesce(u.customer_site_id,u.site_id)=original.site_id AND u.metering_point_id=original.metering_point_id
       AND coalesce(u.customer_contract_id,u.contract_id)=original.contract_id
@@ -107655,9 +114693,18 @@ BEGIN
       AND m.direction IN ('consumption','net_consumption')
       AND m.revision_status='current' AND m.billing_gate_status='eligible' AND m.billing_status='billable'
       AND lower(coalesce(m.quality_status,'')) NOT IN ('estimated','preliminary','temp','temporary','calculated')
-      AND li.period_end>li.period_start AND li.period_start>=m.period_start AND li.period_end<=m.period_end
-      AND li.period_start>=(u.billing_period_start::timestamp AT TIME ZONE 'Europe/Stockholm')
-      AND li.period_end<=(u.billing_period_end::timestamp AT TIME ZONE 'Europe/Stockholm')
+      AND corrected_period.bounds=gridex_invoice_file_archive.correction_period_v1(
+        original.billing_period_start,original.billing_period_end,original.period_payload)
+      -- For a direct E66 consumption line the current normalized reading owns both kWh quantities.
+      AND (
+        m.source_type <> 'ediel_utilts' OR m.source_message_id IS NULL
+        OR m.source_metering_value_id IS NULL OR m.direction <> 'consumption'
+        OR m.quantity_kwh < 0 OR m.unit <> 'kWh' OR li.unit <> 'kWh'
+        OR (li.quantity = m.quantity_kwh AND (li.quantity_kwh IS NULL OR li.quantity_kwh = m.quantity_kwh))
+      )
+      AND li.period_end>li.period_start
+      AND li.period_start=m.period_start AND li.period_end=m.period_end
+      AND li.period_start>=lower(corrected_period.bounds) AND li.period_end<=upper(corrected_period.bounds)
     LIMIT 1 FOR SHARE OF li,m;
     IF NOT FOUND THEN RAISE EXCEPTION 'invoice_correction_source_unqualified' USING ERRCODE='23514'; END IF;
 
@@ -109118,6 +116165,114 @@ end;
 $$;
 
 --
+-- Name: gridex_requalify_planned_move_out_metering_value_v1(uuid, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_requalify_planned_move_out_metering_value_v1(p_company_id uuid, p_actor_user_id uuid, p_environment text, p_normalized_value_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+    DECLARE
+      v_meter_value_id uuid;
+      v_source_message_id uuid;
+      v_supply_period_id uuid;
+      value public.normalized_metering_values%rowtype;
+      period public.customer_supply_periods%rowtype;
+      contract public.customer_contracts%rowtype;
+      source_basis jsonb;
+      close_evidence jsonb;
+      retained_evidence jsonb;
+    BEGIN
+      IF auth.role() IS DISTINCT FROM 'service_role' THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_forbidden' USING ERRCODE='42501';
+      END IF;
+      IF p_environment IS NULL OR p_environment NOT IN ('test','production') OR p_normalized_value_id IS NULL THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_scope_required' USING ERRCODE='22023';
+      END IF;
+
+      -- Keep both rights current across the write, in the existing UTILTS
+      -- execution actor's permission-graph order.
+      PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+      PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company_id,p_actor_user_id);
+      IF public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'metering.write') IS NOT TRUE
+        OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.write') IS NOT TRUE
+      THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_forbidden' USING ERRCODE='42501';
+      END IF;
+
+      -- Match the gate's market -> source -> meter -> normalized -> period order.
+      PERFORM gridex_bilateral_prodat.lock_supply_v1();
+      PERFORM gridex_regulated_supply.lock_graph_v1();
+      SELECT normalized.source_metering_value_id,normalized.source_message_id,normalized.supply_period_id
+        INTO v_meter_value_id,v_source_message_id,v_supply_period_id
+      FROM public.normalized_metering_values normalized
+      WHERE (normalized.company_id,normalized.id)=(p_company_id,p_normalized_value_id);
+      IF v_meter_value_id IS NULL OR v_source_message_id IS NULL OR v_supply_period_id IS NULL THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_value_scope_mismatch' USING ERRCODE='23514';
+      END IF;
+      PERFORM gridex_billing_source.lock_values_v1(p_company_id,ARRAY[p_normalized_value_id],v_supply_period_id);
+
+      SELECT normalized.* INTO value
+      FROM public.normalized_metering_values normalized
+      JOIN public.metering_values raw ON (raw.company_id,raw.id)=(normalized.company_id,normalized.source_metering_value_id)
+      JOIN public.ediel_messages source ON (source.company_id,source.id)=(normalized.company_id,normalized.source_message_id)
+      WHERE (normalized.company_id,normalized.id,normalized.source_metering_value_id,normalized.source_message_id,normalized.supply_period_id)
+        =(p_company_id,p_normalized_value_id,v_meter_value_id,v_source_message_id,v_supply_period_id)
+        AND normalized.direction='consumption' AND normalized.quantity_kwh>=0 AND normalized.revision_status='current'
+        AND (normalized.billing_status,normalized.billing_gate_status,raw.billing_status,raw.billing_gate_status)
+           =('billable','eligible','billable','eligible')
+        AND (raw.customer_id,raw.metering_point_id)=(normalized.customer_id,normalized.metering_point_id)
+        AND (source.environment,source.direction,source.message_family,source.message_code)=(p_environment,'inbound','UTILTS','E66');
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_value_scope_mismatch' USING ERRCODE='23514';
+      END IF;
+
+      SELECT * INTO period FROM public.customer_supply_periods
+      WHERE (company_id,id,customer_id,metering_point_id)
+        =(value.company_id,value.supply_period_id,value.customer_id,value.metering_point_id);
+      SELECT * INTO contract FROM public.customer_contracts
+      WHERE (company_id,id,customer_id,metering_point_id)
+        =(period.company_id,period.contract_id,value.customer_id,value.metering_point_id) FOR SHARE;
+      IF gridex_received_sources.planned_move_out_supply_window_v1(period,contract,value.period_start,value.period_end) IS NOT TRUE THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_close_scope_mismatch' USING ERRCODE='23514';
+      END IF;
+
+      close_evidence:=gridex_billing_source.planned_move_out_close_receipt_v1(period,contract);
+      IF close_evidence->>'eventId' IS NULL OR close_evidence->>'recordedAt' IS NULL THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_close_scope_mismatch' USING ERRCODE='23514';
+      END IF;
+
+      source_basis:=gridex_billing_source.basis_v1(p_company_id,p_normalized_value_id);
+      retained_evidence:=gridex_billing_source.read_planned_move_out_receipt_v1(value,source_basis);
+      IF retained_evidence IS NOT DISTINCT FROM close_evidence THEN
+        RETURN jsonb_build_object('normalizedValueId',value.id,'receipt',retained_evidence,'replayed',true);
+      END IF;
+
+      PERFORM public.gridex_set_metering_billing_gate(p_company_id,v_meter_value_id,p_normalized_value_id,
+        jsonb_build_object(
+          'source_message_id',value.source_message_id,'customer_id',value.customer_id,'supply_period_id',value.supply_period_id,
+          'billing_status',value.billing_status,'billing_gate_status',value.billing_gate_status,
+          'billing_gate_reasons',coalesce(value.billing_gate_reasons,'[]'::jsonb),
+          'billing_gate_snapshot',coalesce(value.billing_gate_snapshot,'{}'::jsonb)
+        ));
+      SELECT * INTO STRICT value FROM public.normalized_metering_values
+      WHERE (company_id,id)=(p_company_id,p_normalized_value_id);
+      retained_evidence:=gridex_billing_source.read_planned_move_out_receipt_v1(value,source_basis);
+      IF retained_evidence IS DISTINCT FROM close_evidence THEN
+        RAISE EXCEPTION 'planned_move_out_requalification_receipt_required' USING ERRCODE='23514';
+      END IF;
+      INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,new_values,metadata)
+      VALUES(
+        p_company_id,p_actor_user_id,'normalized_metering_value',value.id::text,'planned_move_out_metering_requalified',
+        jsonb_build_object('closeEventId',close_evidence->>'eventId','supplyPeriodId',value.supply_period_id),
+        jsonb_build_object('environment',p_environment)
+      );
+      RETURN jsonb_build_object('normalizedValueId',value.id,'receipt',retained_evidence,'replayed',false);
+    END
+    $$;
+
+--
 -- Name: gridex_requeue_uncertain_withdrawal_email_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -109683,6 +116838,17 @@ BEGIN
     END IF;
   END IF;
 
+  -- Reuse the locked company snapshot before granting a new transport phase.
+  -- Existing phases still take the ordinary duplicate-reservation path.
+  IF (company.outbound_frozen IS TRUE
+      OR company.outbound_frozen_channels && ARRAY['invoice_export','*']::text[])
+     AND NOT EXISTS (
+       SELECT FROM gridex_capway_dispatch.entries existing_entry
+       WHERE existing_entry.company_id=p_company AND existing_entry.item_id=p_item AND existing_entry.phase=p_phase
+     ) THEN
+    RAISE EXCEPTION 'invoice_export_outbound_frozen' USING ERRCODE='23514';
+  END IF;
+
   INSERT INTO gridex_capway_dispatch.entries(company_id,item_id,phase,lease_token,actor_id,request_hash,provider_key,target_guid)
     VALUES(p_company,p_item,p_phase,p_lease,p_actor,p_request_hash,p_provider_key,p_target_guid)
     ON CONFLICT (company_id,item_id,phase) DO NOTHING RETURNING entry_id INTO reserved;
@@ -109751,6 +116917,83 @@ BEGIN
   RETURN entry;
 END
 $_$;
+
+--
+-- Name: gridex_reserve_manual_capway_purchase_v1(uuid, uuid, uuid, uuid, text, text, text, timestamp with time zone, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_reserve_manual_capway_purchase_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_export_run_id uuid, p_actor_user_id uuid, p_environment text, p_invoice_guid text, p_financing_mode text, p_expected_updated_at timestamp with time zone, p_expected_provider_status text, p_expected_purchase_status text) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    SET lock_timeout TO '5s'
+    AS $$
+DECLARE
+  company public.companies%ROWTYPE;
+  item public.invoice_export_items%ROWTYPE;
+  response jsonb;
+  reserved_at timestamptz;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'invoice_purchase_service_role_required' USING ERRCODE = '42501';
+  END IF;
+  IF p_company_id IS NULL OR p_invoice_export_item_id IS NULL OR p_export_run_id IS NULL OR
+      p_actor_user_id IS NULL OR p_expected_updated_at IS NULL OR
+      p_environment IS NULL OR p_environment NOT IN ('test', 'production') OR
+      nullif(btrim(p_invoice_guid), '') IS NULL OR p_financing_mode IS NULL OR
+      p_financing_mode NOT IN ('factoring_with_recourse', 'factoring_without_recourse') THEN
+    RAISE EXCEPTION 'invoice_purchase_payload_invalid' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO company FROM public.companies WHERE id = p_company_id FOR UPDATE;
+  IF NOT FOUND OR public.gridex_actor_has_company_permission(
+      p_actor_user_id, p_company_id, 'billing_underlay.export'
+    ) IS NOT TRUE THEN
+    RAISE EXCEPTION 'invoice_purchase_actor_forbidden' USING ERRCODE = '42501';
+  END IF;
+  IF company.is_active IS FALSE OR lower(coalesce(company.status, 'active')) NOT IN ('active', 'enabled', 'live')
+      OR company.outbound_frozen IS TRUE
+      OR company.outbound_frozen_channels && ARRAY['invoice_export', '*']::text[] THEN
+    RAISE EXCEPTION 'invoice_export_outbound_frozen' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT * INTO item FROM public.invoice_export_items
+    WHERE id = p_invoice_export_item_id AND company_id = p_company_id AND export_run_id = p_export_run_id
+    FOR UPDATE;
+  IF NOT FOUND OR item.provider IS DISTINCT FROM 'capway_aptic' OR
+      item.environment IS DISTINCT FROM p_environment OR item.provider_invoice_guid IS DISTINCT FROM p_invoice_guid OR
+      item.status IS DISTINCT FROM 'sent' OR item.updated_at IS DISTINCT FROM p_expected_updated_at OR
+      item.provider_status IS DISTINCT FROM p_expected_provider_status OR
+      item.purchase_status IS DISTINCT FROM p_expected_purchase_status OR
+      item.provider_status = 'cancelled' OR item.provider_purchase_confirmed_at IS NOT NULL OR
+      (item.purchase_status IS NOT NULL AND item.purchase_status NOT IN ('service', 'own_ledger')) THEN
+    RETURN false;
+  END IF;
+
+  response := CASE WHEN jsonb_typeof(item.response_payload) = 'object' THEN item.response_payload ELSE '{}'::jsonb END;
+  IF response ? 'manual_purchase_reconciliation' OR response ? 'automatic_purchase_reconciliation' OR
+      response->>'purchase' IS NOT NULL THEN
+    RETURN false;
+  END IF;
+
+  reserved_at := clock_timestamp();
+  UPDATE public.invoice_export_items
+    SET response_payload = response || jsonb_build_object(
+      'manual_purchase_reconciliation', jsonb_build_object(
+        'company_id', p_company_id,
+        'invoice_export_item_id', p_invoice_export_item_id,
+        'export_run_id', p_export_run_id,
+        'actor_user_id', p_actor_user_id,
+        'provider', 'capway_aptic',
+        'environment', p_environment,
+        'invoice_guid', p_invoice_guid,
+        'financing_mode', p_financing_mode,
+        'reserved_at', reserved_at
+      )
+    ), updated_at = reserved_at
+    WHERE id = p_invoice_export_item_id AND company_id = p_company_id AND export_run_id = p_export_run_id;
+  RETURN FOUND;
+END
+$$;
 
 --
 -- Name: gridex_reserve_withdrawal_email_provider_entry_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -111215,6 +118458,88 @@ $$;
 COMMENT ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) IS 'Dedicated legal review operation. Normal company saves rebuild the profile but never approve it.';
 
 --
+-- Name: gridex_review_test_contract_price_addendum_v1(uuid, uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_review_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_verified_sha256 text, p_verification jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+    DECLARE
+      source gridex_billing_source.test_price_addendum_documents%ROWTYPE;
+      prior gridex_billing_source.test_price_addendum_reviews%ROWTYPE;
+      signed_on date;
+      effective_on date;
+      effective_at timestamptz;
+      accepted jsonb;
+      captured_at timestamptz:=clock_timestamp();
+      replayed boolean;
+    BEGIN
+      PERFORM gridex_billing_source.require_test_price_addendum_actor_v1(p_company_id,p_actor_user_id);
+      IF jsonb_typeof(p_verification) IS DISTINCT FROM 'object'
+        OR p_verification->>'kind' IS DISTINCT FROM 'staff_manually_verified_signed_addendum_v1'
+        OR NOT (p_verification ?& ARRAY['kind','signedOn','effectiveOn','supplierSignerEvidence','customerSignerEvidence','priceOrePerKwh'])
+        OR p_verification-ARRAY['kind','signedOn','effectiveOn','supplierSignerEvidence','customerSignerEvidence','priceOrePerKwh']<>'{}'::jsonb
+        OR coalesce(p_verification->>'signedOn','') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        OR coalesce(p_verification->>'effectiveOn','') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        OR jsonb_typeof(p_verification->'supplierSignerEvidence') IS DISTINCT FROM 'string'
+        OR jsonb_typeof(p_verification->'customerSignerEvidence') IS DISTINCT FROM 'string'
+        OR length(btrim(p_verification->>'supplierSignerEvidence')) NOT BETWEEN 1 AND 256
+        OR length(btrim(p_verification->>'customerSignerEvidence')) NOT BETWEEN 1 AND 256
+        OR jsonb_typeof(p_verification->'priceOrePerKwh') IS DISTINCT FROM 'string'
+        OR coalesce(p_verification->>'priceOrePerKwh','') !~ '^(0|[1-9][0-9]{0,8})(\.[0-9]{1,8})?$' THEN
+        RAISE EXCEPTION 'price_addendum_manual_evidence_invalid' USING ERRCODE='22023';
+      END IF;
+      signed_on:=(p_verification->>'signedOn')::date;
+      effective_on:=(p_verification->>'effectiveOn')::date;
+      effective_at:=effective_on::timestamp AT TIME ZONE 'Europe/Stockholm';
+      SELECT * INTO source FROM gridex_billing_source.test_price_addendum_documents
+        WHERE (company_id,customer_id,contract_id,id)=(p_company_id,p_customer_id,p_contract_id,p_document_id);
+      IF NOT FOUND OR source.document_sha256 IS DISTINCT FROM p_verified_sha256
+        OR source.document_sha256 IS DISTINCT FROM encode(sha256(source.document),'hex') THEN
+        RAISE EXCEPTION 'price_addendum_document_evidence_changed' USING ERRCODE='23514';
+      END IF;
+      PERFORM FROM public.customer_contracts c
+      JOIN public.contract_price_snapshots s
+        ON (s.company_id,s.customer_id,s.contract_id,s.id)=(c.company_id,c.customer_id,c.id,c.contract_price_snapshot_id)
+      WHERE (c.company_id,c.customer_id,c.id)=(p_company_id,p_customer_id,p_contract_id)
+        AND c.status IN ('signed','active') AND c.signature_snapshot_sha256=source.original_signature_sha256
+        AND s.id=source.original_price_id AND s.snapshot_hash=source.original_price_sha256
+        AND signed_on<=(captured_at AT TIME ZONE 'Europe/Stockholm')::date
+        AND signed_on>=(c.signed_at AT TIME ZONE 'Europe/Stockholm')::date
+        AND signed_on<=effective_on AND effective_on>s.valid_from
+        AND (s.valid_to IS NULL OR effective_on<=s.valid_to)
+        AND gridex_billing_source.has_canonical_signed_series_price_v1(
+          c.company_id,c.customer_id,c.id,s.id,s.valid_from::timestamp AT TIME ZONE 'Europe/Stockholm',
+          (s.valid_from+1)::timestamp AT TIME ZONE 'Europe/Stockholm')
+      FOR UPDATE OF c NOWAIT;
+      IF NOT FOUND THEN RAISE EXCEPTION 'price_addendum_original_signature_or_effective_scope_changed' USING ERRCODE='23514'; END IF;
+
+      SELECT r.* INTO prior FROM gridex_billing_source.test_price_addendum_reviews r
+        WHERE (r.company_id,r.contract_id,r.document_id)=(p_company_id,p_contract_id,p_document_id);
+      replayed:=FOUND;
+      IF replayed AND prior.receipt->'verification' IS DISTINCT FROM p_verification THEN
+        RAISE EXCEPTION 'price_addendum_review_conflict' USING ERRCODE='23505';
+      END IF;
+      IF NOT replayed THEN
+        accepted:=jsonb_build_object('kind','staff_manually_verified_signed_addendum_v1',
+          'verification',p_verification,'actorUserId',p_actor_user_id,'reviewedAt',captured_at,
+          'companyId',p_company_id,'customerId',p_customer_id,'contractId',p_contract_id,
+          'documentId',source.id,'documentSha256',source.document_sha256,'byteLength',octet_length(source.document),
+          'originalSignatureSha256',source.original_signature_sha256,'originalPriceId',source.original_price_id,
+          'originalPriceSha256',source.original_price_sha256,'effectiveAt',effective_at);
+        INSERT INTO gridex_billing_source.test_price_addendum_reviews(
+          company_id,contract_id,document_id,effective_on,effective_at,receipt,receipt_sha256
+        ) VALUES(p_company_id,p_contract_id,p_document_id,effective_on,effective_at,accepted,
+          encode(sha256(convert_to(accepted::text,'UTF8')),'hex')) RETURNING * INTO prior;
+      END IF;
+      RETURN jsonb_build_object('kind','reviewed_unapplied','documentId',source.id,
+        'reviewSha256',prior.receipt_sha256,'effectiveAt',prior.effective_at,'existing',replayed);
+    END
+    $_$;
+
+--
 -- Name: gridex_revoke_portfolio_settlement_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -112119,6 +119444,74 @@ exception when others then
   update public.ediel_repair_runs set status='failed',completed_at=now(),counters=jsonb_build_object('error',sqlerrm) where id=v_run;
   raise;
 end; $$;
+
+--
+-- Name: gridex_scan_metering_period_gaps_v1(uuid, date[], uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_scan_metering_period_gaps_v1(p_company_id uuid, p_month_starts date[], p_after_point_id uuid DEFAULT NULL::uuid) RETURNS TABLE(point_id uuid, site_id uuid, customer_id uuid, grid_owner_id uuid, meter_point_id text, facility_id text, missing_months date[])
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT * FROM public.gridex_scan_metering_period_points_v2(
+    p_company_id, p_month_starts, false, p_after_point_id
+  );
+$$;
+
+--
+-- Name: gridex_scan_metering_period_points_v2(uuid, date[], boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_scan_metering_period_points_v2(p_company_id uuid, p_month_starts date[], p_include_unlinked boolean, p_after_point_id uuid DEFAULT NULL::uuid) RETURNS TABLE(point_id uuid, site_id uuid, customer_id uuid, grid_owner_id uuid, meter_point_id text, facility_id text, missing_months date[])
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF p_company_id IS NULL OR p_include_unlinked IS NULL
+    OR coalesce(cardinality(p_month_starts), 0) NOT BETWEEN 1 AND 36
+    OR EXISTS (
+      SELECT FROM unnest(p_month_starts) AS months(month_start)
+      WHERE month_start IS NULL OR NOT isfinite(month_start)
+        OR extract(day FROM month_start) IS DISTINCT FROM 1::numeric
+        OR month_start < DATE '0001-01-01' OR month_start >= DATE '9999-12-01'
+    )
+  THEN
+    RAISE EXCEPTION 'Ogiltigt periodurval.' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY
+  WITH page AS MATERIALIZED (
+    SELECT point.id AS point_id, site.id AS site_id, site.customer_id,
+           coalesce(point.grid_owner_id, site.grid_owner_id) AS grid_owner_id,
+           point.meter_point_id, site.facility_id
+    FROM public.metering_points AS point
+    LEFT JOIN public.customer_sites AS site
+      ON site.id = point.site_id AND site.company_id = point.company_id
+    WHERE point.company_id = p_company_id
+      AND (p_include_unlinked OR site.id IS NOT NULL)
+      AND (p_after_point_id IS NULL OR point.id > p_after_point_id)
+    ORDER BY point.id
+    LIMIT 200
+  )
+  SELECT page.point_id, page.site_id, page.customer_id, page.grid_owner_id,
+         page.meter_point_id::text, page.facility_id::text,
+         ARRAY(
+           SELECT DISTINCT month_start
+           FROM unnest(p_month_starts) AS months(month_start)
+           WHERE (p_include_unlinked OR page.customer_id IS NOT NULL)
+             AND NOT EXISTS (
+               SELECT FROM public.metering_values AS value
+               WHERE value.company_id = p_company_id
+                 AND value.metering_point_id = page.point_id
+                 AND value.period_start >= (month_start::timestamp AT TIME ZONE 'UTC')
+                 AND value.period_start < ((month_start + INTERVAL '1 month') AT TIME ZONE 'UTC')
+             )
+           ORDER BY month_start
+         )
+  FROM page
+  ORDER BY page.point_id;
+END;
+$$;
 
 --
 -- Name: gridex_seal_e66_completion_v1(uuid, text, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -113539,10 +120932,14 @@ CREATE FUNCTION public.gridex_set_metering_billing_gate(p_company_id uuid, p_met
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE b jsonb;legal_basis jsonb;n public.normalized_metering_values%rowtype;sp public.customer_supply_periods%rowtype;ct public.customer_contracts%rowtype;
+DECLARE b jsonb;legal_basis jsonb;planned_move_out boolean:=false;v_close_evidence jsonb;basis_digest text;n public.normalized_metering_values%rowtype;sp public.customer_supply_periods%rowtype;ct public.customer_contracts%rowtype;
 BEGIN
  IF coalesce(current_setting('role',true),'')<>'service_role' AND current_user<>'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501'; END IF;
  IF p_company_id IS NULL OR p_metering_value_id IS NULL OR p_normalized_value_id IS NULL OR p_gate IS NULL THEN RAISE EXCEPTION 'billing_gate_scope_required' USING ERRCODE='22023'; END IF;
+
+ IF jsonb_typeof(p_gate->'billing_gate_snapshot')='object' AND ((p_gate->'billing_gate_snapshot')?'administrative_close_basis') THEN
+  p_gate:=jsonb_set(p_gate,'{billing_gate_snapshot}',(p_gate->'billing_gate_snapshot')-'administrative_close_basis');
+ END IF;
  -- Use the market owner order before any source message lock. One E66
  -- envelope may contain measurements for both active and ended supplies.
  IF p_gate->>'billing_status'='billable' OR p_gate->>'billing_gate_status'='eligible' THEN
@@ -113558,7 +120955,12 @@ BEGIN
    OR p_gate->>'source_message_id' IS DISTINCT FROM n.source_message_id::text THEN RAISE EXCEPTION 'billing_gate_qualified_final_source_required' USING ERRCODE='23514'; END IF;
   SELECT * INTO sp FROM public.customer_supply_periods WHERE id=(p_gate->>'supply_period_id')::uuid AND company_id=p_company_id FOR SHARE;
   SELECT * INTO ct FROM public.customer_contracts WHERE id=sp.contract_id AND company_id=p_company_id FOR SHARE;
-  IF sp.id IS NULL OR ct.id IS NULL OR NOT (coalesce(sp.status IN ('active','confirmed_by_grid_owner') AND ct.status IN ('signed','active'),false)
+
+  planned_move_out:=CASE WHEN n.direction='consumption' AND n.quantity_kwh>=0
+    AND ct.status='terminated' AND ct.termination_reason='move_out'
+    THEN gridex_received_sources.planned_move_out_supply_window_v1(sp,ct,n.period_start,n.period_end)
+    ELSE false END;
+  IF sp.id IS NULL OR ct.id IS NULL OR NOT (planned_move_out OR coalesce(sp.status IN ('active','confirmed_by_grid_owner') AND ct.status IN ('signed','active'),false)
    OR coalesce(n.direction='consumption' AND n.quantity_kwh>=0 AND gridex_billing_source.ordinary_ended_supply_v1(sp,ct,n.period_start,n.period_end),false))
    OR sp.customer_id IS DISTINCT FROM n.customer_id OR sp.metering_point_id IS DISTINCT FROM n.metering_point_id OR ct.customer_id IS DISTINCT FROM n.customer_id OR ct.metering_point_id IS DISTINCT FROM n.metering_point_id
    OR sp.start_date IS NULL OR (sp.start_date::timestamp AT TIME ZONE 'Europe/Stockholm')>n.period_start
@@ -113569,6 +120971,22 @@ BEGIN
    THEN RAISE EXCEPTION 'billing_gate_supply_contract_scope_mismatch' USING ERRCODE='23514'; END IF;
   legal_basis:=gridex_received_sources.billing_supply_basis_v1(p_company_id,sp.id,n.period_start,n.period_end);
   IF legal_basis IS NULL OR legal_basis->'qualified' IS DISTINCT FROM 'true'::jsonb THEN RAISE EXCEPTION 'billing_gate_qualified_supply_source_required' USING ERRCODE='23514'; END IF;
+
+  IF planned_move_out THEN
+   v_close_evidence:=gridex_billing_source.planned_move_out_close_receipt_v1(sp,ct);
+   IF v_close_evidence IS NULL THEN RAISE EXCEPTION 'billing_gate_planned_move_out_receipt_required' USING ERRCODE='23514'; END IF;
+   basis_digest:=encode(sha256(convert_to(b::text,'UTF8')),'hex');
+   INSERT INTO gridex_billing_source.planned_move_out_receipts
+     (company_id,normalized_value_id,meter_value_id,source_message_id,supply_period_id,contract_id,source_basis_sha256,supply_source_basis,close_evidence)
+   VALUES(p_company_id,n.id,p_metering_value_id,n.source_message_id,sp.id,ct.id,basis_digest,legal_basis,v_close_evidence)
+   ON CONFLICT(company_id,normalized_value_id) DO NOTHING;
+   IF NOT EXISTS(SELECT FROM gridex_billing_source.planned_move_out_receipts r
+    WHERE (r.company_id,r.normalized_value_id,r.meter_value_id,r.source_message_id,r.supply_period_id,r.contract_id,
+           r.source_basis_sha256,r.supply_source_basis,r.close_evidence)
+          =(p_company_id,n.id,p_metering_value_id,n.source_message_id,sp.id,ct.id,basis_digest,legal_basis,v_close_evidence)) THEN
+    RAISE EXCEPTION 'billing_gate_planned_move_out_receipt_conflict' USING ERRCODE='23514';
+   END IF;
+  END IF;
   p_gate:=p_gate||jsonb_build_object('billing_gate_snapshot',coalesce(p_gate->'billing_gate_snapshot','{}')||jsonb_build_object('source_basis',b,'supply_source_basis',legal_basis));
  END IF;
  RETURN gridex_billing_source.gridex_set_metering_billing_gate_before_source_v2(p_company_id,p_metering_value_id,p_normalized_value_id,p_gate);
@@ -114419,6 +121837,168 @@ end
 $$;
 
 --
+-- Name: gridex_step_mixed_e66_worker_v1(uuid, text, uuid, uuid, text, uuid, text, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_step_mixed_e66_worker_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid DEFAULT NULL::uuid, p_ide text DEFAULT NULL::text, p_worker_lease uuid DEFAULT NULL::uuid, p_draft_lease uuid DEFAULT NULL::uuid, p_draft jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  candidate record;
+  worker_lease uuid;
+  cursor_now integer;
+  observation_total integer;
+  checkpoint jsonb;
+  ready jsonb;
+  draft_proof jsonb;
+  stored jsonb;
+  prior_projection uuid;
+  consumed_underlay public.billing_underlays;
+BEGIN
+  IF p_environment IS DISTINCT FROM 'test' OR (p_action IN ('claim','advance','store','finish','defer')) IS NOT TRUE THEN
+    RAISE EXCEPTION 'mixed_worker_invalid_scope' USING ERRCODE='22023';
+  END IF;
+  PERFORM gridex_e66_intake.require_dispatch_scope(p_company,p_environment,p_mailbox,p_actor);
+  IF p_action='claim' THEN
+    SELECT w.source_id,c.transaction_id,
+      NOT EXISTS (SELECT FROM gridex_e66_intake.mixed_accepted_transactions accepted
+        WHERE (accepted.source_id,accepted.transaction_id)=(w.source_id,c.transaction_id)) AS rejected INTO candidate
+    FROM gridex_e66_intake.work w
+    CROSS JOIN LATERAL gridex_e66_intake.due_mixed_worker_members_v1(w,p_actor,statement_timestamp()) c
+    WHERE (w.company_id,w.environment,w.mailbox_id)=(p_company,p_environment,p_mailbox)
+    ORDER BY c.due_at,w.source_id,c.transaction_index LIMIT 1
+    FOR UPDATE OF w SKIP LOCKED;
+    IF NOT FOUND THEN RETURN jsonb_build_object('kind','idle'); END IF;
+    worker_lease:=gen_random_uuid();
+
+    IF candidate.rejected THEN
+      INSERT INTO gridex_e66_intake.mixed_e50_attempts AS prior
+        (source_id,transaction_id,lease_token,lease_expires_at,next_attempt_at)
+      VALUES(candidate.source_id,candidate.transaction_id,worker_lease,clock_timestamp()+interval '75 seconds',clock_timestamp())
+      ON CONFLICT(source_id,transaction_id) DO UPDATE SET
+        lease_token=excluded.lease_token,lease_expires_at=excluded.lease_expires_at,next_attempt_at=excluded.next_attempt_at
+      WHERE prior.completed_at IS NULL AND (prior.lease_expires_at IS NULL OR prior.lease_expires_at<=clock_timestamp())
+        AND prior.next_attempt_at<=clock_timestamp();
+      IF NOT FOUND THEN RETURN jsonb_build_object('kind','idle'); END IF;
+      RETURN jsonb_build_object('kind','claimed','sourceId',candidate.source_id,'transactionId',candidate.transaction_id,'lease',worker_lease);
+    END IF;
+    INSERT INTO gridex_e66_intake.mixed_worker_attempts AS prior
+      (source_id,transaction_id,lease_token,lease_expires_at,next_attempt_at)
+    VALUES(candidate.source_id,candidate.transaction_id,worker_lease,clock_timestamp()+interval '75 seconds',clock_timestamp())
+    ON CONFLICT(source_id,transaction_id) DO UPDATE SET
+      lease_token=excluded.lease_token,lease_expires_at=excluded.lease_expires_at,next_attempt_at=excluded.next_attempt_at
+      WHERE (prior.lease_expires_at IS NULL OR prior.lease_expires_at<=clock_timestamp())
+        AND prior.next_attempt_at<=clock_timestamp();
+    IF NOT FOUND THEN RETURN jsonb_build_object('kind','idle'); END IF;
+    RETURN jsonb_build_object('kind','claimed','sourceId',candidate.source_id,'transactionId',candidate.transaction_id,'lease',worker_lease);
+  END IF;
+
+  PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+  IF EXISTS (SELECT FROM gridex_e66_intake.mixed_e50_attempts a
+    WHERE (a.source_id,a.transaction_id)=(p_source,p_ide)) THEN
+    RETURN gridex_e66_intake.step_mixed_e50_v1(p_company,p_environment,p_mailbox,p_actor,p_action,
+      p_source,p_ide,p_worker_lease,p_draft);
+  END IF;
+
+  PERFORM 1 FROM gridex_e66_intake.work w
+  JOIN gridex_e66_intake.mixed_qualification_receipts q ON q.source_id=w.source_id AND q.actor_id=p_actor
+  JOIN gridex_e66_intake.mixed_worker_attempts x ON x.source_id=w.source_id
+  WHERE (w.source_id,w.company_id,w.environment,w.mailbox_id,x.transaction_id,x.lease_token)
+    =(p_source,p_company,p_environment,p_mailbox,p_ide,p_worker_lease)
+    AND w.phase='mixed_qualified' AND w.lease_token IS NULL AND x.lease_expires_at>clock_timestamp()
+  FOR UPDATE OF w,x;
+  IF NOT FOUND THEN RETURN jsonb_build_object('kind','held','reason','mixed_worker_lease_unavailable'); END IF;
+
+  IF p_action IN ('finish','defer') THEN
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,p_action='defer');
+    RETURN jsonb_build_object('kind','yielded');
+  END IF;
+  IF p_action='store' THEN
+    checkpoint:=gridex_e66_intake.seal_mixed_e73_ide_completion_v1(
+      p_company,p_environment,p_mailbox,p_source,p_actor,p_ide,p_draft_lease,p_draft->>'rawPayload');
+    IF checkpoint->>'status' IS DISTINCT FROM 'ide_preparation_recorded' THEN RETURN checkpoint||'{"kind":"held"}'::jsonb; END IF;
+    stored:=gridex_e66_intake.persist_mixed_positive_draft_v1(
+      p_company,p_environment,p_mailbox,p_source,p_actor,p_ide,p_draft_lease,p_draft);
+    IF stored#>>'{ackMessage,id}' IS NULL THEN
+      RAISE EXCEPTION 'mixed_worker_native_draft_unavailable' USING ERRCODE='55000';
+    END IF;
+    RETURN jsonb_build_object('kind','finalize','responseId',stored#>>'{ackMessage,id}');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT FROM gridex_e66_metering_stage.mixed_normalization_receipts n
+    WHERE (n.source_id,n.transaction_id)=(p_source,p_ide)
+  ) THEN
+    SELECT n.next_ordinal,n.observation_count INTO cursor_now,observation_total
+    FROM gridex_e66_metering_stage.mixed_jobs n WHERE (n.source_id,n.transaction_id)=(p_source,p_ide);
+    IF observation_total IS NULL OR cursor_now<observation_total THEN
+      PERFORM gridex_e66_metering_stage.consume_mixed_chunk_v1(
+        p_company,p_environment,p_mailbox,p_source,p_actor,p_ide,coalesce(cursor_now,0),8);
+      PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,false);
+      RETURN jsonb_build_object('kind','progress');
+    END IF;
+    PERFORM gridex_e66_metering_stage.seal_mixed_normalization_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_ide);
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,false);
+    RETURN jsonb_build_object('kind','progress');
+  END IF;
+
+  IF NOT EXISTS (SELECT FROM gridex_e66_intake.mixed_e73_request_basis b WHERE (b.source_id,b.transaction_id)=(p_source,p_ide)) THEN
+    BEGIN
+      PERFORM gridex_e66_intake.seal_mixed_e73_request_basis_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_ide);
+    EXCEPTION WHEN SQLSTATE '55000' THEN
+      IF SQLERRM <> 'mixed_e73_basis_evidence_unavailable' THEN RAISE; END IF;
+      PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,true);
+      RETURN jsonb_build_object('kind','held','reason','mixed_worker_e73_basis_unavailable','progress',false);
+    END;
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,false);
+    RETURN jsonb_build_object('kind','progress');
+  END IF;
+  IF EXISTS (SELECT FROM gridex_e66_intake.mixed_e73_request_basis b
+    WHERE (b.source_id,b.transaction_id)=(p_source,p_ide) AND b.evidence->>'requestScope'='billing_underlay') THEN
+    SELECT p.primary_underlay_id INTO prior_projection
+    FROM gridex_e66_intake.mixed_e73_billing_projections p
+    JOIN gridex_e66_intake.mixed_e73_request_basis b
+     ON (b.company_id,b.environment,b.request_id)=(p.company_id,p.environment,p.request_id)
+    WHERE (b.company_id,b.environment,b.source_id,b.transaction_id,b.actor_id)
+     =(p_company,p_environment,p_source,p_ide,p_actor);
+
+    consumed_underlay:=gridex_e66_intake.consume_owned_utilts_billing_v1(p_company,p_source,p_actor,(
+      SELECT jsonb_agg(gridex_utilts_binding.stored_contract_v1(p_company,p_source,t.transaction_id) ORDER BY t.transaction_id)
+      FROM gridex_e66_intake.mixed_accepted_transactions t WHERE t.source_id=p_source
+    ));
+    IF consumed_underlay.id IS NULL THEN
+      PERFORM gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(p_company,p_source,p_actor);
+    ELSIF consumed_underlay.payload#>>'{e73BillingScope,basisVersion}'='mixed-e73-ide-finance-v2'
+      AND prior_projection IS DISTINCT FROM consumed_underlay.id THEN
+      PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,false);
+      RETURN jsonb_build_object('kind','progress');
+    END IF;
+  END IF;
+  ready:=gridex_e66_intake.read_mixed_e73_ide_readiness_v1(p_company,p_environment,p_source,p_actor,p_ide);
+  IF ready->>'status' IS DISTINCT FROM 'ready_for_reply_evaluation' THEN
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,true);
+    RETURN jsonb_build_object('kind','held','reason',ready->>'status','progress',false);
+  END IF;
+  IF EXISTS (SELECT FROM gridex_e66_intake.mixed_e73_ide_completions c WHERE (c.source_id,c.transaction_id)=(p_source,p_ide)) THEN
+    stored:=gridex_e66_intake.read_mixed_positive_recovery_v1(p_company,p_environment,p_mailbox,p_source,p_actor,p_ide);
+    IF stored->>'status'='recovered_draft' THEN
+      RETURN jsonb_build_object('kind','finalize','responseId',stored->>'ackId');
+    END IF;
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,true);
+    RETURN jsonb_build_object('kind','held','reason',stored->>'reason');
+  END IF;
+  draft_proof:=gridex_e66_intake.mixed_e73_draft_precondition_v1(
+    p_company,p_environment,p_mailbox,p_source,p_actor,p_ide,'claim',NULL);
+  IF draft_proof->>'status' IS DISTINCT FROM 'claimed' THEN
+    PERFORM gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source,p_ide,p_worker_lease,true);
+    RETURN draft_proof||'{"kind":"held"}'::jsonb;
+  END IF;
+  RETURN jsonb_build_object('kind','render','draftLease',draft_proof->>'leaseToken','sourceHash',draft_proof->>'sourceSha256');
+END
+$$;
+
+--
 -- Name: gridex_store_billing_underlay(uuid, jsonb, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -114426,7 +122006,7 @@ CREATE FUNCTION public.gridex_store_billing_underlay(p_company_id uuid, p_underl
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'extensions'
     AS $_$
-DECLARE item jsonb;basis jsonb;legal_basis jsonb;rows_basis jsonb[]:='{}';source_basis jsonb;basis_hash text;total numeric:=0;u public.billing_underlays%rowtype;
+DECLARE item jsonb;basis jsonb;legal_basis jsonb;planned_move_out boolean:=false;rows_basis jsonb[]:='{}';source_basis jsonb;basis_hash text;total numeric:=0;u public.billing_underlays%rowtype;
  n public.normalized_metering_values%rowtype;sp public.customer_supply_periods%rowtype;ct public.customer_contracts%rowtype;price public.contract_price_snapshots%rowtype;pv public.price_plan_versions%rowtype;
  prior gridex_billing_source.underlay_bindings%rowtype;stored_id uuid;start_at timestamptz;end_at timestamptz;ready boolean;bases jsonb;ids uuid[];i integer:=0;
 BEGIN
@@ -114453,6 +122033,7 @@ SELECT * INTO prior FROM gridex_billing_source.underlay_bindings WHERE underlay_
  SELECT * INTO sp FROM public.customer_supply_periods WHERE id=(p_underlay->>'supply_period_id')::uuid AND company_id=p_company_id FOR SHARE;
  IF p_underlay#>'{payload,contract_price_timeline}' IS NULL THEN
   SELECT * INTO ct FROM public.customer_contracts WHERE id=(p_underlay->>'contract_id')::uuid AND company_id=p_company_id FOR SHARE;
+  PERFORM gridex_billing_source.require_no_unapplied_test_price_addendum_v1(p_company_id,ct.id,start_at,end_at);
  ELSE
   -- The snapshot's existing company/contract foreign key takes KEY SHARE
   -- on this row for inserts. Hold UPDATE while re-reading the immutable IDs.
@@ -114463,9 +122044,14 @@ SELECT * INTO prior FROM gridex_billing_source.underlay_bindings WHERE underlay_
  END IF;
  SELECT * INTO price FROM public.contract_price_snapshots WHERE id=(p_underlay->>'contract_price_snapshot_id')::uuid AND company_id=p_company_id FOR SHARE;
  SELECT * INTO pv FROM public.price_plan_versions WHERE id=price.price_plan_version_id AND company_id=p_company_id FOR SHARE;
+
+ planned_move_out:=CASE WHEN p_underlay->>'energy_direction'='consumption'
+   AND ct.status='terminated' AND ct.termination_reason='move_out'
+   THEN gridex_received_sources.planned_move_out_supply_window_v1(sp,ct,start_at,end_at)
+   ELSE false END;
  IF sp.id IS NULL OR ct.id IS NULL OR price.id IS NULL OR pv.id IS NULL OR pv.locked_at IS NULL OR NOT coalesce(pv.content_sha256 ~ '^[a-f0-9]{64}$',false) OR NOT coalesce(pv.status IN ('active','approved','published'),false)
   OR sp.contract_id IS DISTINCT FROM ct.id OR sp.customer_id IS DISTINCT FROM ct.customer_id OR sp.metering_point_id IS DISTINCT FROM ct.metering_point_id
-  OR NOT (coalesce(sp.status IN ('active','confirmed_by_grid_owner') AND ct.status IN ('signed','active'),false)
+  OR NOT (planned_move_out OR coalesce(sp.status IN ('active','confirmed_by_grid_owner') AND ct.status IN ('signed','active'),false)
    OR coalesce(p_underlay->>'energy_direction'='consumption' AND gridex_billing_source.ordinary_ended_supply_v1(sp,ct,start_at,end_at),false)) OR price.contract_id IS DISTINCT FROM ct.id
   OR sp.customer_id::text IS DISTINCT FROM p_underlay->>'customer_id' OR sp.metering_point_id::text IS DISTINCT FROM p_underlay->>'metering_point_id'
   OR price.id::text IS DISTINCT FROM p_underlay->>'pricing_snapshot_id' OR price.price_plan_version_id::text IS DISTINCT FROM p_underlay->>'price_plan_version_id'
@@ -114485,7 +122071,8 @@ SELECT * INTO prior FROM gridex_billing_source.underlay_bindings WHERE underlay_
  FOR item IN SELECT value FROM jsonb_array_elements(p_items) ORDER BY value->>'source_normalized_metering_value_id' LOOP
   SELECT * INTO n FROM public.normalized_metering_values WHERE company_id=p_company_id AND id=(item->>'source_normalized_metering_value_id')::uuid FOR SHARE;
   i:=i+1;basis:=CASE WHEN ids[i] IS NOT DISTINCT FROM n.id THEN gridex_billing_source.basis_entry_v1(bases->(i-1)) ELSE gridex_billing_source.basis_v1(p_company_id,n.id) END;
-  IF basis->'qualified' IS DISTINCT FROM 'true'::jsonb OR basis->'quality' IS DISTINCT FROM 'null'::jsonb OR basis->'qualityEstablished' IS DISTINCT FROM 'true'::jsonb
+  IF (planned_move_out AND gridex_billing_source.read_planned_move_out_receipt_v1(n,basis) IS NULL)
+   OR basis->'qualified' IS DISTINCT FROM 'true'::jsonb OR basis->'quality' IS DISTINCT FROM 'null'::jsonb OR basis->'qualityEstablished' IS DISTINCT FROM 'true'::jsonb
    OR n.billing_gate_status IS DISTINCT FROM 'eligible' OR n.billing_status IS DISTINCT FROM 'billable' OR n.supply_period_id IS DISTINCT FROM sp.id
    OR n.customer_id IS DISTINCT FROM sp.customer_id OR n.metering_point_id IS DISTINCT FROM sp.metering_point_id OR n.period_start<start_at OR n.period_end>end_at
    OR (item->>'quantity_kwh')::numeric IS DISTINCT FROM abs(n.quantity_kwh) OR (item->>'quantity')::numeric IS DISTINCT FROM abs(n.quantity_kwh)
@@ -114644,6 +122231,93 @@ END
 $$;
 
 --
+-- Name: gridex_store_e66_underlay_generation_receipt_v1(uuid, uuid, text, jsonb, integer, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_store_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET statement_timeout TO '30s'
+    AS $$
+DECLARE
+  prior jsonb;
+  underlay jsonb;
+  items jsonb;
+  value_ids uuid[];
+  item_count integer;
+  matched integer;
+  distinct_values integer;
+  distinct_sources integer;
+  gaps integer;
+  first_start timestamptz;
+  last_end timestamptz;
+BEGIN
+  PERFORM gridex_underlay_generation.require_request_v1(p_company_id,p_actor_user_id,p_intent_key,p_scope);
+  IF public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export') IS NOT TRUE THEN
+    RAISE EXCEPTION 'manual_e66_underlay_permission_denied' USING ERRCODE='42501';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text||':billing-underlay-batch',0));
+  prior := public.gridex_read_underlay_generation_receipt_v1(p_company_id,p_actor_user_id,p_intent_key,p_scope);
+  IF prior IS NOT NULL THEN RETURN prior; END IF;
+
+  IF jsonb_typeof(p_commands) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+  IF jsonb_array_length(p_commands) <> 1 THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+  underlay := p_commands#>'{0,underlay}';
+  items := p_commands#>'{0,items}';
+  IF jsonb_typeof(items) IS DISTINCT FROM 'array'
+    OR underlay->>'status' IS DISTINCT FROM 'validated'
+    OR underlay->>'readiness_status' IS DISTINCT FROM 'ready'
+    OR underlay->>'source_system' IS DISTINCT FROM 'normalized_metering_values'
+    OR underlay->>'underlay_year' IS DISTINCT FROM split_part(p_scope->>'billingMonth','-',1)
+    OR lpad(underlay->>'underlay_month',2,'0') IS DISTINCT FROM split_part(p_scope->>'billingMonth','-',2) THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+  item_count := jsonb_array_length(items);
+  IF item_count < 1 OR item_count > 3000 THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+
+  SELECT array_agg((item->>'source_normalized_metering_value_id')::uuid ORDER BY item->>'source_normalized_metering_value_id')
+  INTO value_ids FROM jsonb_array_elements(items) AS entries(item);
+  IF array_position(value_ids,NULL) IS NOT NULL THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+  PERFORM gridex_billing_source.lock_values_v1(p_company_id,value_ids,(underlay->>'supply_period_id')::uuid);
+
+  SELECT count(*), count(DISTINCT id), count(DISTINCT source_message_id),
+    count(*) FILTER(WHERE prior_end IS NOT NULL AND period_start<>prior_end),
+    min(period_start), max(period_end)
+  INTO matched,distinct_values,distinct_sources,gaps,first_start,last_end
+  FROM (
+    SELECT n.id,n.source_message_id,n.period_start,n.period_end,
+      lag(n.period_end) OVER (ORDER BY n.period_start,n.period_end,n.id) AS prior_end
+    FROM unnest(value_ids) AS requested(id)
+    JOIN public.normalized_metering_values n ON n.id=requested.id AND n.company_id=p_company_id
+    JOIN public.ediel_messages s ON s.id=n.source_message_id AND s.company_id=n.company_id
+    WHERE s.direction='inbound' AND s.message_family='UTILTS' AND s.message_code='E66'
+      AND n.revision_status='current' AND n.billing_status='billable' AND n.billing_gate_status='eligible'
+      AND n.customer_id=(underlay->>'customer_id')::uuid
+      AND n.metering_point_id=(underlay->>'metering_point_id')::uuid
+      AND n.supply_period_id=(underlay->>'supply_period_id')::uuid
+  ) AS source_intervals;
+  IF matched<>item_count OR distinct_values<>item_count OR distinct_sources<>1 OR gaps<>0
+    OR first_start IS DISTINCT FROM (underlay->>'billing_period_start')::timestamptz
+    OR last_end IS DISTINCT FROM (underlay->>'billing_period_end')::timestamptz THEN
+    RAISE EXCEPTION 'manual_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END IF;
+
+  RETURN public.gridex_store_underlay_generation_receipt_v1(
+    p_company_id,p_actor_user_id,p_intent_key,p_scope,p_source_rows,p_before,p_commands,p_command_results,p_after
+  );
+END
+$$;
+
+--
 -- Name: gridex_store_manual_reply_application_v2(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -114666,6 +122340,135 @@ begin
  update public.manual_inbound_messages set processing_state='applied',extracted_payload=jsonb_set(extracted_payload,'{manual_automation}',automation)
    where id=p_inbound_id and company_id=p_company_id;
 end $$;
+
+--
+-- Name: gridex_store_mixed_e66_underlay_generation_receipt_v1(uuid, uuid, text, jsonb, integer, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_store_mixed_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    SET statement_timeout TO '30s'
+    AS $$
+DECLARE
+  prior jsonb;
+  underlay jsonb;
+  items jsonb;
+  item_count integer;
+  value_ids uuid[];
+  bound record;
+  matched record;
+  first_start timestamptz;
+  last_end timestamptz;
+BEGIN
+  PERFORM gridex_underlay_generation.require_request_v1(p_company_id,p_actor_user_id,p_intent_key,p_scope);
+  IF public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'billing_underlay.export') IS NOT TRUE
+  THEN RAISE EXCEPTION 'manual_e66_underlay_permission_denied' USING ERRCODE='42501'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text||':billing-underlay-batch',0));
+  prior:=public.gridex_read_underlay_generation_receipt_v1(p_company_id,p_actor_user_id,p_intent_key,p_scope);
+  IF prior IS NOT NULL THEN RETURN prior; END IF;
+
+  IF jsonb_typeof(p_commands) IS DISTINCT FROM 'array' OR jsonb_array_length(p_commands)<>1
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+  underlay:=p_commands#>'{0,underlay}';
+  items:=p_commands#>'{0,items}';
+  IF jsonb_typeof(items) IS DISTINCT FROM 'array'
+    OR (underlay->>'status',underlay->>'readiness_status',underlay->>'source_system',
+        underlay->>'energy_direction',underlay->>'settlement_type')
+      IS DISTINCT FROM ('validated','ready','normalized_metering_values','consumption','invoice')
+    OR underlay->>'underlay_year' IS DISTINCT FROM split_part(p_scope->>'billingMonth','-',1)
+    OR lpad(underlay->>'underlay_month',2,'0') IS DISTINCT FROM split_part(p_scope->>'billingMonth','-',2)
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+  item_count:=jsonb_array_length(items);
+  first_start:=(underlay->>'billing_period_start')::timestamptz;
+  last_end:=(underlay->>'billing_period_end')::timestamptz;
+  IF item_count<2 OR item_count>3000 OR item_count IS DISTINCT FROM p_source_rows
+    OR first_start IS NULL OR last_end IS NULL OR last_end<=first_start
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+
+  BEGIN
+    SELECT raw.id,p.calendar_anchor_source_id,v.evidence INTO STRICT bound
+    FROM gridex_e66_intake.mixed_e73_billing_projections p
+    JOIN gridex_e66_intake.mixed_e73_billing_coverage v
+      ON (v.company_id,v.environment,v.request_id,v.evidence_sha256)=(p.company_id,p.environment,p.request_id,p.coverage_sha256)
+    JOIN public.billing_underlays raw ON (raw.company_id,raw.id,raw.source_request_id)=(p.company_id,p.primary_underlay_id,p.request_id)
+    JOIN public.grid_owner_data_requests q ON (q.company_id,q.id)=(p.company_id,p.request_id)
+    WHERE (p.company_id,p.environment)=(p_company_id,'test')
+      AND (raw.status,raw.readiness_status,raw.billing_block_reason)=('received','blocked','mixed_e66_multisource_pricing_unqualified')
+      AND raw.contract_id IS NULL AND raw.pricing_snapshot_id IS NULL AND raw.contract_price_snapshot_id IS NULL
+      AND raw.customer_id=(underlay->>'customer_id')::uuid AND raw.site_id=(underlay->>'site_id')::uuid
+      AND raw.metering_point_id=(underlay->>'metering_point_id')::uuid
+      AND (raw.underlay_year,raw.underlay_month,raw.source_meter_value_count,raw.total_kwh)=
+          ((underlay->>'underlay_year')::int,(underlay->>'underlay_month')::int,item_count,(underlay->>'total_kwh')::numeric)
+      AND (q.customer_id,q.site_id,q.metering_point_id)=(raw.customer_id,raw.site_id,raw.metering_point_id)
+      AND q.request_scope='billing_underlay' AND q.status IN ('sent','received')
+      AND (v.evidence->>'requestedFrom')::timestamptz=first_start AND (v.evidence->>'requestedUntil')::timestamptz=last_end
+      AND (v.evidence->>'contributionCount')::int=item_count AND (v.evidence->>'sourceCount')::int>1
+    FOR SHARE OF raw,p,v;
+  EXCEPTION WHEN no_data_found OR too_many_rows THEN
+    RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023';
+  END;
+  IF gridex_e66_intake.bound_underlay_fingerprint_v1(p_company_id,bound.calendar_anchor_source_id,bound.id) IS NULL
+    OR jsonb_array_length(bound.evidence->'members') IS DISTINCT FROM item_count
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+
+  SELECT array_agg(id ORDER BY id) INTO value_ids
+  FROM (SELECT (j.value->>'source_normalized_metering_value_id')::uuid AS id FROM jsonb_array_elements(items) j) selected;
+  IF array_position(value_ids,NULL) IS NOT NULL OR
+    (SELECT count(DISTINCT id) FROM unnest(value_ids) id)<>item_count
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+  PERFORM gridex_billing_source.lock_values_v1(p_company_id,value_ids,(underlay->>'supply_period_id')::uuid);
+
+  WITH members AS MATERIALIZED (
+    SELECT (v->>'normalizedId')::uuid AS normalized_id,(v->>'meteringId')::uuid AS metering_id,
+      (v->>'sourceId')::uuid AS source_id,v->>'transactionId' AS ide,(v->>'ordinal')::int AS ordinal,
+      (v->>'seriesId')::uuid AS series_id,(v->>'sourceLinkId')::uuid AS link_id,
+      (v->>'periodStart')::timestamptz AS starts_at,(v->>'periodEnd')::timestamptz AS ends_at,
+      v->>'sourceSha256' AS source_hash,decode(v->>'contractSha256','hex') AS contract_hash,
+      decode(v->>'meteringHash','hex') AS meter_hash,decode(v->>'normalizedHash','hex') AS normalized_hash
+    FROM jsonb_array_elements(bound.evidence->'members') v
+  ), represented AS (
+    SELECT n.id,k.source_id,k.ide,k.ordinal,n.period_start,n.period_end,n.quantity_kwh,
+      lag(n.period_end) OVER (ORDER BY n.period_start,n.period_end,n.id) AS prior_end
+    FROM members k
+    JOIN gridex_utilts_binding.metering_application_receipts a
+      ON (a.company_id,a.environment,a.source_message_id,a.transaction_id,a.observation_ordinal)
+        =(p_company_id,'test',k.source_id,k.ide,k.ordinal)
+      AND (a.normalized_id,a.value_id,a.source_link_id,a.contract_hash,a.value_hash,a.normalized_hash)
+        =(k.normalized_id,k.metering_id,k.link_id,k.contract_hash,k.meter_hash,k.normalized_hash)
+    JOIN gridex_received_sources.sources s
+      ON (s.company_id,s.environment,s.source_message_id,s.payload_hash)=(p_company_id,'test',k.source_id,k.source_hash)
+      AND s.message_code='E66' AND s.raw_payload IS NOT NULL AND s.retention_purged_at IS NULL
+    JOIN public.meter_reading_series rs ON (rs.company_id,rs.id,rs.source_ediel_message_id)=(p_company_id,k.series_id,k.source_id)
+      AND rs.is_current
+    JOIN public.metering_value_sources l
+      ON (l.company_id,l.id,l.metering_value_id,l.normalized_metering_value_id,l.source_ediel_message_id,l.source_transaction_reference)
+        =(p_company_id,k.link_id,k.metering_id,k.normalized_id,k.source_id,k.ide)
+    JOIN public.metering_values m ON (m.company_id,m.id)=(p_company_id,k.metering_id)
+    JOIN public.normalized_metering_values n
+      ON (n.company_id,n.id,n.source_metering_value_id,n.source_message_id)=(p_company_id,k.normalized_id,k.metering_id,k.source_id)
+    WHERE n.id=ANY(value_ids) AND m.is_current AND m.revision_status='current' AND n.revision_status='current'
+      AND n.billing_status='billable' AND n.billing_gate_status='eligible'
+      AND (m.period_start,m.period_end,n.period_start,n.period_end)=(k.starts_at,k.ends_at,k.starts_at,k.ends_at)
+      AND (n.customer_id,n.metering_point_id,n.supply_period_id)=((underlay->>'customer_id')::uuid,
+           (underlay->>'metering_point_id')::uuid,(underlay->>'supply_period_id')::uuid)
+      AND a.value_hash=gridex_e66_intake.mixed_e73_value_fingerprint_v1(m)
+      AND a.normalized_hash=gridex_e66_intake.mixed_e73_normalized_fingerprint_v1(n)
+  )
+  SELECT count(*) AS total,count(DISTINCT id) AS normalized,count(DISTINCT (source_id,ide,ordinal)) AS lineage,
+    count(DISTINCT source_id) AS sources,count(*) FILTER (WHERE prior_end IS NOT NULL AND period_start<>prior_end) AS gaps,
+    min(period_start) AS starts_at,max(period_end) AS ends_at,sum(quantity_kwh) AS quantity
+  INTO matched FROM represented;
+  IF (matched.total,matched.normalized,matched.lineage,matched.sources,matched.gaps,matched.starts_at,matched.ends_at,matched.quantity)
+    IS DISTINCT FROM (item_count::bigint,item_count::bigint,item_count::bigint,(bound.evidence->>'sourceCount')::bigint,
+      0::bigint,first_start,last_end,(underlay->>'total_kwh')::numeric)
+  THEN RAISE EXCEPTION 'manual_mixed_e66_underlay_scope_unsupported' USING ERRCODE='22023'; END IF;
+
+  RETURN public.gridex_store_underlay_generation_receipt_v1(
+    p_company_id,p_actor_user_id,p_intent_key,p_scope,p_source_rows,p_before,p_commands,p_command_results,p_after);
+END
+$$;
 
 --
 -- Name: gridex_store_underlay_generation_receipt_v1(uuid, uuid, text, jsonb, integer, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -115490,6 +123293,8 @@ DECLARE
     AND NEW.source_end_message_id IS NOT DISTINCT FROM OLD.source_end_message_id
     AND NEW.market_state_version IS NOT DISTINCT FROM OLD.market_state_version;
   v_completed_end_source uuid;
+  v_has_same_day_task boolean;
+  v_has_blocking_task boolean;
 BEGIN
   IF v_end IS NULL OR NEW.company_id IS NULL OR NEW.customer_id IS NULL
    OR coalesce(NEW.metadata->>'end_key','') <> ''
@@ -115528,13 +123333,32 @@ BEGIN
           AND coalesce(saved->>'actual_end_date',saved->>'end_date')=v_end::text
       );
     IF v_completed_end_source IS NULL THEN RETURN NEW; END IF;
+  ELSIF NEW.market_end_at IS NOT NULL AND NEW.market_state_version IS NOT NULL THEN
+    SELECT source.id INTO v_completed_end_source FROM public.ediel_messages source
+    WHERE source.id=NEW.source_end_message_id AND source.company_id=NEW.company_id
+      AND source.direction='inbound' AND source.message_family='PRODAT' AND source.message_code='Z05';
   END IF;
-  IF EXISTS (SELECT 1 FROM public.customer_operation_tasks t WHERE t.company_id = NEW.company_id AND t.customer_id = NEW.customer_id
-     AND t.task_type = 'final_invoice_pending' AND t.metadata->>'end_key' = v_key) THEN
-    RETURN NEW;
-  END IF;
+  -- Keep unqualified legacy tasks and unretracted sources as blockers. A new
+  -- qualified end gets a task only when every prior same-day task is retracted.
+  SELECT count(*)>0,coalesce(bool_or(CASE
+    WHEN v_completed_end_source IS NULL
+      OR t.metadata->>'source_end_message_id'=v_completed_end_source::text THEN true
+    WHEN t.metering_point_id IS NOT DISTINCT FROM NEW.metering_point_id
+      AND t.metadata->>'supply_period_id'=NEW.id::text
+      AND pg_input_is_valid(t.metadata->>'source_end_message_id','uuid')
+      AND t.metadata->>'market_state_version' IS NOT NULL
+      AND t.metadata->>'market_end_at' IS NOT NULL
+    THEN NOT gridex_received_sources.supply_end_retracted_v1(NEW.company_id,NEW.customer_id,NEW.metering_point_id,
+      (t.metadata->>'source_end_message_id')::uuid,NEW.id,t.metadata->>'market_state_version',t.metadata->>'market_end_at')
+    ELSE true END),false)
+  INTO v_has_same_day_task,v_has_blocking_task
+  FROM public.customer_operation_tasks t
+  WHERE t.company_id=NEW.company_id AND t.customer_id=NEW.customer_id
+    AND t.task_type='final_invoice_pending' AND t.metadata->>'end_key'=v_key;
 
-  IF v_contract_id IS NOT NULL THEN
+  IF v_has_blocking_task THEN RETURN NEW; END IF;
+  -- The prior same-day contract processing stands. Create only the new task.
+  IF v_contract_id IS NOT NULL AND NOT v_has_same_day_task THEN
     SELECT * INTO v_contract FROM public.customer_contracts
      WHERE id = v_contract_id AND company_id = NEW.company_id AND customer_id = NEW.customer_id FOR UPDATE;
     IF FOUND AND v_contract.status IN ('signed','active') AND NOT EXISTS (
@@ -117430,8 +125254,8 @@ begin
     )
   where company_id = p_company_id
     and status = 'locked'
-    and billing_period_start >= v_month_start
-    and billing_period_start < v_month_end;
+    and billing_period_start >= (v_month_start::timestamp AT TIME ZONE 'Europe/Stockholm')
+    and billing_period_start < (v_month_end::timestamp AT TIME ZONE 'Europe/Stockholm');
 
   get diagnostics v_count = row_count;
 
@@ -118078,6 +125902,59 @@ CREATE FUNCTION public.gridex_update_manual_supplier_switch_status_v1(p_company_
     );
   end;
   $$;
+
+--
+-- Name: gridex_update_ops_support_case_status_if_current_v1(uuid, uuid, uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_update_ops_support_case_status_if_current_v1(p_case_id uuid, p_company_id uuid, p_customer_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_expected_status text, p_message text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_is_platform boolean;
+BEGIN
+  IF nullif(p_expected_status,'') IS NULL
+    OR (p_status IN ('open','action_required','awaiting_external_response','manual_follow_up','resolved','closed')) IS NOT TRUE THEN
+    RAISE EXCEPTION 'ops_support_case_status_context_invalid' USING ERRCODE='22023';
+  END IF;
+
+  -- Same case-first order as the existing OPS writer. Read current status
+  -- after acquiring the lock so a competing update remains visible.
+  SELECT * INTO v_case FROM public.customer_cases
+    WHERE id=p_case_id AND company_id=p_company_id AND customer_id=p_customer_id
+      AND source IS NOT DISTINCT FROM p_expected_source
+      AND source IS DISTINCT FROM 'ediel_inbound_state_machine'
+      AND (metadata->'support_case'='true'::jsonb OR strpos(source,'tenant_support_')=1)
+    FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'customer_case_not_found_in_scope' USING ERRCODE='P0002';
+  END IF;
+
+  IF v_case.status IS DISTINCT FROM p_expected_status OR v_case.status IN ('resolved','closed','cancelled') THEN
+    -- A conflict also requires the OPS writer's exact actor authority. The
+    -- successful branch delegates its authority and writing to that owner.
+    v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
+    IF NOT EXISTS (
+      SELECT 1 FROM public.user_profiles up
+      JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
+      JOIN public.companies c ON c.id=cm.company_id
+      WHERE up.id=p_actor_user_id AND up.user_status='active'
+        AND cm.status='active' AND coalesce(cm.is_active,true)
+        AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
+    ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
+    THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+    END IF;
+    RAISE EXCEPTION 'ops_support_case_status_changed' USING ERRCODE='PT409';
+  END IF;
+
+  RETURN public.gridex_update_customer_case_status(
+    p_case_id,p_company_id,p_status,p_actor_user_id,p_expected_source,p_message
+  );
+END
+$$;
 
 --
 -- Name: gridex_update_outbound_request_business_v1(uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -123885,6 +131762,136 @@ CREATE TABLE gridex_billing_source.correction_journal (
 ALTER TABLE ONLY gridex_billing_source.correction_journal FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: planned_move_out_receipts; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.planned_move_out_receipts (
+    company_id uuid NOT NULL,
+    normalized_value_id uuid NOT NULL,
+    meter_value_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    supply_period_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    source_basis_sha256 text NOT NULL,
+    supply_source_basis jsonb NOT NULL,
+    close_evidence jsonb NOT NULL,
+    CONSTRAINT planned_move_out_receipts_source_basis_sha256_check CHECK ((source_basis_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: price_series_invoice_approvals; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_invoice_approvals (
+    company_id uuid NOT NULL,
+    reservation_id uuid NOT NULL,
+    review_hash text NOT NULL,
+    approved_by uuid NOT NULL,
+    approved_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT price_series_invoice_approvals_review_hash_check CHECK ((review_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: price_series_invoice_drafts; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_invoice_drafts (
+    company_id uuid NOT NULL,
+    reservation_id uuid NOT NULL,
+    invoice_id uuid NOT NULL,
+    review_hash text NOT NULL,
+    CONSTRAINT price_series_invoice_drafts_review_hash_check CHECK ((review_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: price_series_invoice_neutral_files; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_invoice_neutral_files (
+    company_id uuid NOT NULL,
+    invoice_id uuid NOT NULL,
+    file_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    body_sha256 text NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT price_series_invoice_neutral_files_body_sha256_check CHECK ((body_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: price_series_reservation_members; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.price_series_reservation_members (
+    company_id uuid NOT NULL,
+    reservation_id uuid NOT NULL,
+    ordinal integer NOT NULL,
+    billing_underlay_id uuid NOT NULL,
+    pricing_run_id uuid NOT NULL,
+    CONSTRAINT price_series_reservation_members_ordinal_check CHECK ((ordinal > 0))
+);
+
+--
+-- Name: test_price_addendum_applications; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.test_price_addendum_applications (
+    company_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    document_id uuid NOT NULL,
+    review_sha256 text NOT NULL,
+    successor_snapshot_id uuid NOT NULL,
+    price_plan_id uuid NOT NULL,
+    price_plan_version_id uuid NOT NULL,
+    price_book_id uuid NOT NULL,
+    fixed_price_ore_per_kwh numeric NOT NULL,
+    effective_on date NOT NULL,
+    actor_user_id uuid NOT NULL,
+    activated_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT test_price_addendum_applications_review_sha256_check CHECK ((review_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: test_price_addendum_documents; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.test_price_addendum_documents (
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    submission_key uuid NOT NULL,
+    original_price_id uuid NOT NULL,
+    original_signature_sha256 text NOT NULL,
+    original_price_sha256 text NOT NULL,
+    document bytea NOT NULL,
+    document_sha256 text NOT NULL,
+    submitted_by uuid NOT NULL,
+    submitted_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT test_price_addendum_documents_check CHECK ((document_sha256 = encode(sha256(document), 'hex'::text))),
+    CONSTRAINT test_price_addendum_documents_document_check CHECK ((((octet_length(document) >= 8) AND (octet_length(document) <= 2097152)) AND (SUBSTRING(document FROM 1 FOR 5) = convert_to('%PDF-'::text, 'UTF8'::name)))),
+    CONSTRAINT test_price_addendum_documents_original_price_sha256_check CHECK ((original_price_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT test_price_addendum_documents_original_signature_sha256_check CHECK ((original_signature_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: test_price_addendum_reviews; Type: TABLE; Schema: gridex_billing_source; Owner: -
+--
+
+CREATE TABLE gridex_billing_source.test_price_addendum_reviews (
+    company_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    document_id uuid NOT NULL,
+    effective_on date NOT NULL,
+    effective_at timestamp with time zone NOT NULL,
+    receipt jsonb NOT NULL,
+    receipt_sha256 text NOT NULL,
+    CONSTRAINT test_price_addendum_reviews_check CHECK ((effective_at = ((effective_on)::timestamp without time zone AT TIME ZONE 'Europe/Stockholm'::text))),
+    CONSTRAINT test_price_addendum_reviews_check1 CHECK ((receipt_sha256 = encode(sha256(convert_to((receipt)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT test_price_addendum_reviews_receipt_check CHECK (((receipt ->> 'kind'::text) = 'staff_manually_verified_signed_addendum_v1'::text))
+);
+
+--
 -- Name: underlay_bindings; Type: TABLE; Schema: gridex_billing_source; Owner: -
 --
 
@@ -125248,6 +133255,227 @@ CREATE TABLE gridex_e66_intake.matched_request_basis (
 );
 
 --
+-- Name: mixed_accepted_transactions; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_accepted_transactions (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    transaction_index integer NOT NULL,
+    series_id uuid NOT NULL,
+    contract_hash text NOT NULL,
+    CONSTRAINT mixed_accepted_transactions_contract_hash_check CHECK ((contract_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_accepted_transactions_transaction_index_check CHECK ((transaction_index >= 0))
+);
+
+--
+-- Name: mixed_billing_correction_holds; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_billing_correction_holds (
+    underlay_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    previous_normalized_value_id uuid NOT NULL,
+    new_normalized_value_id uuid NOT NULL,
+    prior_source_id uuid NOT NULL,
+    new_source_id uuid NOT NULL,
+    underlay_fingerprint text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT mixed_billing_correction_holds_underlay_fingerprint_check CHECK ((underlay_fingerprint ~ '^[a-f0-9]{64}$'::text))
+);
+
+--
+-- Name: mixed_billing_replacements; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_billing_replacements (
+    predecessor_id uuid NOT NULL,
+    replacement_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    source_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    old_fingerprint text NOT NULL,
+    new_fingerprint text NOT NULL,
+    CONSTRAINT mixed_billing_replacements_new_fingerprint_check CHECK ((new_fingerprint ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT mixed_billing_replacements_old_fingerprint_check CHECK ((old_fingerprint ~ '^[a-f0-9]{64}$'::text))
+);
+
+--
+-- Name: mixed_e50_attempts; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e50_attempts (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    lease_token uuid,
+    lease_expires_at timestamp with time zone,
+    next_attempt_at timestamp with time zone NOT NULL,
+    response_id uuid,
+    response_sha256 text,
+    completed_at timestamp with time zone,
+    CONSTRAINT mixed_e50_attempts_check CHECK (((lease_token IS NULL) = (lease_expires_at IS NULL))),
+    CONSTRAINT mixed_e50_attempts_check1 CHECK (((response_id IS NULL) = (response_sha256 IS NULL))),
+    CONSTRAINT mixed_e50_attempts_check2 CHECK (((completed_at IS NULL) OR (response_id IS NOT NULL))),
+    CONSTRAINT mixed_e50_attempts_response_sha256_check CHECK ((response_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: mixed_e50_finalize_context; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e50_finalize_context (
+    tx xid8 NOT NULL,
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    actor_id uuid NOT NULL,
+    mailbox_id uuid NOT NULL,
+    response_id uuid NOT NULL
+);
+
+--
+-- Name: mixed_e73_billing_coverage; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e73_billing_coverage (
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    request_id uuid NOT NULL,
+    evidence jsonb NOT NULL,
+    evidence_sha256 text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT mixed_e73_billing_coverage_check CHECK ((evidence_sha256 = encode(sha256(convert_to((evidence)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT mixed_e73_billing_coverage_check1 CHECK (((((evidence ->> 'requestId'::text) = (request_id)::text) AND ((evidence ->> 'environment'::text) = environment)) IS TRUE)),
+    CONSTRAINT mixed_e73_billing_coverage_environment_check CHECK ((environment = 'test'::text))
+);
+
+--
+-- Name: mixed_e73_billing_projections; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e73_billing_projections (
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    request_id uuid NOT NULL,
+    coverage_sha256 text NOT NULL,
+    calendar_anchor_source_id uuid NOT NULL,
+    primary_underlay_id uuid NOT NULL,
+    CONSTRAINT mixed_e73_billing_projections_coverage_sha256_check CHECK ((coverage_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_e73_billing_projections_environment_check CHECK ((environment = 'test'::text))
+);
+
+--
+-- Name: mixed_e73_draft_preconditions; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e73_draft_preconditions (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    actor_id uuid NOT NULL,
+    basis_sha256 text NOT NULL,
+    lease_token uuid NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT mixed_e73_draft_preconditions_basis_sha256_check CHECK ((basis_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_e73_draft_preconditions_expires_at_check CHECK (isfinite(expires_at))
+);
+
+--
+-- Name: mixed_e73_ide_completions; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e73_ide_completions (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    actor_id uuid NOT NULL,
+    first_lease_token uuid NOT NULL,
+    source_sha256 text NOT NULL,
+    basis_sha256 text NOT NULL,
+    wire_sha256 text NOT NULL,
+    rule_pack_id uuid NOT NULL,
+    message_profile_id uuid NOT NULL,
+    rule_source_sha256 text NOT NULL,
+    sealed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT mixed_e73_ide_completions_basis_sha256_check CHECK ((basis_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_e73_ide_completions_rule_source_sha256_check CHECK ((rule_source_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_e73_ide_completions_source_sha256_check CHECK ((source_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT mixed_e73_ide_completions_wire_sha256_check CHECK ((wire_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: mixed_e73_request_basis; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_e73_request_basis (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    actor_id uuid NOT NULL,
+    request_id uuid NOT NULL,
+    sent_source_id uuid NOT NULL,
+    evidence jsonb NOT NULL,
+    evidence_sha256 text NOT NULL,
+    CONSTRAINT mixed_e73_request_basis_check CHECK (((((evidence ->> 'requestId'::text) = (request_id)::text) AND ((evidence ->> 'sentSourceId'::text) = (sent_source_id)::text) AND ((evidence ->> 'transactionId'::text) = transaction_id) AND ((evidence ->> 'status'::text) = 'correlated_unattributed'::text)) IS TRUE)),
+    CONSTRAINT mixed_e73_request_basis_check1 CHECK ((evidence_sha256 = encode(sha256(convert_to((evidence)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT mixed_e73_request_basis_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+--
+-- Name: mixed_positive_create_context; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_positive_create_context (
+    xact xid8 NOT NULL,
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    company_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    lease_token uuid NOT NULL,
+    basis_sha256 text NOT NULL,
+    source_sha256 text NOT NULL,
+    wire_sha256 text NOT NULL
+);
+
+--
+-- Name: mixed_prelinked_holds; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_prelinked_holds (
+    source_id uuid NOT NULL,
+    request_id uuid NOT NULL,
+    assessment_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    source_sha256 text NOT NULL,
+    held_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+--
+-- Name: mixed_qualification_receipts; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_qualification_receipts (
+    source_id uuid NOT NULL,
+    assessment_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    lease_token uuid NOT NULL,
+    command_hash text NOT NULL,
+    qualified_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT mixed_qualification_receipts_command_hash_check CHECK ((command_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: mixed_worker_attempts; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.mixed_worker_attempts (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    lease_token uuid,
+    lease_expires_at timestamp with time zone,
+    next_attempt_at timestamp with time zone NOT NULL,
+    CONSTRAINT mixed_worker_attempts_check CHECK (((lease_token IS NULL) = (lease_expires_at IS NULL)))
+);
+
+--
 -- Name: registration_rejections; Type: TABLE; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -125270,10 +133498,76 @@ CREATE TABLE gridex_e66_intake.registration_rejections (
     request_range tstzrange,
     unresolved_item_id uuid,
     CONSTRAINT e66_rejected_request_shape CHECK ((((related_request_id IS NULL) AND (request_original_id IS NULL) AND (request_original_sha256 IS NULL) AND (request_range IS NULL)) OR ((rejection_reason = 'UTILTS_TIMEZONE_INVALID'::text) AND (related_request_id IS NOT NULL) AND (request_original_id IS NOT NULL) AND (request_original_sha256 ~ '^[0-9a-f]{64}$'::text) AND (request_range IS NOT NULL) AND (NOT isempty(request_range))))),
-    CONSTRAINT e66_rejection_reason_supported CHECK ((rejection_reason = ANY (ARRAY['UTILTS_E66_REGISTRATION_DATE_INVALID'::text, 'UTILTS_TIMEZONE_INVALID'::text]))),
+    CONSTRAINT e66_rejection_reason_supported CHECK ((rejection_reason = ANY (ARRAY['UTILTS_E66_REGISTRATION_DATE_INVALID'::text, 'UTILTS_TIMEZONE_INVALID'::text, 'UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION'::text]))),
     CONSTRAINT registration_rejections_check CHECK ((((response_message_id IS NULL) = (response_sha256 IS NULL)) AND ((response_message_id IS NULL) = (completed_at IS NULL)))),
     CONSTRAINT registration_rejections_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
 );
+
+--
+-- Name: sg11_compatibility_holds; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.sg11_compatibility_holds (
+    source_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    mailbox_id uuid NOT NULL,
+    reception_id uuid NOT NULL,
+    source_sha256 text NOT NULL,
+    profile_checksum text NOT NULL,
+    actor_id uuid NOT NULL,
+    diagnostic jsonb NOT NULL,
+    held_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT sg11_compatibility_holds_diagnostic_check CHECK ((jsonb_typeof(diagnostic) = 'object'::text)),
+    CONSTRAINT sg11_compatibility_holds_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT sg11_compatibility_holds_profile_checksum_check CHECK ((profile_checksum ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT sg11_compatibility_holds_source_sha256_check CHECK ((source_sha256 ~ '^[a-f0-9]{64}$'::text))
+);
+
+--
+-- Name: sg11_format_holds; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.sg11_format_holds (
+    source_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    mailbox_id uuid NOT NULL,
+    reception_id uuid NOT NULL,
+    payload_sha256 text NOT NULL,
+    profile_checksum text NOT NULL,
+    actor_id uuid NOT NULL,
+    lease_token uuid NOT NULL,
+    diagnostic jsonb NOT NULL,
+    held_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT sg11_format_holds_diagnostic_check CHECK ((jsonb_typeof(diagnostic) = 'object'::text)),
+    CONSTRAINT sg11_format_holds_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT sg11_format_holds_payload_sha256_check CHECK ((payload_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT sg11_format_holds_profile_checksum_check CHECK ((profile_checksum ~ '^[a-f0-9]{64}$'::text))
+);
+
+--
+-- Name: technical_rejections; Type: TABLE; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TABLE gridex_e66_intake.technical_rejections (
+    source_id uuid NOT NULL,
+    reception_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    mailbox_id uuid NOT NULL,
+    payload_sha256 text NOT NULL,
+    actor_id uuid NOT NULL,
+    lease_token uuid NOT NULL,
+    ack_id uuid NOT NULL,
+    ack_sha256 text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT technical_rejections_ack_sha256_check CHECK ((ack_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT technical_rejections_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT technical_rejections_payload_sha256_check CHECK ((payload_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_e66_intake.technical_rejections FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: chunk_receipts; Type: TABLE; Schema: gridex_e66_metering_stage; Owner: -
@@ -125323,6 +133617,61 @@ CREATE TABLE gridex_e66_metering_stage.jobs (
     CONSTRAINT jobs_check CHECK (((next_ordinal >= 0) AND (next_ordinal <= observation_count))),
     CONSTRAINT jobs_check1 CHECK (((ready_ordinal >= 0) AND (ready_ordinal <= next_ordinal))),
     CONSTRAINT jobs_observation_count_check CHECK ((observation_count > 0))
+);
+
+--
+-- Name: mixed_chunk_receipts; Type: TABLE; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE TABLE gridex_e66_metering_stage.mixed_chunk_receipts (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    start_ordinal integer NOT NULL,
+    actor_id uuid NOT NULL,
+    requested_limit integer NOT NULL,
+    next_ordinal integer NOT NULL,
+    CONSTRAINT mixed_chunk_receipts_check CHECK (((next_ordinal > start_ordinal) AND ((next_ordinal - start_ordinal) <= requested_limit))),
+    CONSTRAINT mixed_chunk_receipts_requested_limit_check CHECK (((requested_limit >= 1) AND (requested_limit <= 8))),
+    CONSTRAINT mixed_chunk_receipts_start_ordinal_check CHECK ((start_ordinal >= 0))
+);
+
+--
+-- Name: mixed_effects; Type: TABLE; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE TABLE gridex_e66_metering_stage.mixed_effects (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    ordinal integer NOT NULL,
+    metering_id uuid NOT NULL,
+    normalized_id uuid NOT NULL,
+    CONSTRAINT mixed_effects_ordinal_check CHECK ((ordinal >= 0))
+);
+
+--
+-- Name: mixed_jobs; Type: TABLE; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE TABLE gridex_e66_metering_stage.mixed_jobs (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    observation_count integer NOT NULL,
+    next_ordinal integer DEFAULT 0 NOT NULL,
+    CONSTRAINT mixed_jobs_check CHECK (((next_ordinal >= 0) AND (next_ordinal <= observation_count))),
+    CONSTRAINT mixed_jobs_observation_count_check CHECK ((observation_count > 0))
+);
+
+--
+-- Name: mixed_normalization_receipts; Type: TABLE; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+CREATE TABLE gridex_e66_metering_stage.mixed_normalization_receipts (
+    source_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    actor_id uuid NOT NULL,
+    contract_hash text NOT NULL,
+    ordered_effects jsonb NOT NULL,
+    CONSTRAINT mixed_normalization_receipts_ordered_effects_check CHECK (((jsonb_typeof(ordered_effects) = 'array'::text) AND (jsonb_array_length(ordered_effects) > 0)))
 );
 
 --
@@ -128847,6 +137196,17 @@ CREATE TABLE gridex_received_sources.epoch (
 ALTER TABLE ONLY gridex_received_sources.epoch FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: legacy_supply_end_cases; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.legacy_supply_end_cases (
+    company_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    supply_period_id uuid NOT NULL,
+    case_id uuid NOT NULL
+);
+
+--
 -- Name: normal_activation_sweep_cursors; Type: TABLE; Schema: gridex_received_sources; Owner: -
 --
 
@@ -129609,6 +137969,18 @@ CREATE TABLE gridex_received_sources.supply_end_followups (
 );
 
 ALTER TABLE ONLY gridex_received_sources.supply_end_followups FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: supply_end_retraction_lookup; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.supply_end_retraction_lookup (
+    company_id uuid NOT NULL,
+    supply_period_id uuid NOT NULL,
+    end_source_id uuid NOT NULL,
+    end_version text NOT NULL,
+    cancellation_id uuid NOT NULL
+);
 
 --
 -- Name: supply_object_effect_receipts; Type: TABLE; Schema: gridex_received_sources; Owner: -
@@ -132419,57 +140791,6 @@ COMMENT ON COLUMN public.billing_underlay_items.source_table IS 'Source table us
 COMMENT ON COLUMN public.billing_underlay_items.source_normalized_metering_value_id IS 'References normalized_metering_values.id when billing underlay item is generated from normalized meter data.';
 
 --
--- Name: contract_price_snapshots; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.contract_price_snapshots (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    contract_id uuid NOT NULL,
-    customer_id uuid,
-    price_plan_version_id uuid,
-    campaign_version_id uuid,
-    pricing_model text DEFAULT 'spot'::text NOT NULL,
-    base_price_components_snapshot jsonb DEFAULT '[]'::jsonb NOT NULL,
-    price_components_snapshot jsonb DEFAULT '[]'::jsonb NOT NULL,
-    snapshot_json jsonb DEFAULT '{}'::jsonb NOT NULL,
-    valid_from date,
-    valid_to date,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    contract_number text,
-    customer_number text,
-    source text DEFAULT 'pricing_engine'::text NOT NULL,
-    public_contract_offer_id uuid,
-    public_price_text text,
-    terms_url text,
-    spot_weight_percent numeric,
-    portfolio_weight_percent numeric,
-    fixed_weight_percent numeric,
-    price_book_id uuid,
-    price_plan_id uuid,
-    legal_bundle_id uuid,
-    snapshot_hash text NOT NULL,
-    snapshot_quality text,
-    price_book_hash text,
-    accepted_request_id text,
-    accepted_trace_id text,
-    snapshot_schema_version text,
-    quote_reference text,
-    quote_hash text,
-    price_option_reference text,
-    area_price_reference text,
-    invoice_delivery_method text,
-    selected_component_references text[] DEFAULT '{}'::text[] NOT NULL,
-    CONSTRAINT contract_price_snapshots_snapshot_hash_sha256_check CHECK ((snapshot_hash ~ '^[0-9a-f]{64}$'::text))
-);
-
---
--- Name: COLUMN contract_price_snapshots.snapshot_hash; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.contract_price_snapshots.snapshot_hash IS 'Canonical SHA-256 of snapshot_json::text after insert-time normalization. Required for immutable signing-chain integrity.';
-
---
 -- Name: pricing_interval_evidence; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -132491,6 +140812,7 @@ CREATE TABLE public.pricing_interval_evidence (
     evidence_sha256 text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     energy_direction text DEFAULT 'consumption'::text NOT NULL,
+    price_source_ids uuid[],
     CONSTRAINT pricing_interval_evidence_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
     CONSTRAINT pricing_interval_evidence_price_area_check CHECK ((price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text]))),
     CONSTRAINT pricing_interval_evidence_resolution_check CHECK ((resolution = ANY (ARRAY['hour'::text, 'quarter'::text])))
@@ -132764,6 +141086,9 @@ CREATE TABLE public.billing_export_runs (
     rows_failed integer DEFAULT 0 NOT NULL,
     rows_rejected integer DEFAULT 0 NOT NULL,
     payload_hash text,
+    adapter_key text DEFAULT 'gridex_billing_partner_v1'::text NOT NULL,
+    payload_version text DEFAULT 'billing_export_v4c'::text NOT NULL,
+    retry_policy jsonb DEFAULT '{"strategy": "manual_retry", "maxAttempts": 3}'::jsonb NOT NULL,
     CONSTRAINT billing_export_runs_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'ready'::text, 'ready_with_flags'::text, 'blocked'::text, 'queued'::text, 'sent'::text, 'acknowledged'::text, 'partial_failed'::text, 'failed'::text, 'cancelled'::text])))
 );
 
@@ -135019,6 +143344,81 @@ CREATE TABLE public.tenant_legal_overrides (
     CONSTRAINT tenant_legal_overrides_legal_mode_check CHECK ((legal_mode = ANY (ARRAY['addendum'::text, 'replacement'::text]))),
     CONSTRAINT tenant_legal_overrides_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'submitted'::text, 'approved'::text, 'published'::text, 'replaced'::text, 'archived'::text, 'rejected'::text])))
 );
+
+--
+-- Name: gridex_tenant_effective_legal_sources_v; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.gridex_tenant_effective_legal_sources_v WITH (security_invoker='true') AS
+ WITH latest_platform AS (
+         SELECT DISTINCT ON (t_1.module_key) t_1.module_key,
+            v.id AS platform_template_version_id,
+            COALESCE(v.version_label, (v.version_number)::text) AS platform_version,
+            v.title AS platform_title,
+            v.content_sha256 AS platform_sha256
+           FROM (public.legal_templates t_1
+             JOIN public.legal_template_versions v ON ((v.legal_template_id = t_1.id)))
+          WHERE ((t_1.status = 'active'::text) AND (v.status = 'published'::text) AND (v.locked_at IS NOT NULL))
+          ORDER BY t_1.module_key, v.version_number DESC, v.published_at DESC NULLS LAST, v.created_at DESC
+        ), latest_override AS (
+         SELECT DISTINCT ON (o_1.company_id, o_1.module_key) o_1.company_id,
+            o_1.module_key,
+            o_1.id AS tenant_override_id,
+            COALESCE(o_1.version_label, to_char((o_1.created_at AT TIME ZONE 'UTC'::text), 'YYYY-MM-DD-HH24MISS'::text), "left"(o_1.content_sha256, 12)) AS tenant_override_version,
+            o_1.legal_mode AS tenant_override_mode,
+            o_1.title AS tenant_override_title,
+            o_1.content_sha256 AS tenant_override_sha256
+           FROM public.tenant_legal_overrides o_1
+          WHERE ((o_1.status = ANY (ARRAY['approved'::text, 'published'::text])) AND (o_1.locked_at IS NOT NULL))
+          ORDER BY o_1.company_id, o_1.module_key, o_1.reviewed_at DESC NULLS LAST, o_1.created_at DESC
+        )
+ SELECT c.id AS company_id,
+    t.module_key,
+    p.platform_template_version_id,
+    p.platform_version,
+    p.platform_title,
+    p.platform_sha256,
+    o.tenant_override_id,
+    o.tenant_override_version,
+    o.tenant_override_mode,
+    o.tenant_override_title,
+    o.tenant_override_sha256,
+        CASE
+            WHEN ((o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'replacement'::text)) THEN 'tenant_replacement'::text
+            WHEN ((p.platform_template_version_id IS NOT NULL) AND (o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'addendum'::text)) THEN 'platform_template_with_tenant_addendum'::text
+            WHEN (p.platform_template_version_id IS NOT NULL) THEN 'platform_template'::text
+            ELSE 'missing'::text
+        END AS effective_source,
+        CASE
+            WHEN ((o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'replacement'::text)) THEN true
+            WHEN (p.platform_template_version_id IS NOT NULL) THEN true
+            ELSE false
+        END AS effective_available
+   FROM (((public.companies c
+     CROSS JOIN public.legal_templates t)
+     LEFT JOIN latest_platform p ON ((p.module_key = t.module_key)))
+     LEFT JOIN latest_override o ON (((o.company_id = c.id) AND (o.module_key = t.module_key))))
+  WHERE (t.status = 'active'::text);
+
+--
+-- Name: canonical_tenant_effective_legal_sources_v; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.canonical_tenant_effective_legal_sources_v WITH (security_invoker='true') AS
+ SELECT company_id,
+    module_key,
+    platform_template_version_id,
+    platform_version,
+    platform_title,
+    platform_sha256,
+    tenant_override_id,
+    tenant_override_version,
+    tenant_override_mode,
+    tenant_override_title,
+    tenant_override_sha256,
+    effective_source,
+    effective_available
+   FROM public.gridex_tenant_effective_legal_sources_v;
 
 --
 -- Name: canonical_tenant_legal_overrides_v; Type: VIEW; Schema: public; Owner: -
@@ -146115,6 +154515,59 @@ CREATE VIEW public.gridex_stuck_spot_import_jobs_v WITH (security_invoker='true'
   WHERE (((status = 'running'::text) AND (started_at < (now() - '00:15:00'::interval))) OR ((status = 'retry_wait'::text) AND (next_attempt_at IS NOT NULL) AND (next_attempt_at < (now() - '00:15:00'::interval))));
 
 --
+-- Name: supplier_switch_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.supplier_switch_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    switch_request_id uuid,
+    event_type text NOT NULL,
+    event_status text DEFAULT 'info'::text NOT NULL,
+    message text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    archived_at timestamp with time zone,
+    archived_by uuid,
+    archive_reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+--
+-- Name: gridex_supplier_switch_business_events_v; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.gridex_supplier_switch_business_events_v WITH (security_invoker='true') AS
+ SELECT event.id,
+    event.company_id,
+    event.switch_request_id,
+    event.event_type,
+    event.event_status,
+    event.message,
+    event.payload,
+    event.archived_at,
+    event.archived_by,
+    event.archive_reason,
+    event.created_at,
+    event.created_by,
+    event.metadata,
+    event.updated_at,
+    ((event.archived_at IS NULL) AND (NOT COALESCE(pair.producer_active, false))) AS include_active_business_history,
+    (pair.producer_active IS NULL) AS include_all_business_history
+   FROM (public.supplier_switch_events event
+     LEFT JOIN LATERAL ( SELECT bool_or((peer.archived_at IS NULL)) AS producer_active
+           FROM ( SELECT producer.archived_at,
+                    producer.created_at
+                   FROM public.supplier_switch_events producer
+                  WHERE ((event.company_id IS NOT NULL) AND (event.switch_request_id IS NOT NULL) AND (event.created_by IS NOT NULL) AND (event.created_at IS NOT NULL) AND (event.event_type = 'ediel_prepared'::text) AND (event.event_status = 'queued'::text) AND (event.message = 'Canonical Ediel Z03 förberett för switchärendet.'::text) AND (event.payload = jsonb_build_object('edielMessageId', (event.payload -> 'edielMessageId'::text), 'communicationRouteId', (event.payload -> 'communicationRouteId'::text), 'externalReference', (event.payload -> 'externalReference'::text))) AND ((event.payload ->> 'edielMessageId'::text) ~ '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$'::text) AND ((event.payload ->> 'communicationRouteId'::text) ~ '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$'::text) AND (jsonb_typeof((event.payload -> 'externalReference'::text)) = 'string'::text) AND (NULLIF(btrim((event.payload ->> 'externalReference'::text)), ''::text) IS NOT NULL) AND (producer.company_id = event.company_id) AND (producer.switch_request_id = event.switch_request_id) AND (producer.event_type = event.event_type) AND (producer.event_status = event.event_status) AND ((producer.payload ->> 'edielMessageId'::text) = (event.payload ->> 'edielMessageId'::text)) AND ((producer.payload ->> 'routeId'::text) = (event.payload ->> 'communicationRouteId'::text)) AND ((producer.payload ->> 'actorUserId'::text) = (event.created_by)::text) AND ((producer.payload ->> 'edielCode'::text) = 'Z03'::text) AND (((((producer.payload ->> 'transactionSubtype'::text) = 'L'::text) AND ((producer.payload ->> 'reasonForTransaction'::text) = 'Z22'::text)) OR (((producer.payload ->> 'transactionSubtype'::text) = 'LK'::text) AND ((producer.payload ->> 'reasonForTransaction'::text) = 'Z23'::text))) OR (((producer.payload ->> 'transactionSubtype'::text) = 'H'::text) AND ((producer.payload ->> 'reasonForTransaction'::text) = 'Z25'::text))) AND (producer.message = (('Ediel PRODAT Z03'::text || (producer.payload ->> 'transactionSubtype'::text)) || ' förberett via canonical 26.A rule pack.'::text)) AND ((producer.payload ->> 'outboundRequestId'::text) ~ '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$'::text) AND (jsonb_typeof((producer.payload -> 'canonicalRulePackId'::text)) = 'string'::text) AND (NULLIF(btrim((producer.payload ->> 'canonicalRulePackId'::text)), ''::text) IS NOT NULL) AND (jsonb_typeof((producer.payload -> 'canonicalMessageProfileId'::text)) = 'string'::text) AND (NULLIF(btrim((producer.payload ->> 'canonicalMessageProfileId'::text)), ''::text) IS NOT NULL) AND ((NOT (producer.payload ? 'externalReference'::text)) OR ((producer.payload -> 'externalReference'::text) = (event.payload -> 'externalReference'::text))) AND (NOT (EXISTS ( SELECT
+                           FROM public.supplier_switch_events other_staff
+                          WHERE ((other_staff.company_id = event.company_id) AND (other_staff.switch_request_id = event.switch_request_id) AND (other_staff.event_type = event.event_type) AND (other_staff.event_status = event.event_status) AND (other_staff.message = event.message) AND (other_staff.created_by = event.created_by) AND (other_staff.id <> event.id) AND ((other_staff.payload ->> 'edielMessageId'::text) = (event.payload ->> 'edielMessageId'::text)) AND ((other_staff.payload ->> 'communicationRouteId'::text) = (event.payload ->> 'communicationRouteId'::text)) AND (other_staff.payload = jsonb_build_object('edielMessageId', (other_staff.payload -> 'edielMessageId'::text), 'communicationRouteId', (other_staff.payload -> 'communicationRouteId'::text), 'externalReference', (other_staff.payload -> 'externalReference'::text))))))))
+                 LIMIT 2) peer
+         HAVING ((count(*) = 1) AND bool_and(COALESCE((peer.created_at <= event.created_at), false)))) pair ON (true));
+
+--
 -- Name: gridex_tenant_contract_readiness_v; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -146164,61 +154617,6 @@ CREATE VIEW public.gridex_tenant_contract_readiness_v WITH (security_invoker='tr
 --
 
 COMMENT ON VIEW public.gridex_tenant_contract_readiness_v IS 'Single tenant-level readiness source. No published contract is informational, not a legal blocker. Display and application acceptance are separate.';
-
---
--- Name: gridex_tenant_effective_legal_sources_v; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.gridex_tenant_effective_legal_sources_v WITH (security_invoker='true') AS
- WITH latest_platform AS (
-         SELECT DISTINCT ON (t_1.module_key) t_1.module_key,
-            v.id AS platform_template_version_id,
-            COALESCE(v.version_label, (v.version_number)::text) AS platform_version,
-            v.title AS platform_title,
-            v.content_sha256 AS platform_sha256
-           FROM (public.legal_templates t_1
-             JOIN public.legal_template_versions v ON ((v.legal_template_id = t_1.id)))
-          WHERE ((t_1.status = 'active'::text) AND (v.status = 'published'::text) AND (v.locked_at IS NOT NULL))
-          ORDER BY t_1.module_key, v.version_number DESC, v.published_at DESC NULLS LAST, v.created_at DESC
-        ), latest_override AS (
-         SELECT DISTINCT ON (o_1.company_id, o_1.module_key) o_1.company_id,
-            o_1.module_key,
-            o_1.id AS tenant_override_id,
-            COALESCE(o_1.version_label, to_char((o_1.created_at AT TIME ZONE 'UTC'::text), 'YYYY-MM-DD-HH24MISS'::text), "left"(o_1.content_sha256, 12)) AS tenant_override_version,
-            o_1.legal_mode AS tenant_override_mode,
-            o_1.title AS tenant_override_title,
-            o_1.content_sha256 AS tenant_override_sha256
-           FROM public.tenant_legal_overrides o_1
-          WHERE ((o_1.status = ANY (ARRAY['approved'::text, 'published'::text])) AND (o_1.locked_at IS NOT NULL))
-          ORDER BY o_1.company_id, o_1.module_key, o_1.reviewed_at DESC NULLS LAST, o_1.created_at DESC
-        )
- SELECT c.id AS company_id,
-    t.module_key,
-    p.platform_template_version_id,
-    p.platform_version,
-    p.platform_title,
-    p.platform_sha256,
-    o.tenant_override_id,
-    o.tenant_override_version,
-    o.tenant_override_mode,
-    o.tenant_override_title,
-    o.tenant_override_sha256,
-        CASE
-            WHEN ((o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'replacement'::text)) THEN 'tenant_replacement'::text
-            WHEN ((p.platform_template_version_id IS NOT NULL) AND (o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'addendum'::text)) THEN 'platform_template_with_tenant_addendum'::text
-            WHEN (p.platform_template_version_id IS NOT NULL) THEN 'platform_template'::text
-            ELSE 'missing'::text
-        END AS effective_source,
-        CASE
-            WHEN ((o.tenant_override_id IS NOT NULL) AND (o.tenant_override_mode = 'replacement'::text)) THEN true
-            WHEN (p.platform_template_version_id IS NOT NULL) THEN true
-            ELSE false
-        END AS effective_available
-   FROM (((public.companies c
-     CROSS JOIN public.legal_templates t)
-     LEFT JOIN latest_platform p ON ((p.module_key = t.module_key)))
-     LEFT JOIN latest_override o ON (((o.company_id = c.id) AND (o.module_key = t.module_key))))
-  WHERE (t.status = 'active'::text);
 
 --
 -- Name: gridex_tenant_email_dispatch_readiness_v; Type: VIEW; Schema: public; Owner: -
@@ -147864,42 +156262,6 @@ CREATE TABLE public.market_process_policies (
 --
 
 COMMENT ON TABLE public.market_process_policies IS 'Historical/application process policy evidence. Ediel supplier-switch timing is canonical source-controlled policy and must not be redefined here.';
-
---
--- Name: meter_reading_series; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.meter_reading_series (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    metering_point_id uuid,
-    source_ediel_message_id uuid,
-    external_metering_point_id text,
-    grid_area_id text,
-    period_start timestamp with time zone,
-    period_end timestamp with time zone,
-    resolution text DEFAULT 'UNKNOWN'::text NOT NULL,
-    unit text DEFAULT 'KWH'::text NOT NULL,
-    quality_status text DEFAULT 'received'::text NOT NULL,
-    dedupe_key text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    message_code text,
-    source_transaction_reference text,
-    series_kind text DEFAULT 'actual'::text NOT NULL,
-    product_id text,
-    time_series_product jsonb,
-    actor_context jsonb DEFAULT '{}'::jsonb NOT NULL,
-    registration_date timestamp with time zone,
-    latest_update_date timestamp with time zone,
-    version_no integer DEFAULT 1 NOT NULL,
-    supersedes_series_id uuid,
-    is_current boolean DEFAULT true NOT NULL,
-    correction_reason text,
-    raw_transaction jsonb DEFAULT '{}'::jsonb NOT NULL,
-    immutable_hash text,
-    CONSTRAINT meter_reading_series_series_kind_check CHECK ((series_kind = ANY (ARRAY['actual'::text, 'forecast'::text, 'aggregate'::text, 'request'::text]))),
-    CONSTRAINT meter_reading_series_version_no_check CHECK ((version_no > 0))
-);
 
 --
 -- Name: meter_reading_values; Type: TABLE; Schema: public; Owner: -
@@ -149858,27 +158220,6 @@ CREATE TABLE public.spot_price_sources (
 );
 
 --
--- Name: supplier_switch_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.supplier_switch_events (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    switch_request_id uuid,
-    event_type text NOT NULL,
-    event_status text DEFAULT 'info'::text NOT NULL,
-    message text,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    archived_at timestamp with time zone,
-    archived_by uuid,
-    archive_reason text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now()
-);
-
---
 -- Name: system_supplier_readiness_v; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -151549,6 +159890,146 @@ ALTER TABLE ONLY gridex_billing_source.correction_journal
     ADD CONSTRAINT correction_journal_underlay_id_new_normalized_value_id_key UNIQUE (underlay_id, new_normalized_value_id);
 
 --
+-- Name: planned_move_out_receipts planned_move_out_receipts_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.planned_move_out_receipts
+    ADD CONSTRAINT planned_move_out_receipts_pkey PRIMARY KEY (company_id, normalized_value_id);
+
+--
+-- Name: price_series_invoice_approvals price_series_invoice_approvals_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_approvals
+    ADD CONSTRAINT price_series_invoice_approvals_pkey PRIMARY KEY (company_id, reservation_id);
+
+--
+-- Name: price_series_invoice_drafts price_series_invoice_drafts_invoice_id_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_drafts
+    ADD CONSTRAINT price_series_invoice_drafts_invoice_id_key UNIQUE (invoice_id);
+
+--
+-- Name: price_series_invoice_drafts price_series_invoice_drafts_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_drafts
+    ADD CONSTRAINT price_series_invoice_drafts_pkey PRIMARY KEY (company_id, reservation_id);
+
+--
+-- Name: price_series_invoice_issues price_series_invoice_issues_company_id_invoice_id_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_issues
+    ADD CONSTRAINT price_series_invoice_issues_company_id_invoice_id_key UNIQUE (company_id, invoice_id);
+
+--
+-- Name: price_series_invoice_issues price_series_invoice_issues_company_id_invoice_number_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_issues
+    ADD CONSTRAINT price_series_invoice_issues_company_id_invoice_number_key UNIQUE (company_id, invoice_number);
+
+--
+-- Name: price_series_invoice_issues price_series_invoice_issues_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_issues
+    ADD CONSTRAINT price_series_invoice_issues_pkey PRIMARY KEY (company_id, reservation_id);
+
+--
+-- Name: price_series_invoice_neutral_files price_series_invoice_neutral_files_company_id_file_id_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_neutral_files
+    ADD CONSTRAINT price_series_invoice_neutral_files_company_id_file_id_key UNIQUE (company_id, file_id);
+
+--
+-- Name: price_series_invoice_neutral_files price_series_invoice_neutral_files_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_neutral_files
+    ADD CONSTRAINT price_series_invoice_neutral_files_pkey PRIMARY KEY (company_id, invoice_id);
+
+--
+-- Name: price_series_reservation_members price_series_reservation_memb_company_id_reservation_id_ord_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservation_members
+    ADD CONSTRAINT price_series_reservation_memb_company_id_reservation_id_ord_key UNIQUE (company_id, reservation_id, ordinal);
+
+--
+-- Name: price_series_reservation_members price_series_reservation_members_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservation_members
+    ADD CONSTRAINT price_series_reservation_members_pkey PRIMARY KEY (company_id, billing_underlay_id);
+
+--
+-- Name: price_series_reservations price_series_reservations_company_id_customer_id_contract_i_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservations
+    ADD CONSTRAINT price_series_reservations_company_id_customer_id_contract_i_key UNIQUE (company_id, customer_id, contract_id, site_id, metering_point_id, billing_month);
+
+--
+-- Name: price_series_reservations price_series_reservations_company_id_id_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservations
+    ADD CONSTRAINT price_series_reservations_company_id_id_key UNIQUE (company_id, id);
+
+--
+-- Name: price_series_reservations price_series_reservations_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservations
+    ADD CONSTRAINT price_series_reservations_pkey PRIMARY KEY (id);
+
+--
+-- Name: test_price_addendum_applications test_price_addendum_applications_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_applications
+    ADD CONSTRAINT test_price_addendum_applications_pkey PRIMARY KEY (company_id, contract_id);
+
+--
+-- Name: test_price_addendum_applications test_price_addendum_applications_successor_snapshot_id_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_applications
+    ADD CONSTRAINT test_price_addendum_applications_successor_snapshot_id_key UNIQUE (successor_snapshot_id);
+
+--
+-- Name: test_price_addendum_documents test_price_addendum_documents_company_id_contract_id_submis_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_documents
+    ADD CONSTRAINT test_price_addendum_documents_company_id_contract_id_submis_key UNIQUE (company_id, contract_id, submission_key);
+
+--
+-- Name: test_price_addendum_documents test_price_addendum_documents_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_documents
+    ADD CONSTRAINT test_price_addendum_documents_pkey PRIMARY KEY (company_id, contract_id, id);
+
+--
+-- Name: test_price_addendum_reviews test_price_addendum_reviews_company_id_contract_id_effectiv_key; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_reviews
+    ADD CONSTRAINT test_price_addendum_reviews_company_id_contract_id_effectiv_key UNIQUE (company_id, contract_id, effective_on);
+
+--
+-- Name: test_price_addendum_reviews test_price_addendum_reviews_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_reviews
+    ADD CONSTRAINT test_price_addendum_reviews_pkey PRIMARY KEY (company_id, contract_id, document_id);
+
+--
 -- Name: underlay_bindings underlay_bindings_pkey; Type: CONSTRAINT; Schema: gridex_billing_source; Owner: -
 --
 
@@ -152270,6 +160751,146 @@ ALTER TABLE ONLY gridex_e66_intake.matched_request_basis
     ADD CONSTRAINT matched_request_basis_pkey PRIMARY KEY (source_id);
 
 --
+-- Name: mixed_accepted_transactions mixed_accepted_transactions_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_accepted_transactions
+    ADD CONSTRAINT mixed_accepted_transactions_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_accepted_transactions mixed_accepted_transactions_source_id_transaction_index_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_accepted_transactions
+    ADD CONSTRAINT mixed_accepted_transactions_source_id_transaction_index_key UNIQUE (source_id, transaction_index);
+
+--
+-- Name: mixed_billing_correction_holds mixed_billing_correction_holds_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_correction_holds
+    ADD CONSTRAINT mixed_billing_correction_holds_pkey PRIMARY KEY (underlay_id, new_normalized_value_id);
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_replacements
+    ADD CONSTRAINT mixed_billing_replacements_pkey PRIMARY KEY (predecessor_id);
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_replacement_id_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_replacements
+    ADD CONSTRAINT mixed_billing_replacements_replacement_id_key UNIQUE (replacement_id);
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_source_id_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_replacements
+    ADD CONSTRAINT mixed_billing_replacements_source_id_key UNIQUE (source_id);
+
+--
+-- Name: mixed_e50_attempts mixed_e50_attempts_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e50_attempts
+    ADD CONSTRAINT mixed_e50_attempts_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_e50_attempts mixed_e50_attempts_response_id_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e50_attempts
+    ADD CONSTRAINT mixed_e50_attempts_response_id_key UNIQUE (response_id);
+
+--
+-- Name: mixed_e50_finalize_context mixed_e50_finalize_context_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e50_finalize_context
+    ADD CONSTRAINT mixed_e50_finalize_context_pkey PRIMARY KEY (tx);
+
+--
+-- Name: mixed_e73_billing_coverage mixed_e73_billing_coverage_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_coverage
+    ADD CONSTRAINT mixed_e73_billing_coverage_pkey PRIMARY KEY (company_id, environment, request_id);
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projections_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_projections
+    ADD CONSTRAINT mixed_e73_billing_projections_pkey PRIMARY KEY (company_id, environment, request_id);
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projections_primary_underlay_id_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_projections
+    ADD CONSTRAINT mixed_e73_billing_projections_primary_underlay_id_key UNIQUE (primary_underlay_id);
+
+--
+-- Name: mixed_e73_draft_preconditions mixed_e73_draft_preconditions_lease_token_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_draft_preconditions
+    ADD CONSTRAINT mixed_e73_draft_preconditions_lease_token_key UNIQUE (lease_token);
+
+--
+-- Name: mixed_e73_draft_preconditions mixed_e73_draft_preconditions_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_draft_preconditions
+    ADD CONSTRAINT mixed_e73_draft_preconditions_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_e73_ide_completions mixed_e73_ide_completions_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_ide_completions
+    ADD CONSTRAINT mixed_e73_ide_completions_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_e73_request_basis mixed_e73_request_basis_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_request_basis
+    ADD CONSTRAINT mixed_e73_request_basis_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_positive_create_context mixed_positive_create_context_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_positive_create_context
+    ADD CONSTRAINT mixed_positive_create_context_pkey PRIMARY KEY (xact);
+
+--
+-- Name: mixed_prelinked_holds mixed_prelinked_holds_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_prelinked_holds
+    ADD CONSTRAINT mixed_prelinked_holds_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: mixed_qualification_receipts mixed_qualification_receipts_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_qualification_receipts
+    ADD CONSTRAINT mixed_qualification_receipts_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: mixed_worker_attempts mixed_worker_attempts_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_worker_attempts
+    ADD CONSTRAINT mixed_worker_attempts_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
 -- Name: qualified qualified_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -152282,6 +160903,34 @@ ALTER TABLE ONLY gridex_e66_intake.qualified
 
 ALTER TABLE ONLY gridex_e66_intake.registration_rejections
     ADD CONSTRAINT registration_rejections_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: sg11_compatibility_holds sg11_compatibility_holds_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.sg11_compatibility_holds
+    ADD CONSTRAINT sg11_compatibility_holds_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: sg11_format_holds sg11_format_holds_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.sg11_format_holds
+    ADD CONSTRAINT sg11_format_holds_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: technical_rejections technical_rejections_ack_id_key; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.technical_rejections
+    ADD CONSTRAINT technical_rejections_ack_id_key UNIQUE (ack_id);
+
+--
+-- Name: technical_rejections technical_rejections_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.technical_rejections
+    ADD CONSTRAINT technical_rejections_pkey PRIMARY KEY (source_id);
 
 --
 -- Name: work work_pkey; Type: CONSTRAINT; Schema: gridex_e66_intake; Owner: -
@@ -152317,6 +160966,34 @@ ALTER TABLE ONLY gridex_e66_metering_stage.effects
 
 ALTER TABLE ONLY gridex_e66_metering_stage.jobs
     ADD CONSTRAINT jobs_pkey PRIMARY KEY (source_id);
+
+--
+-- Name: mixed_chunk_receipts mixed_chunk_receipts_pkey; Type: CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_chunk_receipts
+    ADD CONSTRAINT mixed_chunk_receipts_pkey PRIMARY KEY (source_id, transaction_id, start_ordinal);
+
+--
+-- Name: mixed_effects mixed_effects_pkey; Type: CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_effects
+    ADD CONSTRAINT mixed_effects_pkey PRIMARY KEY (source_id, transaction_id, ordinal);
+
+--
+-- Name: mixed_jobs mixed_jobs_pkey; Type: CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_jobs
+    ADD CONSTRAINT mixed_jobs_pkey PRIMARY KEY (source_id, transaction_id);
+
+--
+-- Name: mixed_normalization_receipts mixed_normalization_receipts_pkey; Type: CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_normalization_receipts
+    ADD CONSTRAINT mixed_normalization_receipts_pkey PRIMARY KEY (source_id, transaction_id);
 
 --
 -- Name: commands commands_pkey; Type: CONSTRAINT; Schema: gridex_e66_request_retry; Owner: -
@@ -154447,6 +163124,20 @@ ALTER TABLE ONLY gridex_received_sources.epoch
     ADD CONSTRAINT epoch_pkey PRIMARY KEY (singleton);
 
 --
+-- Name: legacy_supply_end_cases legacy_supply_end_cases_case_id_key; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.legacy_supply_end_cases
+    ADD CONSTRAINT legacy_supply_end_cases_case_id_key UNIQUE (case_id);
+
+--
+-- Name: legacy_supply_end_cases legacy_supply_end_cases_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.legacy_supply_end_cases
+    ADD CONSTRAINT legacy_supply_end_cases_pkey PRIMARY KEY (company_id, source_message_id, supply_period_id);
+
+--
 -- Name: normal_activation_sweep_cursors normal_activation_sweep_cursors_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
 --
 
@@ -154823,6 +163514,13 @@ ALTER TABLE ONLY gridex_received_sources.supply_end_followups
 
 ALTER TABLE ONLY gridex_received_sources.supply_end_followups
     ADD CONSTRAINT supply_end_followups_pkey PRIMARY KEY (effect_receipt_id);
+
+--
+-- Name: supply_end_retraction_lookup supply_end_retraction_lookup_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.supply_end_retraction_lookup
+    ADD CONSTRAINT supply_end_retraction_lookup_pkey PRIMARY KEY (company_id, supply_period_id, end_source_id, end_version, cancellation_id);
 
 --
 -- Name: supply_object_effect_receipts supply_object_effect_receipts_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
@@ -159687,6 +168385,13 @@ ALTER TABLE ONLY public.pricing_component_rules
     ADD CONSTRAINT pricing_component_rules_pkey PRIMARY KEY (id);
 
 --
+-- Name: pricing_interval_evidence pricing_interval_evidence_hourly_quarters_check; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.pricing_interval_evidence
+    ADD CONSTRAINT pricing_interval_evidence_hourly_quarters_check CHECK (((price_source_ids IS NULL) OR ((array_ndims(price_source_ids) = 1) AND (array_lower(price_source_ids, 1) = 1) AND (cardinality(price_source_ids) = 4) AND (array_position(price_source_ids, NULL::uuid) IS NULL) AND (price_source_id IS NOT NULL) AND (price_source_ids[1] = price_source_id) AND (price_source_ids[1] <> ALL (price_source_ids[2:4])) AND (price_source_ids[2] <> ALL (price_source_ids[3:4])) AND (price_source_ids[3] <> price_source_ids[4])))) NOT VALID;
+
+--
 -- Name: pricing_interval_evidence pricing_interval_evidence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -160403,6 +169108,12 @@ CREATE INDEX customer_import_failures_request ON gridex_e66_intake.customer_impo
 --
 
 CREATE INDEX e66_offset_rejection_request_idx ON gridex_e66_intake.registration_rejections USING btree (company_id, related_request_id) WHERE ((rejection_reason = 'UTILTS_TIMEZONE_INVALID'::text) AND (unresolved_item_id IS NOT NULL));
+
+--
+-- Name: mixed_e73_child_effects_idx; Type: INDEX; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE INDEX mixed_e73_child_effects_idx ON gridex_e66_intake.mixed_e73_request_basis USING gin (((evidence -> 'childEffects'::text)) jsonb_path_ops);
 
 --
 -- Name: e66_pending_scope; Type: INDEX; Schema: gridex_e66_request_retry; Owner: -
@@ -172822,6 +181533,54 @@ CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_
 CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_masterdata.signed_declarations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
+-- Name: mixed_billing_correction_holds mixed_billing_correction_hold_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_billing_correction_hold_immutable BEFORE DELETE OR UPDATE ON gridex_e66_intake.mixed_billing_correction_holds FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: mixed_billing_correction_holds mixed_billing_correction_hold_no_truncate; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_billing_correction_hold_no_truncate BEFORE TRUNCATE ON gridex_e66_intake.mixed_billing_correction_holds FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_billing_replacements_immutable BEFORE DELETE OR UPDATE ON gridex_e66_intake.mixed_billing_replacements FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_no_truncate; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_billing_replacements_no_truncate BEFORE TRUNCATE ON gridex_e66_intake.mixed_billing_replacements FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: mixed_e73_request_basis mixed_e73_basis_is_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_e73_basis_is_immutable BEFORE DELETE OR UPDATE OR TRUNCATE ON gridex_e66_intake.mixed_e73_request_basis FOR EACH STATEMENT EXECUTE FUNCTION gridex_e66_intake.reject_mixed_e73_basis_mutation();
+
+--
+-- Name: mixed_e73_billing_coverage mixed_e73_billing_coverage_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_e73_billing_coverage_immutable BEFORE DELETE OR UPDATE OR TRUNCATE ON gridex_e66_intake.mixed_e73_billing_coverage FOR EACH STATEMENT EXECUTE FUNCTION gridex_e66_intake.guard_mixed_billing_coverage_immutable_v1();
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projection_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_e73_billing_projection_immutable BEFORE DELETE OR UPDATE OR TRUNCATE ON gridex_e66_intake.mixed_e73_billing_projections FOR EACH STATEMENT EXECUTE FUNCTION gridex_e66_intake.guard_mixed_billing_coverage_immutable_v1();
+
+--
+-- Name: mixed_e73_ide_completions mixed_e73_ide_completion_is_immutable; Type: TRIGGER; Schema: gridex_e66_intake; Owner: -
+--
+
+CREATE TRIGGER mixed_e73_ide_completion_is_immutable BEFORE DELETE OR UPDATE OR TRUNCATE ON gridex_e66_intake.mixed_e73_ide_completions FOR EACH STATEMENT EXECUTE FUNCTION gridex_e66_intake.reject_mixed_e73_completion_mutation_v1();
+
+--
 -- Name: err_reason_source_editions immutable_rows; Type: TRIGGER; Schema: gridex_ediel_ack_guide; Owner: -
 --
 
@@ -174556,6 +183315,12 @@ CREATE TRIGGER invoice_file_receipt_append_only BEFORE DELETE OR UPDATE ON gride
 CREATE TRIGGER queue_invoice_file_effects AFTER INSERT ON gridex_invoice_file_archive.receipts FOR EACH ROW WHEN ((NOT jsonb_path_exists(new.selection, '$[*]?(@."kind" == "group")'::jsonpath))) EXECUTE FUNCTION gridex_invoice_file_archive.queue_file_effects();
 
 --
+-- Name: sources invoice_group_price_series_reservation_fence; Type: TRIGGER; Schema: gridex_invoice_groups; Owner: -
+--
+
+CREATE TRIGGER invoice_group_price_series_reservation_fence BEFORE INSERT OR UPDATE OF company_id, billing_underlay_id, invoice_id ON gridex_invoice_groups.sources FOR EACH ROW EXECUTE FUNCTION gridex_billing_source.fence_price_series_group_source_v1();
+
+--
 -- Name: approvals invoice_group_terminal_approval_fence; Type: TRIGGER; Schema: gridex_invoice_groups; Owner: -
 --
 
@@ -175226,6 +183991,12 @@ CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_
 --
 
 CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.switch_originals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: supply_source_transitions gridex_index_supply_end_retraction_after_insert; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_index_supply_end_retraction_after_insert AFTER INSERT ON gridex_received_sources.supply_source_transitions FOR EACH ROW WHEN ((new.source_code = 'Z05'::text)) EXECUTE FUNCTION gridex_received_sources.index_supply_end_retraction_v1();
 
 --
 -- Name: customer_primary_response_receipts immutable_rows; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
@@ -180660,6 +189431,12 @@ CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.metering_val
 CREATE TRIGGER gridex_queue_invoice_dispatch_period_after_attempt AFTER INSERT ON public.invoice_export_attempts FOR EACH ROW WHEN ((new.outcome = 'sent'::text)) EXECUTE FUNCTION gridex_invoice_dispatch_period.enqueue_from_attempt();
 
 --
+-- Name: ediel_sla_timers gridex_record_late_contrl_resolution; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_record_late_contrl_resolution BEFORE UPDATE OF status ON public.ediel_sla_timers FOR EACH ROW WHEN (((old.timer_type = 'contrl_due'::text) AND (new.timer_type = 'contrl_due'::text) AND (old.status = ANY (ARRAY['open'::text, 'warning'::text, 'critical'::text, 'expired'::text])) AND (new.status = 'resolved'::text))) EXECUTE FUNCTION public.gridex_record_late_contrl_resolution_v1();
+
+--
 -- Name: ediel_messages gridex_seal_received_ack_source; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -181074,6 +189851,24 @@ CREATE TRIGGER method_recovery_bind_message AFTER INSERT OR UPDATE OF created_by
 CREATE TRIGGER method_source_required_before_insert BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.require_origin_before_insert_v1();
 
 --
+-- Name: normalized_metering_values mixed_billing_capture_correction; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mixed_billing_capture_correction AFTER INSERT ON public.normalized_metering_values FOR EACH ROW EXECUTE FUNCTION gridex_e66_intake.capture_mixed_billing_correction_v1();
+
+--
+-- Name: billing_underlays mixed_e66_billing_projection_delete_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mixed_e66_billing_projection_delete_guard BEFORE DELETE ON public.billing_underlays FOR EACH ROW EXECUTE FUNCTION gridex_e66_intake.guard_mixed_billing_projection_readiness_v1();
+
+--
+-- Name: billing_underlays mixed_e66_billing_projection_readiness_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mixed_e66_billing_projection_readiness_guard BEFORE UPDATE OF status, readiness_status, billing_block_reason, pricing_snapshot_id, contract_price_snapshot_id, pricing_snapshot, contract_id ON public.billing_underlays FOR EACH ROW EXECUTE FUNCTION gridex_e66_intake.guard_mixed_billing_projection_readiness_v1();
+
+--
 -- Name: ops_migration_provenance_receipts ops_migration_provenance_no_truncate; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -181246,6 +190041,12 @@ CREATE TRIGGER price_components_sync_website_visibility BEFORE INSERT OR UPDATE 
 --
 
 CREATE TRIGGER price_plan_versions_locked_immutable BEFORE DELETE OR UPDATE ON public.price_plan_versions FOR EACH ROW EXECUTE FUNCTION public.gridex_reject_locked_price_version_mutation();
+
+--
+-- Name: customer_invoices price_series_draft_write_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER price_series_draft_write_guard BEFORE DELETE OR UPDATE ON public.customer_invoices FOR EACH ROW EXECUTE FUNCTION gridex_billing_source.protect_test_price_series_draft_v1();
 
 --
 -- Name: billing_underlays price_timeline_invoice_readiness_hold; Type: TRIGGER; Schema: public; Owner: -
@@ -182608,6 +191409,104 @@ ALTER TABLE ONLY gridex_billing_source.correction_journal
     ADD CONSTRAINT correction_journal_underlay_id_fkey FOREIGN KEY (underlay_id) REFERENCES gridex_billing_source.underlay_bindings(underlay_id);
 
 --
+-- Name: price_series_invoice_approvals price_series_invoice_approvals_company_id_reservation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_approvals
+    ADD CONSTRAINT price_series_invoice_approvals_company_id_reservation_id_fkey FOREIGN KEY (company_id, reservation_id) REFERENCES gridex_billing_source.price_series_invoice_drafts(company_id, reservation_id);
+
+--
+-- Name: price_series_invoice_drafts price_series_invoice_drafts_company_id_reservation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_drafts
+    ADD CONSTRAINT price_series_invoice_drafts_company_id_reservation_id_fkey FOREIGN KEY (company_id, reservation_id) REFERENCES gridex_billing_source.price_series_reservations(company_id, id);
+
+--
+-- Name: price_series_invoice_drafts price_series_invoice_drafts_invoice_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_drafts
+    ADD CONSTRAINT price_series_invoice_drafts_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.customer_invoices(id);
+
+--
+-- Name: price_series_invoice_issues price_series_invoice_issues_company_id_reservation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_issues
+    ADD CONSTRAINT price_series_invoice_issues_company_id_reservation_id_fkey FOREIGN KEY (company_id, reservation_id) REFERENCES gridex_billing_source.price_series_invoice_approvals(company_id, reservation_id);
+
+--
+-- Name: price_series_invoice_issues price_series_invoice_issues_invoice_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_issues
+    ADD CONSTRAINT price_series_invoice_issues_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES gridex_billing_source.price_series_invoice_drafts(invoice_id);
+
+--
+-- Name: price_series_invoice_neutral_files price_series_invoice_neutral_files_company_id_invoice_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_invoice_neutral_files
+    ADD CONSTRAINT price_series_invoice_neutral_files_company_id_invoice_id_fkey FOREIGN KEY (company_id, invoice_id) REFERENCES gridex_billing_source.price_series_invoice_issues(company_id, invoice_id);
+
+--
+-- Name: price_series_reservation_members price_series_reservation_members_billing_underlay_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservation_members
+    ADD CONSTRAINT price_series_reservation_members_billing_underlay_id_fkey FOREIGN KEY (billing_underlay_id) REFERENCES public.billing_underlays(id);
+
+--
+-- Name: price_series_reservation_members price_series_reservation_members_company_id_reservation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservation_members
+    ADD CONSTRAINT price_series_reservation_members_company_id_reservation_id_fkey FOREIGN KEY (company_id, reservation_id) REFERENCES gridex_billing_source.price_series_reservations(company_id, id);
+
+--
+-- Name: price_series_reservation_members price_series_reservation_members_pricing_run_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservation_members
+    ADD CONSTRAINT price_series_reservation_members_pricing_run_id_fkey FOREIGN KEY (pricing_run_id) REFERENCES public.pricing_runs(id);
+
+--
+-- Name: price_series_reservations price_series_reservations_company_id_contract_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.price_series_reservations
+    ADD CONSTRAINT price_series_reservations_company_id_contract_id_fkey FOREIGN KEY (company_id, contract_id) REFERENCES public.customer_contracts(company_id, id);
+
+--
+-- Name: test_price_addendum_applications test_price_addendum_applicati_company_id_contract_id_docum_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_applications
+    ADD CONSTRAINT test_price_addendum_applicati_company_id_contract_id_docum_fkey FOREIGN KEY (company_id, contract_id, document_id) REFERENCES gridex_billing_source.test_price_addendum_reviews(company_id, contract_id, document_id);
+
+--
+-- Name: test_price_addendum_applications test_price_addendum_applications_successor_snapshot_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_applications
+    ADD CONSTRAINT test_price_addendum_applications_successor_snapshot_id_fkey FOREIGN KEY (successor_snapshot_id) REFERENCES public.contract_price_snapshots(id) DEFERRABLE INITIALLY DEFERRED;
+
+--
+-- Name: test_price_addendum_documents test_price_addendum_documents_company_id_contract_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_documents
+    ADD CONSTRAINT test_price_addendum_documents_company_id_contract_id_fkey FOREIGN KEY (company_id, contract_id) REFERENCES public.customer_contracts(company_id, id);
+
+--
+-- Name: test_price_addendum_reviews test_price_addendum_reviews_company_id_contract_id_documen_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE ONLY gridex_billing_source.test_price_addendum_reviews
+    ADD CONSTRAINT test_price_addendum_reviews_company_id_contract_id_documen_fkey FOREIGN KEY (company_id, contract_id, document_id) REFERENCES gridex_billing_source.test_price_addendum_documents(company_id, contract_id, id);
+
+--
 -- Name: underlay_bindings underlay_bindings_underlay_id_fkey; Type: FK CONSTRAINT; Schema: gridex_billing_source; Owner: -
 --
 
@@ -183546,11 +192445,193 @@ ALTER TABLE ONLY gridex_e66_intake.matched_request_basis
     ADD CONSTRAINT matched_request_basis_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.qualified(source_id);
 
 --
+-- Name: mixed_accepted_transactions mixed_accepted_transactions_series_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_accepted_transactions
+    ADD CONSTRAINT mixed_accepted_transactions_series_id_fkey FOREIGN KEY (series_id) REFERENCES gridex_utilts_binding.contracts(series_id);
+
+--
+-- Name: mixed_accepted_transactions mixed_accepted_transactions_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_accepted_transactions
+    ADD CONSTRAINT mixed_accepted_transactions_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.mixed_qualification_receipts(source_id);
+
+--
+-- Name: mixed_billing_correction_holds mixed_billing_correction_hold_previous_normalized_value_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_correction_holds
+    ADD CONSTRAINT mixed_billing_correction_hold_previous_normalized_value_id_fkey FOREIGN KEY (previous_normalized_value_id) REFERENCES public.normalized_metering_values(id);
+
+--
+-- Name: mixed_billing_correction_holds mixed_billing_correction_holds_new_normalized_value_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_correction_holds
+    ADD CONSTRAINT mixed_billing_correction_holds_new_normalized_value_id_fkey FOREIGN KEY (new_normalized_value_id) REFERENCES public.normalized_metering_values(id);
+
+--
+-- Name: mixed_billing_correction_holds mixed_billing_correction_holds_underlay_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_correction_holds
+    ADD CONSTRAINT mixed_billing_correction_holds_underlay_id_fkey FOREIGN KEY (underlay_id) REFERENCES public.billing_underlays(id);
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_predecessor_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_replacements
+    ADD CONSTRAINT mixed_billing_replacements_predecessor_id_fkey FOREIGN KEY (predecessor_id) REFERENCES public.billing_underlays(id);
+
+--
+-- Name: mixed_billing_replacements mixed_billing_replacements_replacement_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_billing_replacements
+    ADD CONSTRAINT mixed_billing_replacements_replacement_id_fkey FOREIGN KEY (replacement_id) REFERENCES public.billing_underlays(id);
+
+--
+-- Name: mixed_e50_attempts mixed_e50_attempts_response_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e50_attempts
+    ADD CONSTRAINT mixed_e50_attempts_response_id_fkey FOREIGN KEY (response_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: mixed_e50_attempts mixed_e50_attempts_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e50_attempts
+    ADD CONSTRAINT mixed_e50_attempts_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.mixed_qualification_receipts(source_id);
+
+--
+-- Name: mixed_e73_billing_coverage mixed_e73_billing_coverage_request_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_coverage
+    ADD CONSTRAINT mixed_e73_billing_coverage_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.grid_owner_data_requests(id);
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projections_calendar_anchor_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_projections
+    ADD CONSTRAINT mixed_e73_billing_projections_calendar_anchor_source_id_fkey FOREIGN KEY (calendar_anchor_source_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projections_company_id_environment_reque_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_projections
+    ADD CONSTRAINT mixed_e73_billing_projections_company_id_environment_reque_fkey FOREIGN KEY (company_id, environment, request_id) REFERENCES gridex_e66_intake.mixed_e73_billing_coverage(company_id, environment, request_id);
+
+--
+-- Name: mixed_e73_billing_projections mixed_e73_billing_projections_primary_underlay_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_billing_projections
+    ADD CONSTRAINT mixed_e73_billing_projections_primary_underlay_id_fkey FOREIGN KEY (primary_underlay_id) REFERENCES public.billing_underlays(id);
+
+--
+-- Name: mixed_e73_draft_preconditions mixed_e73_draft_preconditions_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_draft_preconditions
+    ADD CONSTRAINT mixed_e73_draft_preconditions_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_intake.mixed_e73_request_basis(source_id, transaction_id);
+
+--
+-- Name: mixed_e73_ide_completions mixed_e73_ide_completions_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_ide_completions
+    ADD CONSTRAINT mixed_e73_ide_completions_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_intake.mixed_e73_request_basis(source_id, transaction_id);
+
+--
+-- Name: mixed_e73_request_basis mixed_e73_request_basis_request_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_request_basis
+    ADD CONSTRAINT mixed_e73_request_basis_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.grid_owner_data_requests(id);
+
+--
+-- Name: mixed_e73_request_basis mixed_e73_request_basis_sent_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_request_basis
+    ADD CONSTRAINT mixed_e73_request_basis_sent_source_id_fkey FOREIGN KEY (sent_source_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: mixed_e73_request_basis mixed_e73_request_basis_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_e73_request_basis
+    ADD CONSTRAINT mixed_e73_request_basis_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_metering_stage.mixed_normalization_receipts(source_id, transaction_id);
+
+--
+-- Name: mixed_prelinked_holds mixed_prelinked_holds_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_prelinked_holds
+    ADD CONSTRAINT mixed_prelinked_holds_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.work(source_id);
+
+--
+-- Name: mixed_qualification_receipts mixed_qualification_receipts_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_qualification_receipts
+    ADD CONSTRAINT mixed_qualification_receipts_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES gridex_received_sources.validation_assessments(id);
+
+--
+-- Name: mixed_qualification_receipts mixed_qualification_receipts_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_qualification_receipts
+    ADD CONSTRAINT mixed_qualification_receipts_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.work(source_id);
+
+--
+-- Name: mixed_worker_attempts mixed_worker_attempts_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.mixed_worker_attempts
+    ADD CONSTRAINT mixed_worker_attempts_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_intake.mixed_accepted_transactions(source_id, transaction_id);
+
+--
 -- Name: qualified qualified_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
 --
 
 ALTER TABLE ONLY gridex_e66_intake.qualified
     ADD CONSTRAINT qualified_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.work(source_id);
+
+--
+-- Name: sg11_compatibility_holds sg11_compatibility_holds_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.sg11_compatibility_holds
+    ADD CONSTRAINT sg11_compatibility_holds_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: sg11_format_holds sg11_format_holds_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.sg11_format_holds
+    ADD CONSTRAINT sg11_format_holds_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.work(source_id);
+
+--
+-- Name: technical_rejections technical_rejections_ack_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.technical_rejections
+    ADD CONSTRAINT technical_rejections_ack_id_fkey FOREIGN KEY (ack_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: technical_rejections technical_rejections_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_intake.technical_rejections
+    ADD CONSTRAINT technical_rejections_source_id_fkey FOREIGN KEY (source_id) REFERENCES gridex_e66_intake.work(source_id);
 
 --
 -- Name: chunk_receipts chunk_receipts_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
@@ -183586,6 +192667,34 @@ ALTER TABLE ONLY gridex_e66_metering_stage.effects
 
 ALTER TABLE ONLY gridex_e66_metering_stage.jobs
     ADD CONSTRAINT jobs_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: mixed_chunk_receipts mixed_chunk_receipts_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_chunk_receipts
+    ADD CONSTRAINT mixed_chunk_receipts_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_metering_stage.mixed_jobs(source_id, transaction_id);
+
+--
+-- Name: mixed_effects mixed_effects_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_effects
+    ADD CONSTRAINT mixed_effects_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_metering_stage.mixed_jobs(source_id, transaction_id);
+
+--
+-- Name: mixed_jobs mixed_jobs_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_jobs
+    ADD CONSTRAINT mixed_jobs_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_intake.mixed_accepted_transactions(source_id, transaction_id);
+
+--
+-- Name: mixed_normalization_receipts mixed_normalization_receipts_source_id_transaction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+ALTER TABLE ONLY gridex_e66_metering_stage.mixed_normalization_receipts
+    ADD CONSTRAINT mixed_normalization_receipts_source_id_transaction_id_fkey FOREIGN KEY (source_id, transaction_id) REFERENCES gridex_e66_metering_stage.mixed_jobs(source_id, transaction_id);
 
 --
 -- Name: terminal_handoffs terminal_handoffs_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_e66_request_retry; Owner: -
@@ -196662,6 +205771,42 @@ ALTER TABLE gridex_bilateral_prodat.supply_effect_receipts ENABLE ROW LEVEL SECU
 ALTER TABLE gridex_billing_source.correction_journal ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: planned_move_out_receipts; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.planned_move_out_receipts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: price_series_invoice_issues; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.price_series_invoice_issues ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: price_series_invoice_neutral_files; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.price_series_invoice_neutral_files ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: test_price_addendum_applications; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.test_price_addendum_applications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: test_price_addendum_documents; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.test_price_addendum_documents ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: test_price_addendum_reviews; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
+--
+
+ALTER TABLE gridex_billing_source.test_price_addendum_reviews ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: underlay_bindings; Type: ROW SECURITY; Schema: gridex_billing_source; Owner: -
 --
 
@@ -196996,6 +206141,36 @@ ALTER TABLE gridex_customer_masterdata.signed_declarations ENABLE ROW LEVEL SECU
 --
 
 ALTER TABLE gridex_e66_intake.billing_calendar_receipts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mixed_billing_correction_holds; Type: ROW SECURITY; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE gridex_e66_intake.mixed_billing_correction_holds ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mixed_billing_replacements; Type: ROW SECURITY; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE gridex_e66_intake.mixed_billing_replacements ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mixed_e73_billing_coverage; Type: ROW SECURITY; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE gridex_e66_intake.mixed_e73_billing_coverage ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: mixed_e73_billing_projections; Type: ROW SECURITY; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE gridex_e66_intake.mixed_e73_billing_projections ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_rejections; Type: ROW SECURITY; Schema: gridex_e66_intake; Owner: -
+--
+
+ALTER TABLE gridex_e66_intake.technical_rejections ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: chunk_receipts; Type: ROW SECURITY; Schema: gridex_e66_metering_stage; Owner: -
@@ -198138,6 +207313,12 @@ ALTER TABLE gridex_received_sources.document_reference_witnesses ENABLE ROW LEVE
 ALTER TABLE gridex_received_sources.epoch ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: legacy_supply_end_cases; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.legacy_supply_end_cases ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: normal_activation_sweep_cursors; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
 --
 
@@ -198412,6 +207593,12 @@ ALTER TABLE gridex_received_sources.supply_end_followup_scan_positions ENABLE RO
 --
 
 ALTER TABLE gridex_received_sources.supply_end_followups ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: supply_end_retraction_lookup; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.supply_end_retraction_lookup ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: supply_object_effect_receipts; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
@@ -218411,6 +227598,12 @@ REVOKE ALL ON FUNCTION gridex_bilateral_prodat.scope_v1(c uuid, selector jsonb) 
 REVOKE ALL ON FUNCTION gridex_bilateral_prodat.source_capability_v1(m public.ediel_messages) FROM PUBLIC;
 
 --
+-- Name: FUNCTION approve_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_invoice uuid, p_review_hash text); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.approve_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_invoice uuid, p_review_hash text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION assert_invoice_sources_uncorrected_v1(p_company uuid, p_underlays uuid[]); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
@@ -218447,6 +227640,37 @@ REVOKE ALL ON FUNCTION gridex_billing_source.basis_v1(p_company uuid, p_value uu
 REVOKE ALL ON FUNCTION gridex_billing_source.capture_correction_v1() FROM PUBLIC;
 
 --
+-- Name: TABLE contract_price_snapshots; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.contract_price_snapshots TO authenticated;
+GRANT ALL ON TABLE public.contract_price_snapshots TO service_role;
+
+--
+-- Name: FUNCTION check_test_price_addendum_snapshot_insert_v1(successor public.contract_price_snapshots); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(successor public.contract_price_snapshots) FROM PUBLIC;
+
+--
+-- Name: FUNCTION create_price_series_neutral_file_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.create_price_series_neutral_file_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION fence_price_series_group_source_v1(); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.fence_price_series_group_source_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION finish_test_price_series_invoice_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text, p_outcome text); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.finish_test_price_series_invoice_v1(p_company uuid, p_invoice uuid, p_actor uuid, p_review text, p_outcome text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION frozen_ordinary_invoice_source_v1(basis jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
@@ -218477,6 +227701,44 @@ REVOKE ALL ON FUNCTION gridex_billing_source.gridex_store_billing_underlay_befor
 REVOKE ALL ON FUNCTION gridex_billing_source.guard_price_timeline_invoice_hold_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION has_canonical_signed_series_price_v1(p_company uuid, p_customer uuid, p_contract uuid, p_price uuid, p_start timestamp with time zone, p_end timestamp with time zone); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.has_canonical_signed_series_price_v1(p_company uuid, p_customer uuid, p_contract uuid, p_price uuid, p_start timestamp with time zone, p_end timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION has_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_end timestamp with time zone); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.has_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_end timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION has_zero_only_addendum_invoice_fee_v1(components jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.has_zero_only_addendum_invoice_fee_v1(components jsonb) FROM PUBLIC;
+
+--
+-- Name: TABLE billing_underlays; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.billing_underlays TO authenticated;
+GRANT ALL ON TABLE public.billing_underlays TO service_role;
+GRANT SELECT,UPDATE ON TABLE public.billing_underlays TO gridex_ediel_retention_owner;
+
+--
+-- Name: FUNCTION is_planned_move_out_underlay_v1(underlay public.billing_underlays, basis jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.is_planned_move_out_underlay_v1(underlay public.billing_underlays, basis jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION list_test_price_series_reviews_v1(p_company uuid, p_month text, p_customer uuid, p_after uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.list_test_price_series_reviews_v1(p_company uuid, p_month text, p_customer uuid, p_after uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION lock_ordinary_invoice_pricing_source_v1(p_company uuid, p_underlay uuid, p_first_output boolean); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
@@ -218487,6 +227749,12 @@ REVOKE ALL ON FUNCTION gridex_billing_source.lock_ordinary_invoice_pricing_sourc
 --
 
 REVOKE ALL ON FUNCTION gridex_billing_source.lock_ordinary_invoice_sources_v1(p_company uuid, p_underlays uuid[]) FROM PUBLIC;
+
+--
+-- Name: FUNCTION lock_price_series_members_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.lock_price_series_members_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION lock_values_v1(p_company uuid, p_values uuid[], p_period uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
@@ -218505,14 +227773,6 @@ REVOKE ALL ON FUNCTION gridex_billing_source.observation_v1(tokens jsonb, tx tex
 --
 
 REVOKE ALL ON FUNCTION gridex_billing_source.observations_e66_quarter_v1(tokens jsonb, tx text, decimal_mark text) FROM PUBLIC;
-
---
--- Name: TABLE billing_underlays; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.billing_underlays TO authenticated;
-GRANT ALL ON TABLE public.billing_underlays TO service_role;
-GRANT SELECT,UPDATE ON TABLE public.billing_underlays TO gridex_ediel_retention_owner;
 
 --
 -- Name: FUNCTION ordinary_ended_pricing_v1(underlay public.billing_underlays); Type: ACL; Schema: gridex_billing_source; Owner: -
@@ -218550,16 +227810,84 @@ GRANT SELECT,UPDATE ON TABLE public.customer_supply_periods TO gridex_ediel_rete
 REVOKE ALL ON FUNCTION gridex_billing_source.ordinary_ended_supply_v1(period public.customer_supply_periods, contract public.customer_contracts, start_at timestamp with time zone, end_at timestamp with time zone) FROM PUBLIC;
 
 --
+-- Name: FUNCTION planned_move_out_close_receipt_v1(period public.customer_supply_periods, contract public.customer_contracts); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.planned_move_out_close_receipt_v1(period public.customer_supply_periods, contract public.customer_contracts) FROM PUBLIC;
+
+--
+-- Name: FUNCTION prepare_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_month text, p_expected jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.prepare_test_price_series_invoice_v1(p_company uuid, p_actor uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_month text, p_expected jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION price_series_invoice_inspection_basis_v1(c uuid, actor uuid, target uuid, body_columns text[]); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.price_series_invoice_inspection_basis_v1(c uuid, actor uuid, target uuid, body_columns text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_billing_source.price_series_invoice_inspection_basis_v1(c uuid, actor uuid, target uuid, body_columns text[]) TO gridex_ediel_retention_owner;
+
+--
+-- Name: FUNCTION price_series_issue_periods_v1(reservation gridex_billing_source.price_series_reservations); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.price_series_issue_periods_v1(reservation gridex_billing_source.price_series_reservations) FROM PUBLIC;
+
+--
+-- Name: FUNCTION price_series_issue_result_v1(issued gridex_billing_source.price_series_invoice_issues, replayed boolean); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.price_series_issue_result_v1(issued gridex_billing_source.price_series_invoice_issues, replayed boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION price_series_payment_terms_v1(p_company uuid, p_reservation uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.price_series_payment_terms_v1(p_company uuid, p_reservation uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION protect_items_v1(); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_billing_source.protect_items_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION protect_test_price_series_draft_v1(); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.protect_test_price_series_draft_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION protect_underlay_v1(); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_billing_source.protect_underlay_v1() FROM PUBLIC;
+
+--
+-- Name: TABLE normalized_metering_values; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.normalized_metering_values TO authenticated;
+GRANT ALL ON TABLE public.normalized_metering_values TO service_role;
+
+--
+-- Name: FUNCTION read_planned_move_out_receipt_v1(value public.normalized_metering_values, source_basis jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.read_planned_move_out_receipt_v1(value public.normalized_metering_values, source_basis jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_price_series_customer_document_v1(p_company uuid, p_customers uuid[], p_invoice uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.read_price_series_customer_document_v1(p_company uuid, p_customers uuid[], p_invoice uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_price_series_neutral_file_v1(p_company uuid, p_file uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.read_price_series_neutral_file_v1(p_company uuid, p_file uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION require_contract_price_timeline_v1(p_company uuid, p_contract uuid, p_selected uuid, p_start timestamp with time zone, p_end timestamp with time zone, p_timeline jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
@@ -218574,10 +227902,46 @@ REVOKE ALL ON FUNCTION gridex_billing_source.require_contract_price_timeline_v1(
 REVOKE ALL ON FUNCTION gridex_billing_source.require_current_invoice_price_timeline_v1(p_company uuid, p_underlay uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION require_no_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.require_no_unapplied_test_price_addendum_v1(p_company uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_test_price_addendum_actor_v1(p_company uuid, p_actor uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.require_test_price_addendum_actor_v1(p_company uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_test_price_series_actor_v1(p_company uuid, p_actor uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.require_test_price_series_actor_v1(p_company uuid, p_actor uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION require_underlay_v1(p_company uuid, p_underlay uuid); Type: ACL; Schema: gridex_billing_source; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_billing_source.require_underlay_v1(p_company uuid, p_underlay uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION reserve_price_series_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.reserve_price_series_v1(p_company uuid, p_customer uuid, p_contract uuid, p_site uuid, p_point uuid, p_billing_month text, p_expected jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION resolve_test_contract_price_timeline_v1(p_company uuid, p_customer uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.resolve_test_contract_price_timeline_v1(p_company uuid, p_customer uuid, p_contract uuid, p_start timestamp with time zone, p_end timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION verified_price_series_issue_v1(p_company uuid, p_invoice uuid, p_review text); Type: ACL; Schema: gridex_billing_source; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_billing_source.verified_price_series_issue_v1(p_company uuid, p_invoice uuid, p_review text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION bind_message_v1(); Type: ACL; Schema: gridex_brp_changes; Owner: -
@@ -219309,6 +228673,18 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.billing_offset_rejection_sources_v1(u p
 REVOKE ALL ON FUNCTION gridex_e66_intake.bound_underlay_fingerprint_v1(p_company uuid, p_source uuid, p_underlay uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION capture_mixed_billing_correction_v1(); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.capture_mixed_billing_correction_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION commit_mixed_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.commit_mixed_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION complete_historical_qualification_v1(p_work gridex_e66_intake.work, p_series uuid, p_transaction text, p_contract_hash text, p_actor uuid, p_lease uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -219320,6 +228696,12 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.complete_historical_qualification_v1(p_
 
 GRANT ALL ON TABLE public.metering_values TO authenticated;
 GRANT ALL ON TABLE public.metering_values TO service_role;
+
+--
+-- Name: FUNCTION consume_owned_e66_meter_scoped_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb, p_prelocked_sources uuid[]); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.consume_owned_e66_meter_scoped_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb, p_prelocked_sources uuid[]) FROM PUBLIC;
 
 --
 -- Name: FUNCTION consume_owned_e66_meter_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb); Type: ACL; Schema: gridex_e66_intake; Owner: -
@@ -219334,6 +228716,24 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.consume_owned_e66_meter_v1(p_company_id
 REVOKE ALL ON FUNCTION gridex_e66_intake.consume_owned_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) FROM PUBLIC;
 
 --
+-- Name: FUNCTION consume_owned_utilts_billing_v2(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb, p_previous uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.consume_owned_utilts_billing_v2(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb, p_previous uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION current_mixed_e73_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract_digest bytea, p_source_line text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.current_mixed_e73_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract_digest bytea, p_source_line text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION due_mixed_worker_members_v1(w gridex_e66_intake.work, p_actor uuid, p_now timestamp with time zone); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.due_mixed_worker_members_v1(w gridex_e66_intake.work, p_actor uuid, p_now timestamp with time zone) FROM PUBLIC;
+
+--
 -- Name: FUNCTION guard_billing_calendar_member_v1(); Type: ACL; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -219344,6 +228744,42 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.guard_billing_calendar_member_v1() FROM
 --
 
 REVOKE ALL ON FUNCTION gridex_e66_intake.guard_billing_calendar_partner_export_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_mixed_billing_coverage_immutable_v1(); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.guard_mixed_billing_coverage_immutable_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_mixed_billing_projection_readiness_v1(); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.guard_mixed_billing_projection_readiness_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION has_mixed_positive_create_context_v1(p_company uuid, p_env text, p_source uuid, p_transaction text, p_source_hash text, p_ack uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.has_mixed_positive_create_context_v1(p_company uuid, p_env text, p_source uuid, p_transaction text, p_source_hash text, p_ack uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION hold_compatible_sg11_format_v1(original public.ediel_messages, actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.hold_compatible_sg11_format_v1(original public.ediel_messages, actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION hold_prelinked_mixed_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.hold_prelinked_mixed_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION hold_sg11_format_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.hold_sg11_format_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION is_historical_completion_v1(p_source uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
@@ -219358,10 +228794,70 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.is_historical_completion_v1(p_source uu
 REVOKE ALL ON FUNCTION gridex_e66_intake.matched_request_ack_eligible_v1(p_source uuid) FROM PUBLIC;
 
 --
+-- Name: TABLE meter_reading_series; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.meter_reading_series TO service_role;
+
+--
+-- Name: FUNCTION meter_source_probe_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.meter_source_probe_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_billing_admission_v1(p_company uuid, p_source uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_billing_admission_v1(p_company uuid, p_source uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_billing_admission_v2(p_company uuid, p_source uuid, p_actor uuid, p_previous uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_billing_admission_v2(p_company uuid, p_source uuid, p_actor uuid, p_previous uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_e50_candidates_v1(w gridex_e66_intake.work, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_e50_candidates_v1(w gridex_e66_intake.work, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_e66_seen_proof_v1(w gridex_e66_intake.work); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_e66_seen_proof_v1(w gridex_e66_intake.work) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_e73_draft_precondition_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_operation text, p_token uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_e73_draft_precondition_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_operation text, p_token uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_e73_normalized_fingerprint_v1(n public.normalized_metering_values); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_e73_normalized_fingerprint_v1(n public.normalized_metering_values) FROM PUBLIC;
+
+--
+-- Name: FUNCTION mixed_e73_value_fingerprint_v1(m public.metering_values); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.mixed_e73_value_fingerprint_v1(m public.metering_values) FROM PUBLIC;
+
+--
 -- Name: FUNCTION offset_rejection_request_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_e66_intake.offset_rejection_request_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION persist_mixed_positive_draft_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_draft jsonb); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.persist_mixed_positive_draft_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_draft jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION persist_owned_utilts_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb, p_actor_user_id uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
@@ -219370,10 +228866,58 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.offset_rejection_request_v1(p_company u
 REVOKE ALL ON FUNCTION gridex_e66_intake.persist_owned_utilts_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb, p_actor_user_id uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION prepare_mixed_billing_v2(p_company uuid, p_seed_source uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.prepare_mixed_billing_v2(p_company uuid, p_seed_source uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_mixed_ack_evidence_v1(p_company uuid, p_environment text, p_source uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.read_mixed_ack_evidence_v1(p_company uuid, p_environment text, p_source uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_mixed_e73_coverage_v1(p_company uuid, p_environment text, p_request uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.read_mixed_e73_coverage_v1(p_company uuid, p_environment text, p_request uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_mixed_e73_evidence_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.read_mixed_e73_evidence_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_mixed_e73_ide_readiness_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.read_mixed_e73_ide_readiness_v1(p_company uuid, p_environment text, p_source uuid, p_actor uuid, p_transaction text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION read_mixed_positive_recovery_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.read_mixed_positive_recovery_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION record_customer_import_lock_retry_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_stage text, p_checkpoint integer); Type: ACL; Schema: gridex_e66_intake; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_e66_intake.record_customer_import_lock_retry_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_stage text, p_checkpoint integer) FROM PUBLIC;
+
+--
+-- Name: FUNCTION reject_mixed_e73_basis_mutation(); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.reject_mixed_e73_basis_mutation() FROM PUBLIC;
+
+--
+-- Name: FUNCTION reject_mixed_e73_completion_mutation_v1(); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.reject_mixed_e73_completion_mutation_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION request_upgrade_state_v1(p_source uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
@@ -219388,6 +228932,24 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.request_upgrade_state_v1(p_source uuid)
 REVOKE ALL ON FUNCTION gridex_e66_intake.require_dispatch_scope(c uuid, e text, b uuid, a uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION require_e50_original_v1(p_company uuid, p_source uuid, p_raw text, p_transaction text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.require_e50_original_v1(p_company uuid, p_source uuid, p_raw text, p_transaction text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_mixed_e50_original_v1(w gridex_e66_intake.work, p_actor uuid, p_ide text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.require_mixed_e50_original_v1(w gridex_e66_intake.work, p_actor uuid, p_ide text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_mixed_e50_wire_v1(p_raw text, p_ide text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.require_mixed_e50_wire_v1(p_raw text, p_ide text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION require_offset_conflict_v1(p_company uuid, p_source uuid, p_raw text); Type: ACL; Schema: gridex_e66_intake; Owner: -
 --
 
@@ -219398,6 +228960,72 @@ REVOKE ALL ON FUNCTION gridex_e66_intake.require_offset_conflict_v1(p_company uu
 --
 
 REVOKE ALL ON FUNCTION gridex_e66_intake.require_registration_rejection_claim_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_supported_mixed_source_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.require_supported_mixed_source_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION seal_mixed_billing_multisource_coverage_v1(p_company uuid, p_seed_source uuid, p_actor uuid); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.seal_mixed_billing_multisource_coverage_v1(p_company uuid, p_seed_source uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION seal_mixed_e73_ide_completion_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_wire text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.seal_mixed_e73_ide_completion_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_token uuid, p_wire text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION seal_mixed_e73_request_basis_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.seal_mixed_e73_request_basis_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION sg11_forbidden_timestamp_v1(p_raw text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.sg11_forbidden_timestamp_v1(p_raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION sg11_forbidden_timestamp_v2(p_raw text); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.sg11_forbidden_timestamp_v2(p_raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION step_mixed_e50_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_lease uuid, p_draft jsonb); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.step_mixed_e50_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_lease uuid, p_draft jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION yield_mixed_worker_attempt_v1(p_source uuid, p_ide text, p_worker_lease uuid, p_delay boolean); Type: ACL; Schema: gridex_e66_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_intake.yield_mixed_worker_attempt_v1(p_source uuid, p_ide text, p_worker_lease uuid, p_delay boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION consume_mixed_chunk_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_next integer, p_limit integer); Type: ACL; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_metering_stage.consume_mixed_chunk_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text, p_next integer, p_limit integer) FROM PUBLIC;
+
+--
+-- Name: FUNCTION current_mixed_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract jsonb); Type: ACL; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_metering_stage.current_mixed_application_v1(p_company uuid, p_environment text, p_source uuid, p_transaction text, p_ordinal integer, p_metering_id uuid, p_contract jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION seal_mixed_normalization_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text); Type: ACL; Schema: gridex_e66_metering_stage; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_e66_metering_stage.seal_mixed_normalization_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_transaction text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION require_terminal_lease(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_source uuid, p_lease uuid); Type: ACL; Schema: gridex_e66_request_retry; Owner: -
@@ -222389,6 +232017,12 @@ REVOKE ALL ON FUNCTION gridex_invoice_dispatch_period.has_verified_attempt(p_com
 REVOKE ALL ON FUNCTION gridex_invoice_dispatch_period.period_snapshot(p_company uuid, p_month text) FROM PUBLIC;
 
 --
+-- Name: FUNCTION correction_period_v1(p_start date, p_end date, p_payload jsonb); Type: ACL; Schema: gridex_invoice_file_archive; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_invoice_file_archive.correction_period_v1(p_start date, p_end date, p_payload jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION create_file(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_rows jsonb, p_rows_sha256 text, p_file_id uuid, p_created_at timestamp with time zone, p_provider text, p_selection jsonb); Type: ACL; Schema: gridex_invoice_file_archive; Owner: -
 --
 
@@ -223543,6 +233177,18 @@ REVOKE ALL ON FUNCTION gridex_received_sources.identity_omission_cases_v1() FROM
 REVOKE ALL ON FUNCTION gridex_received_sources.identity_omission_scope_v1(raw text, object_scope jsonb) FROM PUBLIC;
 
 --
+-- Name: FUNCTION index_supply_end_retraction_v1(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.index_supply_end_retraction_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION legacy_end_authority_v1(p_company_id uuid, p_source_id uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.legacy_end_authority_v1(p_company_id uuid, p_source_id uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION lock_prodat_execution_actor_graph_v1(); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -223676,6 +233322,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.permission_transition_immutable_v
 --
 
 REVOKE ALL ON FUNCTION gridex_received_sources.permission_wire_v1(p_raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION planned_move_out_supply_window_v1(period public.customer_supply_periods, contract public.customer_contracts, start_at timestamp with time zone, end_at timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.planned_move_out_supply_window_v1(period public.customer_supply_periods, contract public.customer_contracts, start_at timestamp with time zone, end_at timestamp with time zone) FROM PUBLIC;
 
 --
 -- Name: FUNCTION prelock_recovery_candidate_v1(c uuid, original_id uuid, ack_id uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
@@ -224050,6 +233702,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.structural_effect_matches_v1(c uu
 --
 
 REVOKE ALL ON FUNCTION gridex_received_sources.supply_effect_assessment_owns_period_v1(c uuid, source_id uuid, period_id uuid, canonical_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION supply_end_retracted_v1(p_company_id uuid, p_customer_id uuid, p_point_id uuid, p_source_id uuid, p_period_id uuid, p_version text, p_cutoff text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.supply_end_retracted_v1(p_company_id uuid, p_customer_id uuid, p_point_id uuid, p_source_id uuid, p_period_id uuid, p_version text, p_cutoff text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION supply_period_source_at_v1(p_company_id uuid, p_period_id uuid, p_at timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
@@ -225222,13 +234880,6 @@ REVOKE ALL ON FUNCTION gridex_unsigned_contract_revision.require_insert_origin_v
 REVOKE ALL ON FUNCTION gridex_utilts_binding.absolute_v1(v jsonb) FROM PUBLIC;
 
 --
--- Name: TABLE normalized_metering_values; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.normalized_metering_values TO authenticated;
-GRANT ALL ON TABLE public.normalized_metering_values TO service_role;
-
---
 -- Name: FUNCTION application_normalized_hash_v1(n public.normalized_metering_values); Type: ACL; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -225883,6 +235534,27 @@ GRANT ALL ON FUNCTION public.canonical_json_sha256(p_payload jsonb) TO service_r
 
 REVOKE ALL ON FUNCTION public.canonical_manage_platform_user_access(p_command jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.canonical_manage_platform_user_access(p_command jsonb) TO service_role;
+
+--
+-- Name: FUNCTION canonical_next_application_number(p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_next_application_number(p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.canonical_next_application_number(p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION canonical_next_contract_number(p_company_id uuid, p_customer_number text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_next_contract_number(p_company_id uuid, p_customer_number text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.canonical_next_contract_number(p_company_id uuid, p_customer_number text) TO service_role;
+
+--
+-- Name: FUNCTION canonical_next_customer_number(p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_next_customer_number(p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.canonical_next_customer_number(p_company_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION canonical_onboard_customer_graph(p_command jsonb); Type: ACL; Schema: public; Owner: -
@@ -228461,6 +238133,13 @@ REVOKE ALL ON FUNCTION public.gridex_acquire_automation_lock(p_lock_key text, p_
 GRANT ALL ON FUNCTION public.gridex_acquire_automation_lock(p_lock_key text, p_lock_token uuid, p_company_id uuid, p_ttl_seconds integer, p_metadata jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_activate_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_review_sha256 text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_activate_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_review_sha256 text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_activate_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_review_sha256 text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_actor_has_company_permission(p_actor_user_id uuid, p_company_id uuid, p_permission text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -228905,6 +238584,13 @@ GRANT ALL ON FUNCTION public.gridex_archive_draft_tenant_legal_override(p_compan
 
 REVOKE ALL ON FUNCTION public.gridex_archive_public_contract_offer(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_archive_public_contract_offer(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_archive_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_submission_key uuid, p_document_base64 text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_archive_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_submission_key uuid, p_document_base64 text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_archive_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_submission_key uuid, p_document_base64 text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_assert_area_price_snapshot_unique_v1(); Type: ACL; Schema: public; Owner: -
@@ -229507,6 +239193,13 @@ REVOKE ALL ON FUNCTION public.gridex_commit_customer_site_address(p_company_id u
 GRANT ALL ON FUNCTION public.gridex_commit_customer_site_address(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_street text, p_postal_code text, p_city text, p_country text, p_care_of text, p_apartment_number text, p_address_normalized text, p_address_hash text, p_source text, p_source_reference text, p_metadata jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_commit_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_commit_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_commit_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_commit_e66_matched_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb, p_reply jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -229533,6 +239226,13 @@ GRANT ALL ON FUNCTION public.gridex_commit_e66_readiness_v1(p_company uuid, p_en
 
 REVOKE ALL ON FUNCTION public.gridex_commit_e66_registration_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_commit_e66_registration_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_transactions jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_commit_mixed_e66_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_commit_mixed_e66_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_commit_mixed_e66_qualification_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid, p_transactions jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_commit_retained_smime_ack_v1(p_company_id uuid, p_environment text, p_mail_id uuid, p_failed_payload_id uuid, p_cipher_sha256 text, p_actor_user_id uuid, p_job_id uuid, p_claim_owner text, p_claimed_at timestamp with time zone, p_clear_sha256 text, p_current_ack_id uuid, p_projection jsonb); Type: ACL; Schema: public; Owner: -
@@ -230769,6 +240469,13 @@ REVOKE ALL ON FUNCTION public.gridex_enqueue_signed_contract_operation_v1() FROM
 GRANT ALL ON FUNCTION public.gridex_enqueue_signed_contract_operation_v1() TO service_role;
 
 --
+-- Name: FUNCTION gridex_ensure_billing_export_blocker_task_v1(p_company_id uuid, p_item_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ensure_billing_export_blocker_task_v1(p_company_id uuid, p_item_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ensure_billing_export_blocker_task_v1(p_company_id uuid, p_item_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_ensure_internal_contract_publication(p_company_id uuid, p_contract_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -230887,6 +240594,13 @@ GRANT ALL ON FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uui
 GRANT ALL ON FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb) TO authenticated;
 
 --
+-- Name: FUNCTION gridex_finalize_utilts_transaction_ack_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_response_type text, p_response_message_id uuid, p_actor_user_id uuid, p_mailbox_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finalize_utilts_transaction_ack_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_response_type text, p_response_message_id uuid, p_actor_user_id uuid, p_mailbox_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finalize_utilts_transaction_ack_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_response_type text, p_response_message_id uuid, p_actor_user_id uuid, p_mailbox_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -230935,11 +240649,25 @@ REVOKE ALL ON FUNCTION public.gridex_finish_e66_classification_v1(p_job uuid, p_
 GRANT ALL ON FUNCTION public.gridex_finish_e66_classification_v1(p_job uuid, p_company uuid, p_environment text, p_mailbox uuid, p_message uuid, p_parse uuid, p_actor uuid, p_worker text, p_claimed_at timestamp with time zone, p_outcome text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_finish_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_e66_e50_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_finish_e66_registration_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_finish_e66_registration_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_finish_e66_registration_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_finish_e66_technical_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_ack uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_e66_technical_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_ack uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_e66_technical_rejection_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_ack uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_finish_monthly_billing_run_v1(p_company_id uuid, p_period_month text, p_run_id uuid, p_actor_user_id uuid, p_lock_token uuid, p_status text, p_total_underlays integer, p_total_blocked integer, p_total_prepared integer, p_failure_reason text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
@@ -231349,6 +241077,13 @@ REVOKE ALL ON FUNCTION public.gridex_hold_manual_counterparty_reply_v1(p_company
 GRANT ALL ON FUNCTION public.gridex_hold_manual_counterparty_reply_v1(p_company_id uuid, p_request_id uuid, p_inbound_id uuid, p_assessment jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_hold_prelinked_mixed_e66_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_hold_prelinked_mixed_e66_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_hold_prelinked_mixed_e66_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid, p_assessment uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_identity_request_staff_origin_immutable_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -231601,6 +241336,13 @@ REVOKE ALL ON FUNCTION public.gridex_list_due_invoice_export_period_reconciliati
 GRANT ALL ON FUNCTION public.gridex_list_due_invoice_export_period_reconciliations_v1(p_limit integer) TO service_role;
 
 --
+-- Name: FUNCTION gridex_list_due_legacy_supply_end_followups_v1(p_company_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_list_due_legacy_supply_end_followups_v1(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_list_due_legacy_supply_end_followups_v1(p_company_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_list_due_supply_end_followups_v1(p_company_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -231629,6 +241371,13 @@ REVOKE ALL ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uuid, p_customer_type text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_list_held_e66_technical_imap_uids_v1(p_mailbox uuid, p_worker text, p_claimed_at timestamp with time zone, p_scope text, p_folder text, p_validity bigint, p_uids bigint[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_list_held_e66_technical_imap_uids_v1(p_mailbox uuid, p_worker text, p_claimed_at timestamp with time zone, p_scope text, p_folder text, p_validity bigint, p_uids bigint[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_list_held_e66_technical_imap_uids_v1(p_mailbox uuid, p_worker text, p_claimed_at timestamp with time zone, p_scope text, p_folder text, p_validity bigint, p_uids bigint[]) TO service_role;
+
+--
 -- Name: FUNCTION gridex_list_legacy_facility_domain_events_v1(p_company_id uuid, p_customer_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
 --
 
@@ -231641,6 +241390,13 @@ GRANT ALL ON FUNCTION public.gridex_list_legacy_facility_domain_events_v1(p_comp
 
 REVOKE ALL ON FUNCTION public.gridex_list_portal_billing_review_months_v1(p_company_id uuid, p_customer_ids uuid[], p_last_year integer, p_last_month integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_list_portal_billing_review_months_v1(p_company_id uuid, p_customer_ids uuid[], p_last_year integer, p_last_month integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_list_portal_contract_delivery_ends_v1(p_company_id uuid, p_customer_ids uuid[], p_contract_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_list_portal_contract_delivery_ends_v1(p_company_id uuid, p_customer_ids uuid[], p_contract_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_list_portal_contract_delivery_ends_v1(p_company_id uuid, p_customer_ids uuid[], p_contract_ids uuid[]) TO service_role;
 
 --
 -- Name: FUNCTION gridex_list_portal_contract_notice_dates_v1(p_company_id uuid, p_customer_ids uuid[], p_contract_ids uuid[]); Type: ACL; Schema: public; Owner: -
@@ -232385,6 +242141,13 @@ GRANT ALL ON FUNCTION public.gridex_postal_address_has_street(p_value jsonb) TO 
 GRANT ALL ON FUNCTION public.gridex_postal_address_has_street(p_value jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_prepare_batch2b_metering_request_v1(p_company_id uuid, p_point_id uuid, p_month_start date, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_prepare_batch2b_metering_request_v1(p_company_id uuid, p_point_id uuid, p_month_start date, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_prepare_batch2b_metering_request_v1(p_company_id uuid, p_point_id uuid, p_month_start date, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_prepare_billing_export_retry(p_company_id uuid, p_export_run_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -232420,6 +242183,13 @@ REVOKE ALL ON FUNCTION public.gridex_prepare_manual_contract_binding(p_company_i
 GRANT ALL ON FUNCTION public.gridex_prepare_manual_contract_binding(p_company_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_prepare_mixed_e66_finance_replacement_v1(p_company uuid, p_mailbox uuid, p_actor uuid, p_source uuid, p_predecessor uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_prepare_mixed_e66_finance_replacement_v1(p_company uuid, p_mailbox uuid, p_actor uuid, p_source uuid, p_predecessor uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_prepare_mixed_e66_finance_replacement_v1(p_company uuid, p_mailbox uuid, p_actor uuid, p_source uuid, p_predecessor uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_prepare_mixed_invoice_month_file_v1(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_intent_id uuid, p_selection jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -232438,6 +242208,13 @@ REVOKE ALL ON FUNCTION public.gridex_prepare_signature_before_record_retention_v
 
 REVOKE ALL ON FUNCTION public.gridex_prepare_staff_identity_delivery_v1(p_command jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_prepare_staff_identity_delivery_v1(p_command jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_prepare_test_price_series_by_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_underlay_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_prepare_test_price_series_by_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_underlay_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_prepare_test_price_series_by_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_underlay_ids uuid[]) TO service_role;
 
 --
 -- Name: FUNCTION gridex_prevent_locked_portfolio_price_mutation(); Type: ACL; Schema: public; Owner: -
@@ -232530,6 +242307,13 @@ GRANT ALL ON FUNCTION public.gridex_prodat_variant_from_raw(p_raw text) TO servi
 
 REVOKE ALL ON FUNCTION public.gridex_project_direct_capway_ack_v1(p_company uuid, p_item uuid, p_actor uuid, p_run uuid, p_environment text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_project_direct_capway_ack_v1(p_company uuid, p_item uuid, p_actor uuid, p_run uuid, p_environment text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_project_legacy_supply_end_followup_v1(p_company_id uuid, p_source_message_id uuid, p_supply_period_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_project_legacy_supply_end_followup_v1(p_company_id uuid, p_source_message_id uuid, p_supply_period_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_project_legacy_supply_end_followup_v1(p_company_id uuid, p_source_message_id uuid, p_supply_period_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_project_terminal_application_continuation(); Type: ACL; Schema: public; Owner: -
@@ -232806,6 +242590,13 @@ REVOKE ALL ON FUNCTION public.gridex_read_billing_ediel_blocker_sources_v1(p_act
 GRANT ALL ON FUNCTION public.gridex_read_billing_ediel_blocker_sources_v1(p_actor_user_id uuid, p_company_id uuid, p_underlay_ids uuid[]) TO service_role;
 
 --
+-- Name: FUNCTION gridex_read_billing_source_values_compact_v1(p_company_id uuid, p_value_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_billing_source_values_compact_v1(p_company_id uuid, p_value_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_billing_source_values_compact_v1(p_company_id uuid, p_value_ids uuid[]) TO service_role;
+
+--
 -- Name: FUNCTION gridex_read_billing_source_values_v1(p_company_id uuid, p_value_ids uuid[]); Type: ACL; Schema: public; Owner: -
 --
 
@@ -232946,6 +242737,13 @@ REVOKE ALL ON FUNCTION public.gridex_read_ediel_outbox_reconciliation_attempt_v1
 GRANT ALL ON FUNCTION public.gridex_read_ediel_outbox_reconciliation_attempt_v1(p_outbox_id uuid, p_claim_id uuid, p_company_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_read_effective_contract_price_timeline_v1(p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_start timestamp with time zone, p_end timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_effective_contract_price_timeline_v1(p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_start timestamp with time zone, p_end timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_effective_contract_price_timeline_v1(p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_start timestamp with time zone, p_end timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION gridex_read_facility_diagnostics_support_v1(p_company_id uuid, p_customer_id uuid, p_request_ids uuid[], p_event_ids uuid[]); Type: ACL; Schema: public; Owner: -
 --
 
@@ -233009,6 +242807,13 @@ REVOKE ALL ON FUNCTION public.gridex_read_invoice_file_intent_v2(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_read_invoice_file_intent_v2(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_intent_id uuid, p_provider text, p_environment text, p_selection jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_read_mixed_e66_billing_readiness_batch_v1(p_company_id uuid, p_actor_user_id uuid, p_raw_underlay_id uuid, p_offset integer, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_mixed_e66_billing_readiness_batch_v1(p_company_id uuid, p_actor_user_id uuid, p_raw_underlay_id uuid, p_offset integer, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_mixed_e66_billing_readiness_batch_v1(p_company_id uuid, p_actor_user_id uuid, p_raw_underlay_id uuid, p_offset integer, p_limit integer) TO service_role;
+
+--
 -- Name: FUNCTION gridex_read_outbound_acks_for_source_v1(p_source_message_id uuid, p_ack_family text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -233051,11 +242856,46 @@ REVOKE ALL ON FUNCTION public.gridex_read_sent_e73_period_v1(p_company_id uuid, 
 GRANT ALL ON FUNCTION public.gridex_read_sent_e73_period_v1(p_company_id uuid, p_request_id uuid, p_environment text, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_read_staff_e66_import_progress_v1(p_company uuid, p_request uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_staff_e66_import_progress_v1(p_company uuid, p_request uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_staff_e66_import_progress_v1(p_company uuid, p_request uuid) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_read_supplier_switch_status_basis_v1(p_company_id uuid, p_customer_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_supplier_switch_status_basis_v1(p_company_id uuid, p_customer_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_supplier_switch_status_basis_v1(p_company_id uuid, p_customer_ids uuid[]) TO service_role;
+
+--
+-- Name: FUNCTION gridex_read_supply_end_followup_disposition_v1(p_company_id uuid, p_case_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_supply_end_followup_disposition_v1(p_company_id uuid, p_case_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_supply_end_followup_disposition_v1(p_company_id uuid, p_case_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_read_supply_end_task_review_v1(p_company_id uuid, p_task_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_supply_end_task_review_v1(p_company_id uuid, p_task_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_supply_end_task_review_v1(p_company_id uuid, p_task_ids uuid[]) TO service_role;
+
+--
 -- Name: FUNCTION gridex_read_system_health_tenant_email_review_v1(p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_read_system_health_tenant_email_review_v1(p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_read_system_health_tenant_email_review_v1(p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_read_test_contract_price_addendum_review_source_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_test_contract_price_addendum_review_source_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_test_contract_price_addendum_review_source_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_read_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb); Type: ACL; Schema: public; Owner: -
@@ -233175,6 +243015,20 @@ REVOKE ALL ON FUNCTION public.gridex_reconcile_invoice_export_period_v1(p_compan
 GRANT ALL ON FUNCTION public.gridex_reconcile_invoice_export_period_v1(p_company_id uuid, p_file_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_reconcile_metering_period_gap_v1(p_company_id uuid, p_gap_id uuid, p_actor_user_id uuid, p_mode text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_reconcile_metering_period_gap_v1(p_company_id uuid, p_gap_id uuid, p_actor_user_id uuid, p_mode text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_reconcile_metering_period_gap_v1(p_company_id uuid, p_gap_id uuid, p_actor_user_id uuid, p_mode text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_reconcile_partner_export_case_v1(p_company_id uuid, p_export_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_reconcile_partner_export_case_v1(p_company_id uuid, p_export_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_reconcile_partner_export_case_v1(p_company_id uuid, p_export_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_reconcile_withdrawal_email_acceptance_v1(p_company_id uuid, p_outbox_id uuid, p_acceptance_token uuid, p_reviewed_attempt_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -233236,6 +243090,12 @@ GRANT ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id 
 
 REVOKE ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_late_contrl_resolution_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_late_contrl_resolution_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text); Type: ACL; Schema: public; Owner: -
@@ -233354,6 +243214,13 @@ GRANT ALL ON FUNCTION public.gridex_record_utilts_source_validation_v3(p_company
 
 REVOKE ALL ON FUNCTION public.gridex_record_utilts_source_validation_v4(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text, p_transaction_facts_text text, p_header_facts_text text, p_functional_facts_text text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_record_utilts_source_validation_v4(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text, p_transaction_facts_text text, p_header_facts_text text, p_functional_facts_text text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_website_facility_request_v1(p_company_id uuid, p_application_id uuid, p_request_id uuid, p_actor_user_id uuid, p_next_step text, p_warnings jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_website_facility_request_v1(p_company_id uuid, p_application_id uuid, p_request_id uuid, p_actor_user_id uuid, p_next_step text, p_warnings jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_website_facility_request_v1(p_company_id uuid, p_application_id uuid, p_request_id uuid, p_actor_user_id uuid, p_next_step text, p_warnings jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_recover_invoice_file_receipt_v2(p_company_id uuid, p_actor_user_id uuid, p_billing_month text, p_intent_id uuid); Type: ACL; Schema: public; Owner: -
@@ -233635,6 +243502,13 @@ REVOKE ALL ON FUNCTION public.gridex_republish_active_public_contract_v2(p_publi
 GRANT ALL ON FUNCTION public.gridex_republish_active_public_contract_v2(p_publication_version_id uuid, p_actor_user_id uuid, p_explicit_invoice_fee_sek numeric) TO service_role;
 
 --
+-- Name: FUNCTION gridex_requalify_planned_move_out_metering_value_v1(p_company_id uuid, p_actor_user_id uuid, p_environment text, p_normalized_value_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_requalify_planned_move_out_metering_value_v1(p_company_id uuid, p_actor_user_id uuid, p_environment text, p_normalized_value_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_requalify_planned_move_out_metering_value_v1(p_company_id uuid, p_actor_user_id uuid, p_environment text, p_normalized_value_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_requeue_uncertain_withdrawal_email_v1(p_company_id uuid, p_outbox_id uuid, p_reviewed_attempt_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -233714,6 +243588,13 @@ GRANT ALL ON FUNCTION public.gridex_reserve_capway_dispatch_entry_v1(p_company u
 
 REVOKE ALL ON FUNCTION public.gridex_reserve_direct_capway_invoice_v1(p_company uuid, p_item uuid, p_invoice uuid, p_run uuid, p_actor uuid, p_lease uuid, p_environment text, p_updated_at timestamp with time zone, p_review_hash text, p_external_reference text, p_provider_key text, p_request_hash text, p_wire_body text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_reserve_direct_capway_invoice_v1(p_company uuid, p_item uuid, p_invoice uuid, p_run uuid, p_actor uuid, p_lease uuid, p_environment text, p_updated_at timestamp with time zone, p_review_hash text, p_external_reference text, p_provider_key text, p_request_hash text, p_wire_body text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_reserve_manual_capway_purchase_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_export_run_id uuid, p_actor_user_id uuid, p_environment text, p_invoice_guid text, p_financing_mode text, p_expected_updated_at timestamp with time zone, p_expected_provider_status text, p_expected_purchase_status text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_reserve_manual_capway_purchase_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_export_run_id uuid, p_actor_user_id uuid, p_environment text, p_invoice_guid text, p_financing_mode text, p_expected_updated_at timestamp with time zone, p_expected_provider_status text, p_expected_purchase_status text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_reserve_manual_capway_purchase_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_export_run_id uuid, p_actor_user_id uuid, p_environment text, p_invoice_guid text, p_financing_mode text, p_expected_updated_at timestamp with time zone, p_expected_provider_status text, p_expected_purchase_status text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_reserve_withdrawal_email_provider_entry_v1(p_company_id uuid, p_outbox_id uuid, p_lock_token uuid); Type: ACL; Schema: public; Owner: -
@@ -233848,6 +243729,13 @@ REVOKE ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id u
 GRANT ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_review_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_verified_sha256 text, p_verification jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_review_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_verified_sha256 text, p_verification jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_review_test_contract_price_addendum_v1(p_company_id uuid, p_actor_user_id uuid, p_customer_id uuid, p_contract_id uuid, p_document_id uuid, p_verified_sha256 text, p_verification jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_revoke_portfolio_settlement_permission(p_actor_user_id uuid, p_grant_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -233932,6 +243820,20 @@ GRANT ALL ON FUNCTION public.gridex_scan_data_quality_v1(p_company uuid, p_month
 
 REVOKE ALL ON FUNCTION public.gridex_scan_ediel_canonical_repairs(p_company_id uuid, p_apply_safe_repairs boolean, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_scan_ediel_canonical_repairs(p_company_id uuid, p_apply_safe_repairs boolean, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_scan_metering_period_gaps_v1(p_company_id uuid, p_month_starts date[], p_after_point_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_scan_metering_period_gaps_v1(p_company_id uuid, p_month_starts date[], p_after_point_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_scan_metering_period_gaps_v1(p_company_id uuid, p_month_starts date[], p_after_point_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_scan_metering_period_points_v2(p_company_id uuid, p_month_starts date[], p_include_unlinked boolean, p_after_point_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_scan_metering_period_points_v2(p_company_id uuid, p_month_starts date[], p_include_unlinked boolean, p_after_point_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_scan_metering_period_points_v2(p_company_id uuid, p_month_starts date[], p_include_unlinked boolean, p_after_point_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_seal_e66_completion_v1(p_company uuid, p_environment text, p_mailbox uuid, p_source uuid, p_actor uuid, p_lease uuid); Type: ACL; Schema: public; Owner: -
@@ -234202,6 +244104,13 @@ REVOKE ALL ON FUNCTION public.gridex_stage_energy_geodata_features_v2(p_geodata_
 GRANT ALL ON FUNCTION public.gridex_stage_energy_geodata_features_v2(p_geodata_version_id uuid, p_features jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_step_mixed_e66_worker_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_worker_lease uuid, p_draft_lease uuid, p_draft jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_step_mixed_e66_worker_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_worker_lease uuid, p_draft_lease uuid, p_draft jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_step_mixed_e66_worker_v1(p_company uuid, p_environment text, p_mailbox uuid, p_actor uuid, p_action text, p_source uuid, p_ide text, p_worker_lease uuid, p_draft_lease uuid, p_draft jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_store_billing_underlay(p_company_id uuid, p_underlay jsonb, p_items jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -234223,11 +244132,25 @@ REVOKE ALL ON FUNCTION public.gridex_store_e66_monthly_underlay_for_run_v1(p_com
 GRANT ALL ON FUNCTION public.gridex_store_e66_monthly_underlay_for_run_v1(p_company_id uuid, p_automation_run_id uuid, p_lock_token uuid, p_commands jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_store_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_store_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_store_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_store_manual_reply_application_v2(p_company_id uuid, p_request_id uuid, p_inbound_id uuid, p_application jsonb); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_store_manual_reply_application_v2(p_company_id uuid, p_request_id uuid, p_inbound_id uuid, p_application jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_store_manual_reply_application_v2(p_company_id uuid, p_request_id uuid, p_inbound_id uuid, p_application jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_store_mixed_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_store_mixed_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_store_mixed_e66_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_store_underlay_generation_receipt_v1(p_company_id uuid, p_actor_user_id uuid, p_intent_key text, p_scope jsonb, p_source_rows integer, p_before jsonb, p_commands jsonb, p_command_results jsonb, p_after jsonb); Type: ACL; Schema: public; Owner: -
@@ -234538,6 +244461,13 @@ GRANT ALL ON FUNCTION public.gridex_update_jsonb_row(p_table regclass, p_id uuid
 
 REVOKE ALL ON FUNCTION public.gridex_update_manual_supplier_switch_status_v1(p_company_id uuid, p_request_id uuid, p_expected_status text, p_expected_updated_at timestamp with time zone, p_status text, p_failure_reason text, p_external_reference text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_update_manual_supplier_switch_status_v1(p_company_id uuid, p_request_id uuid, p_expected_status text, p_expected_updated_at timestamp with time zone, p_status text, p_failure_reason text, p_external_reference text) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_update_ops_support_case_status_if_current_v1(p_case_id uuid, p_company_id uuid, p_customer_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_expected_status text, p_message text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_update_ops_support_case_status_if_current_v1(p_case_id uuid, p_company_id uuid, p_customer_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_expected_status text, p_message text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_update_ops_support_case_status_if_current_v1(p_case_id uuid, p_company_id uuid, p_customer_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_expected_status text, p_message text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_update_outbound_request_business_v1(p_outbound_request_id uuid, p_company_id uuid, p_customer_id uuid, p_actor_id uuid, p_original_status text, p_changes jsonb); Type: ACL; Schema: public; Owner: -
@@ -235598,13 +245528,6 @@ GRANT ALL ON TABLE public.billing_underlay_items TO authenticated;
 GRANT ALL ON TABLE public.billing_underlay_items TO service_role;
 
 --
--- Name: TABLE contract_price_snapshots; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.contract_price_snapshots TO authenticated;
-GRANT ALL ON TABLE public.contract_price_snapshots TO service_role;
-
---
 -- Name: TABLE pricing_interval_evidence; Type: ACL; Schema: public; Owner: -
 --
 
@@ -235970,6 +245893,21 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.canonical_tenant_access_role_mapping 
 
 GRANT ALL ON TABLE public.tenant_legal_overrides TO authenticated;
 GRANT ALL ON TABLE public.tenant_legal_overrides TO service_role;
+
+--
+-- Name: TABLE gridex_tenant_effective_legal_sources_v; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO anon;
+GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO authenticated;
+GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO service_role;
+
+--
+-- Name: TABLE canonical_tenant_effective_legal_sources_v; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.canonical_tenant_effective_legal_sources_v TO authenticated;
+GRANT SELECT ON TABLE public.canonical_tenant_effective_legal_sources_v TO service_role;
 
 --
 -- Name: TABLE canonical_tenant_legal_overrides_v; Type: ACL; Schema: public; Owner: -
@@ -236750,7 +246688,7 @@ GRANT ALL ON TABLE public.ediel_ack_sla_events TO service_role;
 -- Name: TABLE ediel_ack_transaction_results; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.ediel_ack_transaction_results TO service_role;
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.ediel_ack_transaction_results TO service_role;
 
 --
 -- Name: TABLE ediel_actor_settings; Type: ACL; Schema: public; Owner: -
@@ -238287,18 +248225,24 @@ GRANT ALL ON TABLE public.gridex_stuck_spot_import_jobs_v TO authenticated;
 GRANT ALL ON TABLE public.gridex_stuck_spot_import_jobs_v TO service_role;
 
 --
+-- Name: TABLE supplier_switch_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.supplier_switch_events TO authenticated;
+GRANT ALL ON TABLE public.supplier_switch_events TO service_role;
+
+--
+-- Name: TABLE gridex_supplier_switch_business_events_v; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.gridex_supplier_switch_business_events_v TO authenticated;
+GRANT SELECT ON TABLE public.gridex_supplier_switch_business_events_v TO service_role;
+
+--
 -- Name: TABLE gridex_tenant_contract_readiness_v; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT ALL ON TABLE public.gridex_tenant_contract_readiness_v TO service_role;
-
---
--- Name: TABLE gridex_tenant_effective_legal_sources_v; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO anon;
-GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO authenticated;
-GRANT ALL ON TABLE public.gridex_tenant_effective_legal_sources_v TO service_role;
 
 --
 -- Name: TABLE gridex_tenant_email_dispatch_readiness_v; Type: ACL; Schema: public; Owner: -
@@ -238499,12 +248443,6 @@ GRANT ALL ON TABLE public.manual_email_outbox TO service_role;
 --
 
 GRANT ALL ON TABLE public.market_process_policies TO service_role;
-
---
--- Name: TABLE meter_reading_series; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.meter_reading_series TO service_role;
 
 --
 -- Name: TABLE meter_reading_values; Type: ACL; Schema: public; Owner: -
@@ -238950,13 +248888,6 @@ GRANT ALL ON TABLE public.spot_price_import_runs TO service_role;
 
 GRANT ALL ON TABLE public.spot_price_sources TO authenticated;
 GRANT ALL ON TABLE public.spot_price_sources TO service_role;
-
---
--- Name: TABLE supplier_switch_events; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.supplier_switch_events TO authenticated;
-GRANT ALL ON TABLE public.supplier_switch_events TO service_role;
 
 --
 -- Name: TABLE system_supplier_readiness_v; Type: ACL; Schema: public; Owner: -
