@@ -39,8 +39,11 @@ assert(generic.includes('objectIdentifierMissing'), 'generic builder reports obj
 // identity/agency. Run the real helper AND the profile builder, including
 // positive identity/agency/escaping controls, instead of matching source text.
 require('node:child_process').execFileSync(process.execPath, [
-  'node_modules/vitest/vitest.mjs', 'run', '__tests__/ediel-release-rendering-regression.test.ts',
-  '-t', 'installation identity release rendering contract',
+  'node_modules/vitest/vitest.mjs', 'run',
+  '__tests__/ediel-release-rendering-regression.test.ts',
+  '__tests__/facility-lookup-terminal-dispatch.test.ts',
+  '__tests__/admin-work-queue-action-visibility.test.ts',
+  '-t', 'installation identity release rendering contract|facility dispatch separates tenant events|facility diagnostics are loaded only',
 ], { cwd: root, stdio: 'inherit' })
 
 // Switch render path no longer fabricates UNKNOWN
@@ -105,10 +108,10 @@ assert(engine.includes('collectPlaceholderViolations'), 'intent validation gate 
 // waiting_response only after outbox queue (queued dispatch_status path)
 assert(dispatch.includes("status: 'waiting_response'") && dispatch.includes("dispatch_status: 'queued'"), 'request becomes waiting_response with queued dispatch only after outbox queue')
 
-// Tenant sees plain Swedish (technical detail kept for superadmin only)
+// The mounted regressions above also verify the blocked dispatch and authorized
+// diagnostic projection, so internal technical fields need not enter the event.
 const translator = read('lib/ediel/intent/tenantStatusTranslator.ts')
 assert(translator.includes('translateBlockingReasonsForTenant') && translator.includes('Vi väntar på svar från nätägaren'), 'tenant status translator produces plain Swedish')
-assert(dispatch.includes('translateBlockingReasonsForTenant') && dispatch.includes('technicalMessage'), 'blocked dispatch shows tenant Swedish and keeps technical message for superadmin')
 
 if (process.exitCode) process.exit(process.exitCode)
 console.log('\nBatch 2 Z01 no-placeholder regression passed.')

@@ -9,6 +9,7 @@ const io = vi.hoisted(() => ({
   queue: [] as Array<Record<string, unknown>>,
   platform: false,
   permissions: [] as string[],
+  facilityDiagnosticRpc: vi.fn(),
 }))
 
 vi.mock('@/lib/admin/guards', () => ({
@@ -24,7 +25,8 @@ vi.mock('@/lib/performance/companySummaries', () => ({ listCompanyWorkQueue: asy
 vi.mock('@/lib/ediel/operations/processNextAction', () => ({ readEdielProcessNextActions: async () => new Map() }))
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: async () => ({
-    rpc: async (name: string) => {
+    rpc: async (name: string, input: unknown) => {
+      if (name === 'gridex_read_facility_request_diagnostics_v1') return io.facilityDiagnosticRpc(input)
       expect(name).toBe('gridex_read_staff_e66_import_progress_v1')
       return { data: [], error: null }
     },
@@ -73,6 +75,7 @@ beforeEach(() => {
   io.tables = { customers: [customer] }
   io.queue = []
   io.platform = false
+  io.facilityDiagnosticRpc.mockReset()
   io.permissions = ['metering.read', 'customers.read']
   vi.stubGlobal('React', React)
 })
@@ -163,6 +166,28 @@ it('keeps an ordinary waiting step out of the manual action queue', async () => 
   const html = renderToStaticMarkup(await WorkQueuePage())
   expect(html).toContain('Inga aktiva driftuppgifter hittades')
   expect(html).not.toContain('Invänta nätägarens svar')
+})
+
+it('facility diagnostics are loaded only for the platform role', async () => {
+  const raw = 'SYNTHETIC_RAW_FACILITY_DIAGNOSTIC'
+  io.tables.grid_owner_information_requests = [{
+    ...base, status: 'needs_review', dispatch_status: 'failed',
+    dispatch_error_code: 'grid_owner_verification_required', dispatch_error_message: raw,
+  }]
+  io.facilityDiagnosticRpc.mockResolvedValue({
+    data: [{ request_id: base.id, dispatch_error_message: raw }],
+    error: null,
+  })
+
+  const tenant = renderToStaticMarkup(await WorkQueuePage())
+  expect(tenant).toContain('Verifiera nätägaren innan begäran skickas.')
+  expect(tenant).not.toContain(raw)
+  expect(io.facilityDiagnosticRpc).not.toHaveBeenCalled()
+
+  io.platform = true
+  const platform = renderToStaticMarkup(await WorkQueuePage())
+  expect(io.facilityDiagnosticRpc).toHaveBeenCalledExactlyOnceWith({ p_request_ids: [base.id] })
+  expect(platform).toContain(raw)
 })
 
 it('preserves the same job diagnostic only in the authorized platform view', async () => {

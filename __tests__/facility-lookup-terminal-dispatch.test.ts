@@ -117,6 +117,37 @@ it('does not hide failure to authorize the original on a completed request', asy
   expectNoNewDispatch()
 })
 
+it('facility dispatch separates tenant events from protected request diagnostics', async () => {
+  const raw = 'SYNTHETIC_RAW_FACILITY_DIAGNOSTIC'
+  const code = 'placeholder_identifier_not_allowed'
+  io.readiness.mockResolvedValue({
+    ready: false, communicationRouteId: null, routeProfileId: null,
+    blockers: [{ code, message: raw }],
+  })
+
+  expect(await dispatchFacilityLookupEdifact(scope)).toMatchObject({ status: 'blocked', blockerCode: code })
+  expect(io.writes).toEqual([{
+    table: 'grid_owner_information_requests',
+    patch: expect.objectContaining({
+      status: 'needs_review',
+      dispatch_error_code: code,
+      dispatch_error_message: raw,
+    }),
+  }])
+  expect(io.event).toHaveBeenCalledOnce()
+  const event = io.event.mock.calls[0][0]
+  expect(event).toMatchObject({
+    companyId: scope.companyId,
+    customerId: 'customer',
+    eventType: 'facility_lookup.edifact_blocked',
+    message: 'Vi behöver kompletta anläggningsuppgifter innan vi kan skicka begäran.',
+  })
+  expect(event.payload).toEqual({ request_id: scope.requestId, code })
+  expect(JSON.stringify(event)).not.toContain(raw)
+  expect(io.createOutbound).not.toHaveBeenCalled()
+  expect(io.queue).not.toHaveBeenCalled()
+})
+
 it('still prepares the ordinary ready request', async () => {
   expect(await dispatchFacilityLookupEdifact(scope)).toMatchObject({status:'queued',outboundRequestId:'outbound',edielMessageId:'message'})
   expect(io.createOutbound).toHaveBeenCalledOnce()
