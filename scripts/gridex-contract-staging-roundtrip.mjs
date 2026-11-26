@@ -23,6 +23,12 @@ if (process.env.VERCEL_ENV === "production" ||
   process.exit(2);
 }
 
+const uuidPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+if (!uuidPattern.test(companyId) || !uuidPattern.test(actorId)) {
+  console.error("Staging roundtrip requires valid company and actor UUIDs.");
+  process.exit(2);
+}
+
 const productionProjectRef = "piidsfebjqjmnepdpnas";
 if (!/^[a-z0-9]{20}$/.test(stagingProjectRef) || stagingProjectRef === productionProjectRef ||
     baseUrl !== `https://${stagingProjectRef}.supabase.co`) {
@@ -123,6 +129,8 @@ const payload = {
   lifecycle_status: "draft",
   status: "draft",
   pricing_model: pricing.pricingModel,
+  energy_direction: pricing.snapshot.energy_direction,
+  channels: { internal: "paused", website: "paused", api: "paused" },
   description: "Staging-only canonical contract roundtrip",
   valid_from: new Date().toISOString().slice(0, 10),
   valid_to: null,
@@ -135,19 +143,22 @@ const payload = {
 
 let offerId = null;
 try {
-  const created = await rpc("gridex_upsert_internal_contract_offer", {
+  const created = await rpc("gridex_upsert_internal_contract_offer_v2", {
     p_company_id: companyId,
     p_offer_id: null,
     p_payload: payload,
     p_pricing_snapshot: pricing.snapshot,
     p_actor_user_id: actorId,
   });
-  const offer = created?.offer ?? created?.[0]?.offer;
-  offerId = offer?.id ?? null;
-  if (!offerId) throw new Error(`RPC did not return offer.id: ${JSON.stringify(created)}`);
+  const command = Array.isArray(created) && created.length === 1 ? created[0] : created;
+  if (command?.ok !== true || command.company_id !== companyId.toLowerCase() ||
+      typeof command.offer?.id !== "string" || !uuidPattern.test(command.offer.id)) {
+    throw new Error("The canonical draft writer did not confirm a created offer for the staging company.");
+  }
+  offerId = command.offer.id;
 
   const canonical = await selectOne(
-    `canonical_internal_contract_offers_v?id=eq.${encodeURIComponent(offerId)}&select=*`,
+    `canonical_internal_contract_offers_v?id=eq.${encodeURIComponent(offerId)}&company_id=eq.${encodeURIComponent(companyId)}&select=*`,
   );
   if (!canonical) throw new Error("Canonical view did not return the created offer.");
 

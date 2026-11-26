@@ -137,9 +137,9 @@ try {
   })
 
   const contracts = await check('contracts point forward to the real customer and back to the same tenant', async () => {
-    const found = await rows('contracts', { customer_id: customerId, company_id: companyId })
-    if (found.length < 1) throw new Error('No contracts rows found for the real test customer')
-    for (const row of found) assertScoped(row, 'contracts')
+    const found = await rows('customer_contracts', { customer_id: customerId, company_id: companyId })
+    if (found.length < 1) throw new Error('No customer_contracts rows found for the real test customer')
+    for (const row of found) assertScoped(row, 'customer_contracts')
     if (expectedContractId && !found.some((row) => row.id === expectedContractId)) throw new Error('Protected contract fixture is not linked to the real test customer')
     return { count: found.length, expected_contract_present: expectedContractId ? true : null }
   })
@@ -169,9 +169,9 @@ try {
     })
 
     await check('invoices remain tenant/customer scoped', async () => {
-      const found = await rows('invoices', { customer_id: customerId, company_id: companyId })
-      if (found.length < 1) throw new Error('No invoices rows found for a fixture that requires billing completion')
-      for (const row of found) assertScoped(row, 'invoices')
+      const found = await rows('customer_invoices', { customer_id: customerId, company_id: companyId })
+      if (found.length < 1) throw new Error('No customer_invoices rows found for a fixture that requires billing completion')
+      for (const row of found) assertScoped(row, 'customer_invoices')
       return { count: found.length }
     })
   }
