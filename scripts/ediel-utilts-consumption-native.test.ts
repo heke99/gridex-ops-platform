@@ -157,12 +157,15 @@ beforeEach(() => {   vi.clearAllMocks()
   effects.ack.mockImplementation(async ({ sourceMessage }: { sourceMessage: EdielMessageRow }) => ({ id: sourceMessage.id }))
   effects.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'observed-meter' } })
   effects.bill.mockResolvedValue({ id: 'observed-underlay' }) })
-it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {   const f = await seed()
+it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
+  await realSinks()
+  observeE66Completion()
   effects.status.mockRejectedValueOnce(new Error('synthetic_interruption_after_committed_persistence'))
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
   const before = snapshot(f.original.id)
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(f.original.id)}`)).toBe(1)
-  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.ack).not.toHaveBeenCalled(); expect(e66Completion).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const original = f.original.raw_payload!
   const changed = kind === 'quantity' ? original.replace('QTY+136:500', 'QTY+136:999')
@@ -175,14 +178,16 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
   effects.readRaw = changed
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('ediel_initial_utilts_owner_unavailable')
   expect(snapshot(f.original.id)).toEqual(before)
-  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
+  expect(effects.ack).not.toHaveBeenCalled(); expect(e66Completion).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   effects.readRaw = null
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
-  expect(replay.ingestedMeterValueIds).toEqual(['observed-meter'])
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  const storedMeterId = sql<string>(`SELECT to_jsonb(id) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)
+  expect(replay.ingestedMeterValueIds).toEqual([storedMeterId])
   expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6 }))
-  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true) })
 function snapshot(source: string) {   return sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source)}),
    'series',(SELECT jsonb_agg(to_jsonb(s)) FROM public.meter_reading_series s WHERE source_ediel_message_id=${lit(source)}),
