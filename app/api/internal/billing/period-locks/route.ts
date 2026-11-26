@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { parseBillingMonth } from '@/lib/time/stockholm'
-import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
+import { requireAdminApiAccess, requireAdminOperationalCompany, requireAdminReadableCompany } from '@/lib/admin/apiGuards'
+import type { GuardResult } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
 export const runtime = 'nodejs'
@@ -16,12 +19,23 @@ function readBillingMonth(value: unknown): string | null {
   }
 }
 
+async function requireBillingPeriodReadCompany(guard: GuardResult): Promise<string> {
+  if (!guard.isPlatformAdmin || !guard.companyId) return requireAdminOperationalCompany(guard)
+
+  const companyId = await requireAdminReadableCompany(guard)
+  const { data, error } = await supabaseService.from('companies').select('id,status').eq('id', companyId).maybeSingle()
+  if (error) throw error
+  if (data?.id !== companyId) throw new Error('Det valda elhandelsbolaget finns inte.')
+  if (!isCompanyWritableInTenantWorkspace(data.status)) throw new Error('Bolaget är pausat eller inte operativt.')
+  return companyId
+}
+
 export async function GET(request: Request) {
   const access = await requireAdminApiAccess(['billing_underlay.read'])
   if (access.response) return access.response
 
   try {
-    const companyId = await requireAdminOperationalCompany(access.guard)
+    const companyId = await requireBillingPeriodReadCompany(access.guard)
     const url = new URL(request.url)
     const billingMonth = readBillingMonth(url.searchParams.get('billing_month') ?? url.searchParams.get('billingMonth'))
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
