@@ -738,7 +738,11 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </form>
  ) : (
  <span className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
- {lifecycle.stage === 'ready_to_execute' ? 'Aktivering är inte tillgänglig för ditt konto i detta bolag.' : 'Väntar på kvalificerad bekräftelse och uppnådd leveransstart'}
+ {activation?.code === 'lifecycle_held'
+   ? activation.reason
+   : lifecycle.stage === 'ready_to_execute'
+   ? 'Aktivering är inte tillgänglig för ditt konto i detta bolag.'
+   : 'Väntar på kvalificerad bekräftelse och uppnådd leveransstart'}
  </span>
  )}
  </div>
