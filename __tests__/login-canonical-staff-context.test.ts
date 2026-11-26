@@ -1,7 +1,8 @@
-import { beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import React from 'react'
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-type Scope = 'portal' | 'staff' | 'platform' | 'unavailable' | 'wrong actor' | 'malformed' | 'inactive'
+type Scope = 'portal' | 'customer member' | 'mixed memberships' | 'staff' | 'platform' | 'unavailable' | 'wrong actor' | 'malformed' | 'inactive'
 
 const fixture = vi.hoisted(() => ({ cookies: new Map<string, string>(), operations: [] as string[], authSequence: 10, accepted: true, scope: 'portal' as Scope, mustChangePassword: false }))
 vi.mock('server-only', () => ({}))
@@ -61,13 +62,19 @@ async function fixtureTransport(input: RequestInfo | URL, init?: RequestInit) {
       if (fixture.scope === 'inactive') return Response.json({ authorized: false, reason_code: 'identity_not_active' })
       const platform = fixture.scope === 'platform'
       const staff = fixture.scope === 'staff'
+      const customerMembership = fixture.scope === 'customer member' || fixture.scope === 'mixed memberships'
+      const memberships = customerMembership ? [{ company_id: company, role_key: 'customer' }] : []
+      if (fixture.scope === 'mixed memberships') {
+        memberships.push({ company_id: '00000000-0000-4000-8000-000000000005', role_key: 'operations' })
+      }
       return Response.json({
         authorized: true,
         user_id: fixture.scope === 'wrong actor' ? company : actor,
         is_platform_admin: platform,
-        selected_company_id: staff ? company : null,
+        selected_company_id: staff || customerMembership ? company : null,
+        memberships,
         roles: staff ? ['operations'] : platform ? [] : ['customer'],
-        access_invariant_ok: fixture.scope === 'malformed' ? 'false' : staff || platform,
+        access_invariant_ok: fixture.scope === 'malformed' ? 'false' : staff || platform || customerMembership,
       })
     }
     case 'GET /rest/v1/customer_portal_accounts':
@@ -94,9 +101,17 @@ async function fixtureTransport(input: RequestInfo | URL, init?: RequestInit) {
 let login: typeof import('@/app/login/actions').loginAction
 let renderCases: typeof import('@/app/portal/arenden/page').default
 beforeAll(async () => {
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', origin)
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'synthetic-fixture-anon-key')
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'synthetic-fixture-service-key')
   vi.stubGlobal('fetch', fixtureTransport)
+  vi.stubGlobal('React', React)
   login = (await import('@/app/login/actions')).loginAction
   renderCases = (await import('@/app/portal/arenden/page')).default
+})
+afterAll(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
 })
 beforeEach(() => {
   fixture.operations.length = 0
@@ -150,9 +165,15 @@ it('keeps an ordinary failed login outside business baseline and case reads', as
 })
 
 
-it.each(['staff', 'platform'] as const)('retains dashboard for a legitimate %s actor', async scope => {
+it.each(['staff', 'platform', 'mixed memberships'] as const)('retains dashboard for a legitimate %s actor', async scope => {
   fixture.scope = scope
   await expect(login(credentials())).rejects.toMatchObject({ digest: 'NEXT_REDIRECT;replace;/dashboard;307;' })
+  expect(fixture.cookies.size).toBeGreaterThan(0)
+})
+
+it('lands a customer-only company member in the portal', async () => {
+  fixture.scope = 'customer member'
+  await expect(login(credentials())).rejects.toMatchObject({ digest: 'NEXT_REDIRECT;replace;/portal;307;' })
   expect(fixture.cookies.size).toBeGreaterThan(0)
 })
 

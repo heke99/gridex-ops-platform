@@ -17,6 +17,9 @@ type StaffAccessContext = {
   authorized?: unknown
   user_id?: unknown
   access_invariant_ok?: unknown
+  is_platform_admin?: unknown
+  roles?: unknown
+  memberships?: unknown
 }
 
 export async function userHasStaffAccess(
@@ -28,7 +31,15 @@ export async function userHasStaffAccess(
     const context = data as StaffAccessContext | null
     if (!error && context?.authorized === true && context.user_id === userId
       && typeof context.access_invariant_ok === 'boolean') {
-      return context.access_invariant_ok
+      if (!context.access_invariant_ok) return false
+      const customerOnly = Array.isArray(context.roles) && context.roles.length === 1 && context.roles[0] === 'customer'
+      if (!customerOnly || context.is_platform_admin === true) return true
+
+      // A customer role in the default company can coexist with a staff role in another.
+      return Array.isArray(context.memberships) && context.memberships.some((membership: unknown) =>
+        membership !== null && typeof membership === 'object' && 'role_key' in membership
+        && typeof membership.role_key === 'string' && membership.role_key !== '' && membership.role_key !== 'customer',
+      )
     }
   } catch {
     // The dashboard performs its own authorization when context is unavailable.
