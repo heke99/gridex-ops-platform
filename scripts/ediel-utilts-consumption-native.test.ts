@@ -804,9 +804,9 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
   await expect(createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
-const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {
+const sinkRpc = (input: UtiltsBoundPersistenceInput & { actorUserId: string }, sink: 'metering' | 'billing') => {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>
-  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,     ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
+  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: input.actorUserId,     ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
 }
 it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated returned projection instead of reinterpreting it', async sink => {
   const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
@@ -1248,7 +1248,7 @@ function sinkState(company: string) {
    'links',(SELECT jsonb_agg(to_jsonb(l) ORDER BY id) FROM public.metering_value_sources l WHERE company_id=${lit(company)}))`)
 }
 it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', 'read-at', 'reading-type', 'normalized-quantity', 'normalized-facility', 'normalized-resolution', 'normalized-site'])('R1 full processor refuses colliding stored %s before lineage/completion', async field => {
-  const f = await seed(), initial = await f.prepare()
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true }), initial = await f.prepare()
   await persistUtiltsTransactionResults(initial)
   expect((await sinkRpc(initial, 'metering')).error).toBeNull()
   if (field === 'customer') {
@@ -1262,10 +1262,11 @@ it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', '
   await persistUtiltsTransactionResults(await f.prepare(source))
   const before = sinkState(f.ids.company), persisted = snapshot(source.id)
   await realSinks()
+  observeE66Completion()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow(/utilts_consumption_existing_(metering|normalized)_conflict/)
   expect(sinkState(f.ids.company)).toEqual(before)
   expect(snapshot(source.id)).toEqual(persisted)
-  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
 })
 it('R1 identical different-source reuse preserves content and adds separate lineage', async () => {
