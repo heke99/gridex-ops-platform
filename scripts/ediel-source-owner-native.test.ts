@@ -523,15 +523,18 @@ function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMe
   AND company_id=${literal(f.ids.company)} AND direction='inbound' AND message_family='UTILTS'`)).toBe(1)
  return {...message,id,raw_payload:wire,sender_ediel_id:f.receiver,receiver_ediel_id:f.sender}
 }
-function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
+function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string,code:'E66'|'S07'='E66'){
+ const isE66=code==='E66'
  const marketMidnight=(date:Date)=>date.toISOString().slice(0,10).replaceAll('-','')+'0000'
- return nativeTestWire(observationHandoffMessage(priorE66AdmissionDate,f.ids.company).raw_payload!
+ const admissionDate=isE66?priorE66AdmissionDate:S('2026-09-30')
+ const periodStart=isE66?marketMidnight(priorE66PeriodStart):S('202610010000')
+ const periodEnd=isE66?marketMidnight(priorE66PeriodEnd):S('202611010000')
+ const wire=observationHandoffMessage(admissionDate,f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
-  // Preserve a full declared calendar month and receive it after registration.
-  .replaceAll(S('202607010000'),marketMidnight(priorE66PeriodStart))
-  .replaceAll(S('202608010000'),marketMidnight(priorE66PeriodEnd))
-  .replace('260831:1811',priorE66AdmissionDate.slice(2).replaceAll('-','')+':1811')
-  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
+  // Only E66 requires this fixture's full calendar month and later receipt.
+  .replaceAll(S('202607010000'),periodStart).replaceAll(S('202608010000'),periodEnd)
+  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
+ return nativeTestWire(isE66?wire.replace('260831:1811',admissionDate.slice(2).replaceAll('-','')+':1811'):wire)
 }
 async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
  const sourceMessageId=randomUUID(),wire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point))
@@ -699,7 +702,7 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
  utilts.raw_payload=code==='E30'
   ?priorE30PointWire('E24','METER-1',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
-  :priorNativeWire(f,point).replace('BGM+E66::260','BGM+S07:SVK:260').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
+  :priorNativeWire(f,point,code).replace('BGM+E66::260','BGM+S07:SVK:260').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:S('2026-10-01'),
   applicationReference:utilts.application_reference,mode:'parse'})
  const qualify=async()=>{
