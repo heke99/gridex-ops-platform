@@ -165,12 +165,19 @@ async function engineCommands(withValues: boolean) {
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const storeStart = schema.indexOf('CREATE FUNCTION public.gridex_store_billing_underlay(p_company_id uuid')
 const storeFunction = schema.slice(storeStart, schema.indexOf('END $_$;', storeStart) + 'END $_$;'.length)
-const priceTimelineFunction = schema.match(/^CREATE FUNCTION gridex_billing_source\.require_contract_price_timeline_v1\([\s\S]*?^ *\$\$;/m)?.[0]
+const priceTimelineFunctions = [
+  'has_unapplied_test_price_addendum_v1',
+  'require_no_unapplied_test_price_addendum_v1',
+  'require_contract_price_timeline_v1',
+].map(name => {
+  const ddl = schema.match(new RegExp(`^CREATE FUNCTION gridex_billing_source\\.${name}\\([\\s\\S]*?^ *\\$\\$;`, 'm'))?.[0]
+  if (!ddl) throw new Error(`${name} not found in schema.sql`)
+  return ddl
+})
 let db: PGlite
 
 beforeAll(async () => {
   expect(storeStart).toBeGreaterThan(0)
-  if (!priceTimelineFunction) throw new Error('require_contract_price_timeline_v1 not found in schema.sql')
   db = new PGlite()
   await db.exec(`
     create role service_role; create schema extensions; create schema gridex_billing_source; create schema gridex_received_sources;
@@ -180,8 +187,9 @@ beforeAll(async () => {
       billing_period_start date, billing_period_end date, energy_direction text);
     create table public.normalized_metering_values(id uuid primary key, company_id uuid);
     create table public.customer_supply_periods(id uuid primary key, company_id uuid, customer_id uuid, metering_point_id uuid, contract_id uuid, status text, start_date date, end_date date);
-    create table public.customer_contracts(id uuid primary key, company_id uuid, customer_id uuid, metering_point_id uuid, status text, starts_at date, ends_at date);
-    create table public.contract_price_snapshots(id uuid primary key, company_id uuid, contract_id uuid, price_plan_version_id uuid, snapshot_json jsonb, valid_from date, valid_to date);
+    create table public.customer_contracts(id uuid primary key, company_id uuid, customer_id uuid, metering_point_id uuid, status text, starts_at date, ends_at date, termination_reason text);
+    create table public.contract_price_snapshots(id uuid primary key, company_id uuid, contract_id uuid, price_plan_version_id uuid, snapshot_json jsonb, valid_from date, valid_to date, source text);
+    create table gridex_billing_source.test_price_addendum_reviews(company_id uuid, contract_id uuid, effective_at timestamptz);
     create table public.price_plan_versions(id uuid primary key, company_id uuid, status text, locked_at timestamptz, content_sha256 text);
     create table gridex_billing_source.underlay_bindings(underlay_id uuid primary key, company_id uuid, source_basis jsonb, source_basis_hash text, exact_total_kwh numeric, actor_user_id uuid);
     create function public.ediel_require_invoice_source_copies_available_v1(uuid, uuid) returns void language sql as $$select$$;
@@ -191,13 +199,19 @@ beforeAll(async () => {
     -- These cases seed active supply only. Market qualification is outside this fixture.
     create function gridex_billing_source.ordinary_ended_supply_v1(public.customer_supply_periods, public.customer_contracts, timestamptz, timestamptz)
       returns boolean language sql as $$select false$$;
+    create function gridex_received_sources.planned_move_out_supply_window_v1(public.customer_supply_periods, public.customer_contracts, timestamptz, timestamptz)
+      returns boolean language sql as $$select false$$;
     create function gridex_received_sources.billing_supply_basis_v1(uuid, uuid, timestamptz, timestamptz) returns jsonb language sql as $$select null::jsonb$$;
   `)
-  await db.exec(priceTimelineFunction)
+  for (const ddl of priceTimelineFunctions) await db.exec(ddl)
   await db.exec(storeFunction)
   await db.query('insert into public.customer_supply_periods values($1,$2,$3,$4,$5,$6,$7,null)', [SP, C, CU, MP, CT, 'active', '2026-09-01'])
-  await db.query('insert into public.customer_contracts values($1,$2,$3,$4,$5,$6,null)', [CT, C, CU, MP, 'active', '2026-09-01'])
-  await db.query('insert into public.contract_price_snapshots values($1,$2,$3,$4,$5,$6,null)', [SNAP, C, CT, PV, JSON.stringify(snapshotJson), '2026-09-01'])
+  await db.query('insert into public.customer_contracts(id,company_id,customer_id,metering_point_id,status,starts_at) values($1,$2,$3,$4,$5,$6)', [CT, C, CU, MP, 'active', '2026-09-01'])
+  await db.query(
+    `insert into public.contract_price_snapshots(id,company_id,contract_id,price_plan_version_id,snapshot_json,valid_from,source)
+      values($1,$2,$3,$4,$5,$6,$7)`,
+    [SNAP, C, CT, PV, JSON.stringify(snapshotJson), '2026-09-01', 'signature_prepare'],
+  )
   await db.query('insert into public.price_plan_versions values($1,$2,$3,now(),$4)', [PV, C, 'active', 'a'.repeat(64)])
 })
 
