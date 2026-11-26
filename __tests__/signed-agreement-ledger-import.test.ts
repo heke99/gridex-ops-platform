@@ -3,8 +3,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 // Actual forward import trigger and retained legacy unique index, PostgreSQL
-// WASM. Auth/legal-label/normalization/event are finite external ports, not
-// native producer, current full schema, RLS or production qualification.
+// WASM. Auth, legal-label, normalization, event and price-addendum authority
+// use finite fixture ports. The test covers the signed-agreement import component.
 const root = process.cwd()
 const schema = fs.readFileSync(root + '/supabase/schema.sql', 'utf8')
 const id = (n: number) => `20000000-0000-4000-8000-${String(n).padStart(12,'0')}`
@@ -23,7 +23,7 @@ let db: PGlite
 
 beforeEach(async () => {
   db = new PGlite()
-  await db.exec(`create schema auth;create schema private;create schema extensions;
+  await db.exec(`create schema auth;create schema private;create schema extensions;create schema gridex_billing_source;
     create function auth.uid() returns uuid language sql as $$select '${id(20)}'::uuid$$;
     create function extensions.digest(bytea,text) returns bytea language sql immutable as $$select sha256($1)$$;
     create function extensions.digest(text,text) returns bytea language sql immutable as $$select sha256(convert_to($1,'UTF8'))$$;
@@ -45,6 +45,9 @@ beforeEach(async () => {
     })
     await db.exec(`create table public.${table}(${columns.join(',')})`)
   }
+  // The fixture contains no native signed-addendum authority. Keep that port closed.
+  await db.exec(`create function gridex_billing_source.check_test_price_addendum_snapshot_insert_v1(public.contract_price_snapshots)
+    returns boolean language sql stable as $$select false$$;`)
   for (const name of ['gridex_normalize_contract_price_snapshot_row_v1','gridex_fill_contract_price_snapshot_binding_v1','gridex_enforce_contract_price_snapshot_hash_v1']) {
     await db.exec(schema.match(new RegExp('CREATE FUNCTION public\\.'+name+'\\(\\) RETURNS trigger[\\s\\S]*?\\$\\$;'))![0])
   }
@@ -99,6 +102,13 @@ describe('actual imported selected-contract ledger', () => {
   it('signs against the existing selected receipt without a second same-date ledger', async () => {
     await importPdf()
     expect(await state()).toMatchObject({ ledgers:1,status:'signed',contract_price_snapshot_id:id(4),snapshot_json:selected,price_option_reference:'OPTION-EXACT',invoice_delivery_method:'email' })
+  })
+
+  it('rejects a signed-addendum snapshot without native authority', async () => {
+    await expect(db.query(`insert into contract_price_snapshots(company_id,customer_id,contract_id,source,valid_from,snapshot_json)
+      values($1,$2,$3,'staff_manually_verified_signed_addendum_v1',current_date+1,'{}')`, [id(1),id(2),id(3)]))
+      .rejects.toMatchObject({ code:'23514', message:'price_addendum_snapshot_native_authority_required' })
+    expect(await state()).toMatchObject({ ledgers:1,status:'pending_signature',contract_price_snapshot_id:id(4) })
   })
 
   it('retains exact selected components even when the unique-index symptom is removed in this isolated fixture', async () => {
