@@ -3,7 +3,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { once } from 'node:events'
 import {
-  closeSync, copyFileSync, mkdirSync, mkdtempSync, openSync,
+  closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync,
   readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync,
 } from 'node:fs'
 import { createServer } from 'node:net'
@@ -60,11 +60,23 @@ function bindWorkspace() {
     copyFileSync(join(fixtures, fixture), join(source, target))
   }
   for (const file of ['browser.mjs', 'driver.ts']) copyFileSync(join(fixtures, file), join(root, file))
+
+  // These names are the browser entry point and its driver import.
+  const fixtureCommit = git(['rev-parse', 'HEAD']).toString().trim()
+  const hostOutputs = Object.fromEntries(['browser.mjs', 'driver.ts'].map(file => {
+    const sourcePath = `scripts/fixtures/catalog-draft-local/${file}`
+    const gitBlob = git(['rev-parse', `${fixtureCommit}:${sourcePath}`]).toString().trim()
+    const output = join(root, file)
+    assert(existsSync(output), `Missing materialized file ${file}`)
+    const outputBlob = git(['hash-object', '--', output]).toString().trim()
+    assert.equal(outputBlob, gitBlob, `Unexpected materialized bytes for ${file}`)
+    return [file, { sourcePath, gitBlob, sha256: digest(output) }]
+  }))
   symlinkSync(localDependencies, join(source, 'node_modules'), 'dir')
   writeFileSync(join(source, 'tsconfig.json'), JSON.stringify({
     compilerOptions: { target: 'ES2022', baseUrl: '.', paths: { '@/*': ['./*'] }, jsx: 'react-jsx' },
   }))
-  return { root, source, commit, tree, files }
+  return { root, source, commit, tree, files, fixtureCommit, hostOutputs }
 }
 
 async function loopbackPort() {
@@ -133,7 +145,7 @@ async function main() {
   assert(process.argv.length === (prepareOnly ? 3 : 2), 'Optional argument: --prepare-only')
   assert.notEqual(process.platform, 'win32', 'This fixture needs a local POSIX process group')
   const workspace = bindWorkspace()
-  const { root, source, commit, tree, files } = workspace
+  const { root, source, commit, tree, files, fixtureCommit, hostOutputs } = workspace
   const fixtureFiles = ['layout.tsx', 'server.ts', 'service.ts', 'canonical.ts', 'browser.mjs', 'driver.ts']
   const runnerSha256 = {
     'catalog-draft-local.mjs': digest(fileURLToPath(import.meta.url)),
@@ -142,6 +154,10 @@ async function main() {
   const manifest = {
     schema: 'gridex-catalog-draft-local-v1', feature: FEATURE, commit, tree,
     productBlobs: files, runnerSha256, mode: 'local-synthetic', businessOnly: true,
+    hostMaterialization: {
+      feature: 'KONS-CATALOG-HOST-BUILDER-FILENAME',
+      fixtureCommit, outputs: hostOutputs, status: 'passed',
+    },
   }
   const manifestPath = join(root, 'evidence.json')
   const record = (status, facts = {}) => writeFileSync(manifestPath,

@@ -39,3 +39,17 @@ den exakta körarens revision för rad 478. Gridex OPS-kvalificeringen använder
 den namngivna köraren som ersättare för det historiska K13-provet i den lokala
 releaseverifieringen. Staging och produktion verifieras genom sina ordinarie
 arbetsflöden.
+
+## Filnamn och byteidentitet för rad 476
+
+Kör `node scripts/catalog-draft-local.mjs --prepare-only` för att kontrollera
+den lokala katalogkörarens materialisering utan att starta Next eller
+Chromium. Köraren kräver `browser.mjs` och `driver.ts` på sina avtalade
+sökvägar i beviskatalogen. Före uppstart jämförs varje utfil med
+fixtureblobben från körarens Git-HEAD. `evidence.json` sparar kontrollen
+under `hostMaterialization` med fynd-ID, fixturecommit, filnamn,
+Git-blobbar och SHA-256 för utdata.
+
+Detta bevis gäller den nuvarande lokala materialiseraren och dess två
+dokumenterade filnamn. Den historiska V2-generatorn och dess manifest
+behövs för att verifiera den ursprungliga leveransen.
