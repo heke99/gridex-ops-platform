@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "main": false
+      "main": false,
+      "codex/gridex-ops-qualification-21e392e7": false
     }
   },
   "buildCommand": "npm run build && node scripts/verify-manual-mail-ai-deployment.cjs",
