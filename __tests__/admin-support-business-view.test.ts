@@ -45,6 +45,11 @@ vi.mock('@/lib/supabase/service', async () => {
       io.caseReads.push(url)
       let rows = io.cases.filter(row => url.searchParams.get('company_id') === 'eq.' + row.company_id
         && url.searchParams.get('customer_id') === 'eq.' + row.customer_id)
+      const statuses = url.searchParams.get('status')
+      if (statuses) {
+        expect(statuses).toMatch(/^in\.\([a-z_,]+\)$/)
+        rows = rows.filter(row => statuses.slice(4, -1).split(',').includes(String(row.status)))
+      }
       const support = url.searchParams.get('or')
       if (support) {
         expect(support).toBe('(and(source.is.null,metadata.cs.{"support_case":true}),and(source.neq.ediel_inbound_state_machine,or(source.match.^tenant_support_,metadata.cs.{"support_case":true})))')
@@ -96,6 +101,8 @@ import DetailPage from '@/app/admin/customer-cases/[caseId]/page'
 import BillingCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import type { BillingUnderlayRow } from '@/lib/cis/types'
 
+const openStatuses = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up']
+const closedStatuses = ['resolved', 'closed', 'cancelled']
 const activeCaseId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const selectedCustomerId = '00000000-0000-4000-8000-000000000010'
 const otherCustomerId = '00000000-0000-4000-8000-000000000020'
@@ -105,7 +112,8 @@ beforeEach(() => {
   io.platform = false; io.writer = false; io.attachmentError = false
   io.cases = [caseRow('open'), caseRow('closed', 'closed')]
   io.events = Array.from({ length: 14 }, (_, i) => ({ id: `event-${i}`, event_type: 'support_internal_note', message: `Historik ${i}`, payload: { visibility: 'internal' }, created_at: '2026-11-15T10:00:00Z' })).reverse()
-  io.list.mockReset().mockImplementation(async () => io.cases)
+  io.list.mockReset().mockImplementation(async ({ statuses }: { statuses: string[] }) =>
+    io.cases.filter(row => statuses.includes(String(row.status))))
   io.customerRows = [{ id: selectedCustomerId, company_id: 'company-a', full_name: 'Syntetisk kund' }]
   io.optionReads = []
   io.readThroughSdk = false
@@ -116,9 +124,27 @@ beforeEach(() => {
 const list = async () => renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({}) }))
 const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ caseId: activeCaseId }) }))
 
+function expectScopedQueueReads(customerId?: string) {
+  expect(io.list.mock.calls).toEqual([openStatuses, closedStatuses].map(statuses => [{
+    companyId: 'company-a', ...(customerId ? { customerId } : {}), supportOnly: true, limit: 200, statuses,
+  }]))
+}
+
+function expectScopedSdkQueueReads(customerId: string) {
+  expect(io.caseReads).toHaveLength(2)
+  expect(io.caseReads.map(url => url.searchParams.get('status')).sort()).toEqual([
+    `in.(${openStatuses.join(',')})`, `in.(${closedStatuses.join(',')})`,
+  ].sort())
+  for (const url of io.caseReads) {
+    expect(url.searchParams.get('limit')).toBe('200')
+    expect(url.searchParams.get('company_id')).toBe('eq.company-a')
+    expect(url.searchParams.get('customer_id')).toBe('eq.' + customerId)
+  }
+}
+
 it('keeps active cases visible and closed history collapsed without technical source names', async () => {
   const html = await list()
-  expect(io.list).toHaveBeenCalledWith({ companyId: 'company-a', supportOnly: true, limit: 200 })
+  expectScopedQueueReads()
   expect(html).toContain('>Supportkö</h2>')
   expect(html).toContain('Telefon')
   expect(html).not.toContain('tenant_support_phone')
@@ -198,15 +224,32 @@ it('keeps older support with only qualified cases inside the database page cap',
   expect(html).toContain('Older qualified phone case')
   expect(html).toContain('Qualified legacy support case')
   expect(html).not.toMatch(/Foreign support case|Different customer support case|ediel-legacy-marker|wrong-regex-prefix|string-support-marker/)
-  expect(io.caseReads).toHaveLength(1)
-  expect(io.caseReads[0].searchParams.get('limit')).toBe('200')
-  expect(io.caseReads[0].searchParams.get('company_id')).toBe('eq.company-a')
-  expect(io.caseReads[0].searchParams.get('customer_id')).toBe('eq.' + selectedCustomerId)
+  expectScopedSdkQueueReads(selectedCustomerId)
 })
+it('keeps an older open support case visible behind 200 newer closed cases', async () => {
+  io.readThroughSdk = true
+  io.cases = [
+    ...Array.from({ length: 200 }, (_, index) => ({
+      ...caseRow('closed-' + index, 'closed'), created_at: '2026-11-26T10:00:00Z',
+    })),
+    { ...caseRow('older-open'), title: 'Återstående äldre kundärende' },
+    { ...caseRow('foreign-open'), company_id: 'company-b' },
+    { ...caseRow('different-customer'), customer_id: otherCustomerId },
+  ]
+  const html = renderToStaticMarkup(await CasesPage({
+    searchParams: Promise.resolve({ customer: selectedCustomerId }),
+  }))
+  expect(html).toContain('Återstående äldre kundärende')
+  expect(html).not.toContain('Inga öppna supportärenden')
+  expect(html).not.toMatch(/foreign-open|different-customer/)
+  expect(html).toContain('Avslutade supportärenden (200)')
+  expectScopedSdkQueueReads(selectedCustomerId)
+})
+
 it('qualifies the reader’s customer filter before limiting cases', async () => {
   io.cases.push({ ...caseRow('other'), customer_id: otherCustomerId })
   const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: selectedCustomerId }) }))
-  expect(io.list).toHaveBeenCalledWith({ companyId: 'company-a', customerId: selectedCustomerId, supportOnly: true, limit: 200 })
+  expectScopedQueueReads(selectedCustomerId)
   expect(html).toContain('Ärende open')
   expect(html).not.toContain('Ärende other')
   expect(html).toContain('Visa alla supportärenden')
@@ -215,8 +258,7 @@ it('qualifies the reader’s customer filter before limiting cases', async () =>
 it('keeps a well-formed unmatched customer filter without widening the queue', async () => {
   io.list.mockResolvedValue([])
   const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: otherCustomerId }) }))
-  expect(io.list).toHaveBeenCalledTimes(1)
-  expect(io.list).toHaveBeenCalledWith({ companyId: 'company-a', customerId: otherCustomerId, supportOnly: true, limit: 200 })
+  expectScopedQueueReads(otherCustomerId)
   expect(html).toContain('Inga öppna supportärenden')
   expect(html).not.toContain('Ärende open')
 })

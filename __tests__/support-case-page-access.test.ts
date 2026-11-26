@@ -13,7 +13,7 @@ const io = vi.hoisted(() => ({
   membership: true,
   authorized: true,
   isPlatformAdmin: false,
-  reads: [] as Array<{ kind: string; companyId: string | null }>,
+  reads: [] as Array<{ kind: string; companyId: string | null; statuses?: readonly string[] }>,
   mutations: 0,
   cases: [
     { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', company_id: 'company-a', customer_id: 'customer-a', customer_name: 'Own customer', title: 'Own support case', status: 'open', priority: 'normal', source: 'tenant_support_web', created_at: '2026-10-05T09:00:00Z' },
@@ -46,9 +46,9 @@ vi.mock('@/lib/tenant/scope', () => ({
   getOperationalCompanyScope: async () => ({ companyId: io.companyId, companyName: 'Own company' }),
 }))
 vi.mock('@/lib/customer-cases/db', () => ({
-  listCustomerCases: async ({ companyId }: { companyId: string | null }) => {
-    io.reads.push({ kind: 'cases', companyId })
-    return io.cases.filter((row) => !companyId || row.company_id === companyId)
+  listCustomerCases: async ({ companyId, statuses }: { companyId: string | null; statuses: readonly string[] }) => {
+    io.reads.push({ kind: 'cases', companyId, statuses })
+    return io.cases.filter(row => (!companyId || row.company_id === companyId) && statuses.includes(row.status))
   },
   getCustomerCaseById: async (id: string, companyId: string) => {
     io.reads.push({ kind: 'case', companyId })
@@ -95,6 +95,11 @@ import { getAdminNavigationGroups } from '@/lib/admin/navigation'
 import { requireAdminAccess, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
 
+const expectedQueueReads = (companyId: string | null) => [
+  { kind: 'cases', companyId, statuses: ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'] },
+  { kind: 'cases', companyId, statuses: ['resolved', 'closed', 'cancelled'] },
+]
+
 const list = () => CasesPage({ searchParams: Promise.resolve({}) })
 const detail = (caseId = ownCaseId) => DetailPage({ params: Promise.resolve({ caseId }) })
 const file = (caseId = ownCaseId) => download(new Request('https://ops.example.invalid'), { params: Promise.resolve({ caseId, reference: 'attachment-a' }) })
@@ -120,7 +125,7 @@ describe('support case pages enforce effective case permissions through the real
     expect(html).not.toContain('<form')
     expect(html).not.toContain('Skapa supportärende')
     expect(html).not.toContain('name="status"')
-    expect(io.reads).toEqual([{ kind: 'cases', companyId: 'company-a' }])
+    expect(io.reads).toEqual(expectedQueueReads('company-a'))
     expect(navigation().flatMap((group) => group.items).map((item) => item.href)).toContain('/admin/customer-cases')
   })
 
@@ -227,6 +232,6 @@ describe('support case pages enforce effective case permissions through the real
     expect(html).not.toContain('<form')
     await expect(detail()).rejects.toThrow('NOT_FOUND')
     expect((await file()).status).toBe(404)
-    expect(io.reads).toEqual([{ kind: 'cases', companyId: null }])
+    expect(io.reads).toEqual(expectedQueueReads(null))
   })
 })

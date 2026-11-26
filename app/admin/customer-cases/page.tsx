@@ -6,6 +6,7 @@ import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { isTenantSupportCase } from '@/lib/customer-cases/supportScope'
+import type { CustomerCaseStatus } from '@/lib/customer-cases/types'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
 import { formatStatusLabel, formatAdminDateTime } from '@/lib/ui/format'
@@ -13,6 +14,12 @@ import AdminDisclosurePanel from '@/components/admin/ui/AdminDisclosurePanel'
 import { isUuid } from '@/lib/validation/uuid'
 
 export const dynamic = 'force-dynamic'
+
+const OPEN_CASE_STATUSES: readonly CustomerCaseStatus[] = [
+  'open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up',
+]
+const CLOSED_CASE_STATUSES: readonly CustomerCaseStatus[] = ['resolved', 'closed', 'cancelled']
+const CASE_LIMIT = 200
 
 function supportChannel(source: string | null) {
   const labels: Record<string, string> = {
@@ -34,18 +41,31 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
   const canWrite = !scope.isPlatformAdmin && hasPermissionRequirement(context.permissions, { anyOf: ['cases.write'] })
   const customerId = typeof query.customer === 'string' && isUuid(query.customer) ? query.customer.trim().toLowerCase() : null
   const hasCustomerFilter = query.customer !== undefined
-  const [allCases, customers] = await Promise.all([
-    hasCustomerFilter && !customerId
-      ? Promise.resolve([])
-      : listCustomerCases({ companyId: scope.companyId, ...(customerId ? { customerId } : {}), supportOnly: true, limit: 200 }),
+  const listQueueSection = (statuses: readonly CustomerCaseStatus[]) => {
+    if (hasCustomerFilter && !customerId) return Promise.resolve([])
+    return listCustomerCases({
+      companyId: scope.companyId,
+      ...(customerId ? { customerId } : {}),
+      supportOnly: true,
+      statuses,
+      limit: CASE_LIMIT,
+    })
+  }
+  const [openRows, closedRows, customers] = await Promise.all([
+    listQueueSection(OPEN_CASE_STATUSES),
+    listQueueSection(CLOSED_CASE_STATUSES),
     canWrite && scope.companyId ? listTenantSupportCustomerOptions(scope.companyId, customerId) : Promise.resolve([]),
   ])
-  const cases = allCases.filter(row => (!customerId || row.customer_id === customerId) && isTenantSupportCase(row))
-  const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
-  const closed = cases.filter((row) => ['resolved', 'closed', 'cancelled'].includes(row.status))
+  const matchesSupport = (row: (typeof openRows)[number]) =>
+    (!customerId || row.customer_id === customerId) && isTenantSupportCase(row)
+  const open = openRows.filter(row => OPEN_CASE_STATUSES.includes(row.status) && matchesSupport(row))
+  const openIds = new Set(open.map(row => row.id))
+  const closed = closedRows.filter(row =>
+    CLOSED_CASE_STATUSES.includes(row.status) && !openIds.has(row.id) && matchesSupport(row),
+  )
   const urgent = open.filter((row) => ['urgent', 'high'].includes(row.priority))
 
-  function renderCase(row: (typeof cases)[number]) {
+  function renderCase(row: (typeof open)[number]) {
     return (
       <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -58,7 +78,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
           <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority, 'Okänd prioritet', 'Okänd prioritet')} · {formatStatusLabel(row.status, 'Status behöver granskas', 'Status behöver granskas')}</span>
         </div>
         {scope.isPlatformAdmin ? <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-2 break-all font-mono">Källa: {row.source ?? '—'}</p></details> : null}
-        {!['resolved', 'closed', 'cancelled'].includes(row.status) && canWrite ? (
+        {OPEN_CASE_STATUSES.includes(row.status) && canWrite ? (
           <form action={updateCustomerCaseStatusAction} className="mt-3 flex flex-wrap items-center gap-2">
             <input type="hidden" name="case_id" value={row.id} />
             <input type="hidden" name="expected_case_status" value={row.status} />
@@ -93,7 +113,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
         <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4"><p className="min-w-0 break-words text-sm text-slate-600">Öppna supportärenden</p><p className="text-2xl font-semibold">{open.length}</p></div>
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="min-w-0 break-words text-sm text-amber-900">Hög/akut prioritet</p><p className="text-2xl font-semibold text-amber-950">{urgent.length}</p></div>
-          <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4"><p className="min-w-0 break-words text-sm text-slate-600">Visade supportärenden</p><p className="text-2xl font-semibold">{cases.length}</p></div>
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4"><p className="min-w-0 break-words text-sm text-slate-600">Visade supportärenden</p><p className="text-2xl font-semibold">{open.length + closed.length}</p></div>
         </section>
 
         {canWrite && scope.companyId ? (
@@ -124,7 +144,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 id="support-queue-heading" className="text-lg font-semibold text-slate-950">Supportkö</h2>
           <p className="mt-1 text-sm text-slate-600">Ärenden som väntar på svar eller behöver följas upp.</p>
-          {allCases.length === 200 ? <p className="mt-2 text-sm text-slate-600">Här visas de senaste inlästa ärendena. Äldre ärenden kan saknas.</p> : null}
+          {openRows.length === CASE_LIMIT ? <p className="mt-2 text-sm text-slate-600">Här visas de senaste öppna ärendena. Äldre ärenden kan saknas.</p> : null}
           {open.length === 0 ? <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Inga öppna supportärenden för valt bolag.</p> : (
             <div role="region" aria-label="Öppna supportärenden" tabIndex={0} className="mt-4 max-h-[36rem] space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
               {open.map(renderCase)}
@@ -134,6 +154,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
         {closed.length > 0 ? (
           <details id="closed-support-cases" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <summary className="cursor-pointer font-semibold text-slate-950">Avslutade supportärenden ({closed.length})</summary>
+            {closedRows.length === CASE_LIMIT ? <p className="mt-2 text-sm text-slate-600">Här visas de senaste avslutade ärendena. Äldre ärenden kan saknas.</p> : null}
             <div role="region" aria-label="Avslutade supportärenden" tabIndex={0} className="mt-4 max-h-[32rem] space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
               {closed.map(renderCase)}
             </div>
