@@ -2,7 +2,7 @@
 // authority/mail/attempt fixture. No native or authentic delivery evidence.
 import { readFileSync, existsSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
-import { createContext, SourceTextModule } from 'node:vm'
+import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
@@ -17,9 +17,15 @@ const load = file => {
   return modules.get(file)
 }
 const entry = load(resolve(root, 'lib/inbound-mail/dsnDisposition.ts'))
+const mimeStructure = load(resolve(root, 'lib/inbound-mail/mimeStructure.ts'))
+const cryptoHash = new SyntheticModule(['createHash'], function () {
+  this.setExport('createHash', createHash)
+}, { context, identifier: 'node:crypto' })
 await entry.link((name, parent) => {
-  assert.equal(name, './mimeStructure', 'only the actual pure MIME dependency is allowed')
-  return load(resolve(dirname(parent.identifier), name + '.ts'))
+  if (parent === entry && name === './mimeStructure') return mimeStructure
+  assert.equal(parent, mimeStructure, 'only the MIME parser may load the hashing dependency')
+  assert.equal(name, 'node:crypto', 'only hashing is supplied to the MIME parser')
+  return cryptoHash
 })
 await entry.evaluate()
 const parse = raw => JSON.parse(JSON.stringify(entry.namespace.parseDeliveryStatusReport(raw)))

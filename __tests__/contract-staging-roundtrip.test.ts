@@ -30,7 +30,7 @@ function runRoundtrip(overrides: Record<string, string> = {}, rejectCompany = fa
       throw new Error('Unknown synthetic request');
     };
   `
-  const env = {
+  const env: NodeJS.ProcessEnv = {
     SUPABASE_URL: baseUrl,
     SUPABASE_SERVICE_ROLE_KEY: 'synthetic-fixture-key',
     GRIDEX_CONTRACT_TEST_COMPANY_ID: company,
@@ -38,6 +38,7 @@ function runRoundtrip(overrides: Record<string, string> = {}, rejectCompany = fa
     GRIDEX_E2E_STAGING_PROJECT_REF: project,
     GRIDEX_CONTRACT_TEST_CONFIRM_STAGING: 'YES',
     ...overrides,
+    NODE_ENV: 'test',
   }
   const result = spawnSync(process.execPath, [
     '--experimental-strip-types',
@@ -72,7 +73,7 @@ describe('staging contract roundtrip guarded writer', () => {
     expect(result.requests[2].body).toEqual({ p_company_id: company, p_actor_user_id: actor, p_offer_id: offer })
   })
 
-  it.each([
+  it.each<Record<string, string>>([
     { VERCEL_ENV: 'production' },
     { GRIDEX_CONTRACT_TEST_CONFIRM_STAGING: 'NO' },
     { SUPABASE_URL: 'https://other.example.invalid' },
