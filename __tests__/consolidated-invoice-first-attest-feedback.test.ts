@@ -58,6 +58,12 @@ it.each([
   expect(port.revalidate).not.toHaveBeenCalled()
 })
 
+it('explains that conflicting contract references can block a consolidated invoice', () => {
+  expect(invoiceGroupPreparationMessages.invoice_group_channel_conflict).toBe(
+    'Samlingsfakturan kan inte skapas. Kontrollera leveranskanal, fakturaadress och fakturareferens på de berörda avtalen.',
+  )
+})
+
 it.each([null, '2026-13', '/billing?PRIVATE DETAIL'])('omits broken or older month context: %s', async providedMonth => {
   const code = 'invoice_group_customer_choice_changed'
   port.rpc.mockResolvedValue({ error: { message: code, code: '23514' } })

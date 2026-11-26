@@ -15,7 +15,7 @@ export const invoiceGroupPreparationMessages = {
   invoice_group_recipient_conflict: 'Samlingsfakturan kan inte skapas eftersom fakturamottagarna skiljer sig.',
   invoice_group_locked_currency_mismatch: 'Underlagets valuta kan inte bekräftas av den låsta prissättningen.',
   invoice_group_currency_conflict: 'Samlingsfakturan kan inte skapas eftersom valutorna skiljer sig.',
-  invoice_group_channel_conflict: 'Samlingsfakturan kan inte skapas eftersom leveranskanalerna eller fakturaadresserna skiljer sig.',
+  invoice_group_channel_conflict: 'Samlingsfakturan kan inte skapas. Kontrollera leveranskanal, fakturaadress och fakturareferens på de berörda avtalen.',
   invoice_group_source_already_reserved: 'Ett valt underlag har redan beretts på en annan faktura.',
   invoice_group_distinct_sites_required: 'Samlingsfakturan behöver underlag för minst två anläggningar.',
   invoice_group_changed_replay: 'En samlingsfaktura finns redan för ett annat urval under faktureringscykeln.',
