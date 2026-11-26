@@ -3,7 +3,7 @@ import { nativeLockProcess, nativeLockProcessEnv } from './helpers/native-lock-p
 import { createHash, randomUUID } from 'node:crypto'
 import { cleanE30SourceFixture } from './helpers/utiltsConsumptionSourceFixture'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { s01L359AggregateWire } from './helpers/utiltsS01AggregateFixture'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
@@ -21,7 +21,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry, seedSentE73ForUtiltsConsumption } from './helpers/utiltsConsumptionParties'
 import {
   committedDurableE66WrapperBody,
   committedMixedE66SealBody,
@@ -59,7 +59,7 @@ function sql<T = unknown>(input: string, maxBuffer = 2000000): T {   if (process
   if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
-async function seed() {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+async function seed({ matchSentRequest = false } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
   const { ediel, issuer } = seedUtiltsConsumptionParties(sql, lit, ids.actor)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
@@ -112,6 +112,12 @@ async function seed() {   const ids = { source: randomUUID(), company: randomUUI
     expect(error).toBeNull()
     await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow, ids.actor)
     return data as unknown as EdielMessageRow
+  }
+  if (matchSentRequest) {
+    const reference = await seedSentE73ForUtiltsConsumption(sql, lit, ids)
+    const raw = message.raw_payload!
+    expect(raw).toContain('\nIDE+')
+    message.raw_payload = utiltsRecountUnt(raw.replace('\nIDE+', `\nRFF+ACW:${reference}'\nIDE+`))
   }
   const original = await insertSource(message.raw_payload!)
   const dataRequest = { id: ids.request, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, metering_point_id: ids.point, grid_owner_id: ids.grid, request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow
@@ -685,6 +691,21 @@ async function realSinks() {
   effects.meter.mockImplementation(meter.normalizeAndStoreMeteringValue)
   effects.bill.mockImplementation(billing.ingestBillingUnderlay)
 }
+const e66Completion = vi.fn()
+let restoreE66Completion: (() => void) | undefined
+function observeE66Completion() {
+  const rpc = supabaseService.rpc.bind(supabaseService)
+  const spy = vi.spyOn(supabaseService, 'rpc').mockImplementation(((...args: Parameters<typeof rpc>) => {
+    if (args[0] === 'gridex_sync_current_e66_request_v1') e66Completion(args[1])
+    return rpc(...args)
+  }) as typeof supabaseService.rpc)
+  restoreE66Completion = () => spy.mockRestore()
+}
+afterEach(() => {
+  restoreE66Completion?.()
+  restoreE66Completion = undefined
+  e66Completion.mockReset()
+})
 function consumedCount(company: string) {
   return sql(`SELECT jsonb_build_object('meter',(SELECT count(*) FROM public.metering_values WHERE company_id=${lit(company)}),'billing',(SELECT count(*) FROM public.billing_underlays WHERE company_id=${lit(company)}))`)
 }
@@ -700,33 +721,48 @@ it('real downstream writers consume database-derived stored values and retry ide
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
 it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
-  const f = await seed()
+  const f = await seed({ matchSentRequest: true })
   await realSinks()
-  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
+  observeE66Completion()
+  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
-  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
+  const protectedBillingState = () => sql(`SELECT jsonb_build_array(underlay_month,underlay_year,currency,payload->'consumptionContracts')
+    FROM public.billing_underlays WHERE company_id=${lit(f.ids.company)}`)
+  const beforeMutation = protectedBillingState()
+  const mutation = field === 'month' ? 'underlay_month=underlay_month % 12 + 1' : field === 'year' ? 'underlay_year=underlay_year + 1'
     : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)"
       : "payload=payload-'consumptionContracts'"
-  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  const update = `UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)};`
+  expect(() => sql(update)).toThrow('e66_billing_calendar_member_immutable')
+  expect(protectedBillingState()).toEqual(beforeMutation)
+  // Simulate persisted historical corruption in this disposable native fixture.
+  // Re-enable the single guard before committing the synthetic corruption.
+  sql(`BEGIN;
+    ALTER TABLE public.billing_underlays DISABLE TRIGGER e66_billing_calendar_member_guard;
+    ${update}
+    ALTER TABLE public.billing_underlays ENABLE TRIGGER e66_billing_calendar_member_guard;
+    COMMIT;`)
+  expect(protectedBillingState()).not.toEqual(beforeMutation)
   const afterMutation = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.complete.mockClear()
+  e66Completion.mockClear()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
-  expect(effects.complete).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(afterMutation)
 })
 it('full processor identical retry after underlay insert preserves row identity and legitimate workflow/audit changes', async () => {
-  const f = await seed()
+  const f = await seed({ matchSentRequest: true })
   await realSinks()
-  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
+  observeE66Completion()
+  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
   sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE company_id=${lit(f.ids.company)}`)
   const row = sql<{ id: string; status: string; updated_by: null }>(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.complete.mockClear()
+  e66Completion.mockClear()
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(replay.billingUnderlayId).toBe(row.id)
-  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(row)
 })
