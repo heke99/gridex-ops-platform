@@ -29,6 +29,12 @@ const priorE66MembershipWire=viaOriginalCalendar(originalPriorE66MembershipWire,
 const ownerSource=viaOriginalCalendar(originalOwnerSource,CALENDAR_SHIFT_DAYS)
 const utiltsNativeSourceFixture=viaOriginalCalendar(originalUtiltsNativeSourceFixture,CALENDAR_SHIFT_DAYS)
 const observationHandoffMessage=viaOriginalCalendar(originalObservationHandoffMessage,CALENDAR_SHIFT_DAYS)
+const [supplyYear,supplyMonth,supplyDay]=S('2026-10-01').split('-').map(Number)
+const firstWholeMonth=supplyMonth-1+Number(supplyDay!==1)
+const priorE66PeriodStart=new Date(Date.UTC(supplyYear,firstWholeMonth,1))
+const priorE66PeriodEnd=new Date(Date.UTC(supplyYear,firstWholeMonth+1,1))
+const priorE66ReceivedAt=new Date(priorE66PeriodEnd.getTime()+20*60*60*1000).toISOString()
+const priorE66AdmissionDate=priorE66ReceivedAt.slice(0,10)
 const utiltsStructureWire=viaOriginalCalendar(originalUtiltsStructureWire,CALENDAR_SHIFT_DAYS)
 
 // No database/client, parser, canonical registry or ownership decision is
@@ -488,7 +494,7 @@ async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,c
  const issuer=/NAD\+MS\+([0-9]+):/.exec(original.raw)?.[1]
  expect(issuer).toBeDefined();registerUtiltsIssuer(sql,literal,issuer!,f.ids.actor)
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?S('2026-09-30T20:00:00Z'):S('2026-10-01T20:00:00Z'))},'{}',${literal(parsed.applicationReference)},${literal(f.receiver)},${literal(f.sender)},${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?priorE66ReceivedAt:S('2026-10-01T20:00:00Z'))},'{}',${literal(parsed.applicationReference)},${literal(f.receiver)},${literal(f.sender)},${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
  WHERE profile.message_code=${literal(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
@@ -518,10 +524,13 @@ function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMe
  return {...message,id,raw_payload:wire,sender_ediel_id:f.receiver,receiver_ediel_id:f.sender}
 }
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
- return nativeTestWire(observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
+ const marketMidnight=(date:Date)=>date.toISOString().slice(0,10).replaceAll('-','')+'0000'
+ return nativeTestWire(observationHandoffMessage(priorE66AdmissionDate,f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
-  // DTM+354:1:802 is a whole-month E66 resolution: keep a whole market month.
-  .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202611010000'))
+  // Preserve a full declared calendar month and receive it after registration.
+  .replaceAll(S('202607010000'),marketMidnight(priorE66PeriodStart))
+  .replaceAll(S('202608010000'),marketMidnight(priorE66PeriodEnd))
+  .replace('260831:1811',priorE66AdmissionDate.slice(2).replaceAll('-','')+':1811')
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
 }
 async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
@@ -820,9 +829,10 @@ it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses r
  if(outcome==='E62')raw=raw.replaceAll('RFF+AES:101','RFF+AES:901')
  const source=await insertPriorUtilts(f,raw)
  const selectedPolicy=resolveCanonicalMessagePolicy(source)
- expect(selectedPolicy).toMatchObject({family:'UTILTS',code:'E66',referenceDate:S('2026-09-30')})
+ expect(selectedPolicy).toMatchObject({family:'UTILTS',code:'E66',referenceDate:priorE66AdmissionDate})
  const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
- expect(runUtiltsRuntimeForMessage(source,{canonicalPolicy:selectedPolicy!}).transactionDispositions).toMatchObject([{disposition:'accepted'}])
+ const baseline=runUtiltsRuntimeForMessage(source,{canonicalPolicy:selectedPolicy!})
+ expect(baseline.transactionDispositions,baseline.validation.issues.map(issue=>issue.code).join(',')).toMatchObject([{disposition:'accepted'}])
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
  const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
@@ -1190,7 +1200,7 @@ it.each([false,true])('native prior committed %s retry fails closed after newer 
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const source=await insertPriorUtilts(f,priorNativeWire(f,point))
- expect(resolveCanonicalMessagePolicy(source)).toMatchObject({family:'UTILTS',code:'E66',referenceDate:S('2026-09-30')})
+ expect(resolveCanonicalMessagePolicy(source)).toMatchObject({family:'UTILTS',code:'E66',referenceDate:priorE66AdmissionDate})
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
  utiltsEffects.interruptParsed=interrupted
@@ -1419,23 +1429,31 @@ it('native Z23 closure without our sent Z08 is refused and the period keeps its 
  await expect(applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).rejects.toMatchObject({message:expect.stringContaining('bilateral_closure_exact_sent_original_required')})
  expect(sql(`SELECT coalesce(jsonb_agg(end_date ORDER BY id),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toEqual(before)
 })
-it.each(['Z22'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
+it.each(['Z22'])('native %s scheduled closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
  const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
  expect(ended.outcome).toBe('supply_terminated')
- expect(ended.updated).toContain('customer_cases')
+ expect(ended.updated).toContain('customer_supply_periods')
+ // The shifted fixture's cutoff is still in the future. The end owner records
+ // that exact period and source now. Final work is created only after closing.
+ expect(ended.updated).not.toContain('customer_cases')
+ const effectiveAt=S('2026-10-14T23:00:00.000Z')
+ expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',status,'end_date',end_date,
+  'exact_cutoff',market_end_at=${literal(effectiveAt)}::timestamptz,'is_future',market_end_at>clock_timestamp())),'[]')
+  FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)} AND customer_id=${literal(f.ids.customer)}
+   AND metering_point_id=${literal(f.ids.point)} AND source_end_message_id=${literal(message.id)}`)).toEqual([
+  {status:'ending',end_date:S('2026-10-15'),exact_cutoff:true,is_future:true},
+ ])
  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_correction_process.facts
   WHERE company_id=${literal(f.ids.company)} AND table_name='customer_supply_periods'
    AND operation='UPDATE' AND old_fact->>'end_date' IS DISTINCT FROM new_fact->>'end_date'
    AND new_fact->>'end_date'='${S('2026-10-15')}' AND old_fact->>'customer_id'=${literal(f.ids.customer)}
    AND old_fact->>'metering_point_id'=${literal(f.ids.point)}))`)).toBe(true)
- expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('company',company_id,'customer',customer_id,'site',site_id,'point',metering_point_id,
-  'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
-  FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(message.id)}`)).toEqual([{
-   company:f.ids.company,customer:f.ids.customer,site:f.ids.site,point:f.ids.point,type:'other',reason:'final_metering_and_billing',status:'open',
-   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.',
-   source:'ediel_inbound_state_machine',intent:'final_metering_and_billing'}])
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE company_id=${literal(f.ids.company)}
+   AND (source_ediel_message_id=${literal(message.id)} OR metadata->>'source_ediel_message_id'=${literal(message.id)})`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_operation_tasks WHERE company_id=${literal(f.ids.company)}
+   AND customer_id=${literal(f.ids.customer)} AND task_type='final_invoice_pending'`)).toBe(0)
  // insertClosure already recorded and captured this source in production order.
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
