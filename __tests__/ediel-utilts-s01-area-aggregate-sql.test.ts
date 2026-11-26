@@ -141,7 +141,11 @@ async function boot() {
   db = new PGlite()
   await db.exec(`create schema gridex_utilts_binding;create schema gridex_ediel_source_rules;create schema gridex_e66_intake;create schema extensions;
     create function public.digest(value bytea, algorithm text) returns bytea language sql immutable as $$select case when algorithm='sha256' then sha256(value) end$$;`)
-  for (const name of ['public.ediel_messages','public.ediel_ack_transaction_results','public.meter_reading_series','public.meter_reading_values','gridex_utilts_binding.receipts','gridex_utilts_binding.contracts','gridex_ediel_source_rules.receipts','gridex_e66_intake.work']) await db.exec(table(name))
+  for (const name of [
+    'public.ediel_messages','public.ediel_ack_transaction_results','public.meter_reading_series','public.meter_reading_values',
+    'gridex_utilts_binding.receipts','gridex_utilts_binding.contracts','gridex_ediel_source_rules.receipts',
+    'gridex_e66_intake.work','gridex_e66_intake.sg11_compatibility_holds',
+  ]) await db.exec(table(name))
   await db.exec(`alter table public.ediel_messages add primary key(id);
     alter table public.ediel_ack_transaction_results add unique(company_id,environment,source_message_id,source_transaction_id);
     alter table public.meter_reading_series add primary key(id);alter table public.meter_reading_series add unique(company_id,dedupe_key);
