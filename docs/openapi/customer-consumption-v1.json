@@ -3,7 +3,7 @@
   "info": {
     "title": "Gridex Customer Consumption additive contract",
     "version": "2026-11-13.1",
-    "description": "Independent supplement; existing Customer Portal/Website releases remain immutable. Confirmed supply starts require both actual_start_date and canonical market_start_at; missing authority fails closed. Inclusive actual_end_date is converted to next local midnight; market instants and planned end may only restrict it. Each authority read is complete up to 1000 rows or fails closed. Meter pages preserve scanned cursors after supply-window filtering. Requests are limited to 32 physical days. Clients must follow all has_more cursors, discard non-current revisions, and reject overlapping current series."
+    "description": "Independent supplement; existing Customer Portal/Website releases remain immutable. Confirmed supply starts require both actual_start_date and canonical market_start_at; missing authority fails closed. A source-verified market closure uses its exclusive market end. A recorded inclusive actual_end_date is converted to next local midnight. Market instants and planned end may only restrict the verified delivery window. Each authority read is complete up to 1000 rows or fails closed. Meter pages preserve scanned cursors after supply-window filtering. Requests are limited to 32 physical days. Clients must follow all has_more cursors, discard non-current revisions, and reject overlapping current series."
   },
   "servers": [
     {

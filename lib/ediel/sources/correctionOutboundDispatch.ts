@@ -10,7 +10,7 @@ import type {ProdatTransportRetryBasis} from '@/lib/ediel/recovery/transportRetr
 import type {EdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
-import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
+import {SmtpCertificateRejectedBeforeSmtpError,SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import {smtpErrorEvidence,smtpResultEvidence} from '@/lib/ediel/transport/smtpEvidence'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {transportExceptionBinding,type TransportExceptionAuthorization} from '@/lib/ediel/transport/exception/source'
@@ -114,7 +114,15 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   if(scoped&&entryAttempted){
    if(!resultCaptured){
     // Failure to capture this observation leaves an entered, unresolved attempt.
-    try{const captured=await call('result',{result:smtpErrorEvidence(error)});await witness(captured)}catch{/* durable entry remains the no-resend fence */}
+    let captured:Receipt|undefined
+    try{
+     const observation=await call('result',{result:smtpErrorEvidence(error)})
+     await witness(observation)
+     captured=observation
+    }catch{/* durable entry remains the no-resend fence */}
+    if(error instanceof SmtpCertificateRejectedBeforeSmtpError && captured?.facts?.classification==='pre_connect_negative'
+      && captured.observationClock==='database_provider_result_capture'
+      && typeof captured.observedAt==='string' && Number.isFinite(Date.parse(captured.observedAt)))throw error
    }
    throw error instanceof SmtpDeliveryUncertainError?error:new SmtpDeliveryUncertainError(error)
   }

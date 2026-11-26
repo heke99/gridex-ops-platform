@@ -1,4 +1,4 @@
-import { stockholmLocalToUtc } from "@/lib/time/stockholm";
+import { stockholmLocalToUtc, strictIsoDate } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
 
@@ -68,26 +68,30 @@ function number(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function instant(value: unknown, endOfDate = false): number | null {
+function instant(value: unknown, endOfDate = false): bigint | null {
   const raw = text(value);
   if (!raw) return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
-  if (match) {
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    if (!endOfDate) return stockholmLocalToUtc({ year, month, day }).getTime();
-    const nextDay = new Date(Date.UTC(year, month - 1, day + 1));
-    return (
-      stockholmLocalToUtc({
-        year: nextDay.getUTCFullYear(),
-        month: nextDay.getUTCMonth() + 1,
-        day: nextDay.getUTCDate(),
-      }).getTime() - 1
-    );
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+    // Civil end dates include that day. The interval may end at the next midnight.
+    const date = new Date(Date.UTC(year, month - 1, day + (endOfDate ? 1 : 0)));
+    const milliseconds = stockholmLocalToUtc({
+      year: date.getUTCFullYear(),
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate(),
+    }).getTime();
+    return Number.isFinite(milliseconds) ? BigInt(milliseconds) * BigInt(1000) : null;
   }
-  const parsed = Date.parse(raw);
-  return Number.isFinite(parsed) ? parsed : null;
+
+  const milliseconds = Date.parse(raw);
+  if (!Number.isFinite(milliseconds)) return null;
+  // Date.parse already includes the first three fractional digits.
+  const fraction = /:\d{2}\.(\d+)(?:Z|[+-]\d{2}:?\d{2})?$/i.exec(raw)?.[1] ?? "";
+  const subMillisecond = fraction.slice(3, 6).padEnd(3, "0");
+  return BigInt(milliseconds) * BigInt(1000) + BigInt(subMillisecond);
 }
 
 function contractCivilDate(value: unknown): string | null {
@@ -97,11 +101,119 @@ function contractCivilDate(value: unknown): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : raw;
 }
 
+function exactInstant(value: unknown): bigint | null {
+  const raw = text(value);
+  return raw && /T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)
+    ? instant(raw)
+    : null;
+}
+
+function plannedEndedContract(supply: Record<string, unknown>, contract: Record<string, unknown>): boolean {
+  return supply.status === 'ended' && contract.status === 'terminated'
+    && contract.termination_reason === 'supply_end'
+    && Boolean(text(supply.source_end_message_id))
+    && Boolean(text(contract.id)) && supply.contract_id === contract.id
+    && Boolean(text(supply.end_date)) && (supply.actual_end_date ?? supply.end_date) === supply.end_date
+    && exactInstant(supply.market_end_at) !== null;
+}
+
+function persistedEndedSupplyBasis(
+  value: Record<string, unknown>, supply: Record<string, unknown>, contract: Record<string, unknown>,
+): boolean {
+  const gate = value.billing_gate_snapshot as RecordLike;
+  const basis = gate?.supply_source_basis as RecordLike;
+  return gate?.status === 'eligible' && gate.contract_id === contract.id
+    && gate.normalized_metering_value_id === value.id && gate.source_message_id === value.source_message_id
+    && basis?.qualified === true && basis.activated === true
+    && basis.companyId === supply.company_id && basis.customerId === supply.customer_id
+    && basis.meteringPointId === supply.metering_point_id && basis.periodId === supply.id
+    && basis.currentSourceMessageId === supply.source_end_message_id
+    && String(basis.marketStateVersion) === String(supply.market_state_version)
+    && typeof supply.market_state_version === 'number' && Number.isSafeInteger(supply.market_state_version)
+    && exactInstant(basis.marketEndAt) === exactInstant(supply.market_end_at);
+}
+
+type AdministrativeMoveOut = {
+  effectiveDate: string;
+  cutoffAt: bigint;
+  recordedAt: string;
+  marketStartAt: bigint;
+  marketEndAt: bigint | null;
+};
+
+function plannedAdministrativeMoveOut(
+  value: Record<string, unknown>, supply: Record<string, unknown>, contract: Record<string, unknown>,
+  startAt: bigint | null, endAt: bigint | null,
+): AdministrativeMoveOut | null {
+  if (contract.status !== 'terminated' || contract.termination_reason !== 'move_out' ||
+      (supply.status !== 'active' && supply.status !== 'confirmed_by_grid_owner') ||
+      supply.source !== 'ediel_qualified_source' || supply.source_process !== 'supplier_switch_confirmation' ||
+      !text(supply.source_message_id) || supply.source_end_message_id != null || supply.actual_end_date != null) return null;
+
+  if (!text(contract.id) || supply.contract_id !== contract.id ||
+      (supply.customer_contract_id != null && supply.customer_contract_id !== contract.id) ||
+      !text(value.customer_id) || value.customer_id !== supply.customer_id ||
+      value.direction !== 'consumption' || !isCanonicalUtiltsDecimal(value.quantity_kwh) || value.quantity_kwh.startsWith('-')) {
+    return null;
+  }
+
+  const metadata = supply.metadata as RecordLike;
+  const recordedAt = metadata?.planned_end_recorded_at;
+  if (metadata?.planned_end_source !== 'customer_lifecycle_close' || metadata.planned_end_reason !== 'move_out' ||
+      typeof recordedAt !== 'string' || exactInstant(recordedAt) === null) return null;
+
+  let effectiveDate: string;
+  try { effectiveDate = strictIsoDate(supply.end_date); }
+  catch { return null; }
+  const cutoffAt = instant(effectiveDate, true);
+  const marketStartAt = exactInstant(supply.market_start_at);
+  const marketEndAt = exactInstant(supply.market_end_at);
+  if (cutoffAt === null || marketStartAt === null || startAt === null || endAt === null ||
+      startAt < marketStartAt || startAt >= endAt || endAt > cutoffAt ||
+      (supply.market_end_at != null && (marketEndAt === null || endAt > marketEndAt))) return null;
+
+  return { effectiveDate, cutoffAt, recordedAt, marketStartAt, marketEndAt };
+}
+
+function persistedAdministrativeMoveOut(
+  value: Record<string, unknown>, supply: Record<string, unknown>, contract: Record<string, unknown>,
+  moveOut: AdministrativeMoveOut, startAt: bigint | null, endAt: bigint | null, revisionNumber: number,
+): boolean {
+  const gate = value.billing_gate_snapshot as RecordLike;
+  const basis = gate?.supply_source_basis as RecordLike;
+  // This field exists only in the native qualified-source projection. A
+  // similarly named field in the normalized row's snapshot carries no proof.
+  const proof = value.billing_administrative_close_basis as RecordLike;
+  if (!gate || !basis || !proof) return false;
+
+  const siteId = text(contract.site_id ?? contract.customer_site_id);
+  return value.billing_status === 'billable' && value.billing_gate_status === 'eligible' &&
+    gate.status === 'eligible' && value.supply_period_id === supply.id && gate.supply_period_id === supply.id &&
+    gate.contract_id === contract.id && gate.company_id === supply.company_id && gate.metering_point_id === supply.metering_point_id &&
+    gate.normalized_metering_value_id === value.id && gate.source_metering_value_id === value.source_metering_value_id &&
+    gate.source_message_id === value.source_message_id && gate.revision_number === revisionNumber &&
+    exactInstant(gate.period_start) === startAt && exactInstant(gate.period_end) === endAt &&
+    basis.qualified === true && basis.activated === true && basis.periodId === supply.id &&
+    basis.companyId === supply.company_id && basis.customerId === supply.customer_id &&
+    basis.meteringPointId === supply.metering_point_id && siteId !== null && basis.siteId === siteId &&
+    (contract.customer_site_id == null || contract.customer_site_id === siteId) &&
+    basis.currentSourceMessageId === supply.source_message_id && basis.initialSourceMessageId === supply.source_message_id &&
+    basis.sourceMessageId === supply.source_message_id &&
+    typeof supply.market_state_version === 'number' && Number.isSafeInteger(supply.market_state_version) &&
+    basis.marketStateVersion === supply.market_state_version &&
+    exactInstant(basis.marketStartAt) === moveOut.marketStartAt &&
+    (moveOut.marketEndAt === null ? basis.marketEndAt === null : exactInstant(basis.marketEndAt) === moveOut.marketEndAt) &&
+    proof.contractId === contract.id && typeof proof.eventId === 'string' &&
+    /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(proof.eventId) &&
+    proof.effectiveDate === moveOut.effectiveDate && exactInstant(proof.cutoffAt) === moveOut.cutoffAt &&
+    proof.recordedAt === moveOut.recordedAt;
+}
+
 function covers(
   startValue: unknown,
   endValue: unknown,
-  periodStart: number,
-  periodEnd: number,
+  periodStart: bigint,
+  periodEnd: bigint,
 ): boolean {
   const start = instant(startValue);
   const end = instant(endValue, true);
@@ -127,7 +239,7 @@ const ESTIMATED_QUALITY = new Set([
   "e",
   "p",
 ]);
-const ACTIVE_SUPPLY_STATES = new Set(["active", "confirmed_by_grid_owner", "ended"]);
+const ACTIVE_SUPPLY_STATES = new Set(["active", "confirmed_by_grid_owner", "ending", "ended"]);
 const ACTIVE_CONTRACT_STATES = new Set(["signed", "active"]);
 const ACCEPTED_SOURCE_MESSAGE_STATES = new Set([
   "parsed",
@@ -144,6 +256,8 @@ export function evaluateBillingGate(input: {
   sourceMessage?: RecordLike;
   allowEstimatedValues?: boolean;
   evaluatedAt?: string;
+  /** The matcher always sends this provisional status through the native billing-gate RPC. */
+  qualifyTerminatedSupplyOnWrite?: boolean;
 }): BillingGateDecision {
   const value = input.normalizedValue ?? {};
   const supply = input.supplyPeriod ?? {};
@@ -259,10 +373,15 @@ export function evaluateBillingGate(input: {
     );
   if (supplyCount === 1) {
     const supplyStatus = (text(supply.status) ?? "").toLowerCase();
-    // An ended period is billable only up to a known end date.
+    const isEnding = supplyStatus === "ending";
+    const hasEndStatus = isEnding || supplyStatus === "ended";
+    const marketStart = isEnding ? exactInstant(supply.market_start_at) : null;
+    const marketEnd = hasEndStatus ? exactInstant(supply.market_end_at) : null;
+    // A scheduled end limits coverage before the period changes to ended.
     if (
       !ACTIVE_SUPPLY_STATES.has(supplyStatus) ||
-      (supplyStatus === "ended" && !text(supply.end_date))
+      (hasEndStatus && (!text(supply.end_date) || marketEnd === null)) ||
+      (isEnding && (marketStart === null || marketEnd === null || marketStart >= marketEnd || !text(supply.source_end_message_id)))
     ) {
       reasons.push(
         reason(
@@ -288,7 +407,9 @@ export function evaluateBillingGate(input: {
     if (
       periodStart !== null &&
       periodEnd !== null &&
-      !covers(supply.start_date, supply.end_date, periodStart, periodEnd)
+      (!covers(supply.start_date, supply.end_date, periodStart, periodEnd) ||
+        (marketStart !== null && periodStart < marketStart) ||
+        (marketEnd !== null && periodEnd > marketEnd))
     ) {
       reasons.push(
         reason(
@@ -314,7 +435,15 @@ export function evaluateBillingGate(input: {
       ),
     );
   if (contractCount === 1) {
-    if (
+    const provisional = input.qualifyTerminatedSupplyOnWrite === true;
+    const endedContract = supplyCount === 1 && plannedEndedContract(supply, contract)
+      && (provisional || persistedEndedSupplyBasis(value, supply, contract));
+    const moveOut = supplyCount === 1 ? plannedAdministrativeMoveOut(value, supply, contract, periodStart, periodEnd) : null;
+    // The write branch proposes eligibility to the native owner. Only its stored
+    // proof authorizes a later read through the ordinary underlay generator.
+    const movedOutContract = moveOut !== null && (provisional ||
+      persistedAdministrativeMoveOut(value, supply, contract, moveOut, periodStart, periodEnd, revisionNumber));
+    if (!endedContract && !movedOutContract &&
       !ACTIVE_CONTRACT_STATES.has((text(contract.status) ?? "").toLowerCase())
     ) {
       reasons.push(

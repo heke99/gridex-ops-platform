@@ -297,7 +297,7 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativ
   const mail=await seedOriginalMailboxNative(transportSql,literal,{companyId:f.companyId,environment:'test',raw,smtpFrom:assertEdielSmtpReadiness().from})
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_unattributed_intake.raw_births WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)};`)).toBe(1)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_unattributed_intake.parse_births WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)};`)).toBe(1)
-  const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+  const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
   const transportCustody=mailCustody(mail)
   assert.equal(transportCustody.raw,raw);assert.equal(transportCustody.parsedRaw,raw)

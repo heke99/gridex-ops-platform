@@ -452,19 +452,34 @@ async function updateSubscriptionSuccess(subscriptionId: string) {
     })
 }
 
+async function readSubscriptionState(subscriptionId: string, companyId: string) {
+  const { data, error } = await supabaseService.from('webhook_subscriptions')
+    .select('status,failure_count').eq('id', subscriptionId).eq('company_id', companyId).maybeSingle()
+  if (error && !missingSchema(error)) throw error
+  return data
+}
+
 async function updateSubscriptionFailure(subscription: WebhookSubscriptionRow, deadLetter: boolean) {
-  await supabaseService
-    .from('webhook_subscriptions')
-    .update({
-      last_failure_at: new Date().toISOString(),
-      failure_count: Number(subscription.failure_count ?? 0) + 1,
-      status: deadLetter && Number(subscription.failure_count ?? 0) + 1 >= 10 ? 'paused' : subscription.status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', subscription.id)
-    .then((result: { error: unknown | null }) => {
-      if (result.error && !missingSchema(result.error)) throw result.error
-    })
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const current = await readSubscriptionState(subscription.id, subscription.company_id)
+    if (!current) return
+    const failureCount = current.failure_count + 1
+    const pause = current.status === 'active' && deadLetter && failureCount >= 10
+    const now = new Date().toISOString()
+    const { data, error } = await supabaseService.from('webhook_subscriptions')
+      .update({
+        last_failure_at: now,
+        failure_count: failureCount,
+        ...(pause ? { status: 'paused' } : {}),
+        updated_at: now,
+      })
+      .eq('id', subscription.id).eq('company_id', subscription.company_id)
+      .eq('status', current.status).eq('failure_count', current.failure_count)
+      .select('id').maybeSingle()
+    if (error && !missingSchema(error)) throw error
+    if (data || error) return
+  }
+  throw new Error('webhook_subscription_feedback_changed_concurrently')
 }
 
 export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, options: EnqueueOptions = {}): Promise<number> {
@@ -777,7 +792,12 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
       publicDeliveryId = computedDeliveryId
       requestBodyHash = computedRequestBodyHash
 
-      const transportDecision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')
+      // The batch snapshot may predate a pause committed by the operator or by
+      // the failure projection of an earlier delivery in this very batch.
+      const [transportDecision, subscriptionState] = await Promise.all([
+        getTenantOperationDecision(delivery.company_id, 'webhook.deliver'),
+        readSubscriptionState(subscription.id, delivery.company_id),
+      ])
       if (!transportDecision.allowed) {
         await finalizeClaimedDelivery(delivery, {
           status: 'blocked_tenant_state',
@@ -789,6 +809,16 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
           request_body_hash: requestBodyHash,
           locked_at: null,
           locked_by: null,
+        })
+        failed += 1
+        continue
+      }
+
+      if (subscriptionState?.status !== 'active') {
+        await finalizeClaimedDelivery(delivery, {
+          status: 'skipped', attempts, last_attempt_at: new Date().toISOString(),
+          failure_reason: 'Webhook subscription is not active at dispatch.',
+          locked_at: null, locked_by: null,
         })
         failed += 1
         continue

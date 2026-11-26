@@ -8,6 +8,8 @@ const root = path.resolve('/synthetic/p0-evidence-project')
 const firstId = 'GRIDEX-P0-001'
 const secondId = 'GRIDEX-P0-002'
 const browserSpec = 'e2e/browser/synthetic.spec.mjs'
+const checkoutSha = 'a'.repeat(40)
+const mergeEventSha = 'b'.repeat(40)
 
 type Manifest = { scenarios: Record<string, { npm_scripts: string[]; browser_specs: string[] }> }
 type ChildResult = { status: number | null; error?: Error; signal?: string }
@@ -23,6 +25,7 @@ type Scenario = {
 type Evidence = {
   schema_version: number
   commit_sha: string | null
+  event_commit_sha: string | null
   validation_status: string
   mapping_validation_status: string
   deterministic_support_status: string
@@ -52,6 +55,8 @@ function runExecutor({
   scripts = { 'synthetic:gate-a': 'synthetic only', 'synthetic:gate-b': 'synthetic only', 'synthetic:gate-c': 'synthetic only' } as Record<string, string>,
   missingBrowser = false,
   children = [] as ChildResult[],
+  actualHead = checkoutSha as string | null,
+  eventHead = mergeEventSha,
 } = {}) {
   const files = new Map([
     [path.join(root, 'PROJECT_E2E.yaml'), `scenarios:\n  - id: ${firstId}\n  - id: ${secondId}\n`],
@@ -81,6 +86,13 @@ function runExecutor({
         if (name === 'node:fs') return fs
         if (name === 'node:path') return path
         if (name === 'node:child_process') return {
+          execFileSync(command: string, args: string[], options: { cwd: string }) {
+            expect(command).toBe('git')
+            expect(args).toEqual(['--no-replace-objects', 'rev-parse', '--verify', 'HEAD^{commit}'])
+            expect(options.cwd).toBe(root)
+            if (actualHead === null) throw new Error('synthetic unavailable checkout')
+            return actualHead + '\n'
+          },
           spawnSync(command: string, args: string[]) {
             const result = children[calls.length] ?? { status: 0 }
             calls.push({ command, args })
@@ -91,7 +103,7 @@ function runExecutor({
       },
       process: {
         argv: ['node', 'gridex-p0-executor.cjs', ...args], platform: 'linux',
-        env: { GITHUB_SHA: 'synthetic-commit-only' },
+        env: { GITHUB_SHA: eventHead },
         exit(code: number) { throw new ScriptExit(code) },
       },
       console: {
@@ -119,6 +131,15 @@ function expectNoJourneyAttestation(evidence: Evidence) {
 }
 
 describe('P0 executor evidence scope', () => {
+  it('never treats the event SHA as a verified checkout when Git is unavailable', () => {
+    expect(runExecutor({ actualHead: null }).evidence).toMatchObject({ commit_sha: null, event_commit_sha: mergeEventSha })
+  })
+
+  it('rejects malformed Git and event evidence independently', () => {
+    expect(runExecutor({ actualHead: 'g'.repeat(40), eventHead: 'not-a-git-sha' }).evidence)
+      .toMatchObject({ commit_sha: null, event_commit_sha: null })
+  })
+
   it('keeps no-argument mapping validation successful without executing any gates or claiming journey evidence', () => {
     const result = runExecutor()
     expect(result.exitCode).toBe(0)
@@ -175,7 +196,8 @@ describe('P0 executor evidence scope', () => {
 
   it('preserves the checkout SHA as metadata without promoting it to journey qualification', () => {
     const result = runExecutor()
-    expect(result.evidence.commit_sha).toBe('synthetic-commit-only')
+    expect(result.evidence.commit_sha).toBe(checkoutSha)
+    expect(result.evidence.event_commit_sha).toBe(mergeEventSha)
     expect(result.evidence.schema_version).toBe(2)
     expectNoJourneyAttestation(result.evidence)
   })

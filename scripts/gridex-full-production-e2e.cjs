@@ -22,6 +22,10 @@ function checkoutSource(root) {
     eventSha: process.env.GITHUB_SHA || null,
     runId: process.env.GITHUB_RUN_ID || null,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT || null,
+    ...(process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? {
+      repository: process.env.GITHUB_REPOSITORY || null,
+      repositoryId: process.env.GITHUB_REPOSITORY_ID || null,
+    } : {}),
   }
 }
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
@@ -133,7 +137,11 @@ const coverageCaseBindings = [
     name: 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval',
     classes: ['TGT'], qualification: 'code_modelling', ports: { stateMachine: 'real_product_function', messages: 'synthetic', portal: 'not_entered' } },
 ]
-const coverageWorkflowSha256 = '46027df12acfa841ef84dd0ebf43315cceb8d10cb9a180387a7c048aff9999c8'
+// Both reviewed workflows execute the same coverage producer and bind its receipts.
+const coverageWorkflowDigests = [
+  '1b11210146cf41ef6d6af40923249a8f34f34c440a50c4415bbffe924eedcfc3',
+  '011ff2e81ef3902a3c64b4ef5a75d60f3d7ab50c76c5bd43f28f7cb1410087b8',
+]
 const documentBinding = { id: 'coverage_document_integrity', sourceFile: 'scripts/check-ediel-masterplan-v2.cjs',
   sourceSha256: '4ed209736d9aa05ca07e56943bb043b62e36f26069a96771c34d03f90a96591c',
   classes: ['document'], qualification: 'specification_integrity_and_evidence_references_only', ports: { filesystem: 'real_local' } }
@@ -308,7 +316,7 @@ function consumeReviewedCodeEvidence(root, source, blockers, modes) {
     } catch { blockers.push('case_artifact_missing_or_unqualified:native') }
     try {
       const workflow = '.github/workflows/full-e2e.yml'
-      if (!sourceMatches(workflow, coverageWorkflowSha256)) throw Error('case_producer_source_changed')
+      if (!coverageWorkflowDigests.some(digest => sourceMatches(workflow, digest))) throw Error('case_producer_source_changed')
       const run = latestRun(runs, workflow)
       const ownRun = String(run.id) === source.runId && String(run.run_attempt) === source.runAttempt
       // A PR certificate runs inside its own in-progress workflow, after the
@@ -339,11 +347,8 @@ function consumeReviewedCodeEvidence(root, source, blockers, modes) {
   if (!ciQualified) blockers.push('authenticated_ci_not_passed')
   return { caseEvidence, ciQualified }
 }
-function assembleEdielReleaseEvidence(root, ciPassed, modes) {
-  const source = checkoutSource(root), blockers = []
-  if (!source.candidateSha || !source.candidateTree || !source.checkoutClean) blockers.push('checkout_provenance_unqualified')
-  if (!ciPassed) blockers.push('ci_not_passed')
-  const executions = modes.map(mode => {
+function readRunnerExecutions(root, source, modes, blockers, manualAll = false) {
+  return modes.map(mode => {
     const directory = path.join(root, 'e2e-artifacts', 'inputs', mode)
     const sourceReference = path.relative(root, path.join(directory, 'gridex-executed-evidence.json'))
     try {
@@ -352,6 +357,8 @@ function assembleEdielReleaseEvidence(root, ciPassed, modes) {
       if (index.format !== 'gridex_runner_execution_artifact_v1' || index.mode !== mode || index.sourceUnchanged !== true
         || !source.candidateSha || !source.candidateTree || !source.checkoutClean || !source.runId || !source.runAttempt
         || index.source?.checkoutClean !== true || index.source.candidateSha !== source.candidateSha || index.source.candidateTree !== source.candidateTree
+        || (manualAll && (index.source.eventSha !== source.candidateSha ||
+          index.source.repository !== source.repository || index.source.repositoryId !== source.repositoryId))
         || index.source.runId !== source.runId || index.source.runAttempt !== source.runAttempt || !Array.isArray(index.files)) throw Error('runner_source_unqualified')
       const report = JSON.parse(String(fs.readFileSync(path.join(directory, 'gridex-e2e-report.json'))))
       if (report.schema_version !== 2 || report.suite !== 'gridex-full-production-e2e' || report.mode !== mode || report.status !== 'passed'
@@ -374,6 +381,12 @@ function assembleEdielReleaseEvidence(root, ciPassed, modes) {
       return { mode, status: 'unqualified', sourceReference }
     }
   })
+}
+function assembleEdielReleaseEvidence(root, ciPassed, modes) {
+  const source = checkoutSource(root), blockers = []
+  if (!source.candidateSha || !source.candidateTree || !source.checkoutClean) blockers.push('checkout_provenance_unqualified')
+  if (!ciPassed) blockers.push('ci_not_passed')
+  const executions = readRunnerExecutions(root, source, modes, blockers)
   // Individual results through the authenticated existing producer channel may
   // establish only the source-reviewed classes/effects of those exact cases.
   const { caseEvidence, ciQualified } = consumeReviewedCodeEvidence(root, source, blockers, modes)
@@ -403,12 +416,37 @@ function assembleEdielReleaseEvidence(root, ciPassed, modes) {
     activationGates: { liveTransport: 'NOT_OBSERVED', formalTGT: 'NOT_OBSERVED' }, scopeMatrix, executions, caseEvidence, blockers }
 }
 
+function checkStagingPreflight(mode) {
+  if (mode !== 'runtime') {
+    console.error('Unknown protected staging preflight mode.')
+    return 2
+  }
+  const names = ['GRIDEX_E2E_SUPABASE_URL', 'GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY',
+    'GRIDEX_E2E_STAGING_PROJECT_REF', 'GRIDEX_E2E_ACTOR_USER_ID']
+  const missing = names.filter(name => !process.env[name]?.trim())
+  if (missing.length) {
+    for (const name of missing) console.error('Missing required staging setting: ' + name)
+    return 1
+  }
+  const projectRef = process.env.GRIDEX_E2E_STAGING_PROJECT_REF.trim()
+  const baseUrl = process.env.GRIDEX_E2E_SUPABASE_URL.replace(/\/$/, '')
+  if (!/^[a-z0-9]{20}$/.test(projectRef) || projectRef === 'piidsfebjqjmnepdpnas'
+    || baseUrl !== 'https://' + projectRef + '.supabase.co') {
+    console.error('Protected staging URL must match GRIDEX_E2E_STAGING_PROJECT_REF and belong to a non-production project.')
+    return 1
+  }
+  return 0
+}
+
+const stagingPreflight = process.argv.find(arg => arg.startsWith('--staging-preflight='))
 const certificateMode = process.argv.find(arg => arg.startsWith('--certificate='))?.split('=')[1]
-if (certificateMode) {
+if (stagingPreflight !== undefined) {
+  process.exitCode = checkStagingPreflight(stagingPreflight.slice('--staging-preflight='.length))
+} else if (certificateMode) {
   const root = path.resolve(__dirname, '..')
   const states = certificateMode === 'pr'
     ? { smoke: process.env.SMOKE_RESULT, coverage: process.env.COVERAGE_RESULT }
-    : certificateMode === 'nightly'
+    : ['nightly', 'manual-all'].includes(certificateMode)
       ? { full: process.env.FULL_RESULT, runtime_staging: process.env.RUNTIME_RESULT, protected_customer_staging: process.env.REAL_RESULT }
       : null
   if (!states) { console.error('Unknown release certificate mode'); process.exitCode = 2 }
@@ -416,10 +454,26 @@ if (certificateMode) {
     const passed = Object.values(states).every(status => status === 'success')
     const artifactDir = path.join(root, 'e2e-artifacts')
     fs.mkdirSync(artifactDir, { recursive: true })
-    const certificate = { schema_version: 1, ...Object.fromEntries(Object.entries(states).map(([key, value]) => [key, value ?? 'missing'])),
-      verdict: passed ? 'GREEN' : 'RED', edielReleaseEvidence: assembleEdielReleaseEvidence(root, passed, certificateMode === 'pr' ? ['smoke'] : ['full', 'runtime', 'real']) }
-    fs.writeFileSync(path.join(artifactDir, certificateMode + '-release-certificate.json'), JSON.stringify(certificate, null, 2) + '\n')
-    if (!passed) process.exitCode = 1
+    if (certificateMode === 'manual-all') {
+      const jobResults = Object.fromEntries(Object.entries(states).map(([key, value]) => [key, value || 'missing']))
+      const source = checkoutSource(root), blockers = []
+      if (process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' || !source.candidateSha || source.eventSha !== source.candidateSha ||
+        source.repository !== 'heke99/gridex-ops-platform' || source.repositoryId !== '1190539955') {
+        blockers.push('manual_dispatch_source_unqualified')
+      }
+      if (!passed) blockers.push('manual_jobs_not_passed')
+      const executions = readRunnerExecutions(root, source, ['full', 'runtime', 'real'], blockers, true)
+      const receipt = { schema_version: 1, mode: 'manual-all', source, jobResults, executions, blockers,
+        verdict: blockers.length ? 'MANUAL_GATES_FAILED' : 'MANUAL_GATES_PASSED',
+        separateEvidenceRequired: ['smoke', 'coverage', 'pr-certificate', 'nightly-release-certificate', 'staging-quality-certificate'] }
+      fs.writeFileSync(path.join(artifactDir, 'manual-all-run-evidence.json'), JSON.stringify(receipt, null, 2) + '\n')
+      if (blockers.length) process.exitCode = 1
+    } else {
+      const certificate = { schema_version: 1, ...Object.fromEntries(Object.entries(states).map(([key, value]) => [key, value ?? 'missing'])),
+        verdict: passed ? 'GREEN' : 'RED', edielReleaseEvidence: assembleEdielReleaseEvidence(root, passed, certificateMode === 'pr' ? ['smoke'] : ['full', 'runtime', 'real']) }
+      fs.writeFileSync(path.join(artifactDir, certificateMode + '-release-certificate.json'), JSON.stringify(certificate, null, 2) + '\n')
+      if (!passed) process.exitCode = 1
+    }
   }
 } else {
 

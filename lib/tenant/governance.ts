@@ -337,12 +337,19 @@ const COMPANY_FULL_SELECT = 'id, name, legal_name, slug, org_number, vat_number,
 const COMPANY_SAFE_SELECT = 'id, name, slug, org_number, customer_number_prefix, status, status_reason, primary_contact_email, primary_contact_name, phone, website, created_at, updated_at'
 const COMPANY_MINIMAL_SELECT = 'id, name, status'
 
-async function selectCompanyById(companyId: string, select: string) {
+async function selectCompanyById<Columns extends string>(companyId: string, select: Columns) {
   return supabaseService
     .from('companies')
     .select(select)
     .eq('id', companyId)
     .maybeSingle()
+}
+
+// Callers must resolve the contract's tenant before checking signing availability.
+export async function canSendSignatureForCompany(companyId: string): Promise<boolean> {
+  const { data, error } = await selectCompanyById(companyId, 'is_active,lifecycle_status,suspended_at')
+  if (error) throw error
+  return data?.is_active === true && data.lifecycle_status === 'active' && data.suspended_at === null
 }
 
 export async function getCompanyById(companyId: string): Promise<CompanyRow | null> {

@@ -31,7 +31,6 @@ import { processInboundUtiltsMessage } from "@/lib/ediel/flows/utiltsDataRequest
 
 
 
-import { supabaseService } from "@/lib/supabase/service"
 
 
 
@@ -51,61 +50,28 @@ import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from "@/lib
 import {createReceivedProdatStructuralAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
 import type { EdielEnvironment } from "@/lib/ediel/types"
 import { formNumber, formString, getProdatDraftBuilder, parseEdielTestRoleCode, parseEdielTestSuite, requireScopedEdielMessageForAction, revalidateEdiel, revalidateRelatedMessage } from './actions.part-1'
-import { REPLACEABLE_TGT_ACK_STATUSES } from './actions.part-3'
 
-export async function removeReplaceableAckMessagesForSource(params: {
+export async function assertNoExistingAckForSource(params: {
   actorUserId: string;
   sourceMessageId: string;
   ackFamily: AckFamily;
   preset: string;
-  companyId?: string | null;
+  companyId: string | null;
+  environment: EdielEnvironment;
 }) {
   const existingAcks = await listBusinessAckMessagesForSource({
-    sourceMessageId: params.sourceMessageId, ackFamily: params.ackFamily, companyId: params.companyId ?? null, actorUserId: params.actorUserId,
+    sourceMessageId: params.sourceMessageId,
+    ackFamily: params.ackFamily,
+    companyId: params.companyId,
+    environment: params.environment,
+    actorUserId: params.actorUserId,
   });
 
-  const nonReplaceable = existingAcks.find(
-    (ack) => !REPLACEABLE_TGT_ACK_STATUSES.has(String(ack.status)),
-  );
-  if (nonReplaceable) {
+  if (existingAcks.length > 0) {
     throw new Error(
-      `${params.preset} kan inte skapas eftersom ${params.ackFamily} redan finns med status ${nonReplaceable.status}. Radera inte historik automatiskt efter skick.`,
+      `${params.preset} kan inte skapas. ${params.ackFamily} finns redan för originalet. Öppna den befintliga kvittensen för att granska innehåll och leveransstatus.`,
     );
   }
-
-  const replaceableIds = existingAcks.map((ack) => ack.id).filter(Boolean);
-  if (replaceableIds.length === 0) return;
-
-  const testRunDelete = await supabaseService
-    .from("ediel_test_run_messages")
-    .delete()
-    .in("ediel_message_id", replaceableIds);
-  if (testRunDelete.error) throw testRunDelete.error;
-
-  const eventsDelete = await supabaseService
-    .from("ediel_message_events")
-    .delete()
-    .in("ediel_message_id", replaceableIds);
-  if (eventsDelete.error) throw eventsDelete.error;
-
-  const messagesDelete = await supabaseService
-    .from("ediel_messages")
-    .delete()
-    .in("id", replaceableIds);
-  if (messagesDelete.error) throw messagesDelete.error;
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.sourceMessageId,
-    eventType: "manual_note",
-    eventStatus: "warning",
-    message: `${params.preset}: ersatte gammal kvittens-draft/failed/cancelled innan nytt skick.`,
-    payload: {
-      removedAckMessageIds: replaceableIds,
-      ackFamily: params.ackFamily,
-      preset: params.preset,
-    },
-  });
 }
 
 export function parseLineItemReferencesByZ07(
@@ -176,12 +142,13 @@ export async function createAndSendTgtAperakPreset(params: {
     );
   }
 
-  await removeReplaceableAckMessagesForSource({
+  await assertNoExistingAckForSource({
     actorUserId: params.actorUserId,
     sourceMessageId: params.sourceMessageId,
     ackFamily: "APERAK",
     preset: params.preset,
-    companyId: sourceMessage.company_id ?? null,
+    companyId: sourceMessage.company_id ?? params.context.companyId,
+    environment: sourceMessage.environment,
   });
 
   const ackMessage = await createAckDraftForMessage({

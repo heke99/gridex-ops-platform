@@ -59,11 +59,13 @@ jobs:
         with:
           version: 2.101.0
       - name: Execute the actual Z05 supplier chain after disposable clean replay
+        id: z05_native
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
           set -euo pipefail
+          printf '%s\n' 'Z05 phase: prepare-checkout-pins'
           mkdir -p z05-supplier-native-working
           # Pin immutable checkout inputs before the canonical replay temporarily
           # moves original migration files. No credentials exist in this receipt.
@@ -133,15 +135,23 @@ jobs:
           PY
           # The existing owner keeps its EXIT cleanup trap. Replay/status
           # output can contain disposable credentials and is never uploaded.
+          printf '%s\n' 'Z05 phase: clean-replay'
+          export GRIDEX_CAPTURE_ERROR_BOUNDARY=1
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z05-supplier-replay.log" 2>&1
+          unset GRIDEX_CAPTURE_ERROR_BOUNDARY
+          trap - ERR
+          set +E
+          printf '%s\n' 'Z05 phase: read-disposable-status'
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z05-supplier-native-status.json"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf '%s\n' 'Z05 phase: run-native-tests'
           native_exit=0
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
             --config scripts/ediel-z05-supplier-native.config.ts \
             --reporter=default --reporter=junit \
             --outputFile=z05-supplier-native-working/native-junit.xml \
             > z05-supplier-native-working/native.log 2>&1 || native_exit=$?
+          printf '%s\n' 'Z05 phase: record-native-result'
           export Z05_SUPPLIER_NATIVE_EXIT="$native_exit"
           python3 - <<'PY'
           import json, os, pathlib
@@ -151,14 +161,54 @@ jobs:
           pathlib.Path('z05-supplier-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           receipt_path.unlink()
           PY
+          printf '%s\n' 'Z05 phase: redact-evidence'
           python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$GRIDEX_NATIVE_STATUS" --root z05-supplier-native-working
           # Only successfully redacted files enter the uploaded directory.
           # Receipt/redaction failure leaves no artifact directory to upload.
+          printf '%s\n' 'Z05 phase: publish-redacted-evidence'
           mv z05-supplier-native-working z05-supplier-native-evidence
           cat z05-supplier-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$native_exit"
+      - name: Report the bounded Z05 replay failure location
+        if: failure() && steps.z05_native.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_Z05_REPLAY_BOUNDARY'
+          import json, os, stat
+
+          # Read only the fixed cleanup receipt. The replay and status files stay private.
+          try:
+              directory = os.open(os.environ['RUNNER_TEMP'], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+              try:
+                  descriptor = os.open('staff-schema-capture-error-boundary.json',
+                                       os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+                  with os.fdopen(descriptor, 'rb') as stream:
+                      info = os.fstat(stream.fileno())
+                      if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= 4096:
+                          raise ValueError('invalid replay boundary file')
+                      raw = stream.read(4097)
+                      if len(raw) > 4096:
+                          raise ValueError('oversized replay boundary file')
+                      entries = json.loads(raw, object_pairs_hook=tuple)
+              finally:
+                  os.close(directory)
+              if type(entries) is not tuple or len(entries) != 3:
+                  raise ValueError('invalid replay boundary shape')
+              boundary = dict(entries)
+              script = 'scripts/gridex-aud-003-clean-replay.sh'
+              if (set(boundary) != {'source', 'source_line', 'exit_code'}
+                  or boundary['source'] != script
+                  or type(boundary['source_line']) is not int or not 1 <= boundary['source_line'] <= 1000000
+                  or type(boundary['exit_code']) is not int or not 1 <= boundary['exit_code'] <= 255):
+                  raise ValueError('invalid replay boundary values')
+              print(json.dumps({'phase': 'clean_replay', 'source': script,
+                                'source_line': boundary['source_line'], 'exit_code': boundary['exit_code']}))
+          except (OSError, KeyError, TypeError, ValueError, RecursionError):
+              print('Z05 clean replay boundary unavailable.')
+          PY_Z05_REPLAY_BOUNDARY
       - name: Upload redacted native feedback
         if: always()
         uses: actions/upload-artifact@v4

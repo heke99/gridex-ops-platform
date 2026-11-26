@@ -9,7 +9,7 @@ import type {StructuralCoverage} from '@/lib/ediel/sources/structuralSourceSelec
 import type {CorrectionContextBlockerV1} from '@/lib/ediel/sources/correctionContextImpact'
 
 export type StructuralComparisonInput={raw:string;transactionIndex:number;cutoffAt:string;ledgerStartedAt:string;readComplete:boolean;unresolvedSources:boolean;versions:readonly StructuralVersion[];closures?:readonly ClosureVersion[];closureBlockers?:readonly ScopedClosureBlocker[];
-  correctionContextBlockers?:readonly CorrectionContextBlockerV1[];companyId?:string;environment?:'test'|'production';customerId?:string|null;supplyPeriodId?:string|null}
+  correctionContextBlockers?:readonly CorrectionContextBlockerV1[];ignoredEnergyTimestamps?:ReadonlySet<number>;companyId?:string;environment?:'test'|'production';customerId?:string|null;supplyPeriodId?:string|null}
 export type StructuralComparison={transactionId:string|null;status:'not_applicable'|'matched'|'mismatch'|'unavailable';reason:string|null;codes:('E61'|'E62')[];selected:SelectedStructure[];coverage?:StructuralCoverage;closure?:ClosureProvenance}
 const instant=parseSourceReceiptInstant
 
@@ -21,7 +21,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
   const unavailable=(reason:string):StructuralComparison=>({transactionId,status:'unavailable',reason,codes:[],selected:[]})
   const notApplicable=():StructuralComparison=>({transactionId,status:'not_applicable',reason:null,codes:[],selected:[]})
   try{
-    const ast=singleMessage(input.raw,'UTILTS')
+    const ast=singleMessage(input.raw,'UTILTS', true)
     if(!ast)return unavailable('structural_utilts_envelope_unknown')
     if(!['E30','E66','S07'].includes(ast.messages[0].messageCode??''))return notApplicable()
     const transactions=ast.messages[0].utiltsTransactions??[],transaction=transactions[input.transactionIndex]
@@ -69,7 +69,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
       if(meters.length)currentMeter=meters[0].value
       if(currentMeter===null)return unavailable('structural_observation_meter_unknown')
       observedRegisters.add(registerId);observedMeters.add(currentMeter)
-      const dates=datetimes(observation.segments,'597')
+      const dates=datetimes(observation.segments.filter(segment=>!input.ignoredEnergyTimestamps?.has(segment.index)),'597')
       const at=dates.length===1&&dates[0].length===3?date(dates[0][1],dates[0][2]):null
       if(!at)return unavailable('structural_reading_time_unknown')
       readingTimes.push(at)

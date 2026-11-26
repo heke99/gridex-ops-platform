@@ -24,7 +24,7 @@ it.each([
  message.raw_payload=z06fNativeReadingWire({...scope,requestedStartDate:'2026-10-20'})
   .replace('DTM+324:202611010000202611020000:719',`DTM+324:${from}0000${to}0000:719`)
   .replaceAll('DTM+597:202611020000:203',`DTM+597:${to}0000:203`).replace('DTM+597:202611010000:203',`DTM+597:${from}0000:203`)
-  .replace('DTM+354:1:804','DTM+354:1:802').replace("QTY+136:500'","QTY+136:1000'")
+  .replace('DTM+354:1:804','DTM+354:1:802')
  const runtime=runUtiltsRuntimeForMessage(message),policy=resolveCanonicalMessagePolicy(message)!
  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
  const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,dataRequest:null,

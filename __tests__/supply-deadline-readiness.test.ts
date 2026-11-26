@@ -32,7 +32,7 @@ vi.mock('@/lib/website/customerApplicationAutomationReadiness', () => ({
   evaluateCustomerApplicationAutomationReadiness: async () => ({
     ready: port.ready, blockers: port.ready ? [] : ['Declared unavailable automation prerequisite'], warnings: [],
     checks: { automation_user_configured: true, automation_user_verified: true, cron_secret_configured: true,
-      runtime_contract_ready: port.runtime, verified_customer_email_sender: true, required_email_templates_active: true,
+      runtime_contract_ready: port.runtime, verified_customer_email_sender: true, required_email_sender_queueable: true, required_email_templates_active: true,
       required_email_rules_active: true, manual_operations_mailbox_ready: true },
   }),
 }))

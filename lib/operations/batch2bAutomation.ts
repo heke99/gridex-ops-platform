@@ -1,4 +1,6 @@
-import { createCustomerInfoRequest } from '@/lib/onboarding/infoRequests'
+import { scanMeteringPeriodPoints } from '@/lib/operations/meteringPeriodScan'
+import { createBillingExportBlockerTasks } from '@/lib/billing/exportBlockerTasks'
+import { createCustomerInfoRequestWithReceipt } from '@/lib/onboarding/infoRequests'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
@@ -30,28 +32,35 @@ export type Batch2BControlTowerRow = {
 
 type CustomerContractRow = {
   id: string
-  company_id: string
-  customer_id: string
+  customer_id: string | null
   site_id: string | null
-  status: string | null
-  starts_at: string | null
 }
 
-type CustomerSiteRow = {
-  id: string
-  company_id: string
-  customer_id: string
-  grid_owner_id: string | null
-  move_in_date: string | null
-}
+async function readOnboardingContracts(companyId: string): Promise<CustomerContractRow[]> {
+  const contracts: CustomerContractRow[] = []
+  let after: string | undefined
 
-type MeteringPointRow = {
-  id: string
-  company_id: string
-  site_id: string | null
-  meter_point_id: string | null
-  grid_owner_id: string | null
-  status: string | null
+  for (;;) {
+    let query = supabaseService
+      .from('customer_contracts')
+      .select('id, customer_id, site_id')
+      .eq('company_id', companyId)
+      .in('status', ['signed', 'active', 'pending_signature'])
+      .order('id')
+      .limit(250)
+    if (after) query = query.gt('id', after)
+
+    const { data, error } = await query
+    if (error) throw error
+    if (!data?.length) return contracts
+    for (const contract of data) {
+      if (!contract.id || (after && contract.id <= after)) {
+        throw new Error('Avtalsurvalet för grundautomation har ogiltig sortering.')
+      }
+      contracts.push(contract)
+      after = contract.id
+    }
+  }
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -65,39 +74,26 @@ function isMissingRelationError(error: unknown): boolean {
   )
 }
 
-function previousMonthPeriod(): { periodMonth: string; periodStart: string; periodEnd: string; year: number; month: number } {
+function previousMonthStart(): string {
   const now = new Date()
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const year = start.getUTCFullYear()
-  const month = start.getUTCMonth() + 1
-  return {
-    periodMonth: `${year}-${String(month).padStart(2, '0')}`,
-    periodStart: start.toISOString().slice(0, 10),
-    periodEnd: end.toISOString().slice(0, 10),
-    year,
-    month,
-  }
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 10)
 }
 
-async function recordAutomationRun(input: Batch2BRunResult & { actorUserId: string; status?: string; metadata?: Record<string, unknown> }) {
-  try {
-    await supabaseService.from('operations_automation_runs').insert({
-      company_id: input.companyId,
-      run_type: 'batch_2b_operations',
-      status: input.status ?? (input.blockersFound > 0 ? 'completed_with_flags' : 'completed'),
-      customers_scanned: input.customersScanned,
-      tasks_created: input.tasksCreated,
-      requests_created: input.requestsCreated,
-      cases_created: input.casesCreated,
-      exports_created: input.exportsCreated,
-      blockers_found: input.blockersFound,
-      metadata: { notes: input.notes, ...(input.metadata ?? {}) },
-      created_by: input.actorUserId,
-    })
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error
-  }
+async function recordAutomationRun(input: Batch2BRunResult & { actorUserId: string; status?: string; runType?: string; metadata?: Record<string, unknown> }) {
+  const { error } = await supabaseService.from('operations_automation_runs').insert({
+    company_id: input.companyId,
+    run_type: input.runType ?? 'batch_2b_operations',
+    status: input.status ?? (input.blockersFound > 0 ? 'completed_with_flags' : 'completed'),
+    customers_scanned: input.customersScanned,
+    tasks_created: input.tasksCreated,
+    requests_created: input.requestsCreated,
+    cases_created: input.casesCreated,
+    exports_created: input.exportsCreated,
+    blockers_found: input.blockersFound,
+    metadata: { notes: input.notes, ...(input.metadata ?? {}) },
+    created_by: input.actorUserId,
+  })
+  if (error) throw new Error('Körhistoriken kunde inte sparas.', { cause: error })
 }
 
 async function ensureCustomerInfoRequest(input: {
@@ -121,7 +117,7 @@ async function ensureCustomerInfoRequest(input: {
     .limit(1)
   if (before.error) throw before.error
   if ((before.data ?? []).length > 0) return false
-  await createCustomerInfoRequest({
+  const receipt = await createCustomerInfoRequestWithReceipt({
     companyId: input.companyId,
     actorUserId: input.actorUserId,
     customerId: input.customerId,
@@ -134,121 +130,37 @@ async function ensureCustomerInfoRequest(input: {
     automationKey: input.automationKey,
     automationOrigin: 'batch_2b_operations',
   })
-  return true
+  return receipt.created
 }
 
-async function ensureOutboundRequest(input: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string | null
-  gridOwnerId: string | null
-  requestType: 'meter_values' | 'billing_underlay'
-  automationKey: string
-  periodStart: string
-  periodEnd: string
-  payload: Record<string, unknown>
-}): Promise<boolean> {
-  const { data: existing, error: existingError } = await supabaseService
-    .from('outbound_requests')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('automation_key', input.automationKey)
-    .limit(1)
-
-  if (existingError) {
-    if (isMissingRelationError(existingError)) return false
-    throw existingError
+async function prepareMeteringRequest(
+  input: { companyId: string; actorUserId: string },
+  pointId: string,
+  monthStart: string,
+): Promise<{ created: boolean; scopeMissing: boolean }> {
+  const db = supabaseService as unknown as {
+    rpc(
+      name: 'gridex_prepare_batch2b_metering_request_v1',
+      args: { p_company_id: string; p_point_id: string; p_month_start: string; p_actor_user_id: string },
+    ): PromiseLike<{ data: {
+      pointId?: unknown; periodMonth?: unknown; outcome?: unknown; reason?: unknown;
+      requestCreated?: unknown; caseCreated?: unknown; caseRequestLinked?: unknown;
+    } | null; error: unknown }>
   }
-
-  if ((existing ?? []).length > 0) return false
-
-  const { error } = await supabaseService.from('outbound_requests').insert({
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    site_id: input.siteId,
-    metering_point_id: input.meteringPointId,
-    grid_owner_id: input.gridOwnerId,
-    request_type: input.requestType,
-    source_type: 'bulk_generation',
-    source_id: null,
-    status: 'queued',
-    channel_type: 'unresolved',
-    payload: {
-      ...input.payload,
-      automation: 'batch_2b_operations',
-      exportMode: 'row_level_not_whole_period_blocking',
-    },
-    response_payload: {},
-    period_start: input.periodStart,
-    period_end: input.periodEnd,
-    automation_origin: 'batch_2b_operations',
-    automation_key: input.automationKey,
-    created_by: input.actorUserId,
-    updated_by: input.actorUserId,
+  const { data, error } = await db.rpc('gridex_prepare_batch2b_metering_request_v1', {
+    p_company_id: input.companyId,
+    p_point_id: pointId,
+    p_month_start: monthStart,
+    p_actor_user_id: input.actorUserId,
   })
-
-  if (error) {
-    if (isMissingRelationError(error)) return false
-    throw error
+  if (error) throw new Error('Begäran om mätvärden kunde inte förberedas.', { cause: error })
+  if (!data || data.pointId !== pointId || data.periodMonth !== monthStart.slice(0, 7)
+    || data.caseCreated !== false || data.caseRequestLinked !== false || typeof data.requestCreated !== 'boolean'
+    || (data.outcome !== 'linked' && data.outcome !== 'held' && data.outcome !== 'case_closed')
+    || (data.outcome !== 'linked' && data.requestCreated)) {
+    throw new Error('Körkvittot för mätvärdesbegäran är ogiltigt.')
   }
-
-  return true
-}
-
-async function createOperationTaskForBlocker(input: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId?: string | null
-  meteringPointId?: string | null
-  title: string
-  description: string
-  reasonCategory: string
-  metadata: Record<string, unknown>
-}): Promise<boolean> {
-  const { data: existing, error: existingError } = await supabaseService
-    .from('customer_operation_tasks')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .eq('task_type', 'billing_export_blocker')
-    .eq('status', 'open')
-    .contains('metadata', { automationKey: input.metadata.automationKey })
-    .limit(1)
-
-  if (existingError && !isMissingRelationError(existingError)) throw existingError
-  if ((existing ?? []).length > 0) return false
-
-  const { error } = await supabaseService.from('customer_operation_tasks').insert({
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    site_id: input.siteId ?? null,
-    metering_point_id: input.meteringPointId ?? null,
-    task_type: 'billing_export_blocker',
-    status: 'open',
-    priority: 'high',
-    title: input.title,
-    description: input.description,
-    metadata: {
-      reasonCategory: input.reasonCategory,
-      billingBlocked: true,
-      billingManualReview: true,
-      nextAction: 'Granska blockeraren, komplettera saknad data och kör exporten igen för endast berörd rad.',
-      source: 'batch_2b_operations',
-      ...input.metadata,
-    },
-    created_by: input.actorUserId,
-    updated_by: input.actorUserId,
-  })
-
-  if (error) {
-    if (isMissingRelationError(error)) return false
-    throw error
-  }
-
-  return true
+  return { created: data.requestCreated, scopeMissing: data.reason === 'metering_scope_unavailable' }
 }
 
 export async function listBatch2BControlTower(companyId?: string | null): Promise<Batch2BControlTowerRow[]> {
@@ -275,27 +187,27 @@ export async function runBatch2BAutomation(input: {
 }): Promise<Batch2BRunResult> {
   await requireCompanyOperationalForWrites(input.companyId)
 
-  const period = previousMonthPeriod()
+  const monthStart = previousMonthStart()
   const notes: string[] = []
-  let customersScanned = 0
   let tasksCreated = 0
   let requestsCreated = 0
-  let casesCreated = 0
+  let meteringBlockersFound = 0
   const exportsCreated = 0
-  let blockersFound = 0
 
-  const { data: contracts, error: contractsError } = await supabaseService
-    .from('customer_contracts')
-    .select('id, company_id, customer_id, site_id, status, starts_at')
-    .eq('company_id', input.companyId)
-    .in('status', ['signed', 'active', 'pending_signature'])
-    .limit(250)
-
-  if (contractsError) throw contractsError
-  const contractRows = (contracts ?? []) as CustomerContractRow[]
-  customersScanned = new Set(contractRows.map((row) => row.customer_id)).size
+  const { data: canPrepareOnboarding, error: onboardingAccessError } = await supabaseService.rpc(
+    'gridex_actor_has_company_permission',
+    { p_actor_user_id: input.actorUserId, p_company_id: input.companyId, p_permission: 'customers.write' },
+  )
+  if (onboardingAccessError) throw onboardingAccessError
+  const contractRows = canPrepareOnboarding === true ? await readOnboardingContracts(input.companyId) : []
+  const customersScanned = new Set(contractRows.flatMap((row) => row.customer_id ? [row.customer_id] : [])).size
+  let unboundContractsFound = 0
 
   for (const contract of contractRows) {
+    if (!contract.customer_id) {
+      unboundContractsFound += 1
+      continue
+    }
     const key = `contract-onboarding:${contract.id}`
     const created = await ensureCustomerInfoRequest({
       actorUserId: input.actorUserId,
@@ -313,96 +225,23 @@ export async function runBatch2BAutomation(input: {
     }
   }
 
-  const { data: sitesData, error: sitesError } = await supabaseService
-    .from('customer_sites')
-    .select('id, company_id, customer_id, grid_owner_id, move_in_date')
-    .eq('company_id', input.companyId)
-    .limit(500)
-  if (sitesError) throw sitesError
-
-  const sites = (sitesData ?? []) as CustomerSiteRow[]
-  const sitesById = new Map(sites.map((site) => [site.id, site]))
-  const { data: pointsData, error: pointsError } = await supabaseService
-    .from('metering_points')
-    .select('id, company_id, site_id, meter_point_id, grid_owner_id, status')
-    .eq('company_id', input.companyId)
-    .limit(1000)
-  if (pointsError) throw pointsError
-
-  const meteringPoints = (pointsData ?? []) as MeteringPointRow[]
-  const pointIds = meteringPoints.map((point) => point.id).filter(Boolean)
-
-  let existingMeteringPointIds = new Set<string>()
-  if (pointIds.length > 0) {
-    const { data: valuesData, error: valuesError } = await supabaseService
-      .from('metering_values')
-      .select('metering_point_id')
-      .eq('company_id', input.companyId)
-      .gte('period_start', period.periodStart)
-      .lt('period_start', period.periodEnd)
-      .in('metering_point_id', pointIds)
-
-    if (valuesError && !isMissingRelationError(valuesError)) throw valuesError
-    existingMeteringPointIds = new Set(((valuesData ?? []) as Array<{ metering_point_id: string | null }>).map((row) => row.metering_point_id).filter((value): value is string => Boolean(value)))
-  }
-
-  for (const point of meteringPoints) {
-    if (existingMeteringPointIds.has(point.id)) continue
-    const site = point.site_id ? sitesById.get(point.site_id) : null
-    if (!site) {
-      blockersFound += 1
+  const { pointsWithGaps } = await scanMeteringPeriodPoints({
+    companyId: input.companyId,
+    monthStarts: [monthStart],
+    includeUnlinked: true,
+  })
+  for (const point of pointsWithGaps) {
+    if (!point.site_id || !point.customer_id) {
+      meteringBlockersFound += 1
       continue
     }
-
-    const created = await ensureOutboundRequest({
-      actorUserId: input.actorUserId,
-      companyId: input.companyId,
-      customerId: site.customer_id,
-      siteId: site.id,
-      meteringPointId: point.id,
-      gridOwnerId: point.grid_owner_id ?? site.grid_owner_id ?? null,
-      requestType: 'meter_values',
-      automationKey: `missing-meter-values:${point.id}:${period.periodMonth}`,
-      periodStart: period.periodStart,
-      periodEnd: period.periodEnd,
-      payload: {
-        periodMonth: period.periodMonth,
-        meterPointId: point.meter_point_id,
-      },
-    })
-    if (created) requestsCreated += 1
+    const effect = await prepareMeteringRequest(input, point.point_id, monthStart)
+    if (effect.created) requestsCreated += 1
+    if (effect.scopeMissing) meteringBlockersFound += 1
   }
 
-  const { data: blockedItems, error: blockedItemsError } = await supabaseService
-    .from('billing_export_run_items')
-    .select('id, company_id, billing_underlay_id, customer_id, site_id, metering_point_id, blocker_reasons')
-    .eq('company_id', input.companyId)
-    .eq('status', 'blocked')
-    .limit(200)
-
-  if (blockedItemsError && !isMissingRelationError(blockedItemsError)) throw blockedItemsError
-
-  for (const item of (blockedItems ?? []) as Array<{ id: string; customer_id: string | null; site_id: string | null; metering_point_id: string | null; billing_underlay_id: string | null; blocker_reasons?: unknown }>) {
-    if (!item.customer_id) continue
-    blockersFound += 1
-    const created = await createOperationTaskForBlocker({
-      actorUserId: input.actorUserId,
-      companyId: input.companyId,
-      customerId: item.customer_id,
-      siteId: item.site_id,
-      meteringPointId: item.metering_point_id,
-      title: 'Faktureringsrad blockerad',
-      description: 'En faktureringsrad är blockerad. Raden stoppar inte hela exporten, men behöver åtgärdas innan den kan skickas vidare.',
-      reasonCategory: 'billing_export_blocker',
-      metadata: {
-        automationKey: `billing-export-blocker:${item.id}`,
-        billingExportRunItemId: item.id,
-        billingUnderlayId: item.billing_underlay_id,
-        blockerReasons: item.blocker_reasons ?? [],
-      },
-    })
-    if (created) casesCreated += 1
-  }
+  const { casesCreated, blockersFound: billingBlockersFound } = await createBillingExportBlockerTasks(input)
+  const blockersFound = unboundContractsFound + meteringBlockersFound + billingBlockersFound
 
   if (requestsCreated === 0 && casesCreated === 0) {
     notes.push('Inga nya automationsrader skapades. Befintliga befintliga requests/uppgifter eller komplett data kan redan finnas.')
@@ -427,6 +266,17 @@ export async function createBillingBlockerCasesForCompany(input: {
   companyId: string
   actorUserId: string
 }): Promise<{ casesCreated: number; blockersFound: number }> {
-  const result = await runBatch2BAutomation(input)
-  return { casesCreated: result.casesCreated, blockersFound: result.blockersFound }
+  await requireCompanyOperationalForWrites(input.companyId)
+  const result = await createBillingExportBlockerTasks(input)
+  await recordAutomationRun({
+    ...input,
+    ...result,
+    runType: 'batch_2b_billing_blocker_cases',
+    customersScanned: 0,
+    tasksCreated: 0,
+    requestsCreated: 0,
+    exportsCreated: 0,
+    notes: [],
+  })
+  return result
 }

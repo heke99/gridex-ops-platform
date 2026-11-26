@@ -2,8 +2,8 @@
 /**
  * Supabase typegen currently emits non-null Returns for
  * resolve_ediel_timeseries_product_511.description / valid_to even though the
- * SQL returns-table columns are nullable. Apply durable overrides after gen so
- * clean-replay and committed types stay aligned with SQL nullability.
+ * SQL returns-table columns are nullable. It also emits non-null UUID inputs
+ * for the signature command's initial and replay paths.
  */
 const fs = require('node:fs')
 const path = require('node:path')
@@ -36,10 +36,8 @@ returnsBlock = returnsBlock
   .replace(/(\bdescription:\s*)string(\s*\|\s*null)?/, '$1string | null')
   .replace(/(\bvalid_to:\s*)string(\s*\|\s*null)?/, '$1string | null')
 
-const overridden = original.replace(resolverPattern, `$1${returnsBlock}$3`)
-const next = overridden.replace(/\s+$/u, '\n')
 if (
-  overridden === original &&
+  returnsBlock === match[2] &&
   !(
     /description:\s*string\s*\|\s*null/.test(match[2]) &&
     /valid_to:\s*string\s*\|\s*null/.test(match[2])
@@ -49,6 +47,29 @@ if (
   process.exit(1)
 }
 
+let overridden = original.replace(resolverPattern, `$1${returnsBlock}$3`)
+const signatureCommandName = /^\s*gridex_queue_customer_contract_signature_command_v1\s*:/m
+const signatureCommandArgs =
+  /(gridex_queue_customer_contract_signature_command_v1:\s*\{\s*Args:\s*\{)([\s\S]*?)(\n\s*\}\s*\n\s*Returns:)/
+
+// Historical schema captures can precede the signature command migration.
+if (signatureCommandName.test(original)) {
+  const signatureMatch = original.match(signatureCommandArgs)
+  if (!signatureMatch || !/\bp_command_id:\s*string\b/.test(signatureMatch[2]) ||
+    !/\bp_expected_request_id:\s*string\b/.test(signatureMatch[2])) {
+    console.error('Could not locate signature command UUID inputs for nullability overrides')
+    process.exit(1)
+  }
+
+  overridden = overridden.replace(signatureCommandArgs, (_, start, args, end) => {
+    const nullableArgs = args
+      .replace(/(\bp_command_id:\s*)string(\s*\|\s*null)?/, '$1string | null')
+      .replace(/(\bp_expected_request_id:\s*)string(\s*\|\s*null)?/, '$1string | null')
+    return `${start}${nullableArgs}${end}`
+  })
+}
+
+const next = overridden.replace(/\s+$/u, '\n')
 if (next === original) {
   console.log(
     `Supabase types nullability overrides already present: ${path.relative(process.cwd(), targetPath)}`,

@@ -170,9 +170,6 @@ async function syncExternalContractIntakeRow(
       cleanUuid(contract.contract_offer_id),
     public_contract_offer_id: input.publicContractOfferId ?? null,
     offer_reference: input.offerReference ?? null,
-    quote_reference: clean(
-      (input.payload as { quote_reference?: unknown }).quote_reference,
-    ),
     price_plan_id: cleanUuid(input.pricePlanId),
     price_plan_version_id: cleanUuid(input.pricePlanVersionId),
     requested_start_date:

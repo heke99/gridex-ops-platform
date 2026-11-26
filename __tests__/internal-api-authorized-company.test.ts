@@ -43,3 +43,44 @@ describe('Internal operations use the company whose permissions were checked', (
     expect(requireOperationalCompanyId).not.toHaveBeenCalled()
   })
 })
+
+describe('billing period lock validates its calendar period', () => {
+  it.each(['2026-00', '2026-13', '1999-12'])('rejects invalid month %s on reads and writes', async billingMonth => {
+    const read = await readLock(new Request('https://example.invalid/internal?billing_month=' + billingMonth))
+    const write = await writeLock(new Request('https://example.invalid/internal', {
+      method: 'POST',
+      body: JSON.stringify({ billingMonth }),
+    }))
+
+    expect(read.status).toBe(400)
+    expect(write.status).toBe(400)
+    expect(state.effects).toEqual([])
+  })
+
+  it('rejects a null JSON payload without applying a period lock', async () => {
+    const response = await writeLock(new Request('https://example.invalid/internal', {
+      method: 'POST',
+      body: 'null',
+    }))
+
+    expect(response.status).toBe(400)
+    expect(state.effects).toEqual([])
+  })
+})
+
+describe('pricing routes reject invalid input before pricing effects', () => {
+  it.each([preview, reprice, lockPreview])('rejects null JSON', async handler => {
+    const response = await handler(new Request('https://example.invalid/internal', { method: 'POST', body: 'null' }))
+    expect(response.status).toBe(400)
+    expect(state.effects).toEqual([])
+  })
+
+  it.each(['2026-00', '2026-13'])('rejects invalid preview month %s', async billingMonth => {
+    const response = await preview(new Request('https://example.invalid/internal', {
+      method: 'POST',
+      body: JSON.stringify({ billingMonth }),
+    }))
+    expect(response.status).toBe(400)
+    expect(state.effects).toEqual([])
+  })
+})

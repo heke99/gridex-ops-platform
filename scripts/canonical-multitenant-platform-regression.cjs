@@ -36,7 +36,36 @@ for (const file of ['app/admin/customers/actions.ts','lib/website/customerApplic
   ok(source.includes('createTenantContext') && source.includes('tenantContext)'), `${file} passes explicit tenant context to onboarding`)
 }
 ok(!webhook.includes('companyHint') && !webhook.includes("x-gridex-company-id") && !webhook.includes('text(payload.company_id)'), 'billing webhook ignores client-selected tenant hints')
-ok(webhook.includes(".eq('provider_invoice_guid', input.invoiceGuid)") && webhook.includes('items.length !== 1'), 'billing webhook resolves one persisted tenant target')
+const publishedLookup = webhook.match(/const itemResult = [\s\S]*?(?=async function verifiedConnection)/)?.[0] ?? ''
+const targetConnection = webhook.match(/async function verifiedConnection[\s\S]*?(?=if \(items\.length === 1\))/)?.[0] ?? ''
+const heldLookup = webhook.match(/if \(items\.length === 0 && input\.provider === 'capway_aptic'\) \{[\s\S]*?(?=const pendingMessage)/)?.[0] ?? ''
+const checkpoint = read('lib/billing/automaticPurchaseCheckpoint.ts')
+ok(publishedLookup.includes(".from('invoice_export_items')")
+  && publishedLookup.includes(".eq('provider', input.provider)")
+  && publishedLookup.includes(".eq('provider_invoice_guid', input.invoiceGuid)")
+  && /if \(items\.length === 1\) \{\s*const target = await verifiedConnection\(items\[0\]\)\s*if \(target\) return target/.test(webhook)
+  && targetConnection.includes('const companyId = text(item.company_id)')
+  && targetConnection.includes('const environment = text(item.environment)')
+  && targetConnection.includes(".eq('company_id', companyId)")
+  && targetConnection.includes(".eq('provider', input.provider)")
+  && targetConnection.includes(".eq('environment', environment)")
+  && targetConnection.includes(".eq('status', 'active')")
+  && targetConnection.includes('connections.length === 1 ? connectionSecret(connections[0]) : null')
+  && targetConnection.includes('if (!verify(secret)) throw new BillingProviderWebhookAuthError'),
+  'billing webhook resolves one persisted tenant target with its own verified connection')
+ok(/if \(!authentic\) throw new BillingProviderWebhookAuthError[\s\S]*?if \(items\.length === 0 && input\.provider === 'capway_aptic'\)/.test(webhook)
+  && heldLookup.includes(".from('invoice_export_items')")
+  && heldLookup.includes(".eq('provider', input.provider)")
+  && heldLookup.includes(".is('provider_invoice_guid', null)")
+  && heldLookup.includes(".is('provider_invoice_id', null)")
+  && heldLookup.includes(".in('status', automaticPurchaseHeldStatuses)")
+  && heldLookup.includes('.eq(automaticPurchaseCheckpointGuid, input.invoiceGuid)')
+  && /if \(held\.length === 1 && hasAutomaticPurchaseCheckpoint\(held\[0\], input\.invoiceGuid\)\) \{[\s\S]*?const target = await verifiedConnection\(held\[0\]\)\s*if \(target\) return target/.test(heldLookup)
+  && checkpoint.includes('checkpoint.invoice_export_item_id === item.id && checkpoint.company_id === item.company_id')
+  && checkpoint.includes('checkpoint.export_run_id === item.export_run_id && checkpoint.provider === item.provider')
+  && checkpoint.includes('checkpoint.environment === item.environment')
+  && checkpoint.includes('checkpoint.invoice_guid === invoiceGuid && guids.length === 1 && guids[0] === invoiceGuid'),
+  'held billing webhook resolves one persisted checkpoint and verifies its own tenant connection')
 ok(!smtp.includes('no-reply@gridex.se') && !smtp.includes('AUTH_EMAIL_FROM'), 'transactional auth mail has no tenant-specific fallback sender')
 ok(customerNumbers.includes('canonical_next_customer_number') && customerNumbers.includes('canonical_next_contract_number') && customerNumbers.includes('canonical_next_application_number'), 'number generation uses tenant-neutral database aliases')
 ok(!customerNumbers.includes('Date.now().toString().slice') && !customerNumbers.includes('return `AVT-') && !customerNumbers.includes('return `APP-'), 'number generation has no runtime fallback format')

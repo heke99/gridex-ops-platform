@@ -8,6 +8,7 @@ const port = vi.hoisted(() => ({
   rpcCalls: [] as Array<{ name: string; args: Row }>, updates: [] as Array<{ table: string; filters: Array<[string, string, unknown]> }>,
   readiness: [] as Array<{ companyId: string; clientId: string }>, redirects: [] as string[],
   rowCap: Infinity, adminDenied: false, generatedCredentials: 0,
+  companyReadError: null as { code: string; message: string } | null,
   rpcError: { code: 'FINITE_STOP_BEFORE_RPC_EFFECT', message: 'Declared external RPC refusal; no database effects executed.' },
 }))
 
@@ -27,6 +28,9 @@ vi.mock('@/lib/supabase/service', () => {
     limit(value: number) { this.maximum = value; return this }
     update(value: Row) { this.patch = value; return this }
     async run(single = false) {
+      if (this.table === 'companies' && !this.patch && port.companyReadError) {
+        return { data: null, error: port.companyReadError }
+      }
       const table = port.tables[this.table]
       if (!table) throw Error(`Undeclared selection table ${this.table}`)
       let rows = table.filter(row => this.filters.every(([operation, key, value]) =>
@@ -90,6 +94,7 @@ vi.mock('@/lib/integrations/tenantContext', () => ({ loadExternalTenantContext: 
 
 import { getTenantWebsiteGoLiveSummary } from '@/lib/integrations/tenantWebsiteGoLive'
 import { verifyTenantWebsiteGoLiveAction } from '@/app/admin/platform/go-live/actions'
+import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 
 const COMPANY = '10000000-0000-4000-8000-000000000001'
 const FOREIGN = '10000000-0000-4000-8000-000000000002'
@@ -99,11 +104,11 @@ beforeAll(() => { db = new PGlite() })
 afterAll(async () => { await db.close() })
 beforeEach(() => {
   port.tables = {
-    companies: [{ id: COMPANY, name: 'Finite company', status: 'active', website: 'https://tenant.example.invalid', branding: {}, customer_portal_url: 'https://tenant.example.invalid', external_tenant_reference: 'finite-tenant' }],
+    companies: [{ id: COMPANY, name: 'Finite company', slug: 'finite-tenant', status: 'active', website: 'https://tenant.example.invalid', branding: {}, customer_portal_url: 'https://tenant.example.invalid', external_tenant_reference: 'finite-tenant' }],
     integration_api_clients: [], tenant_website_installation_receipts: [],
   }
   port.queries = []; port.rpcCalls = []; port.updates = []; port.readiness = []; port.redirects = []
-  port.rowCap = Infinity; port.adminDenied = false; port.generatedCredentials = 0
+  port.rowCap = Infinity; port.adminDenied = false; port.generatedCredentials = 0; port.companyReadError = null
   port.rpcError = { code: 'FINITE_STOP_BEFORE_RPC_EFFECT', message: 'Declared external RPC refusal; no database effects executed.' }
 })
 
@@ -255,5 +260,70 @@ describe('actual consumers preserve PostgreSQL JSON text legacy semantics', () =
     port.tables.integration_api_clients = [fallback, candidate]
     const eligible = candidate.canonical_primary === true && candidate.canonical_environment === true
     await assertSelected(eligible ? 'candidate' : 'fallback', eligible ? 120 : 347)
+  })
+})
+
+
+describe('public legal address prerequisite before website provisioning', () => {
+  const input = {
+    companyId: COMPANY,
+    actorUserId: ACTOR,
+    idempotencyKey: 'finite-provision',
+    allowedOrigins: ['https://tenant.example.invalid'],
+    customerPortalUrl: 'https://tenant.example.invalid',
+  }
+
+  it.each([
+    [null, null],
+    ['', 'valid-legacy-address'],
+    ['Mixed-Case', null],
+    ['invalid/path', null],
+    ['trailing-line-break\n', null],
+    ['a'.repeat(101), null],
+  ])('blocks a missing or invalid effective slug (%j, %j) before creating anything', async (slug, company_slug) => {
+    Object.assign(port.tables.companies[0], { slug, company_slug })
+    await expect(provisionTenantWebsiteIntegration(input)).rejects.toMatchObject({
+      code: 'TENANT_PUBLIC_LEGAL_SLUG_REQUIRED',
+      receiptId: null,
+    })
+    expect(port.updates).toEqual([])
+    expect(port.rpcCalls).toEqual([])
+    expect(port.generatedCredentials).toBe(0)
+  })
+
+  it('shows an actionable Go-live blocker and retains an existing completed installation', async () => {
+    port.tables.companies[0].slug = null
+    port.tables.integration_api_clients = [await client('primary', '{}', { launch_ready: true })]
+    port.tables.tenant_website_installation_receipts = [{ company_id: COMPANY, api_client_id: 'primary', state: 'completed' }]
+    const previous = structuredClone(port.tables)
+
+    await expect(verifyTenantWebsiteGoLiveAction(form())).rejects.toThrow('FINITE_REDIRECT')
+
+    const redirect = new URL(port.redirects[0], 'https://finite.invalid')
+    expect(redirect.searchParams.get('status')).toBe('blocked')
+    expect(redirect.searchParams.get('message')).toMatch(/bolagets publika adress/i)
+    expect(port.tables).toEqual(previous)
+    expect(port.updates).toEqual([])
+    expect(port.rpcCalls).toEqual([])
+    expect(port.generatedCredentials).toBe(0)
+  })
+
+  it('reuses the established legacy company_slug when the canonical slug is null', async () => {
+    Object.assign(port.tables.companies[0], { slug: null, company_slug: 'legacy-address-2' })
+    port.tables.integration_api_clients = [await client('primary', '{}')]
+    await assertSelected('primary', 120)
+  })
+
+  it('preserves the original validation and database errors without writing', async () => {
+    await expect(provisionTenantWebsiteIntegration({ ...input, idempotencyKey: '' }))
+      .rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REQUIRED' })
+    port.companyReadError = { code: 'FINITE_COMPANY_READ_ERROR', message: 'Company read failed' }
+    port.tables.integration_api_clients = [await client('primary', '{}')]
+    await expect(verifyTenantWebsiteGoLiveAction(form())).rejects.toBe(port.companyReadError)
+
+    expect(port.redirects).toEqual([])
+    expect(port.updates).toEqual([])
+    expect(port.rpcCalls).toEqual([])
+    expect(port.generatedCredentials).toBe(0)
   })
 })

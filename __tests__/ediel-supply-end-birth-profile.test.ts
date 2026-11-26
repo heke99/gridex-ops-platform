@@ -44,7 +44,7 @@ function wire(body = object(), options: { code?: string; application?: string; a
 beforeEach(() => { catalog.mockReset(); catalog.mockResolvedValue(witness()) })
 
 describe('physical Z05 supply-end catalog selection', () => {
-  it.each([['Z25', 'H'], ['Z22', 'L']])('selects %s from the own physical object and preserves the complete %s catalog witness', async (reason, subtype) => {
+  it.each([['Z25', 'H'], ['Z22', 'L'], ['Z23', 'LK']])('selects %s from the own physical object and preserves the complete %s catalog witness', async (reason, subtype) => {
     const evidence = witness(subtype); catalog.mockResolvedValue(evidence)
     const before = structuredClone(evidence)
     expect(await resolveSupplyEndBirthProfile({ rawPayload: wire(object('1', undefined, reason)), receivedAt })).toEqual({
@@ -75,9 +75,9 @@ describe('physical Z05 supply-end catalog selection', () => {
     ['empty reason', () => wire(object('1', undefined, ''))],
     ['internal subtype alias', () => wire(object('1', undefined, 'H'))],
     ['unhandled C reason', () => wire(object('1', undefined, 'Z24'))],
-    ['unhandled LK reason', () => wire(object('1', undefined, 'Z23'))],
     ['unknown reason', () => wire(object('1', undefined, 'OTHER'))],
     ['mixed H/L objects', () => wire([...object(), ...object('2', '735999000000000002', 'Z22')])],
+    ['mixed L/LK objects', () => wire([...object('1', undefined, 'Z22'), ...object('2', '735999000000000002', 'Z23')])],
     ['second object missing own reason', () => wire([...object(), ...object('2', '735999000000000002').filter(s => s !== 'CCI++Z13' && s !== 'CAV+Z25')])],
     ['duplicate own reason', () => wire([...object().slice(0, 4), 'CCI++Z13', 'CAV+Z25', ...object().slice(4)])],
     ['header reason borrowing', () => wire(['CCI++Z13', 'CAV+Z25', ...object().filter(s => s !== 'CCI++Z13' && s !== 'CAV+Z25')])],
@@ -131,9 +131,10 @@ describe('physical Z05 supply-end catalog selection', () => {
 describe('supply-end selection through the actual catalog resolver', () => {
   function row(subtype = 'H') {
     const e = witness(subtype)
+    const reasonBySubtype: Record<string, string> = { H: 'Z25', L: 'Z22', LK: 'Z23' }
     const profile = { family: 'PRODAT', source: 'canonical-db-rule-pack', messageCode: 'Z05',
       guideVersion: '26.A', guideRevision: '3', canonicalDirection: 'inbound',
-      transactionSubtype: subtype, reasonForTransaction: subtype === 'H' ? 'Z25' : 'Z22' }
+      transactionSubtype: subtype, reasonForTransaction: reasonBySubtype[subtype] }
     return {
       rule_pack_id: e.rulePackId, message_profile_id: e.messageProfileId, market: 'electricity', family: 'PRODAT',
       guide_version: '26.A', guide_revision: '3', unh_association_code: 'E2SE6A',
@@ -153,7 +154,7 @@ describe('supply-end selection through the actual catalog resolver', () => {
     catalog.mockImplementation(actual.resolveCanonicalRulePack)
     port.rpc.mockReset()
   })
-  it.each([['Z25', 'H'], ['Z22', 'L']])('passes physical %s through source policy and binds only the actual SDK %s witness', async (reason, subtype) => {
+  it.each([['Z25', 'H'], ['Z22', 'L'], ['Z23', 'LK']])('passes physical %s through source policy and binds only the actual SDK %s witness', async (reason, subtype) => {
     const evidence = row(subtype); const unchanged = structuredClone(evidence)
     port.rpc.mockResolvedValue({ data: [evidence], error: null })
     const result = await resolveSupplyEndBirthProfile({ rawPayload: wire(object('1', undefined, reason)), receivedAt })

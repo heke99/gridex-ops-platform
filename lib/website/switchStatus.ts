@@ -94,11 +94,13 @@ export async function loadWebsiteSwitchStatus(input: { companyId: string; applic
   const switchId = text(switchRow?.id)
   if (switchId && input.includeEvents !== false) {
     const eventResult = await supabaseService
-      .from('supplier_switch_events')
+      .from('gridex_supplier_switch_business_events_v')
       .select('event_type,event_status,message,created_at')
       .eq('company_id', input.companyId)
       .eq('switch_request_id', switchId)
+      .eq('include_all_business_history', true)
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(100)
     if (eventResult.error) throw eventResult.error
     events = (eventResult.data ?? []) as Array<Record<string, unknown>>

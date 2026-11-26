@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { markFacilityLookupSentManually } from '@/lib/facility/facilityLookupWorkflow'
 import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
@@ -30,10 +30,12 @@ async function resolveCompanyForRequest(requestId: string, guard: Awaited<Return
   const companyId = (data as { company_id?: string | null } | null)?.company_id ?? null
   if (!companyId) throw new Error('Anläggningsbegäran saknar bolagskoppling.')
   if (!isPlatformAdminContext(guard)) {
-    const scopedCompanyId = await requireOperationalCompanyId(guard.userId)
-    if (scopedCompanyId !== companyId) throw new Error('Du saknar åtkomst till bolagets anläggningsbegäran.')
+    const scopedCompanyId = guard.companyId === undefined ? await requireOperationalCompanyId(guard.userId) : guard.companyId
+    if (scopedCompanyId !== companyId) {
+      throw new Error('Du saknar åtkomst till bolagets anläggningsbegäran.')
+    }
   }
-  return companyId
+  return assertUserCanOperateCompany(guard.userId, companyId)
 }
 
 export async function markFacilityLookupSentManuallyAction(formData: FormData) {

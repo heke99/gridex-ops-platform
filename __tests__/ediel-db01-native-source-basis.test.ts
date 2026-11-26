@@ -353,13 +353,22 @@ it('does not use a guard result for another source or a different schema', async
 })
 
 it('qualifies current function definitions, ACLs and exact delivered guard objects independently of native cases', () => {
-  writeFileSync(receiptPath, JSON.stringify(receipt))
+  const currentSchemaSha256 = createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')
+  expect(currentSchemaSha256).toBe('3838f1fd17e8a72a7086868747071106147bc37615626ebf1107c1640b07383c')
+  const currentReceipt = structuredClone(receipt) as {
+    root_source: {blobs: Record<string, {sha256: string}>}
+  }
+  currentReceipt.root_source.blobs['supabase/schema.sql'].sha256 = currentSchemaSha256
+  writeFileSync(receiptPath, JSON.stringify(currentReceipt))
   const python = String.raw`import os,pathlib,textwrap
 s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==377 and len(e['function_keys'])==377
+assert len(e['reader_names'])==234 and len(e['relation_keys'])==18 and len(e['names'])==381 and len(e['function_keys'])==381
+assert len(e['canonical_selection'])==860
+assert e['sha'](e['json'].dumps(e['canonical_selection'],sort_keys=True,separators=(',',':'))) == '05a5944274e538d3b4ca2db630df2c720e5e6b078f1b1d7571d9475bc7a058cb'
+assert 'gridex_ediel_transport.accepted_source_projection_current_v1' in e['reader_names']
 expected=e['expected']; compare=e['logical_mismatches']
 assert len(e['s01_dependency_extensions'])==4
 for dependency in e['s01_dependency_extensions']:
@@ -375,7 +384,11 @@ keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts
  ('gridex_customer_masterdata','CONSTRAINT','preparations customer_masterdata_preparation_actor_operation_key'),
  ('gridex_customer_masterdata','FK CONSTRAINT','preparations preparations_cancellation_origin_id_fkey'),
  ('gridex_ediel_header_negative_birth','ROW SECURITY','receipts'),
- ('public','TRIGGER','ediel_messages assigned_prodat_negative_original_immutable')]
+ ('public','TRIGGER','ediel_messages assigned_prodat_negative_original_immutable'),
+ ('gridex_ediel_transport','FUNCTION','accepted_source_projection_current_v1(public.ediel_messages)'),
+ ('gridex_ediel_transport','ACL','FUNCTION accepted_source_projection_current_v1(p_message public.ediel_messages)'),
+ ('gridex_e66_intake','FUNCTION','billing_calendar_member_hash_v1(public.billing_underlays)'),
+ ('gridex_e66_intake','FUNCTION','request_upgrade_state_v1(uuid)')]
 keys += [tuple(item['identity']) for item in e['s01_dependency_extensions']]
 extension_names={item['name'] for item in e['s01_dependency_extensions']}
 extension_acl_keys=[key for key in e['function_acl_keys'] if key[0]+'.'+key[2][9:].split('(')[0] in extension_names]
@@ -385,6 +398,11 @@ for key in keys:
  assert key in expected
  actual=dict(expected);del actual[key];assert compare(actual),('missing',key)
  actual=dict(expected);actual[key]+='\nchanged logical guard';assert compare(actual),('changed',key)
+dependency_fingerprint=e['dependency_catalog_fingerprint']
+baseline_dependency_hash=dependency_fingerprint(expected)
+for key in e['e66_dependency_keys']:
+ actual=dict(expected);actual[key]=(actual.get(key) or '')+'\nchanged exact E66 dependency'
+ assert dependency_fingerprint(actual)!=baseline_dependency_hash,('changed E66 dependency',key)
 # Framing normalization never erases an actual function/constraint/ACL body.
 assert e['blocks']('\n--\n-- Name: t; Type: TABLE; Schema: s; Owner: -\n--\nCREATE TABLE s.t(id uuid);\n--\n-- PostgreSQL database dump complete\n--\n\\unrestrict random\n')=={('s','TABLE','t'):'CREATE TABLE s.t(id uuid);'}
 `

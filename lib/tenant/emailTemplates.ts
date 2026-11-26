@@ -167,11 +167,11 @@ async function resolveTemplate(companyId: string, key: TenantEmailTemplateKey) {
   }
 }
 
-export async function queueTenantTemplateEmail(
+export async function prepareTenantTemplateEmail(
   key: TenantEmailTemplateKey,
   context: TenantEmailTemplateContext
 ) {
-  if (!context.customerEmail) return { ok: false, skipped: true, reason: 'customer_email_missing' }
+  if (!context.customerEmail) return null
 
   const branding = await getTenantEmailBranding(context.companyId)
   const template = await resolveTemplate(context.companyId, key)
@@ -192,16 +192,28 @@ export async function queueTenantTemplateEmail(
     ctaUrl: tokenContext.portalUrl,
   })
 
-  return queueAndTrySendTenantEmail({
-    companyId: context.companyId,
-    customerId: context.customerId ?? null,
-    customerCaseId: context.customerCaseId ?? null,
-    emailType: key,
-    toEmail: context.customerEmail,
-    subject,
-    htmlBody: html,
-    textBody: `${intro}\n\n${body.replace(/<[^>]+>/g, ' ')}`,
-    redirectUrl: tokenContext.portalUrl,
-    actorUserId: context.actorUserId ?? null,
-  })
+  return {
+    branding,
+    draft: {
+      companyId: context.companyId,
+      customerId: context.customerId ?? null,
+      customerCaseId: context.customerCaseId ?? null,
+      emailType: key,
+      toEmail: context.customerEmail,
+      subject,
+      htmlBody: html,
+      textBody: `${intro}\n\n${body.replace(/<[^>]+>/g, ' ')}`,
+      redirectUrl: tokenContext.portalUrl,
+      actorUserId: context.actorUserId ?? null,
+    },
+  }
+}
+
+export async function queueTenantTemplateEmail(
+  key: TenantEmailTemplateKey,
+  context: TenantEmailTemplateContext
+) {
+  const prepared = await prepareTenantTemplateEmail(key, context)
+  if (!prepared) return { ok: false, skipped: true, reason: 'customer_email_missing' }
+  return queueAndTrySendTenantEmail(prepared.draft)
 }

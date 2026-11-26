@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
+import { parseBillingMonth } from '@/lib/time/stockholm'
 import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
@@ -7,7 +8,12 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function readBillingMonth(value: unknown): string | null {
-  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value.trim()) ? value.trim() : null
+  if (typeof value !== 'string') return null
+  try {
+    return parseBillingMonth(value.trim()).value
+  } catch {
+    return null
+  }
 }
 
 export async function GET(request: Request) {
@@ -33,7 +39,10 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const payload: unknown = await request.json().catch(() => null)
+    const body = payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : {}
     const billingMonth = readBillingMonth(body.billing_month ?? body.billingMonth)
     const action = typeof body.action === 'string' ? body.action.trim() : 'lock'
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })

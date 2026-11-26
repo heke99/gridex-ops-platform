@@ -43,6 +43,8 @@ type LineageRow = JsonRecord & {
 }
 
 type JobRow = {
+  id: string
+  first_blocker_code: string | null
   status: string | null
   attempts: number | null
   max_attempts: number | null
@@ -362,6 +364,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     .maybeSingle()
   const workflow = assertQuery(workflowResult as QueryResult<WorkflowRow>, 'ansökningsworkflow')
 
+  const jobFields = 'id,status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at,first_blocker_code:result->blockers->0->>code'
   const [switchRow, supplyRow, contractResult, jobResult, communicationResult, webhook] = await Promise.all([
     loadLinkedWebsiteSwitch(application).catch(error => assertQuery({ data: null, error }, 'leverantörsbyte')),
     loadCorrelatedSupply(application),
@@ -369,8 +372,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
       ? supabaseService.from('customer_contracts').select('status,contract_number,signed_at,withdrawal_deadline_at,signature_snapshot_sha256,updated_at').eq('company_id', input.companyId).eq('id', application.contract_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     workflow?.id
-      ? supabaseService.from('customer_operation_jobs').select('status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at').eq('company_id', input.companyId).eq('workflow_id', workflow.id).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle()
-      : supabaseService.from('customer_operation_jobs').select('status,attempts,max_attempts,run_after,completed_at,last_error_code,last_error_message,last_error,updated_at').eq('company_id', input.companyId).contains('payload', { application_id: application.id }).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      ? supabaseService.from('customer_operation_jobs').select(jobFields).eq('company_id', input.companyId).eq('workflow_id', workflow.id).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle()
+      : supabaseService.from('customer_operation_jobs').select(jobFields).eq('company_id', input.companyId).contains('payload', { application_id: application.id }).eq('job_type', 'customer_application_continuation').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabaseService.from('communication_logs').select('id,event_key,status,error_message,sent_at,delivered_at,bounced_at,failed_at,created_at').eq('company_id', input.companyId).contains('metadata', { application_id: application.id }).order('created_at', { ascending: true }).limit(50),
     input.includeWebhookDiagnostics === false ? null : loadWebhookSummary(input.companyId, application.id),
   ])
@@ -398,6 +401,15 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
   })
   const jobError = clean(job?.last_error_message) ?? clean(job?.last_error) ?? clean(job?.last_error_code)
   const workflowFailure = clean(workflow?.failure_code)
+  const recordedNextStep = clean(workflow?.next_action) ?? clean(application.next_step)
+  const meteringPointMissing = externalStatus === 'needs_customer_information' &&
+    workflowState === 'switch_blocked' &&
+    recordedNextStep === 'blocked' &&
+    application.metering_point_id === null &&
+    job?.id === workflow?.last_job_id &&
+    job?.status === 'needs_review' &&
+    job.first_blocker_code === 'metering_point_missing'
+  const nextStep = meteringPointMissing ? 'provide_facility_information' : recordedNextStep
   const communication = summarizeCommunication(communicationLogs, outbox)
   const checkout = buildTenantCheckoutResult({
     applicationNumber: application.application_number,
@@ -411,7 +423,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     communication,
     automationStatus: clean(job?.status),
     missingCustomerAction: externalStatus === 'needs_customer_information',
-    nextStep: clean(workflow?.next_action) ?? clean(application.next_step),
+    nextStep,
   })
 
   return {
@@ -429,8 +441,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     requested_start_date: clean(switchRow?.requested_start_date),
     confirmed_start_date: clean(switchRow?.confirmed_start_date) ?? clean(supplyRow?.start_date),
     missing_customer_action: externalStatus === 'needs_customer_information',
-    next_step: clean(workflow?.next_action) ?? clean(application.next_step),
-    blocking_reason: workflowFailure ?? jobError,
+    next_step: nextStep,
+    blocking_reason: workflowFailure ?? jobError ?? (meteringPointMissing ? 'metering_point_missing' : null),
     automation: {
       status: clean(job?.status) ?? 'not_started',
       attempts: numberValue(job?.attempts),

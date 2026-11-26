@@ -2,14 +2,17 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Array<Record<string, unknown>>>,
   queue: [] as Array<Record<string, unknown>>,
   platform: false,
+  permissions: [] as string[],
 }))
 
 vi.mock('@/lib/admin/guards', () => ({
-  requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: [] }),
+  requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: io.permissions }),
   isPlatformAdminContext: () => io.platform,
 }))
 vi.mock('@/lib/tenant/scope', () => ({
@@ -21,6 +24,10 @@ vi.mock('@/lib/performance/companySummaries', () => ({ listCompanyWorkQueue: asy
 vi.mock('@/lib/ediel/operations/processNextAction', () => ({ readEdielProcessNextActions: async () => new Map() }))
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: async () => ({
+    rpc: async (name: string) => {
+      expect(name).toBe('gridex_read_staff_e66_import_progress_v1')
+      return { data: [], error: null }
+    },
     from: (table: string) => {
       const filters: Array<(row: Record<string, unknown>) => boolean> = []
       let start = 0, end = Infinity
@@ -66,6 +73,7 @@ beforeEach(() => {
   io.tables = { customers: [customer] }
   io.queue = []
   io.platform = false
+  io.permissions = ['metering.read', 'customers.read']
   vi.stubGlobal('React', React)
 })
 
@@ -166,4 +174,22 @@ it('preserves the same job diagnostic only in the authorized platform view', asy
   const platform = renderToStaticMarkup(await WorkQueuePage())
   expect(platform).toContain('RAW_TECHNICAL_LAST_ERROR')
   expect(platform).toContain(`href="/admin/customers/${customer.id}"`)
+})
+
+it('keeps the task visible when the reader lacks one of the customer card permissions', async () => {
+  io.permissions = ['metering.read', 'masterdata.read']
+  io.tables.customer_operation_jobs = [{ ...base, status: 'needs_review', job_type: 'supplier_switch' }]
+  const html = renderToStaticMarkup(await WorkQueuePage())
+  expect(html).toContain('Behöver granskning')
+  expect(html).toContain('Kundkortet kräver läsbehörighet.')
+  expect(html).not.toContain(`href="/admin/customers/${customer.id}"`)
+})
+
+
+it('links the support specialist queue only for an actor who can read it', async () => {
+  expect(renderToStaticMarkup(await WorkQueuePage())).not.toContain('href="/admin/customer-cases"')
+  io.permissions.push('cases.write')
+  expect(renderToStaticMarkup(await WorkQueuePage())).not.toContain('href="/admin/customer-cases"')
+  io.permissions.push('cases.read')
+  expect(renderToStaticMarkup(await WorkQueuePage())).toContain('href="/admin/customer-cases"')
 })

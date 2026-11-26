@@ -4,15 +4,24 @@ import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/g
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { billingMeterLabels, fmt, readBillingPage, statusBadge } from '@/lib/pricing/adminData'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { canPresentOperationalAction } from '@/lib/admin/actionPresentation'
+import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
+import GenerateUnderlayForm from './GenerateUnderlayForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function BillingUnderlaysPage({ searchParams }: { searchParams?: Promise<{ page?: string }> } = {}) {
+export default async function BillingUnderlaysPage({ searchParams }: { searchParams?: Promise<{ page?: string; billing_month?: string }> } = {}) {
   const admin = await requireAdminPageKeyAccess('billing.workspace')
   const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const companyId = scope.companyId
   const isPlatformAdmin = isPlatformAdminContext(admin)
-  const pageNumber = Number((await searchParams)?.page ?? '1')
+  const mayGenerate = companyId && await canPresentOperationalAction(['billing_underlay.export'], companyId)
+  const params = await searchParams
+  const pageNumber = Number(params?.page ?? '1')
+  let billingMonth = previousStockholmBillingMonth()
+  if (typeof params?.billing_month === 'string') {
+    try { billingMonth = parseBillingMonth(params.billing_month).value } catch { /* Use the previous month. */ }
+  }
   let result = { rows: [] as Record<string, unknown>[], total: 0, page: 1, pageSize: 80 }
   let labels = new Map<string, string>()
   let readFailed = false
@@ -31,6 +40,10 @@ export default async function BillingUnderlaysPage({ searchParams }: { searchPar
     <div className="min-h-screen min-w-0 bg-slate-50">
       <AdminHeader title="Faktureringsunderlag" subtitle="Kontrollera inkomna mätvärden, underlag, prisstatus och vilka rader som är redo för prisförhandsgranskning." userEmail={admin.email} workspaceName={scope?.companyName} />
       <main className="min-w-0 space-y-6 p-4 lg:p-8">
+        {companyId && mayGenerate ? (
+          <GenerateUnderlayForm key={`${companyId}:${admin.userId}`} companyId={companyId} actorUserId={admin.userId}
+            initialMonth={billingMonth} />
+        ) : null}
         {readFailed ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4">Faktureringsunderlagen kunde inte läsas fullständigt. Försök igen.</p> : null}
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Underlag totalt</div><div className="mt-2 text-3xl font-semibold">{readFailed ? '—' : result.total}</div></div>

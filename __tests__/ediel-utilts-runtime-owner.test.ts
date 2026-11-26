@@ -3,15 +3,18 @@ import {runUtiltsRuntimeForMessage,takeUtiltsRuntimeOwner} from '@/lib/ediel/uti
 import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
 
 describe('final UTILTS runtime owner handoff',()=>{
   it('requires exact invocation, immutable source/result and retained policy pointer',()=>{
-    const message=energyHandoffMessage(),policy=resolveCanonicalMessagePolicy(message)!
+    const message=receivedUtiltsOwnerFixture(energyHandoffMessage()),policy=resolveCanonicalMessagePolicy(message)!
     const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
     expect(takeUtiltsRuntimeOwner(structuredClone(runtime),message,policy)).toBeNull()
     expect(takeUtiltsRuntimeOwner(runtime,message,policy)).toEqual(runtime)
     expect(takeUtiltsRuntimeOwner(runtime,message,policy)).toBeNull()
-    const mutated=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy});mutated.transactionDispositions[0].responseType='none'
+    const mutated=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+    expect(mutated.transactionDispositions[0].responseType).toBe('positive_aperak')
+    mutated.transactionDispositions[0].responseType='none'
     expect(takeUtiltsRuntimeOwner(mutated,message,policy)).toBeNull()
     const altered=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
     expect(takeUtiltsRuntimeOwner(altered,{...message,metering_point_id:'forged'},policy)).toBeNull()

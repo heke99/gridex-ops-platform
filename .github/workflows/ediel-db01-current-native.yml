@@ -453,7 +453,7 @@ jobs:
           cat > "$DB01_PRIVATE/qualify-current-guards.py" <<'PY'
           # Private bounded observation by this workflow's sole producer; no canonical
           # schema/types/fingerprint writes and no claim of whole ROOT database parity.
-          import hashlib,json,os,pathlib,re,subprocess,sys,urllib.request,urllib.error,time
+          import gzip,hashlib,json,os,pathlib,re,subprocess,sys,urllib.request,urllib.error,time
           root=pathlib.Path(os.environ['CURRENT_ROOT']); receipt_path=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT'])
           receipt=json.loads(receipt_path.read_text()); private=receipt_path.parent.parent
           url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -492,7 +492,7 @@ jobs:
                   result.setdefault(m[1],[]).append((key,m[2],m[4]))
               return result
           source_functions=functions(expected)
-          def observe_current_write_api():
+          def observe_current_write_api(*, publish=True):
               # Prospective write dependencies are NOT reader forwards or native
               # authority. Observe only this producer's existing local catalog.
               entry='public.gridex_enqueue_normal_supplier_switch_v1'
@@ -539,13 +539,61 @@ jobs:
                   'observed_functions':observed,'missing_function_names':sorted(names-present),
                   'relation_tokens':sorted(relations),'unresolved_source_names':sorted(unresolved),
                   'limits':'Conservative all-overload source inventory and actual local catalog metadata only; no installation, API visibility, behavioral or native qualification'}
-              receipt['current_write_api_observation']=result
-              (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
-              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if publish:
+                  receipt['current_write_api_observation']=result
+                  (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              return result
+
+          def write_writer_preimage_fingerprint(stage):
+              evidence=receipt_path.parent
+              reader_stage='before' if stage=='baseline' else 'after'
+              reader=json.loads((evidence/('current-reader-catalog-'+reader_stage+'.json')).read_text())
+              if reader['checkout_sha']!=receipt['checkout_sha'] or reader['source_schema_sha256']!=sha(schema_source) \
+                or reader['status']!='OBSERVED_ONLY' or reader['native_or_approval_credit'] is not False:
+                  fail('db01_writer_fingerprint_reader_provenance')
+              phases=['baseline_clean','snapshot_repair_prebirth','historical','smime_forward','legacy_address_forward']
+              if stage=='post_forwards':
+                  phases+=['current_guard_preparation','current_read_forwards']
+              if any(receipt['phases'][phase]!={'status':'PASS','exit_code':0} for phase in phases):
+                  fail('db01_writer_fingerprint_phase_provenance')
+              database=json.loads(sql("""SELECT jsonb_build_object('oid',oid,'name',datname,'system_identifier',
+                  (pg_control_system()).system_identifier::text) FROM pg_database WHERE datname=current_database()"""))
+              if database!=reader['database']:
+                  fail('db01_writer_fingerprint_database_provenance')
+              def digest(value):
+                  return sha(json.dumps(value,sort_keys=True,separators=(',',':')))
+              database_digest=digest([database,reader['container']])
+              if stage=='post_forwards':
+                  baseline=json.loads((evidence/'current-write-api-baseline-fingerprint.json').read_text())
+                  if baseline['checkout_sha']!=receipt['checkout_sha'] or baseline['database_sha256']!=database_digest \
+                    or baseline['status']!='OBSERVED_ONLY' or baseline['native_or_approval_credit'] is not False:
+                      fail('db01_writer_fingerprint_same_replay_required')
+              current=observe_current_write_api(publish=False)
+              canonical_sha=digest(current['canonical_function_definitions'])
+              if canonical_sha!='6880c7a0e51874f0138f333d8d6f0a46d6c354a68e045807a8ee4e47510d7929':
+                  fail('db01_writer_fingerprint_unqualified_source_scope')
+              result={'status':'OBSERVED_ONLY','native_or_approval_credit':False,'stage':stage,
+                  'checkout_sha':receipt['checkout_sha'],'checkout_tree':receipt['checkout_tree'],
+                  'source_schema_sha256':current['source_schema_sha256'],'database_sha256':database_digest,
+                  'canonical_definitions_sha256':canonical_sha,'observed_rows_sha256':digest(current['observed_functions']),
+                  'observed_rows_count':len(current['observed_functions']),
+                  'missing_function_names_sha256':digest(current['missing_function_names']),
+                  'unresolved_source_names_sha256':digest(current['unresolved_source_names']),
+                  'expected_entry_absence_only':current['missing_function_names']==['public.gridex_enqueue_normal_supplier_switch_v1'],
+                  'unresolved_source_names_empty':current['unresolved_source_names']==[],
+                  'observed_reader_mismatches':bool(reader['mismatches']),'completed_phase_names':phases}
+              (evidence/('current-write-api-'+stage.replace('_','-')+'-fingerprint.json')).write_text(
+                  json.dumps(result,indent=2,sort_keys=True)+'\n')
+
+          if len(sys.argv)==2 and sys.argv[1] in ('writer-baseline-fingerprint','writer-post-forwards-fingerprint'):
+              write_writer_preimage_fingerprint('baseline' if sys.argv[1]=='writer-baseline-fingerprint' else 'post_forwards')
+              sys.exit(0)
+
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc','function_count':251,
+                  'schema_sha256':'e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c','function_count':251,
                   # Exact949 changes only a reader outside this unchanged251 writer closure.
                   # Preserve the genuine preimage, canonical definitions and all metadata gates.
                   'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
@@ -689,7 +737,7 @@ jobs:
               return {'donor':{'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
                 'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
                 'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'},
-                'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+                'schema_sha256':'3838f1fd17e8a72a7086868747071106147bc37615626ebf1107c1640b07383c',
                 'preimage':'142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e',
                 'postimage':'e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa',
                 'definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d'}
@@ -756,7 +804,8 @@ jobs:
                   # The real reader calls the actor-bearing three-argument overload.
                   if name=='public.ediel_read_bilateral_prodat_outbound_original_v1' and signature.count(',')==1:continue
                   pending.extend(re.findall(r'\b((?:public|gridex_[a-z0-9_]+|auth)\.[a-z0-9_]+)\s*\(',body))
-          if len(reader_names)!=233:fail('current reader call-closure identity changed')
+          if sha('\n'.join(sorted(reader_names)))!='56242105c4e3bba652fdac4a8ca9a6a716b1232be4ec8db1cd12deaf244d6adb':
+              fail('current reader call-closure identity changed')
           relation_keys=[('gridex_customer_masterdata', 'CONSTRAINT', 'preparations customer_masterdata_preparation_actor_operation_key'), ('gridex_customer_masterdata', 'FK CONSTRAINT', 'preparations preparations_cancellation_origin_id_fkey'), ('gridex_customer_masterdata', 'TABLE', 'preparations'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'guide_extensions guide_extensions_pkey'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_inbound_email_message_id_key'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_parse_result_id_key'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_pkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_inbound_email_message_id_fkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_parse_result_id_fkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_source_message_id_fkey'), ('gridex_ediel_header_negative_birth', 'ROW SECURITY', 'guide_extensions'), ('gridex_ediel_header_negative_birth', 'ROW SECURITY', 'receipts'), ('gridex_ediel_header_negative_birth', 'TABLE', 'guide_extensions'), ('gridex_ediel_header_negative_birth', 'TABLE', 'receipts'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'guide_extensions immutable_guide'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'receipts complete_birth'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'receipts immutable_receipt'), ('public', 'TRIGGER', 'ediel_messages assigned_prodat_negative_original_immutable')]
           if any(key not in expected for key in relation_keys):fail('delivered relation source object missing')
           delivered_patch_targets=['gridex_ack_authority.read_outbound_originals_v1', 'gridex_customer_life_events.wire_partition_v1', 'gridex_customer_masterdata.bind_original_v1', 'gridex_customer_masterdata.prelock_new_v1', 'gridex_customer_masterdata.require_current_v1', 'gridex_ediel_ack_guide.bound_prodat_response_before_domain_effects_v1', 'gridex_ediel_ack_guide.prodat_original_outcomes_v1', 'gridex_ediel_ack_guide.require_registered_basis_v1', 'gridex_ediel_ack_guide.validate_response_for_message_v1', 'gridex_ediel_ack_replay.create_scope_v2', 'gridex_ediel_ack_replay.read_exact_v2', 'gridex_ediel_ack_replay.read_scope_v2', 'gridex_ediel_ack_replay.require_common_guide_v2', 'gridex_ediel_ack_replay.require_readonly_prodat_ledger_v2', 'gridex_ediel_common_header.assert_ack_v1', 'gridex_ediel_common_header.capture_source', 'gridex_ediel_common_header.require_current_scope_v1', 'gridex_ediel_header_negative_birth.assert_ack_v1', 'gridex_ediel_outbound_owner.prepare_before_fresh_ack_envelope_v1', 'gridex_ediel_technical_ack.select_configured_reply_route_v2', 'gridex_received_sources.confirmed_death_response_v1', 'gridex_received_sources.prodat_structural_response_v1', 'gridex_received_sources.require_domain_response_at_birth_v1', 'gridex_switch_cancellations.bind_message_v1', 'gridex_switch_cancellations.context_v1', 'public.ediel_prepare_customer_masterdata_recovery_v1', 'public.ediel_prepare_customer_masterdata_v1', 'public.ediel_require_switch_cancellation_source_current_v1', 'public.ediel_switch_cancellation_source_v1', 'public.gridex_bind_inbound_ediel_rule_pack_evidence']
@@ -795,7 +844,7 @@ jobs:
                   fail('unqualified S01 stored-contract dependency: '+dependency['name'])
           extension_names={item['name'] for item in s01_dependency_extensions}
           extension_keys={tuple(item['identity']) for item in s01_dependency_extensions}
-          if len(names)!=377 or len(function_keys)!=377 or len(names-extension_names)!=373 or len(function_keys-extension_keys)!=373:
+          if len(names)!=len(function_keys) or not extension_names<=names or not extension_keys<=function_keys:
               fail('current delivered guard call-closure identity changed')
           # FUNCTION dump definitions include volatility, security mode, language, result
           # and SET configuration. Explicit ACLs are selected by exact function identity;
@@ -808,6 +857,53 @@ jobs:
           guard_relation_acl_keys={(schema,'ACL','TABLE '+table) for schema,kind,table in relation_keys if kind=='TABLE'}
           selected=function_keys|set(relation_keys)|function_acl_keys|schema_keys|guard_relation_acl_keys
 
+
+          canonical_selection=[{'identity':list(key),'definition_sha256':sha(expected[key]) if key in expected else None}
+            for key in sorted(selected)]
+          if sha(json.dumps(canonical_selection,sort_keys=True,separators=(',',':')))!='05a5944274e538d3b4ca2db630df2c720e5e6b078f1b1d7571d9475bc7a058cb':
+              fail('current delivered guard identities, definitions or ACLs differ from the reviewed scope')
+
+          e66_dependency_keys=[('-', 'ACL', 'SCHEMA gridex_e66_intake'),
+           ('-', 'ACL', 'SCHEMA gridex_e66_metering_stage'),
+           ('-', 'ACL', 'SCHEMA gridex_e66_request_retry'),
+           ('-', 'ACL', 'SCHEMA gridex_utilts_binding'),
+           ('-', 'SCHEMA', 'gridex_e66_intake'),
+           ('-', 'SCHEMA', 'gridex_e66_metering_stage'),
+           ('-', 'SCHEMA', 'gridex_e66_request_retry'),
+           ('-', 'SCHEMA', 'gridex_utilts_binding'),
+           ('gridex_e66_intake', 'ACL', 'TABLE billing_calendar_receipts'),
+           ('gridex_e66_intake', 'ACL', 'TABLE completions'),
+           ('gridex_e66_intake', 'ACL', 'TABLE matched_request_basis'),
+           ('gridex_e66_intake', 'ACL', 'TABLE qualified'),
+           ('gridex_e66_intake', 'ACL', 'TABLE registration_rejections'),
+           ('gridex_e66_intake', 'ACL', 'TABLE work'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'billing_calendar_receipts'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'completions'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'matched_request_basis'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'qualified'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'registration_rejections'),
+           ('gridex_e66_intake', 'ROW SECURITY', 'work'),
+           ('gridex_e66_intake', 'TABLE', 'billing_calendar_receipts'),
+           ('gridex_e66_intake', 'TABLE', 'completions'),
+           ('gridex_e66_intake', 'TABLE', 'matched_request_basis'),
+           ('gridex_e66_intake', 'TABLE', 'qualified'),
+           ('gridex_e66_intake', 'TABLE', 'registration_rejections'),
+           ('gridex_e66_intake', 'TABLE', 'work'),
+           ('gridex_e66_metering_stage', 'ACL', 'TABLE jobs'),
+           ('gridex_e66_metering_stage', 'ROW SECURITY', 'jobs'),
+           ('gridex_e66_metering_stage', 'TABLE', 'jobs'),
+           ('gridex_e66_request_retry', 'ACL', 'TABLE commands'),
+           ('gridex_e66_request_retry', 'ROW SECURITY', 'commands'),
+           ('gridex_e66_request_retry', 'TABLE', 'commands'),
+           ('gridex_utilts_binding', 'ACL', 'TABLE metering_application_receipts'),
+           ('gridex_utilts_binding', 'ROW SECURITY', 'metering_application_receipts'),
+           ('gridex_utilts_binding', 'TABLE', 'metering_application_receipts')]
+          def dependency_catalog_fingerprint(catalog):
+              objects=[{'identity':list(key),'definition_sha256':sha(catalog[key]) if key in catalog else None}
+                for key in e66_dependency_keys]
+              return sha(json.dumps(objects,sort_keys=True,separators=(',',':')))
+          if dependency_catalog_fingerprint(expected)!='a56a7e63de431736817f8d6eeef761b1ef2b79088ae6a8f2cbf91e6d8c3e3609':
+              fail('current E66 target relation definitions or ACLs changed')
           def logical_mismatches(actual):
               selected_with_actual=selected|{key for key in actual if selected_function_acl(key)}
               return [{'identity':key,'expected_sha256':sha(expected[key]) if key in expected else None,
@@ -964,6 +1060,16 @@ jobs:
               if code:sys.exit(code)
 
           def s01_current_source_sql():
+              captured='__tests__/fixtures/db05-schema-pr1266-20261122.sql.gz'
+              packed=(root/captured).read_bytes()
+              digest=hashlib.sha256(packed).hexdigest()
+              if digest!='1e0a1ce0798a12770a257f86e52a0dca7cba63da4485e3351667a83f679493b5' \
+                or receipt['root_source']['blobs'][captured]['sha256']!=digest:
+                  fail('S01 original schema capture bytes changed')
+              historical=gzip.decompress(packed).decode()
+              if sha(historical)!='e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c':
+                  fail('S01 original schema capture changed')
+              expected=blocks(historical)
               # BASE56 + the sixteen declared forwards predate this reader dependency.
               # Install only its captured read-side closure after those forwards;
               # do not replay the S01 persistence writer or its unrelated effects.
@@ -1058,9 +1164,98 @@ jobs:
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               if code:sys.exit(code)
 
+          sc046_dependencies={'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34',
+           'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b',
+           'supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql': '42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff'}
+          current_reader_dependencies=[{'path': 'supabase/migrations/20261123195200_inbound_mailbox_bytes_digest.sql',
+            'sha256': 'fe9f65d77b419a9ffee54841f6a209b6202e31688206d1c7ee0da76a13c3afa3'},
+           {'path': 'supabase/migrations/20261123195300_atomic_verified_imap_intake.sql',
+            'sha256': '09443e5ffd348141a830da5f88469a061731f832a539eb534f203e5067a76b4f'},
+           {'path': 'supabase/migrations/20261123200100_bind_direct_e66_request_to_metering_receipts.sql',
+            'sha256': '2171b36dd4b3e53721a8c9c390ae0ecf147e8b499efc036deb221e060fae7efc'},
+           {'path': 'supabase/migrations/20261123201900_bind_e66_retry_to_current_reception.sql',
+            'sha256': '60343cd59f49e3217c26508f6cabc9c1d5567bba26aeaa1f2494ffdf0cbdf2b4'},
+           {'path': 'supabase/migrations/20261123203100_install_durable_e66_work_and_cutover.sql',
+            'sha256': 'c67aab2f17291cfa17e5e3395d4393d430526873fa627935182ea7d78f4cffbc'},
+           {'path': 'supabase/migrations/20261123204302_e66_accumulate_wire_segments_once.sql',
+            'sha256': '59339761bc4abe7b5138df3bacebf836757e302a3d5c42f945b9479dddb6199e'},
+           {'path': 'supabase/migrations/20261123204304_e66_linear_decimal_source_validation.sql',
+            'sha256': '926f2fa851b914db703626920c2e4839dbcc61722f91f8cf8458a9a811bc3ab5'},
+           {'path': 'supabase/migrations/20261123204310_e66_reuse_qualified_billing_source_bases.sql',
+            'sha256': 'e8f6d05bcdb42b4b85fa5e7975085dc151d26c51f1533bb9d40c81ae69e7d80c',
+            'scope': 'exact single stored_contract_v1 G-6 rewrite',
+            'installed_sql_sha256': 'd537fc917d1b98ded95e3af0792bd931936375d1dfa0f1a77cd97b7c9b82861d'},
+           {'path': 'supabase/migrations/20261123210700_register_ediel_e66_request_history.sql',
+            'sha256': '6a5098c836957e22988f7512d1cc0edc68aa30165b7c91632f07e8dd3818ef5c'},
+           {'path': 'supabase/migrations/20261123210800_enforce_ediel_e66_request_period_coverage.sql',
+            'sha256': '1f1306f314f6db356900665fc40305d8cca3bbbbcfed2473e86e6e3397190065'},
+           {'path': 'supabase/migrations/20261123212600_prioritize_just_expired_ediel_business_watches.sql',
+            'sha256': '2b49fe0990d3ab428664cf92c03565d8c70f89544c37f25abb8dce1394ed5702'},
+           {'path': 'supabase/migrations/20261123212700_prioritize_just_expired_ediel_method_watches.sql',
+            'sha256': '8eb7d1ff12a288beaecaaacea64d3d0810c08b4a42a44e82548400f21b0fcb12'},
+           {'path': 'supabase/migrations/20261123212800_complete_durable_e66_registration_rejections.sql',
+            'sha256': '5887d6ddd5e97dc4ed5978d2439dd0e2a6282caf38222c572328cdd56474646c'},
+           {'path': 'supabase/migrations/20261123215300_scope_e66_billing_to_sent_e73_period.sql',
+            'sha256': '1ff4927871f92563b291c7da3f052f3f9e4be175922cdba15a1a8f307e7425db'},
+           {'path': 'supabase/migrations/20261123215400_retain_durable_e66_history_without_request_effect.sql',
+            'sha256': '5a4a75b112eab459f2a96d5b40008a722ac32f1c8a7eab99662a5d417ce46a20'},
+           {'path': 'supabase/migrations/20261123222200_project_e66_billing_into_stockholm_months.sql',
+            'sha256': '606ae33f8f24bc9289f67267c31efaf598f6b1569d45608d85a35e4036be18bc'},
+           {'path': 'supabase/migrations/20261124012100_validate_e66_register_reading_time.sql',
+            'sha256': 'd4a9bd1e33fb400a751c5259bd9d7b4c7fa287c92db99de28cc9367fa868397b'},
+           {'path': 'supabase/migrations/20261124021000_complete_durable_e66_offset_conflict.sql',
+            'sha256': 'b9abf3344301f284e2d6f3b2291fb951a960938f8f76023d6c3916764ed4a04e',
+            'scope': 'complete source donor inside one transaction',
+            'installed_sql_sha256': 'c689e97d7473ce6b039cb4c31ca50c64ce1f321072fae3572735345c908b0271'},
+           {'path': 'supabase/migrations/20261124023900_portal_verified_supply_ends.sql',
+            'sha256': '1069dcccc590d76fe0ce24f47400be5d83decc079d695c058c3cbb224db9aaa3',
+            'scope': 'exact 2 source projection functions and owner/ACL blocks',
+            'installed_sql_sha256': 'b735d64402f093d6b973e9ba0619e63c0b48844c8f2921817415b0ccf83d5671'},
+           {'path': 'supabase/migrations/20261124055200_accelerate_ediel_wire_ingest.sql',
+            'sha256': 'd7bbfa968657ddd0b7aca402a9661428afc5ab9e99e58c5755c1848a0975af95'}]
+
+          def apply_qualified_dependencies(specs):
+              for spec in specs:
+                  path=spec['path'];donor=(root/path).read_bytes()
+                  if hashlib.sha256(donor).hexdigest()!=spec['sha256'] or receipt['root_source']['blobs'][path]['sha256']!=spec['sha256']:
+                      fail('DB01 dependency input bytes changed: '+path)
+                  statements=donor.decode()
+                  if path.startswith('supabase/migrations/20261123204310_'):
+                      helper,=re.findall(r'^create function pg_temp\.g6_rewrite.*?^\$rewrite\$;',statements,re.M|re.S)
+                      call,=re.findall(r"^PERFORM pg_temp.g6_rewrite\(\n  'gridex_utilts_binding.stored_contract_v1\(uuid,uuid,text\)'.*?^\);",
+                        statements,re.M|re.S)
+                      statements='BEGIN;\n'+helper+'\nDO $only_reader$ BEGIN\n'+call+'\nEND $only_reader$;\nCOMMIT;'
+                  elif path.startswith('supabase/migrations/20261124023900_'):
+                      prefix=statements.split('-- The portal calls this only after binding',1)[0]
+                      statements='BEGIN;\n'+prefix+'\nCOMMIT;'
+                  elif path.startswith('supabase/migrations/20261124021000_'):
+                      statements='BEGIN;\n'+statements+'\nCOMMIT;'
+                  if spec.get('installed_sql_sha256') and sha(statements)!=spec['installed_sql_sha256']:
+                      fail('DB01 bounded dependency projection changed: '+path)
+                  with (private/'current-dependency-install.private.log').open('ab') as log:
+                      process=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+                          input=statements.encode(),stdout=log,stderr=log,timeout=120)
+                  receipt.setdefault('current_dependency_executions',[]).append(
+                      {**spec,'exit_code':process.returncode,'status':'PASS' if not process.returncode else 'FAIL'})
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+                  if process.returncode:sys.exit(process.returncode)
+
           mode=sys.argv[1]
           if mode=='before':
               before,db=observe()
+              writer_baseline=json.loads((receipt_path.parent/'current-write-api-baseline-fingerprint.json').read_text())
+              reader_baseline=json.loads((receipt_path.parent/'current-reader-catalog-before.json').read_text())
+              reader_db=[reader_baseline['database'],reader_baseline['container']]
+              if (writer_baseline['checkout_sha']!=receipt['checkout_sha']
+                  or writer_baseline['source_schema_sha256']!=sha(schema_source)
+                  or writer_baseline['stage']!='baseline' or writer_baseline['status']!='OBSERVED_ONLY'
+                  or writer_baseline['native_or_approval_credit'] is not False
+                  or writer_baseline['observed_rows_sha256']!='96e5dbbc7f9ac327814a040a217d01119231002a232f1a831fb39eae90aef7d8'
+                  or writer_baseline['database_sha256']!=sha(json.dumps(reader_db,sort_keys=True,separators=(',',':')))
+                  or reader_baseline['container']!={'id':db['container_id'],'image_id':db['image_id']}
+                  or reader_baseline['database']['system_identifier']!=db['system_identifier']
+                  or reader_baseline['mismatches']!=[]):
+                  fail('DB01 actual same-replay baseline writer/reader preimage changed')
               # Snapshot exact logical surroundings of existing private preparations,
               # including every attached policy/trigger/constraint/index/ACL, before sixteen
               # forward changes. This is retained BASE evidence, not ROOT parity.
@@ -1091,14 +1286,24 @@ jobs:
                   # Keep all sixteen declared forwards, then deliver only the later
                   # source-qualified API effects inside this same bounded phase.
                   apply_current_api_projection()
+                  apply_qualified_dependencies([{'path':path,'sha256':digest} for path,digest in sc046_dependencies.items()])
                   apply_s01_current_source()
                   # Separate current source install: the historical16/59/35 contract stays intact.
                   apply_current_contrl_source()
+                  apply_qualified_dependencies(current_reader_dependencies)
               finally:
                   receipt['current_read_forward_executions']=executed
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
           elif mode=='after':
-              actual,db=observe();before=json.loads((private/'current-guard-before.json').read_text())
+              earlier_schemas=set(schemas)
+              try:
+                  schemas.update({key[0] for key in e66_dependency_keys if key[0]!='-'})
+                  actual,db=observe()
+              finally:
+                  schemas.clear();schemas.update(earlier_schemas)
+              if dependency_catalog_fingerprint(actual)!='a56a7e63de431736817f8d6eeef761b1ef2b79088ae6a8f2cbf91e6d8c3e3609':
+                  fail('current E66 dependency relations or ACLs mismatch')
+              before=json.loads((private/'current-guard-before.json').read_text())
               if db!=before['database'] or role_graph()!=before['roles'] or auth_uid()!=before['auth_uid']:
                   fail('owned database/platform role/helper identity changed during forwards')
               mismatches=logical_mismatches(actual)
@@ -1255,6 +1460,13 @@ jobs:
             # Keep original BASE births and frozen complete history unchanged.
             # Then install only the qualified, delivered current reader closure.
             # Real SQL/catalog/API exits are distinct from the unchanged 13 cases.
+            if ! python3 scripts/helpers/ediel-db01-reader-catalog.py before; then
+              printf '%s\n' 'DB01 supplemental reader preimage observation unavailable'
+            fi
+            if ! python3 "$DB01_PRIVATE/qualify-current-guards.py" writer-baseline-fingerprint \
+                > "$DB01_PRIVATE/writer-baseline-fingerprint.log" 2>&1; then
+              printf '%s\n' 'DB01 supplemental writer baseline fingerprint unavailable'
+            fi
             for stage in before forwards after api; do
               case "$stage" in
                 before) phase=current_guard_preparation ;;
@@ -1266,6 +1478,13 @@ jobs:
               python3 "$DB01_PRIVATE/qualify-current-guards.py" "$stage" || guard_exit=$?
               update_phase "$phase" "$guard_exit"
               if [[ "$guard_exit" != 0 ]]; then exit "$guard_exit"; fi
+              if [[ "$stage" == forwards ]] && ! python3 scripts/helpers/ediel-db01-reader-catalog.py after; then
+                printf '%s\n' 'DB01 supplemental reader postimage observation unavailable'
+              fi
+              if [[ "$stage" == forwards ]] && ! python3 "$DB01_PRIVATE/qualify-current-guards.py" writer-post-forwards-fingerprint \
+                  > "$DB01_PRIVATE/writer-post-forwards-fingerprint.log" 2>&1; then
+                printf '%s\n' 'DB01 supplemental writer post-forward fingerprint unavailable'
+              fi
             done
             export GRIDEX_DB01_NATIVE_PHASE=current GRIDEX_DB01_SOURCE_ROOT="$CURRENT_ROOT"
             current_exit=0
@@ -1387,7 +1606,7 @@ jobs:
               donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
                 'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
                 'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
-              schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+              schema='3838f1fd17e8a72a7086868747071106147bc37615626ebf1107c1640b07383c'
               pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
               post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
               item=receipt.get('current_contrl_source_install',{});before=item.get('catalog_before',{});after=item.get('catalog_after',{})

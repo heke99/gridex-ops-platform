@@ -63,6 +63,7 @@ import {
   type EdielAperakApplicationError,
 } from "@/lib/ediel/ack";
 import { createCanonicalAckMessage } from "@/lib/ediel/core/kernel";
+import type { PolledE66RequestScope } from '@/lib/inbound-mail/e66RequestRetry'
 import { processInboundUtiltsMessage } from "@/lib/ediel/flows/utiltsDataRequest";
 import { processInboundAckMessage } from "@/lib/ediel/flows/inboundAckProcessing";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
@@ -933,6 +934,7 @@ async function hasRetainedPositiveZ02Protocol(actorUserId:string,source:EdielMes
 export async function processInboundEdielMessage(params: {
   actorUserId: string;
   edielMessageId: string;
+  polledE66RequestScope?: PolledE66RequestScope;
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId);
   const message = await getEdielMessageById(params.edielMessageId);
@@ -1380,6 +1382,7 @@ export async function processInboundEdielMessage(params: {
     const utiltsResult = await processInboundUtiltsMessage({
       actorUserId,
       edielMessageId: runtimeMessage.id,
+      polledE66RequestScope: params.polledE66RequestScope,
       canonicalPolicy: canonicalRuntime.decision.policy,
       canonicalDecision: canonicalRuntime.decision,
     });
@@ -1426,6 +1429,8 @@ export async function pollAndIngestEdielMailbox(params: {
   limit?: number;
   markSeen?: boolean;
   includeSeenRecent?: boolean;
+  continueUnreadRun?: boolean;
+  unreadProgressScope?: string;
   recentDays?: number;
   sharedOnly?: boolean;
   createDiagnosticMessagesForUnresolved?: boolean;
@@ -1459,6 +1464,8 @@ export async function pollAndIngestEdielMailbox(params: {
     force: params.force ?? true,
     markSeen: params.markSeen,
     includeSeenRecent: params.includeSeenRecent,
+    continueUnreadRun: params.continueUnreadRun,
+    unreadProgressScope: params.unreadProgressScope,
     recentDays: params.recentDays,
     messageLimitPerMailbox: params.limit ?? 10,
     createDiagnosticMessagesForUnresolved:

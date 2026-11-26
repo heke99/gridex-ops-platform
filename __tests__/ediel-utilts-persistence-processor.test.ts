@@ -1,5 +1,5 @@
 import { s01L359AggregateWire } from '../scripts/helpers/utiltsS01AggregateFixture'
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, declareFixtureE66Request, declaredFixtureE73Rpc, declaredFixtureE73RequestQuery, absentFixtureMeteringPermissionQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -11,7 +11,6 @@ import {receivedUtiltsOwnerFixture,resetUtiltsCanonicalOwnerIo} from './helpers/
 import {createHash} from 'node:crypto'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {segmentUntrimmedRaw,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
-import { findMatchingGridOwnerDataRequest } from '@/lib/ediel/matching'
 import type { UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), findOutbound: vi.fn() }))
@@ -22,7 +21,8 @@ vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => 
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
 vi.mock('@/lib/cis/db', () => ({ ingestBillingUnderlay: io.bill, findOpenOutboundBySource: io.findOutbound, syncGridOwnerDataRequestReceivedFromEdiel: io.complete }))
-vi.mock('@/lib/ediel/matching', () => ({
+vi.mock('@/lib/ediel/matching', async importOriginal => ({
+  findE66GridOwnerDataRequest: (await importOriginal<typeof import('@/lib/ediel/matching')>()).findE66GridOwnerDataRequest,
   matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue('point-a'),
   matchMeteringPointForEdielMessage: vi.fn().mockResolvedValue('point-a'),
   matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue({ customerId: 'customer-a', siteId: 'site-a', gridOwnerId: 'owner-a' }),
@@ -41,15 +41,44 @@ beforeEach(() => {
   io.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'meter-value' } }); io.bill.mockResolvedValue({ id: 'underlay' })
   io.ack.mockImplementation(async ({ ackFamily }) => ({ id: `ack-${ackFamily}` }))
   const finalValidationIo = createUtiltsFinalValidationIo()
+  // Model the reserved response per source transaction. Native persistence is proved separately.
+  const ackPlans = new Map<string, string>()
+  const finalizedAcks = new Map<string, string>()
+  const ackKey = (...parts: unknown[]) => JSON.stringify(parts)
   io.rpc.mockImplementation((name, args) => {
     const canonical = finalValidationIo(name, args)
     if (canonical) return canonical
+    const e73 = declaredFixtureE73Rpc(name, args)
+    if (e73) return e73
     const input = name === 'gridex_persist_utilts_consumption_v1' ? { companyId: args.p_company_id, environment: args.p_environment, sourceMessageId: args.p_source_message_id, messageCode: args.p_message_code, rawPayload: args.p_raw_payload, transactions: args.p_transactions, contracts: args.p_transactions.map((t: { consumptionContract: unknown }) => t.consumptionContract) } as UtiltsBoundPersistenceInput : null
-    const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
-    return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
+    if (input) {
+      const rows = bindingRpcRows(input, results) as { transactionId: string; responseType: string }[]
+      for (const row of rows) {
+        ackPlans.set(ackKey(input.companyId, input.environment, input.sourceMessageId, row.transactionId), row.responseType)
+      }
+      const response = { data: rows, error: null }
+      return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
+    }
+    if (name === 'gridex_finalize_utilts_transaction_ack_v1') {
+      const key = ackKey(args.p_company_id, args.p_environment, args.p_source_message_id, args.p_transaction_id)
+      const current = finalizedAcks.get(key)
+      if (ackPlans.get(key) !== args.p_response_type || !args.p_response_message_id ||
+          (current && current !== args.p_response_message_id)) {
+        return Promise.resolve({ data: { status: 'conflict' }, error: null, status: 200 })
+      }
+      finalizedAcks.set(key, args.p_response_message_id)
+      return Promise.resolve({
+        data: { status: current ? 'already_finalized' : 'finalized', responseMessageId: args.p_response_message_id },
+        error: null,
+        status: 200,
+      })
+    }
+    return Promise.resolve({ data: null, error: { message: 'unavailable' } })
   })
   io.from.mockImplementation((table: string) => {
     const actor=currentUtiltsActorQuery(table);if(actor)return actor
+    const request=declaredFixtureE73RequestQuery(table); if(request)return request
+    const permission=absentFixtureMeteringPermissionQuery(table); if(permission)return permission
     const q = { select: () => q, eq: () => q, is: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
       then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: table === 'ediel_ack_transaction_results' ? [{ id: 'ack-row' }] : [], count: 0, error: null }).then(resolve) }
     return q
@@ -58,7 +87,7 @@ beforeEach(() => {
 /** Declare synthetic TEST original bytes before the modeled database insert.
  * Older wires had ACK-request1 at UNB/0031 but omitted TEST at UNB/0035;
  * row.env is not allowed to reinterpret that physical production original. */
-function declaredTestSource(message:EdielMessageRow):EdielMessageRow{
+function declaredTestSource(message:EdielMessageRow, requestOverrides?:Record<string,unknown>, receivedReference?:string):EdielMessageRow{
  if(declaredSources.has(message))return message
  const missingTenant=message.company_id===null
  if(message.environment==='test'&&message.raw_payload){
@@ -67,6 +96,7 @@ function declaredTestSource(message:EdielMessageRow):EdielMessageRow{
  }
  // Each separate synthetic reception is its own immutable source row, including
  // the agency89/agency9 pair in one case. No hash-changing replay is fabricated.
+ declareFixtureE66Request(message,requestOverrides,receivedReference)
  Object.assign(message,receivedUtiltsOwnerFixture(message))
  message.id='22222222-2222-4222-8222-'+String(++sourceOrdinal).padStart(12,'0')
  const captured=message.execution_context_snapshot as {receivedUtiltsContext:{sourceMessageId:string;companyId:string|null}}
@@ -111,6 +141,12 @@ it('persists an own QTY unit guide rejection before drafting its negative ACK',a
   await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:message.id})
   expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1',expect.objectContaining({p_transactions:expect.arrayContaining([expect.objectContaining({disposition:'guide_rejected',responseType:'negative_aperak'})])}))
   expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')).toHaveLength(1)
+  expect(io.rpc).toHaveBeenCalledWith('gridex_finalize_utilts_transaction_ack_v1', expect.objectContaining({
+    p_source_message_id: message.id,
+    p_transaction_id: 'GRIDEX2607E66001',
+    p_response_type: 'negative_aperak',
+    p_response_message_id: 'ack-APERAK',
+  }))
   expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
 })
 it('holds an S07 without BGM code-list qualifier SVK before business persistence', async () => {
@@ -716,14 +752,24 @@ for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
-it('holds a positive sibling before ACK when its bound point and customer differ from the linked request', async () => {
+it('keeps an E66 with an unknown physical request reference in review without storing or acknowledging values',async()=>{
+  const message=declaredTestSource(incoming(),undefined,'NO-MATCHING-E73')
+  io.get.mockResolvedValue(message)
+  const outcome=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:message.id})
+  expect(outcome).toMatchObject({matchedDataRequest:null,internalReviewRequired:true,ackIds:[]})
+  expect(io.rpc).toHaveBeenCalledWith('gridex_match_e66_to_sent_e73_reference_v1',expect.objectContaining({p_reference:'NO-MATCHING-E73'}))
+  expect(io.rpc.mock.calls.some(([name])=>name==='gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.event).toHaveBeenCalledWith(expect.objectContaining({payload:expect.objectContaining({
+    code:'e66_request_correlation_review',reason:'unknown_reference',requestReference:'NO-MATCHING-E73',
+  })}))
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+
+it('holds a positive sibling before ACK when its bound grid owner differs from the linked request', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
-  io.get.mockResolvedValue(declaredTestSource(message))
-  vi.mocked(findMatchingGridOwnerDataRequest).mockResolvedValueOnce({
-    id: 'request-a', request_scope: 'billing_underlay', response_payload: {},
-    customer_id: 'other-customer', metering_point_id: 'other-point',
-  } as Awaited<ReturnType<typeof findMatchingGridOwnerDataRequest>>)
+  io.get.mockResolvedValue(declaredTestSource(message,{grid_owner_id:'other-grid-owner'}))
   results = [
     { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
     accepted('GRIDEX2607E66002'),

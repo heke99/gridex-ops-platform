@@ -1,7 +1,9 @@
-import { loadMeteringBusinessData, filterMeteringBusinessRows } from '@/lib/admin/meteringBusinessData'
+import { loadMeteringBusinessData, filterMeteringBusinessRows, readMeteringCustomerCardIds, METERING_REQUEST_ROW_LIMIT } from '@/lib/admin/meteringBusinessData'
 import MeteringBusinessView from '@/components/admin/customers/MeteringBusinessView'
 import { isPlatformAdminContext } from '@/lib/admin/guards'
-import { hasPermissionRequirement } from '@/lib/admin/accessModel'
+import { canOpenCustomerDetail, hasPermissionRequirement } from '@/lib/admin/accessModel'
+import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
+import MeteringRequalificationForm from './MeteringRequalificationForm'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -39,7 +41,9 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  const companyId = companyScope.companyId
  if (!companyId) return <main className="p-4"><h1 className="text-xl font-semibold">Mätvärden</h1><p className="mt-3 text-sm">Välj ett bolag innan mätvärden läses.</p></main>
 
- const [requests, values] = await Promise.all([
+ const requalificationPermission = { allOf: ['metering.write', 'billing_underlay.write'] }
+ const checkRequalificationAccess = isPlatformAdmin || hasPermissionRequirement(context.permissions, requalificationPermission)
+ const [requests, values, requalificationAccess] = await Promise.all([
  listAllGridOwnerDataRequests({
  status: 'all',
  scope: 'meter_values',
@@ -50,12 +54,23 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  query: isPlatformAdmin ? query : '',
  companyId,
  }),
+ checkRequalificationAccess ? requireAdminApiAccess(requalificationPermission, { companyId }) : null,
  ])
+ const requalificationPanel = requalificationAccess?.guard?.userId === context.userId &&
+   requalificationAccess.guard.companyId === companyId ? (
+   <AdminDisclosurePanel id="metering-requalify-e66" title="Ompröva ett E66-mätvärde" className="mx-4 my-4 rounded-2xl border border-slate-200 bg-white p-4">
+     <MeteringRequalificationForm key={companyId} />
+   </AdminDisclosurePanel>
+ ) : null
 
  if (!isPlatformAdmin) {
-   const businessData = await loadMeteringBusinessData(companyId, requests, values)
-   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView canReadCustomer={hasPermissionRequirement(context.permissions, { anyOf: ['customers.read', 'masterdata.read'] })} requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} /></div>
+   const businessData = await loadMeteringBusinessData(companyId, requests, values, {
+     includeCustomerCardTargets: canOpenCustomerDetail(context.permissions),
+   })
+   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} />{requalificationPanel}</div>
  }
+
+ const customerCardIds = await readMeteringCustomerCardIds(companyId, requests.slice(0, METERING_REQUEST_ROW_LIMIT).map(row => row.customer_id))
 
  return (
  <div className="min-h-screen">
@@ -70,11 +85,12 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  <MeteringOperationalSummary requests={requests} values={values} />
 
  <section className="space-y-4">
- <MeteringRequestsSection requests={requests} />
+ <MeteringRequestsSection requests={requests} customerCardIds={customerCardIds} />
  <AdminDisclosurePanel id="metering-register-value" title="Registrera mätvärde manuellt" className="rounded-2xl border border-slate-200 bg-white p-4"><MeteringIngestForm /></AdminDisclosurePanel>
  </section>
 
  <MeteringValuesTable values={values} />
+ {requalificationPanel}
  </div>
  </div>
  )

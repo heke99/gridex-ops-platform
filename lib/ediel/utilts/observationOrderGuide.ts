@@ -3,7 +3,7 @@ import { canonicalUtiltsTransactions } from './canonicalObservationScope'
 import type { UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine.part-1'
 
 /** U §3.6.18: either block order is allowed; never repair physical order. */
-export function utiltsObservationOrderGuideIssues(raw: string): UtiltsValidationIssue[] {
+export function utiltsObservationOrderGuideIssues(raw: string, ignoredEnergyTimestamps?: ReadonlySet<number>): UtiltsValidationIssue[] {
   const wire = tokenizeEdifact(raw)
   const start = wire.segments.findIndex(segment => segment.tag === 'UNH')
   if (start < 0) return []
@@ -35,7 +35,9 @@ export function utiltsObservationOrderGuideIssues(raw: string): UtiltsValidation
           seenBlocks.add(type)
           block = type
         }
-        const date = observation.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment,1,wire.una)[0] === '597')
+        if (ignoredEnergyTimestamps && type === 'energy') continue
+        const date = observation.segments.find(segment => segment.tag === 'DTM' && !ignoredEnergyTimestamps?.has(segment.index)
+          && segmentComposite(segment,1,wire.una)[0] === '597')
         const components = date ? segmentComposite(date,1,wire.una) : []
         // Only compare source-supported compact calendar forms of equal format.
         // Missing/invalid dates belong to their field guide, never a guessed time.

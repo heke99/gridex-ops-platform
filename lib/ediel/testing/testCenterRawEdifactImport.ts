@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { parseInboundEmailContent, type ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
@@ -183,20 +183,46 @@ async function findExistingTestInboundEnvelope(input: {
   companyId: string
   customerId: string
   rawEdifact: string
+  sourceSha256: string
 }): Promise<string | null> {
   const result = await supabaseService
     .from('inbound_email_messages')
-    .select('id')
+    .select('id,raw_edifact_payload')
     .eq('company_id', input.companyId)
     .eq('environment', 'test')
-    .eq('raw_edifact_payload', input.rawEdifact)
-    .eq('match_status', 'test_center_raw_import')
-    .contains('match_payload', { test_center_customer_id: input.customerId })
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .contains('match_payload', {
+      source: 'test_center_raw_edifact_import_v1',
+      test_center_customer_id: input.customerId,
+      sha256: input.sourceSha256,
+      external_side_effects_allowed: false,
+    })
+    .is('mailbox_id', null)
+    .limit(2)
   if (result.error) throw result.error
-  return result.data?.id ? String(result.data.id) : null
+
+  const candidates = result.data ?? []
+  if (candidates.length > 1) {
+    throw new Error('Test Center hittade flera sparade poster med samma kontrollsumma för vald testkund. Granska importerna innan du försöker igen.')
+  }
+  const candidate = candidates[0]
+  if (!candidate) return null
+  // Keep the raw bytes out of the URL. The digest selects candidates only;
+  // the stored bytes still have to match exactly before that ID is reused.
+  if (candidate.raw_edifact_payload !== input.rawEdifact) {
+    throw new Error('Den sparade Test Center-postens innehåll stämmer inte med den valda filen. Granska den tidigare importen.')
+  }
+  return candidate.id
+}
+
+function testInboundEnvelopeId(input: { companyId: string; customerId: string; sourceSha256: string }): string {
+  // RFC 9562 custom UUIDv8, reserved for Test Center's verified raw-envelope identity.
+  const hash = createHash('sha256')
+    .update(JSON.stringify(['gridex:test-center:raw-envelope:v1', input.companyId, input.customerId, input.sourceSha256]))
+    .digest()
+  hash[6] = (hash[6] & 0x0f) | 0x80
+  hash[8] = (hash[8] & 0x3f) | 0x80
+  const hex = hash.subarray(0, 16).toString('hex')
+  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-')
 }
 
 async function getOrCreateTestInboundEnvelope(input: {
@@ -207,14 +233,10 @@ async function getOrCreateTestInboundEnvelope(input: {
   filename: string | null
   sourceSha256: string
 }): Promise<{ id: string; reused: boolean }> {
-  const existing = await findExistingTestInboundEnvelope({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    rawEdifact: input.rawEdifact,
-  })
+  const existing = await findExistingTestInboundEnvelope(input)
   if (existing) return { id: existing, reused: true }
 
-  const id = randomUUID()
+  const id = testInboundEnvelopeId(input)
   const now = new Date().toISOString()
   const result = await supabaseService.from('inbound_email_messages').insert({
     id,
@@ -232,10 +254,19 @@ async function getOrCreateTestInboundEnvelope(input: {
       actor_user_id: input.actorUserId,
       external_side_effects_allowed: false,
     },
+    received_at: now,
     created_at: now,
     updated_at: now,
   }).select('id').single()
 
+  if (result.error?.code === '23505') {
+    const committedId = await findExistingTestInboundEnvelope(input)
+    if (committedId === id) {
+      // The other insert is entitled to start processing. A later retry can read
+      // the persisted result by the ordinary path.
+      throw new Error('Test Center-underlaget registrerades i ett samtidigt anrop. Försök igen om en stund.')
+    }
+  }
   if (result.error) throw result.error
   return { id: String(result.data.id), reused: false }
 }

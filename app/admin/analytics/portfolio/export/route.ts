@@ -6,11 +6,17 @@ import { addMonths, monthStart } from '@/lib/analytics/utils'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  if (!admin.companyId) return NextResponse.json({ error: 'Bolag saknas.' }, { status: 400 })
+  const { companyId } = await requireAdminPageKeyAccess('analytics.workspace')
+  if (!companyId) return NextResponse.json({ error: 'Bolag saknas.' }, { status: 400 })
 
-  const month = monthStart(request.nextUrl.searchParams.get('month'))
-  const portfolio = await getCustomerPortfolio(admin.companyId, addMonths(month, -11), month)
+  const params = request.nextUrl.searchParams
+  const expectedCompanies = params.getAll('expected_company_id')
+  if (expectedCompanies.length && (expectedCompanies.length !== 1 || expectedCompanies[0] !== companyId)) {
+    return NextResponse.json({ error: 'Bolagsurvalet har ändrats. Ladda om Portföljöversikt och försök igen.' }, { status: 409 })
+  }
+
+  const month = monthStart(params.get('month'))
+  const portfolio = await getCustomerPortfolio(companyId, addMonths(month, -11), month)
   return csvResponse(portfolioMonthsCsv(portfolio.months, portfolio.forecastMonths), `kundportfolj-${month.slice(0, 7)}.csv`)
 }
 

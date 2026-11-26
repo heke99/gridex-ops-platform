@@ -1,3 +1,4 @@
+import { postgrestOr } from './helpers/postgrestOrFilter'
 import { NextRequest } from 'next/server'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -45,7 +46,7 @@ function builder(table: string) {
       filters.push((row) => Object.entries(value).every(([key, v]) => (row[field] as Row | null)?.[key] === v))
       return api
     },
-    or: () => api,
+    or: (expression: string) => { filters.push(postgrestOr(expression)); return api },
     order: (_field: string, options?: { ascending?: boolean }) => { ascending = options?.ascending ?? true; return api },
     limit: (value: number) => { limit = value; return api },
     insert: (value: Row | Row[]) => {
@@ -176,6 +177,40 @@ describe('mounted customer support routes', () => {
     expect(Object.keys(createdBody.data).sort()).toEqual(caseFields)
     const messageFields = Object.keys(spec.components.schemas.CustomerSupportMessage.properties).sort()
     expect(Object.keys(readBody.data.messages[0]).sort()).toEqual(messageFields)
+  })
+
+  it('excludes operational Ediel cases with inherited support metadata from customer reads', async () => {
+    const cases = await import('@/app/api/v1/customer/support/cases/route')
+    const detail = await import('@/app/api/v1/customer/support/cases/[reference]/route')
+    const messages = await import('@/app/api/v1/customer/support/cases/[reference]/messages/route')
+    const opened = await cases.POST(request('POST', '/api/v1/customer/support/cases',
+      { title: 'Synthetic support', message: 'Synthetic message' }, 'key-support-legacy-01'))
+    expect(opened.status).toBe(201)
+    const legacy = db.customer_cases[0]
+    legacy.source = null
+    legacy.metadata = { ...legacy.metadata as Row, support_case: 'true' }
+    const ordinary = await cases.POST(request('POST', '/api/v1/customer/support/cases',
+      { title: 'Synthetic completion', message: 'Synthetic note' }, 'key-support-legacy-02'))
+    expect(ordinary.status).toBe(201)
+    db.customer_cases[1].source = 'customer_portal'
+    const flagged = await cases.POST(request('POST', '/api/v1/customer/support/cases',
+      { title: 'Synthetic operational record', message: 'Synthetic technical note' }, 'key-support-legacy-03'))
+    expect(flagged.status).toBe(201)
+    db.customer_cases[2].source = 'ediel_inbound_state_machine'
+    const reference = (await flagged.json()).data.case_reference
+    const byReference = { params: Promise.resolve({ reference }) }
+
+    const list = await cases.GET(request('GET', '/api/v1/customer/support/cases?limit=2'))
+    expect(list.status).toBe(200)
+    const data = await list.json()
+    expect(data.page).toMatchObject({ returned: 2, has_more: false })
+    expect(data.data.map((row: Row) => row.title)).toEqual(expect.arrayContaining(['Synthetic support', 'Synthetic completion']))
+
+    const denied = await detail.GET(request('GET', '/api/v1/customer/support/cases/' + reference), byReference)
+    expect(denied.status).toBe(404)
+    expect((await denied.json()).error.code).toBe('support_case_not_found')
+    const history = await messages.GET(request('GET', '/api/v1/customer/support/cases/' + reference + '/messages'), byReference)
+    expect(history.status).toBe(404)
   })
 
   it('rejects writes bound only by customer identifiers', async () => {

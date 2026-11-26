@@ -1,75 +1,26 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { bulkQueueMissingMeterValuesAction } from '@/app/admin/cis/actions'
-import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
-import { formatStatusLabel } from '@/lib/ui/format'
+import { canQueueMissingMetering, loadBulkMeteringCoverage } from '@/lib/cis/bulkMeteringCoverage'
+import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
  searchParams: Promise<{
  period?: string
+ ediel_environment?: string
  }>
 }
 
-function defaultPeriod(): string {
- const now = new Date()
- const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
- return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`
-}
-
 function normalizePeriod(value: string | undefined): string {
- const trimmed = value?.trim() ?? ''
- if (!trimmed) return defaultPeriod()
-
- const match = /^(\d{4})-(\d{2})$/.exec(trimmed)
- if (!match) return defaultPeriod()
-
- const year = Number(match[1])
- const month = Number(match[2])
-
- if (!Number.isInteger(year) || !Number.isInteger(month)) {
- return defaultPeriod()
- }
-
- if (month < 1 || month > 12) {
- return defaultPeriod()
- }
-
- return `${year}-${String(month).padStart(2, '0')}`
-}
-
-function monthPeriod(monthInput: string): { start: string; end: string } {
- const match = /^(\d{4})-(\d{2})$/.exec(monthInput)
-
- if (!match) {
- const fallback = defaultPeriod()
- const fallbackMatch = /^(\d{4})-(\d{2})$/.exec(fallback)
- if (!fallbackMatch) {
- throw new Error('Kunde inte beräkna period')
- }
-
- const fallbackYear = Number(fallbackMatch[1])
- const fallbackMonth = Number(fallbackMatch[2])
-
- return {
- start: new Date(Date.UTC(fallbackYear, fallbackMonth - 1, 1))
- .toISOString()
- .slice(0, 10),
- end: new Date(Date.UTC(fallbackYear, fallbackMonth, 0))
- .toISOString()
- .slice(0, 10),
- }
- }
-
- const year = Number(match[1])
- const month = Number(match[2])
-
- return {
- start: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
- end: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+ if (!value) return previousStockholmBillingMonth()
+ try {
+  return parseBillingMonth(value).value
+ } catch {
+  return previousStockholmBillingMonth()
  }
 }
 
@@ -84,62 +35,17 @@ export default async function MissingMeterValuesPage({
  searchParams,
 }: PageProps) {
  const context = await requireAdminPageKeyAccess('outbound.missing_meter_values')
- const tenantScope = await resolveAdminTenantReadScope(context)
+ const tenantScope = await resolveAdminSelectedCompanyReadScope(context)
  const companyId = tenantScope.companyId
 
  const params = await searchParams
  const selectedPeriod = normalizePeriod(params.period)
- const period = monthPeriod(selectedPeriod)
-
+ const selectedEnvironment = params.ediel_environment === 'production' ? 'production' : 'test'
+ const explicitEnvironment = params.ediel_environment === 'production' || params.ediel_environment === 'test'
  const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
- let sitesQueryBuilder = supabase
- .from('customer_sites')
- .select('*')
-
- if (companyId) {
- sitesQueryBuilder = sitesQueryBuilder.eq('company_id', companyId)
- }
-
- const { data: sites, error: sitesError } = await sitesQueryBuilder.order('created_at', { ascending: false })
-
- if (sitesError) throw sitesError
-
- const safeSites = ((sites ?? []) as { id: string }[]).filter(
- (site): site is { id: string } => Boolean(site?.id)
- )
-
- const meteringPoints = await listMeteringPointsBySiteIds(
- supabase,
- safeSites.map((site) => site.id),
- { companyId }
- )
-
- let valuesQuery = supabase
- .from('metering_values')
- .select('metering_point_id, period_start, period_end')
- .gte('period_start', period.start)
- .lte('period_end', period.end)
-
- if (companyId) {
- valuesQuery = valuesQuery.eq('company_id', companyId)
- }
-
- const { data: values, error: valuesError } = await valuesQuery
- if (valuesError) throw valuesError
-
- const existingPointIds = new Set(
- ((values ?? []) as Array<{ metering_point_id: string | null }>)
- .map((row) => row.metering_point_id)
- .filter((value): value is string => Boolean(value))
- )
-
- const missingPoints = meteringPoints.filter(
- (point) => !existingPointIds.has(point.id)
- )
+ const { meteringPoints, coverage } = await loadBulkMeteringCoverage(supabase, companyId, selectedPeriod, selectedEnvironment)
+ const eligible = meteringPoints.filter(point => canQueueMissingMetering(coverage.get(point.id)))
+ const completeCount = meteringPoints.filter(point => coverage.get(point.id)?.status === 'complete').length
 
  return (
  <div className="min-h-screen">
@@ -151,13 +57,20 @@ export default async function MissingMeterValuesPage({
 
  <div className="space-y-6 p-8">
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <form className="grid gap-4 xl:grid-cols-[260px_auto]">
+ <form className="grid gap-4 xl:grid-cols-[260px_210px_auto]">
  <input
  type="month"
  name="period"
  defaultValue={selectedPeriod}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
+ <label>
+ Ediel-miljö
+ <select name="ediel_environment" defaultValue={selectedEnvironment}>
+ <option value="test">Test</option>
+ <option value="production">Produktion</option>
+ </select>
+ </label>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
  Visa period
  </button>
@@ -175,25 +88,33 @@ export default async function MissingMeterValuesPage({
 
  <div className="rounded-2xl bg-slate-50 px-4 py-4 ">
  <div className="text-sm text-slate-700 ">
- Har värden i perioden
+ Komplett period
  </div>
  <div className="mt-2 text-2xl font-semibold text-slate-950 ">
- {meteringPoints.length - missingPoints.length}
+ {completeCount}
  </div>
  </div>
 
  <div className="rounded-2xl bg-amber-50 px-4 py-4 ">
  <div className="text-sm text-amber-700 ">
- Saknar värden i perioden
+ Kan köas i vald miljö
  </div>
  <div className="mt-2 text-2xl font-semibold text-amber-900 ">
- {missingPoints.length}
+ {eligible.length}
  </div>
  </div>
  </div>
 
  <form action={queueMissingMeterValuesFormAction} className="mt-6">
  <input type="hidden" name="period_month" value={selectedPeriod} />
+ <label>
+ Ediel-miljö för köläggning
+ <select name="ediel_environment" required defaultValue={explicitEnvironment ? selectedEnvironment : ''}>
+ <option value="" disabled>Välj miljö</option>
+ <option value="test">Test</option>
+ <option value="production">Produktion</option>
+ </select>
+ </label>
  <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white ">
  Köa saknade mätvärden för {selectedPeriod}
  </button>
@@ -206,7 +127,7 @@ export default async function MissingMeterValuesPage({
  Förhandsvisning
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Mätpunkter som saknar importerade mätvärden för vald period.
+ Aktuell mättäckning och befintliga begäranden för vald månad och miljö.
  </p>
  </div>
 
@@ -229,17 +150,17 @@ export default async function MissingMeterValuesPage({
  </tr>
  </thead>
  <tbody>
- {missingPoints.length === 0 ? (
+ {meteringPoints.length === 0 ? (
  <tr>
  <td
  colSpan={4}
  className="px-6 py-10 text-center text-sm text-slate-700 "
  >
- Alla mätpunkter har minst ett mätvärde registrerat för vald period.
+ Det finns inga mätpunkter i urvalet.
  </td>
  </tr>
  ) : (
- missingPoints.map((point) => (
+ meteringPoints.map((point) => (
  <tr
  key={point.id}
  className="border-b border-slate-100 "
@@ -254,7 +175,10 @@ export default async function MissingMeterValuesPage({
  {point.grid_owner_id ?? '—'}
  </td>
  <td className="px-6 py-4 text-slate-700 ">
- {formatStatusLabel(point.status)}
+ {coverage.get(point.id)?.status === 'complete' ? 'Komplett'
+  : coverage.get(point.id)?.request === 'existing' ? 'Redan köad'
+  : !canQueueMissingMetering(coverage.get(point.id)) ? 'Kontrollera mätunderlag eller tidigare begäran'
+  : coverage.get(point.id)?.status === 'partial' ? 'Delvis täckt' : 'Saknar värden'}
  </td>
  </tr>
  ))

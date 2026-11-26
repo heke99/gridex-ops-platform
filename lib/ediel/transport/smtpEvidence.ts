@@ -1,3 +1,5 @@
+import { SmtpCertificateRejectedBeforeSmtpError } from './smtpOutcome'
+
 type SmtpResult = { accepted: unknown[]; rejected: unknown[]; messageId?: string; response?: string }
 
 function statusCode(response: string | null, explicit?: unknown): number | null {
@@ -17,6 +19,11 @@ export function smtpResultEvidence(result: SmtpResult) {
 }
 
 export function smtpErrorEvidence(error: unknown) {
+  if (error instanceof SmtpCertificateRejectedBeforeSmtpError) {
+    return { smtpCode: null, queueId: null,
+      error: {message:error.message, code:error.tlsCode, phase:'implicit_tls_handshake',
+        command:null, responseCode:null, response:null, syscall:null} }
+  }
   const e = error as { message?: unknown; code?: unknown; command?: unknown; responseCode?: unknown; response?: unknown; syscall?: unknown } | null
   const response = typeof e?.response === 'string' ? e.response : null
   return { smtpCode: statusCode(response, e?.responseCode), queueId: null,

@@ -1,8 +1,19 @@
 import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
 
 type Patch={preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
+const pr1266SchemaSha='e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
+
+/** Historical producer 33b3098910557fb7a03285ec563a621c9bd7abef / artifact 14769728023.
+ * The fixture is its exact generated schema, gzip -n, without capture-time metadata.
+ * Historical component tests can replay their own chronology from the authenticated bytes. */
+export function readPr1266SchemaCapture():string{
+ const schema=gunzipSync(readFileSync(new URL('../fixtures/db05-schema-pr1266-20261122.sql.gz',import.meta.url))).toString('utf8')
+ if(sha(schema)!==pr1266SchemaSha)throw Error('db05_pr1266_schema_fixture_hash_mismatch')
+ return schema
+}
 
 function reversePatch(schema:string,patch:Patch):string{
  if(sha(schema)!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+sha(schema))
@@ -14,6 +25,14 @@ function reversePatch(schema:string,patch:Patch):string{
  const rebuilt=lines.join('\n')
  if(sha(rebuilt)!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
  return rebuilt
+}
+
+/** Reverse only the authenticated PR1266 capture before historical qualification.
+ * Source 33b30989 / artifact 14769728023; previous source ed0bc89b kept the exact PR949 schema. */
+function prePr1266Schema(schema:string):string{
+ const patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr1266-20261122.patch.json',import.meta.url),'utf8'))
+ if(patch.preSha256!=='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'||patch.postSha256!==pr1266SchemaSha)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,patch)
 }
 
 /** Restore only the exact genuine PR949 capture to the unchanged PR973 bytes.
@@ -30,6 +49,7 @@ function prePr949ContrlSchema(schema:string):string{
  * other capture fails closed. */
 export function prePr973Audit19Schema(schema:string):string{
  const actual=sha(schema)
+ if(actual===pr1266SchemaSha)return prePr973Audit19Schema(prePr1266Schema(schema))
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
  if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
  if(actual!=='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')throw Error('db05_schema_predecessor_unknown:'+actual)
@@ -45,6 +65,7 @@ export function prePr973Audit19Schema(schema:string):string{
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
  const actual=sha(schema)
+ if(actual===pr1266SchemaSha)return prePr932UnsignedEditSchema(prePr1266Schema(schema))
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
  if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')return prePr932UnsignedEditSchema(prePr973Audit19Schema(schema))
@@ -61,6 +82,7 @@ export function prePr932UnsignedEditSchema(schema:string):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual===pr1266SchemaSha)return db05PredecessorSchema(prePr1266Schema(schema))
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))
  if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'||actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'){
   // Genuine ordinary PR973 4551eff2/artifact13019755967 or PR932 capture

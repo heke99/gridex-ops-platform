@@ -2,6 +2,8 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import BillingExportQueueForm from '@/components/admin/outbound/BillingExportQueueForm'
+import { canPresentOperationalAction } from '@/lib/admin/actionPresentation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
@@ -27,6 +29,7 @@ import {
  summarizeReadinessIssues,
 } from '@/lib/operations/controlTower'
 import { buildOperationsAlerts } from '@/lib/operations/controlTowerAlerts'
+import { readSwitchActivationPresentation } from '@/lib/operations/switchActivationPresentation'
 import {
  bulkQueueReadyBillingExportsAction,
  runOperationsAutomationSweepAction,
@@ -226,7 +229,7 @@ function QueueCard({
  tone = 'neutral',
 }: {
  title: string
- count: number
+ count: number | '—'
  description: string
  href: string
  cta: string
@@ -380,6 +383,8 @@ export default async function AdminOperationsPage() {
  const context = await requireAdminPageKeyAccess('operations.control_tower')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
+ const exportCompanyId = tenantScope.isPlatformAdmin ? context.companyId : companyId
+ const canQueueBilling = await canPresentOperationalAction(['billing_underlay.write', 'partner_exports.write'], exportCompanyId)
 
  const supabase = await createSupabaseServerClient()
  const {
@@ -483,6 +488,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  }
  }
 
+ const switchActivation = await readSwitchActivationPresentation(supabase, switchRequests, { companyId })
  const switchLifecycle = switchRequests.map((request) => {
  const readiness = readinessResults.find((row) => row.siteId === request.site_id)
  const outbound = outboundRequests.find(
@@ -496,6 +502,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  lifecycle: getSwitchLifecycle({
  request,
  readiness,
+ activation: switchActivation.byRequestId[request.id],
  outboundRequest: outbound,
  }),
  readiness,
@@ -589,7 +596,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  meteringValues,
  })
 
- const queuePriority = [
+ const queuePriority: Array<Parameters<typeof QueueCard>[0] & { id: string }> = [
  {
  id: 'blocked-switches',
  title: 'Blockerade leverantörsbyten',
@@ -633,9 +640,10 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  {
  id: 'ready-to-execute',
  title: 'Redo att slutföra',
- count: readyToExecuteSwitches.length,
- description:
- 'Kvitterade leverantörsbyten som är klara för intern slutföring.',
+ count: switchActivation.unavailable ? '—' : readyToExecuteSwitches.length,
+ description: switchActivation.unavailable
+ ? 'Marknadsstarten kunde inte kontrolleras. Läs om översikten.'
+ : 'Leverantörsbyten där nätägarens bekräftade marknadsstart har uppnåtts.',
  href: '/admin/operations/ready-to-execute',
  cta: 'Slutför ärenden',
  tone: 'success' as const,
@@ -966,16 +974,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  <SectionHeader
  title="Faktureringsunderlag redo för export"
  subtitle="Underlag som kan köas vidare till exportpartnern nu."
- action={
- <form action={queueReadyBillingExportsFormAction}>
- <button
- type="submit"
- className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 "
- >
- Köa redo underlag
- </button>
- </form>
- }
+ action={canQueueBilling ? <BillingExportQueueForm action={queueReadyBillingExportsFormAction} label="Köa redo underlag" /> : null}
  />
 
  <div className="space-y-3 p-6">

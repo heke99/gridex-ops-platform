@@ -169,6 +169,7 @@ function getIssueEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] 
  (event) =>
  event.payload?.duplicateBlocked === true ||
  event.payload?.ackConflict === true ||
+ event.payload?.reason === 'UTILTS_E66_SG11_TIMESTAMP_QUANTITY_NOT_ALLOWED' ||
  event.event_status === 'error'
  )
 }
@@ -531,7 +532,7 @@ Konfigurerat transportläge: {sendReadiness.resolvedEncryptionMode === 'smime' ?
  Räkna om ACK / runtime
  </button>
  <div className="mt-1 text-xs text-emerald-700">
- Markerar gamla ej skickade ACK-utkast som superseded och kör om tenant + runtime.
+ Kör om bedömningen och visa aktuell kvittensstatus. När E66 hanteras av den ordinarie arbetskön läses dess status om.
  </div>
  </form>
  ) : null}

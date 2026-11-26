@@ -16,7 +16,9 @@ export type EdielProcessNextAction = Readonly<{
   authorizesProviderEntry:false;automaticResendAllowed:false;
   reportingObligations?:readonly ObligationAssessment[];
 }>
-const responses:Readonly<Record<string,string>>=Object.freeze({Z01:'Z02',Z13:'Z14',Z18:'Z15'})
+export const EDIEL_PROCESS_PROJECTION_LIMIT = 100
+
+const responses:Readonly<Record<string,string>>=Object.freeze({Z01:'Z02',Z08:'Z05',Z13:'Z14',Z18:'Z15'})
 const timestamp=(value:unknown)=>typeof value==='string'&&Number.isFinite(Date.parse(value))?new Date(value).toISOString():null
 
 function obligationFields(sourceCode:string|null,validated:boolean,businessState:string):Pick<EdielProcessNextAction,'reportingObligations'>{
@@ -33,6 +35,7 @@ export function deriveEdielProcessNextAction(input:{companyId:string;message:Sou
  const anchorAt=timestamp(metadata.anchorAt),businessDueAt=timestamp(e.due_at),technicalDueAt=timestamp(m.contrl_due_at),evaluatedAt=timestamp(input.evaluatedAt)
  const sameScope=m.company_id===input.companyId
  const timerKind=metadata.timerKind==='internal_sender_watch'||metadata.timerKind==='untimed_business_response'?metadata.timerKind:null
+ const nationalRescission=m.message_code==='Z08'
  const visible=access.canRead&&sameScope
  const result=(cause:EdielProcessNextAction['cause'],responsibility:EdielProcessNextAction['responsibility'],waitingFor:string[],blockers:string[],summary:string):EdielProcessNextAction=>Object.freeze({
   version:1,sourceMessageId:m.id,cause,responsibility,waitingFor:Object.freeze(waitingFor),blockers:Object.freeze(blockers),summary,
@@ -41,6 +44,8 @@ export function deriveEdielProcessNextAction(input:{companyId:string;message:Sou
   ...obligationFields(m.message_code,visible&&cause!=='source_context_held',e.status),
  })
  if(!sameScope||m.direction!=='outbound'||m.message_family!=='PRODAT'||responses[m.message_code??'']!==e.expected_code||e.source_message_id!==m.id
+  // The owner records subtype L and an untimed watch only for national Z08H.
+  ||(nationalRescission&&(!('expected_subtype' in e)||e.expected_subtype!=='L'||timerKind!=='untimed_business_response'))
   ||!evaluatedAt||!anchorAt||Date.parse(evaluatedAt)<Date.parse(anchorAt)||metadata.anchorType!=='actual_accepted_smtp_observed_at'||metadata.remoteReceiptKnown!==false
   ||!['pending','fulfilled','rejected','manual_review'].includes(e.status)||!timerKind
   ||(timerKind==='internal_sender_watch'&&(!businessDueAt||Date.parse(businessDueAt)<Date.parse(anchorAt)))
@@ -52,17 +57,24 @@ export function deriveEdielProcessNextAction(input:{companyId:string;message:Sou
  const ackWaiting=[...(technicalPending?['CONTRL']:[]),...(applicationPending?['APERAK']:[])]
  const technicalOverdue=technicalPending&&technicalDueAt!==null&&Date.parse(technicalDueAt)<=Date.parse(evaluatedAt)
  const technicalBlockers=technicalOverdue?['technical_sender_watch_overdue']:[]
+ const expectedResponse=nationalRescission?'Z05L':e.expected_code
+ const qualifiedResponse=nationalRescission?'Z05L-svaret är kvalificerat.':'Affärssvaret är kvalificerat.'
  if(e.status==='rejected')return result('business_response_rejected','tenant_operator',ackWaiting,['business_response_rejected',...technicalBlockers],'Granska det källkvalificerade negativa affärssvaret. Kvittensbevakning hanteras separat; ingen automatisk omsändning.')
  if(m.requires_contrl===true&&m.contrl_status==='failed')return result('technical_rejection','tenant_operator',[],['technical_response_rejected'],'Granska den faktiska tekniska avvisningen och originalet. Ett nytt skick kräver en separat aktuell prövning.')
- if(m.requires_aperak===true&&m.aperak_status==='failed')return result('technical_rejection','tenant_operator',[e.expected_code],['application_response_rejected',...technicalBlockers],'Granska den faktiska negativa APERAK-kvittensen. Affärssvaret prövas separat; ingen automatisk omsändning.')
+ if(m.requires_aperak===true&&m.aperak_status==='failed'){
+  const applicationBlockers=['application_response_rejected',...technicalBlockers]
+  if(e.expected_code==='Z14'&&e.status==='fulfilled')return result('business_response_received','tenant_operator',ackWaiting,applicationBlockers,
+   'Det kvalificerade Z14-svaret är mottaget. Granska den separata negativa APERAK-kvittensen. Ingen automatisk omsändning.')
+  return result('technical_rejection','tenant_operator',[expectedResponse],applicationBlockers,'Granska den faktiska negativa APERAK-kvittensen. Affärssvaret prövas separat; ingen automatisk omsändning.')
+ }
  if(e.status==='fulfilled')return result('business_response_received',ackWaiting.length&&!technicalOverdue?'counterparty':'tenant_operator',ackWaiting,technicalBlockers,
-  technicalOverdue?'Affärssvaret är kvalificerat. Granska den separata tekniska sändarbevakningen.':'Affärssvaret är kvalificerat. Fortsatt process prövas från sitt eget källbeslut; eventuell kvittens bevakas separat.')
+  technicalOverdue?`${qualifiedResponse} Granska den separata tekniska sändarbevakningen.`:`${qualifiedResponse} Fortsatt process prövas från sitt eget källbeslut; eventuell kvittens bevakas separat.`)
  const overdue=e.status==='manual_review'||businessDueAt!==null&&Date.parse(businessDueAt)<=Date.parse(evaluatedAt)
- const businessLabel=e.expected_code==='Z02'?'Z02_or_negative_APERAK':e.expected_code
+ const businessLabel=e.expected_code==='Z02'?'Z02_or_negative_APERAK':expectedResponse
  if(overdue)return result('business_watch_overdue','tenant_operator',[businessLabel,...ackWaiting],['business_sender_watch_overdue',...technicalBlockers],
   'Granska uteblivet kvalificerat affärssvar och den egna sändarbevakningen. SMTP-klockan styr intern uppföljning; motpartens mottagningstid är inte känd. Ingen automatisk omsändning.')
  return result('business_response_pending',technicalOverdue?'tenant_operator':'counterparty',[businessLabel,...ackWaiting],technicalBlockers,
-  `Invänta ${e.expected_code==='Z02'?'Z02 eller negativ APERAK':e.expected_code} från motparten. ${technicalPending?'CONTRL bevakas parallellt. ':''}${applicationPending?'APERAK bevakas parallellt. ':''}${technicalOverdue?'Granska den separata tekniska sändarbevakningen. ':''}Tidsgrunden är faktisk SMTP-acceptans för intern uppföljning; ingen automatisk omsändning.`)
+  `Invänta ${e.expected_code==='Z02'?'Z02 eller negativ APERAK':expectedResponse} från motparten. ${technicalPending?'CONTRL bevakas parallellt. ':''}${applicationPending?'APERAK bevakas parallellt. ':''}${technicalOverdue?'Granska den separata tekniska sändarbevakningen. ':''}Tidsgrunden är faktisk SMTP-acceptans för intern uppföljning; ingen automatisk omsändning.`)
 }
 
 const calendarDay=(value:unknown):string|null=>{
@@ -98,7 +110,12 @@ export function deriveEdielMeteringMethodProcessNextAction(input:Parameters<type
  const blockers=technicalOverdue?['technical_sender_watch_overdue']:[]
  if(e.status==='rejected')return result('business_response_rejected','tenant_operator',ackWaiting,['business_response_rejected',...blockers],'Granska det källkvalificerade negativa affärssvaret. Kvittensbevakning hanteras separat; ingen automatisk omsändning.')
  if(m.requires_contrl===true&&m.contrl_status==='failed')return result('technical_rejection','tenant_operator',['Z06'],['technical_response_rejected'],'Granska den faktiska tekniska avvisningen. Den fyller inte den separata Z06-bevakningen.')
- if(m.requires_aperak===true&&m.aperak_status==='failed')return result('technical_rejection','tenant_operator',['Z06',...(technicalPending?['CONTRL']:[])],['application_response_rejected',...blockers],'Granska den faktiska negativa APERAK-kvittensen. Den fyller inte den separata Z06-bevakningen.')
+ if(m.requires_aperak===true&&m.aperak_status==='failed'){
+  const applicationBlockers=['application_response_rejected',...blockers]
+  if(e.status==='fulfilled')return result('business_response_received','tenant_operator',ackWaiting,applicationBlockers,
+   'Det egna tillämpade Z06-svaret är kvalificerat. Granska den separata negativa APERAK-kvittensen. Ingen automatisk omsändning.')
+  return result('technical_rejection','tenant_operator',['Z06',...(technicalPending?['CONTRL']:[])],applicationBlockers,'Granska den faktiska negativa APERAK-kvittensen. Den fyller inte den separata Z06-bevakningen.')
+ }
  if(e.status==='fulfilled')return result('business_response_received',ackWaiting.length&&!technicalOverdue?'counterparty':'tenant_operator',ackWaiting,blockers,'Det egna tillämpade Z06-svaret är kvalificerat. Eventuell teknisk kvittens bevakas separat.')
  if(e.status==='manual_review'||businessDueAt<=evaluatedAt)return result('business_watch_overdue','tenant_operator',['Z06',...ackWaiting],['business_source_validity_watch_overdue',...blockers],'Granska uteblivet kvalificerat Z06-svar. Den egna bevakningen utgår från originalets giltighetsdag; ingen automatisk omsändning.')
  return result('business_response_pending',technicalOverdue?'tenant_operator':'counterparty',['Z06',...ackWaiting],blockers,'Invänta det egna tillämpade Z06-svaret från motparten. Bevakningen utgår från originalets giltighetsdag. CONTRL och APERAK prövas separat; ingen automatisk omsändning.')
@@ -109,9 +126,9 @@ const canonicalJson=(value:unknown):string=>JSON.stringify(value,(_key,item)=>it
 /** Actual private owner read precedes tenant-scoped source reads. A caller
  * cannot select another tenant's expectation through a guessed message ID. */
 export async function readEdielProcessNextActions(input:EdielBusinessExpectationScope&{evaluatedAt:string;access:EdielProcessActionVisibility;messageIds?:readonly string[]}):Promise<ReadonlyMap<string,EdielProcessNextAction>>{
- const scope={companyId:input.companyId,environment:input.environment,actorUserId:input.actorUserId,limit:100}
+ const scope={companyId:input.companyId,environment:input.environment,actorUserId:input.actorUserId,limit:EDIEL_PROCESS_PROJECTION_LIMIT}
  const requested=input.messageIds?[...new Set(input.messageIds)]:null
- if(requested&&requested.length>100)throw new Error('ediel_process_projection_scope_limit')
+ if(requested&&requested.length>EDIEL_PROCESS_PROJECTION_LIMIT)throw new Error('ediel_process_projection_scope_limit')
  // Exact requested sources avoid silently hiding new requests behind an old
  // company's first100 watches. No UI visibility flags enter the owner RPC.
  const owners=await Promise.all([readEdielBusinessExpectations,readEdielMeteringMethodExpectations].map(read=>requested?

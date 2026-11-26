@@ -174,7 +174,7 @@ export default function UploadForm({
 
  <div className="grid gap-4 md:grid-cols-3">
  <label className="space-y-1 text-sm text-slate-700 ">
- <span className="font-medium">Begär period från</span>
+ <span className="font-medium">Periodens första dag</span>
  <input
  name="requested_period_start"
  type="date"
@@ -183,7 +183,7 @@ export default function UploadForm({
  </label>
 
  <label className="space-y-1 text-sm text-slate-700 ">
- <span className="font-medium">Begär period till</span>
+ <span className="font-medium">Periodens sista dag (inklusive)</span>
  <input
  name="requested_period_end"
  type="date"
@@ -377,7 +377,7 @@ export default function UploadForm({
  : 'include_billing_underlay'
  }
  type="checkbox"
- defaultChecked
+ defaultChecked={scope.code !== 'meter_values'}
  className="mt-1"
  />
  <span>
@@ -388,6 +388,14 @@ export default function UploadForm({
  </span>
  </label>
  ))}
+ <label className="grid max-w-sm gap-1 text-sm text-slate-700">
+ <span className="font-medium">Ediel-miljö för mätvärdesbegäran</span>
+ <select name="metering_ediel_environment" defaultValue="" className="rounded-xl border border-slate-300 bg-white px-3 py-2">
+ <option value="">Välj miljö om mätvärden ska begäras</option>
+ <option value="test">Test</option>
+ <option value="production">Produktion</option>
+ </select>
+ </label>
  </div>
 
  <label className="flex items-start gap-3">

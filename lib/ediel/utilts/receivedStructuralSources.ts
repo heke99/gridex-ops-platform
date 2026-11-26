@@ -13,6 +13,8 @@ const MAX_ROWS = 100
 const MAX_WIRE_BYTES = 256 * 1024
 const MAX_TOTAL_BYTES = 1024 * 1024
 const MAX_WIRE_SEGMENTS = 512
+// 31 days of four segments per quarter plus envelope and structural headers.
+const MAX_MONTHLY_E66_SEGMENTS = 16_384
 const MAX_TOTAL_SEGMENTS = 4096
 const READ_DEADLINE_MS = 2000
 const COLUMNS = 'id,company_id,environment,direction,message_standard,message_family,message_code,metering_point_id,message_received_at,raw_payload,immutable_payload_hash,received_prodat_context:execution_context_snapshot->receivedProdatContext'
@@ -105,10 +107,16 @@ function contextIssue(row: Record<string, unknown>, cutoff: Receipt): string | n
 }
 
 /** One supported physical envelope, not a whole-message grammar certificate. */
-export function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT' | 'CONTRL' | 'APERAK'): CanonicalEdifactAst | null {
+export function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT' | 'CONTRL' | 'APERAK', allowMonthlyE66 = false): CanonicalEdifactAst | null {
   if (Buffer.byteLength(raw, 'utf8') > MAX_WIRE_BYTES) throw new InspectionBudgetExceeded()
   const tokens = tokenizeEdifact(raw)
-  if (tokens.segments.length > MAX_WIRE_SEGMENTS) throw new InspectionBudgetExceeded()
+  if (tokens.segments.length > MAX_WIRE_SEGMENTS) {
+    const bgm = tokens.segments.filter(segment => segment.tag === 'BGM')
+    const monthlyE66 = allowMonthlyE66 && family === 'UTILTS' && bgm.length === 1
+      && segmentComposite(bgm[0], 1, tokens.una)[0] === 'E66'
+      && tokens.segments.length <= MAX_MONTHLY_E66_SEGMENTS
+    if (!monthlyE66) throw new InspectionBudgetExceeded()
+  }
   const index = (tag: string) => tokens.segments.filter(segment => segment.tag === tag)
   const unb = index('UNB'), unh = index('UNH'), unt = index('UNT'), unz = index('UNZ')
   if ([unb, unh, unt, unz].some(items => items.length !== 1)) return null

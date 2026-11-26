@@ -3,12 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
+import { BATCH2C_AUTOMATION_ACCESS, CONTROL_TOWER_ROW_ACCESS } from '@/lib/operations/automationPermissions'
 import { createCasesForBatch2CQueues, resolveBatch2CQueueItem, runBatch2CPeriodMotor } from '@/lib/operations/batch2cAutomation'
 
-async function resolveCompanyId(userId: string): Promise<string> {
-  const scope = await getOperationalCompanyScope(userId)
-  if (!scope.companyId) throw new Error(scope.message ?? 'Bolagskoppling saknas.')
+async function resolveCompanyId(admin: Awaited<ReturnType<typeof requireAdminActionAccess>>): Promise<string> {
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
+  if (!scope.companyId) throw new Error('Bolagskoppling saknas.')
   return scope.companyId
 }
 
@@ -31,9 +32,8 @@ function done(status: 'success' | 'error', message: string): never {
 
 export async function runControlTowerPeriodMotorAction(formData: FormData): Promise<void> {
   try {
-    const sessionAdmin = await requireAdminActionAccess({ anyOf: ['metering.write', 'billing_underlay.export', 'cases.write'] })
-    const companyId = await resolveCompanyId(sessionAdmin.userId)
-    const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['metering.write', 'billing_underlay.export', 'cases.write'] })
+    const admin = await requireAdminActionAccess(BATCH2C_AUTOMATION_ACCESS)
+    const companyId = await resolveCompanyId(admin)
     const result = await runBatch2CPeriodMotor({
       companyId,
       actorUserId: admin.userId,
@@ -50,12 +50,11 @@ export async function runControlTowerPeriodMotorAction(formData: FormData): Prom
 
 export async function createControlTowerCasesAction(): Promise<void> {
   try {
-    const sessionAdmin = await requireAdminActionAccess({ anyOf: ['cases.write', 'metering.write', 'billing_underlay.export'] })
-    const companyId = await resolveCompanyId(sessionAdmin.userId)
-    const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['cases.write', 'metering.write', 'billing_underlay.export'] })
+    const admin = await requireAdminActionAccess(BATCH2C_AUTOMATION_ACCESS)
+    const companyId = await resolveCompanyId(admin)
     const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `${result.casesCreated} driftuppgifter skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+    done('success', `${result.casesCreated} nya uppföljningar skapades efter granskning av ${result.queuesScanned} köposter.`)
   } catch (error) {
     unstable_rethrow(error)
     done('error', error instanceof Error ? error.message : 'Driftuppgifter kunde inte skapas från driftköer.')
@@ -67,7 +66,7 @@ export async function resolveControlTowerQueueItemAction(formData: FormData): Pr
     // The queue row's own tenant, authorised for the actor; never the session default.
     const companyId = text(formData, 'company_id')
     if (!companyId) throw new Error('Bolag saknas för driftkön.')
-    const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['cases.write', 'metering.write', 'billing_underlay.export', 'partner_exports.write'] })
+    const admin = await requireCompanyScopedActionAccess(companyId, CONTROL_TOWER_ROW_ACCESS)
     const queueType = text(formData, 'queue_type')
     const sourceId = text(formData, 'source_id')
     if (!queueType || !sourceId) throw new Error('Kötyp eller källa saknas.')

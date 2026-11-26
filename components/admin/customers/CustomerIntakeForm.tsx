@@ -192,7 +192,10 @@ function CreatedCustomerNextSteps({ state, access }: { state: IntakeActionState;
   if (!state.createdCustomerId) return null;
 
   const customerHref = `/admin/customers/${encodeURIComponent(state.createdCustomerId)}`;
-  const dataRequestsHref = `/admin/customer-info-requests?customer_id=${encodeURIComponent(state.createdCustomerId)}#create-info-request`;
+  const requestSelection = new URLSearchParams({ customer_id: state.createdCustomerId });
+  if (state.createdSiteId) requestSelection.set("site_id", state.createdSiteId);
+  if (state.createdMeteringPointId) requestSelection.set("metering_point_id", state.createdMeteringPointId);
+  const dataRequestsHref = `/admin/customer-info-requests?${requestSelection}#create-info-request`;
   const defaultRequestTarget = state.postCreateRequestTarget ?? "both";
   const showRequestFirst = state.postCreateAction === "request_data";
 
@@ -427,7 +430,6 @@ export default function CustomerIntakeForm({
         onInvalidCapture={(event) => openFieldSections(event.target as HTMLElement)}
         className="mt-4 space-y-3"
         data-customer-intake-form
-        encType="multipart/form-data"
       >
         {state.status === "error" && state.message ? (
           <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">

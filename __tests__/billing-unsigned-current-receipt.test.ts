@@ -24,7 +24,13 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{
   const query={select:()=>query,eq:(k:string,v:unknown)=>{filters.push([k,v]);return query},in:()=>query,lte:()=>query,gte:()=>query,lt:()=>query,gt:()=>query,or:()=>query,order:()=>query,range:()=>query,is:()=>query,not:()=>query,
    limit:(n:number)=>{max=n;return query},maybeSingle:async()=>{const r=resolve();return {data:r.data[0]??null,error:r.error}},then:(done:(v:unknown)=>unknown)=>Promise.resolve(resolve()).then(done)}
   return query
- },rpc:async(name:string,args:{p_commands:Array<Record<string,unknown>>})=>{expect(name).toBe('gridex_store_billing_underlay_batch');io.commands.push(...args.p_commands);return {data:args.p_commands.map((_,i)=>'underlay-'+i),error:null}},
+ },
+ rpc: async (name: string, args: { p_commands: Array<Record<string, unknown>> }) => {
+  if (name === 'gridex_read_effective_contract_price_timeline_v1') return { data: { kind: 'legacy' }, error: null }
+  expect(name).toBe('gridex_store_billing_underlay_batch')
+  io.commands.push(...args.p_commands)
+  return { data: args.p_commands.map((_, i) => 'underlay-' + i), error: null }
+ },
 }}))
 import {generateBillingUnderlaysForMonth} from '@/lib/billing/underlayEngine'
 const hash='a'.repeat(64)
@@ -66,9 +72,13 @@ describe('real underlay entrypoint selects a controlled signed revision',()=>{
    expect(io.commands).toHaveLength(0)
   }
  })
- it('preserves legacy same-date ambiguity refusal for unrelated contracts',async()=>{
+ it('holds a same-date legacy ambiguity without writing that interval',async()=>{
   io.contract.price_snapshot={};io.snapshots=io.snapshots.map(s=>({...s,source:'legacy'}))
-  await expect(generateBillingUnderlaysForMonth({companyId:'company-a',billingMonth:'2027-03'})).rejects.toThrow('Flera prissnapshots är giltiga samtidigt')
+  const result=await generateBillingUnderlaysForMonth({companyId:'company-a',billingMonth:'2027-03'})
+  expect(result).toMatchObject({
+   readyForPricing:0,needsReview:1,
+   results:[{underlayId:null,status:'needs_review',warnings:[expect.stringContaining('billing_price_snapshot_segment_incomplete')]}],
+  })
   expect(io.commands).toHaveLength(0)
  })
  it('holds marker loss even when an older proposal has the later validity date',async()=>{

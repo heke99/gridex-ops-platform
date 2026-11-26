@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const body = (await request.json().catch(() => null) ?? {}) as Record<string, unknown>
     const pricingRunId = typeof body.pricing_run_id === 'string' ? body.pricing_run_id : typeof body.pricingRunId === 'string' ? body.pricingRunId : ''
     if (!pricingRunId) return NextResponse.json({ error: 'pricing_run_id krävs.' }, { status: 400 })
 

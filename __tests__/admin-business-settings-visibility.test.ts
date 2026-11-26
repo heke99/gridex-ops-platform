@@ -1,6 +1,6 @@
 vi.mock('@/lib/admin/meteringBusinessData', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/admin/meteringBusinessData')>()
-  return { ...actual, loadMeteringBusinessData: async () => ({ customers: [{ id: 'customer', full_name: 'Syntetisk kund' }], sites: [{ id: 'site', customer_id: 'customer', site_name: 'Sommarstugan', facility_id: '735999111111111111' }], meters: [{ id: 'RAW-METER-ID', site_id: 'site', meter_point_id: '735999222222222222' }] }) }
+  return { ...actual, loadMeteringBusinessData: async (...args: Parameters<typeof actual.loadMeteringBusinessData>) => ({ customerCardIds: args[3]?.includeCustomerCardTargets ? new Set(['customer']) : undefined, customers: [{ id: 'customer', full_name: 'Syntetisk kund' }], sites: [{ id: 'site', customer_id: 'customer', site_name: 'Sommarstugan', facility_id: '735999111111111111' }], meters: [{ id: 'RAW-METER-ID', site_id: 'site', meter_point_id: '735999222222222222' }] }) }
 })
 import fs from 'node:fs'
 import React from 'react'
@@ -8,6 +8,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({ platform: false, permissions: [] as string[], loginError: false, settingsError: false, catalogError: false, provider: 'capway_aptic', providers: true, failedPosts: false }))
 vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'operator', email: 'operator@example.test', companyId: 'company', permissions: io.permissions }), isPlatformAdminContext: () => io.platform }))
+vi.mock('@/lib/admin/apiGuards', () => ({
+  requireAdminApiAccess: async (required: { allOf: string[] }, options: { companyId: string }) => {
+    expect(required.allOf).toEqual(['metering.write', 'billing_underlay.write'])
+    expect(options.companyId).toBe('company')
+    const allowed = io.platform || required.allOf.every(permission => io.permissions.includes(permission))
+    return { guard: allowed ? { userId: 'operator', companyId: 'company' } : null }
+  },
+}))
 vi.mock('@/lib/auth/requirePermissionServer', () => ({ requirePermissionServer: async () => ({ userId: 'operator', email: 'operator@example.test', companyId: 'company', permissions: io.permissions }) }))
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminSelectedCompanyReadScope: async () => ({ companyId: 'company', companyName: 'Testbolag' }) }))
 vi.mock('@/components/admin/AdminHeader', () => ({ default: ({ title }: { title: string }) => React.createElement('header', null, React.createElement('h1', null, title)) }))
@@ -91,7 +99,7 @@ it('shows metering customer names, energy, period, corrections and business link
   expect(html).toContain('145,5 kWh')
   expect(html).toContain('Rättat mätvärde')
   expect(html).toContain('Ersatt av ett senare mätvärde')
-  expect(html).toContain('/admin/customers/customer?tab=sites')
+  expect(html).toContain('/admin/customers/customer?tab=sites&amp;site=site#vald-anlaggning')
   const text = visible(html)
   for (const marker of ['RAW-','UTILTS','Förbered E73','Kund-id','consumption']) expect(text).not.toContain(marker)
   expect(html).not.toContain('name="customer_id"')
@@ -111,8 +119,8 @@ it('retains failed invoice-post warnings even without provider review events', a
   expect(html).not.toContain('RAW-FAILED-INVOICE')
 })
 
-it('keeps metering information without offering a customer destination to a metering-only reader', async () => {
-  io.permissions = ['metering.read']
+it.each([null, 'masterdata.read', 'contracts.read'])('keeps metering information without a reachable customer card (%s)', async extraPermission => {
+  io.permissions = extraPermission ? ['metering.read', extraPermission] : ['metering.read']
   const html = renderToStaticMarkup(await MeteringPage({ searchParams: Promise.resolve({ q: 'Syntetisk' }) }))
   expect(html).toContain('145,5 kWh')
   expect(html).not.toContain('/admin/customers/customer?tab=sites')

@@ -1,3 +1,4 @@
+import { createBillingExportBlockerTasks } from "@/lib/billing/exportBlockerTasks";
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import {
   resolveInvoiceDeliveryFor,
@@ -228,73 +229,6 @@ function buildInvoiceSnapshot(params: {
       ? `customer:${params.underlay.customer_id ?? "unknown"}`
       : `underlay:${params.underlay.id}`,
   };
-}
-
-async function createBlockedBillingCasesForItems(params: {
-  companyId: string;
-  actorUserId: string | null;
-  exportRunId: string;
-  items: BillingExportRunItemRow[];
-}) {
-  for (const item of params.items) {
-    if (item.status !== "blocked" || !item.customer_id || item.blocker_case_id)
-      continue;
-    const issues = Array.isArray(item.blocker_reasons)
-      ? item.blocker_reasons
-      : [];
-    const firstIssue = issues.find((issue) => typeof issue === "object") as
-      Record<string, unknown> | undefined;
-    const title = String(firstIssue?.title ?? "Faktureringsrad blockerad");
-    const description = String(
-      firstIssue?.description ??
-        "Faktureringsunderlaget kräver manuell granskning innan export.",
-    );
-
-    try {
-      const { data: task, error: taskError } = await supabaseService
-        .from("customer_operation_tasks")
-        .insert({
-          company_id: params.companyId,
-          customer_id: item.customer_id,
-          site_id: item.site_id,
-          metering_point_id: item.metering_point_id,
-          task_type: "billing_export_blocker",
-          status: "open",
-          priority: "high",
-          title,
-          description,
-          metadata: {
-            reasonCategory: "billing_export_blocker",
-            nextAction:
-              "Granska blockerad faktureringsrad, komplettera saknade mätvärden/avtal och öppna därefter exporten för ny körning.",
-            source: "billing_export_blocker",
-            contractId: item.contract_id ?? null,
-            exportRunId: params.exportRunId,
-            exportRunItemId: item.id,
-            billingUnderlayId: item.billing_underlay_id,
-            blockerReasons: issues,
-          },
-          created_by: params.actorUserId,
-          updated_by: params.actorUserId,
-        })
-        .select("id")
-        .single();
-
-      if (taskError) throw taskError;
-
-      const { error: itemUpdateError } = await supabaseService
-        .from("billing_export_run_items")
-        .update({
-          blocker_case_id: task?.id ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("company_id", params.companyId)
-        .eq("id", item.id);
-      if (itemUpdateError) throw itemUpdateError;
-    } catch (error) {
-      console.warn("Billing blocker task could not be created", error);
-    }
-  }
 }
 
 async function loadInvoiceDeliveryCustomers(
@@ -689,12 +623,17 @@ export async function createBillingExportRun(input: {
     throw new Error("canonical_invoice_export_graph_invalid_response");
   }
 
-  await createBlockedBillingCasesForItems({
-    companyId: input.companyId,
-    actorUserId: input.actorUserId,
-    exportRunId: run.id,
-    items: preparedItems,
-  });
+  if (input.actorUserId) {
+    try {
+      await createBillingExportBlockerTasks({
+        companyId: input.companyId,
+        actorUserId: input.actorUserId,
+        runId: run.id,
+      });
+    } catch (error) {
+      console.warn("Billing blocker task could not be created", error);
+    }
+  }
 
   return run as BillingExportRunRow;
 }

@@ -24,7 +24,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       : table === 'customer_supply_periods' ? [{ id: 'sp-1', contract_id: 'ct-1', customer_id: 'cu-1' }]
         : table === 'customer_contracts' ? [{ id: 'ct-1' }] : []
     const query: Record<string, unknown> = {}
-    for (const method of ['select', 'eq', 'in', 'lte', 'or', 'limit', 'contains']) query[method] = () => query
+    for (const method of ['select', 'eq', 'in', 'lte', 'or', 'order', 'limit', 'contains']) query[method] = () => query
     query.insert = async (row: Record<string, unknown>) => { io.inserts.push({ table, row }); return { error: null } }
     query.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(resolve)
     return query

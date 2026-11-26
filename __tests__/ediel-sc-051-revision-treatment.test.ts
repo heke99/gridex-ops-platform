@@ -13,7 +13,7 @@ import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { receivedUtiltsOwnerFixture, resetUtiltsCanonicalOwnerIo } from './helpers/utiltsCanonicalOwnerIo'
-import { createUtiltsFinalValidationIo, currentUtiltsActorQuery, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, currentUtiltsActorQuery, qualifyUtiltsFixtureSource, declareFixtureE66Request, declaredFixtureE73Rpc, declaredFixtureE73RequestQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { createUtiltsFinalValidationIo as registryFixture } from './helpers/utiltsFinalValidationFixture'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), provider: vi.fn(), tenant: vi.fn(), readiness: vi.fn(), route: vi.fn() }))
@@ -29,7 +29,8 @@ vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => 
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
 vi.mock('@/lib/cis/db', () => ({ ingestBillingUnderlay: io.bill, findOpenOutboundBySource: vi.fn().mockResolvedValue(null), syncGridOwnerDataRequestReceivedFromEdiel: io.complete }))
-vi.mock('@/lib/ediel/matching', () => ({
+vi.mock('@/lib/ediel/matching', async importOriginal => ({
+  findE66GridOwnerDataRequest: (await importOriginal<typeof import('@/lib/ediel/matching')>()).findE66GridOwnerDataRequest,
   matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue('point-a'), matchMeteringPointForEdielMessage: vi.fn().mockResolvedValue('point-a'),
   matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue({ customerId: 'customer-a', siteId: 'site-a', gridOwnerId: 'owner-a' }),
   findMatchingGridOwnerDataRequest: vi.fn().mockResolvedValue({ id: 'request-a', request_scope: 'billing_underlay', response_payload: {}, customer_id: 'customer-a', metering_point_id: 'point-a' }),
@@ -47,22 +48,54 @@ beforeEach(() => {
   io.complete.mockResolvedValue(null); io.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'meter-value' } }); io.bill.mockResolvedValue({ id: 'underlay' })
   io.ack.mockImplementation(async ({ ackFamily }) => ({ id: `ack-${ackFamily}` }))
   const inbound = createUtiltsFinalValidationIo(), registry = registryFixture()
+  const ackReservations = new Map<string, string | null>()
+  const ackKey = (...parts: unknown[]) => JSON.stringify(parts)
   io.rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
     if (name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') { duringRegistry?.(); duringRegistry = undefined }
     const canonical = name === 'resolve_canonical_ediel_rule_pack_with_witness_v1' && args.p_direction === 'outbound'
       ? registry(name, args) : inbound(name, args)
     if (canonical) return canonical
+    const e73 = declaredFixtureE73Rpc(name, args)
+    if (e73) return e73
+    if (name === 'gridex_sync_current_e66_request_v1') {
+      expect(args).toMatchObject({
+        p_request_id: 'request-a',
+        p_actor_id: UTILTS_FIXTURE_ACTOR,
+        p_meter_value_ids: ['meter-value'],
+        p_response_patch: {
+          edielMessageId: args.p_source_message_id,
+          ingestedMeterValueIds: ['meter-value'],
+          billingUnderlayId: 'underlay',
+        },
+      })
+      return Promise.resolve({ data: { status: 'received', outboundRequestId: null }, error: null })
+    }
     if (name === 'gridex_persist_utilts_consumption_v1') {
       const transactions = args.p_transactions as (UtiltsBoundPersistenceInput['transactions'][number] & { consumptionContract: UtiltsConsumptionContract })[]
       const input = { companyId: args.p_company_id, environment: args.p_environment, sourceMessageId: args.p_source_message_id,
         messageCode: args.p_message_code, rawPayload: args.p_raw_payload, transactions, contracts: transactions.map(t => t.consumptionContract) } as UtiltsBoundPersistenceInput
+      for (const transaction of transactions) {
+        const key = ackKey(input.companyId, input.environment, input.sourceMessageId, transaction.transactionId, transaction.responseType)
+        if (!ackReservations.has(key)) ackReservations.set(key, null)
+      }
       const response = { data: bindingRpcRows(input), error: null }
       return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
+    }
+    if (name === 'gridex_finalize_utilts_transaction_ack_v1') {
+      const key = ackKey(args.p_company_id, args.p_environment, args.p_source_message_id, args.p_transaction_id, args.p_response_type)
+      const previous = ackReservations.get(key)
+      const responseMessageId = args.p_response_message_id
+      if (typeof responseMessageId !== 'string' || !responseMessageId || previous === undefined || (previous !== null && previous !== responseMessageId)) {
+        return Promise.resolve({ data: { status: 'conflict' }, error: null })
+      }
+      ackReservations.set(key, responseMessageId)
+      return Promise.resolve({ data: { status: previous === null ? 'finalized' : 'already_finalized', responseMessageId }, error: null })
     }
     return Promise.resolve({ data: null, error: { message: `undeclared_sc051_port:${name}` } })
   })
   io.from.mockImplementation((table: string) => {
     const actor = currentUtiltsActorQuery(table); if (actor) return actor
+    const request=declaredFixtureE73RequestQuery(table); if(request)return request
     const q = { select: () => q, eq: () => q, is: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
       then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: table === 'ediel_ack_transaction_results' ? [{ id: 'ack-row' }] : [], count: 0, error: null }).then(resolve) }
     return q
@@ -77,6 +110,7 @@ function source(date: string, invalidPoint = false) {
   // ACK-request alone is not the physical TEST/0035 flag.
   message.raw_payload = message.raw_payload!.replace("23-DDQ-E66-T++1'", "23-DDQ-E66-T++1++1'")
   if (invalidPoint) message.raw_payload = message.raw_payload.replace('735999260731000007::9', '735999260731000008::9')
+  declareFixtureE66Request(message)
   Object.assign(message, receivedUtiltsOwnerFixture(message))
   qualifyUtiltsFixtureSource(message); io.get.mockResolvedValue(message)
   return message
@@ -228,8 +262,9 @@ it('SC-051 the actual queued worker reconsiders the unchanged September E5SE5A o
   vi.setSystemTime(new Date('2026-10-15T10:00:00Z'))
   const actualAdmission = vi.spyOn(sendGuardConsumers, 'assertRegistryRulebookAllowsSend')
   const result = await sendOutboxItem({ actorUserId: UTILTS_FIXTURE_ACTOR, outboxItemId: outbox.id, workerId: 'sc051-worker' })
-  expect(result).toMatchObject({ status: 'failed', messageId: null })
-  expect(result.error).toBe('ediel_source_rule_pack_basis_required')
+  expect(result).toMatchObject({
+    status: 'failed', messageId: null, error: 'ediel_source_rule_pack_basis_required',
+  })
   expect(actualAdmission).toHaveBeenCalledTimes(1)
   const currentAdmission = await actualAdmission.mock.results[0].value
   expect(currentAdmission?.canonicalPolicy?.guide.guideRevision).toBe('25-A-5')

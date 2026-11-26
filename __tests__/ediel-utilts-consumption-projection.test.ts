@@ -26,7 +26,7 @@ describe('successful retry actual projection counterexamples', () => {
   })
   it('separately valid equivalent hour/minute spellings retain their distinct source inputs', () => {
     const original = energyHandoffMessage()
-    const hour = { ...original, raw_payload: original.raw_payload!.replace('?+0200:406', '?+0100:406').replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719') }
+    const hour = { ...original, raw_payload: original.raw_payload!.replace('?+0200:406', '?+0100:406').replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719').replace('DTM+597:202607010020:203', 'DTM+597:202607010120:203') }
     const minute = { ...hour, raw_payload: hour.raw_payload!.replace('1:805', '60:806') }
     const a = runUtiltsRuntimeForMessage(hour), b = runUtiltsRuntimeForMessage(minute)
     expect(a.validation.ok).toBe(true); expect(b.validation.ok).toBe(true)

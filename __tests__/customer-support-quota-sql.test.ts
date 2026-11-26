@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const migration = readFileSync('supabase/migrations/20261020160633_customer_support_quota_atomic.sql', 'utf8')
+const sourceGuardMigration = readFileSync('supabase/migrations/20261126102500_guard_customer_support_message_source.sql', 'utf8')
 const company = '11111111-1111-4111-8111-111111111111'
 const otherCompany = '22222222-2222-4222-8222-222222222222'
 const customer = '33333333-3333-4333-8333-333333333333'
@@ -64,6 +65,7 @@ beforeEach(async () => {
   await db.query('insert into public.companies values($1),($2)', [company, otherCompany])
   await db.query('insert into public.customers(id,company_id) values($1,$2),($3,$2),($4,$5)', [customer, company, otherCustomer, foreignCustomer, otherCompany])
   await db.exec(migration)
+  await db.exec(sourceGuardMigration)
 }, 20_000)
 afterEach(async () => { await db.close() })
 
@@ -126,6 +128,19 @@ describe('atomic customer support quota SQL', () => {
     expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
     expect(results.find(result => result.status === 'rejected')).toMatchObject({ reason: { message: 'support_message_quota_exceeded' } })
     expect((await db.query<{ n: number }>("select count(*)::int as n from public.customer_case_events where event_type='support_customer_message'")).rows[0].n).toBe(150)
+  })
+
+  it('rechecks Ediel source on the locked customer support message owner', async () => {
+    const { case: opened } = await create('source-transition')
+    await db.query("update public.customer_cases set source=null, metadata=jsonb_set(metadata,'{support_case}','\"true\"'::jsonb) where id=$1", [opened.id])
+    await expect(message(opened.id)).resolves.toMatchObject({ event_type: 'support_customer_message' })
+
+    await db.query("update public.customer_cases set source='ediel_inbound_state_machine' where id=$1", [opened.id])
+    const before = await count('public.customer_case_events')
+    const quota = (await db.query('select revision from gridex_private.customer_support_quota_guards')).rows
+    await expect(message(opened.id)).rejects.toMatchObject({ code: 'P0002', message: 'support_case_not_found' })
+    expect(await count('public.customer_case_events')).toBe(before)
+    expect((await db.query('select revision from gridex_private.customer_support_quota_guards')).rows).toEqual(quota)
   })
 
   it('does not add a new hourly gate to opening a case', async () => {

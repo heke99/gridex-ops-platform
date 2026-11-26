@@ -121,7 +121,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': '568bd18361c5bb4fd6a35458c4fc3012d0adbbeaceaa648a336c5ebf050dc26f',
+                  'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': '393afe7224e6bc16b9216231e162c20aafb58837ef7ef360136cf653078306d1',
                   'scripts/ediel-at-z13v-z13vh-esco-native.config.ts': '9da776c7059fd109060552b35db6e5336460d6cbfd14617c920b8b2f77136602',
               }
               for path, digest in frozen_native.items():
@@ -168,7 +168,8 @@ jobs:
                         'runner': {'docker_driver': driver, 'free_bytes_before_replay': free,
                                    'required_free_bytes': required_free, 'initial_container_ids': initial_containers},
                         'runtime_versions': runtime,
-                        'original_native_source_sha256': frozen_native,
+                        'original_native_source_sha256': {**frozen_native,
+                            'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': '568bd18361c5bb4fd6a35458c4fc3012d0adbbeaceaa648a336c5ebf050dc26f'},
                         'native_source_sha256': frozen_native,
                         'native_source_version': 'esco_z13v_z13vh_request_ack_z14_v1',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],

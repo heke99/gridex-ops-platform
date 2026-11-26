@@ -1,5 +1,9 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { canOpenCustomerDetail } from '@/lib/admin/accessModel'
+import { resolveCustomerCardLookup, type CustomerCardLookupScope } from '@/app/admin/customers/[id]/customer-lookup-outcome'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { isUuid } from '@/lib/validation/uuid'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -15,16 +19,15 @@ type QualityIssueRow = {
   issue_key: string
   severity: string
   message: string
-  evidence: Record<string, unknown>
 }
 
 type WebhookIssueRow = {
   id: string
   company_id: string
-  event_type: string
+  event_type?: string
   status: string
-  attempts: number
-  failure_reason: string | null
+  attempts?: number
+  failure_reason?: string | null
   created_at: string
 }
 
@@ -33,10 +36,32 @@ type EmailDomainRow = {
   company_id: string
   domain: string
   status: string
-  spf_status: string
-  dkim_status: string
-  dmarc_status: string
-  failure_reason: string | null
+  spf_status?: string
+  dkim_status?: string
+  dmarc_status?: string
+  failure_reason?: string | null
+}
+
+async function readCustomerCardCompanies(scope: CustomerCardLookupScope, issues: QualityIssueRow[]) {
+  const candidates = new Set(issues.flatMap(issue =>
+    issue.company_id && issue.customer_id && isUuid(issue.customer_id) ? [issue.customer_id] : []))
+  const qualified = new Map<string, string>()
+  if (candidates.size === 0) return qualified
+
+  try {
+    const supabase = await createSupabaseServerClient()
+    let query = supabase.from('customers').select('id,company_id,source').in('id', [...candidates])
+    if (scope.companyId) query = query.eq('company_id', scope.companyId)
+    const { data, error } = await query
+    if (error) return qualified
+    for (const customer of data ?? []) {
+      const target = resolveCustomerCardLookup(scope, customer)
+      if (target.kind === 'ok' && candidates.has(customer.id)) qualified.set(customer.id, target.companyId)
+    }
+  } catch {
+    // The issue remains reviewable when the optional customer link cannot be verified.
+  }
+  return qualified
 }
 
 async function safeRows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
@@ -77,22 +102,24 @@ export default async function DataQualityPage() {
   const admin = await requireAdminPageKeyAccess('operations.integrity')
   const scope = await resolveAdminTenantReadScope(admin)
   const isPlatformAdmin = isPlatformAdminContext(admin)
-  const canReadCustomers = isPlatformAdmin || admin.permissions.some(permission => ['customers.read', 'masterdata.read'].includes(permission))
+  const canReadCustomers = isPlatformAdmin || canOpenCustomerDetail(admin.permissions)
 
   let qualityQuery = supabaseService
     .from('customer_data_quality_open_issues')
-    .select('*')
+    .select('company_id, entity_id, customer_id, entity_type, issue_key, severity, message')
     .order('severity', { ascending: true })
     .limit(100)
-  let webhookQuery = supabaseService
-    .from('webhook_deliveries')
-    .select('id, company_id, event_type, status, attempts, failure_reason, created_at')
+  const webhookTable = supabaseService.from('webhook_deliveries')
+  let webhookQuery = (isPlatformAdmin
+    ? webhookTable.select('id, company_id, status, created_at, event_type, attempts, failure_reason')
+    : webhookTable.select('id, company_id, status, created_at'))
     .in('status', ['failed', 'dead_letter'])
     .order('created_at', { ascending: false })
     .limit(50)
-  let emailQuery = supabaseService
-    .from('tenant_email_domains')
-    .select('id, company_id, domain, status, spf_status, dkim_status, dmarc_status, failure_reason')
+  const emailTable = supabaseService.from('tenant_email_domains')
+  let emailQuery = (isPlatformAdmin
+    ? emailTable.select('id, company_id, domain, status, spf_status, dkim_status, dmarc_status, failure_reason')
+    : emailTable.select('id, company_id, domain, status'))
     .neq('status', 'verified')
     .order('created_at', { ascending: false })
     .limit(50)
@@ -108,6 +135,8 @@ export default async function DataQualityPage() {
     safeRows<WebhookIssueRow>(webhookQuery),
     safeRows<EmailDomainRow>(emailQuery),
   ])
+
+  const customerCardCompanies = canReadCustomers ? await readCustomerCardCompanies(scope, qualityIssues) : new Map<string, string>()
 
   const criticalIssues = qualityIssues.filter((issue) => issue.severity === 'critical').length
   const warningIssues = qualityIssues.filter((issue) => issue.severity === 'warning').length
@@ -153,7 +182,9 @@ export default async function DataQualityPage() {
                     <td className="px-4 py-3 font-semibold text-slate-800">{issue.message}</td>
                     <td className="px-4 py-3 text-slate-600">{isPlatformAdmin ? `${issue.entity_type} · ${issue.issue_key}` : ({ customer: 'Kunduppgifter', customer_site: 'Anläggning', site: 'Anläggning', metering_point: 'Mätpunkt' } as Record<string, string>)[issue.entity_type] ?? 'Uppgifter att kontrollera'}</td>
                     <td className="px-4 py-3">
-                      {issue.customer_id && canReadCustomers ? <Link href={`/admin/customers/${issue.customer_id}`} className="font-black text-emerald-700 hover:text-emerald-900">Öppna kund</Link> : 'Manuell kontroll'}
+                      {issue.customer_id && issue.company_id && customerCardCompanies.get(issue.customer_id) === issue.company_id
+                        ? <Link href={`/admin/customers/${encodeURIComponent(issue.customer_id)}`} className="font-black text-emerald-700 hover:text-emerald-900">Öppna kund</Link>
+                        : 'Manuell kontroll'}
                     </td>
                   </tr>
                 ))}

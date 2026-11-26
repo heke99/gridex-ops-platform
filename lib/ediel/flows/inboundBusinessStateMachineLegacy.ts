@@ -1,4 +1,5 @@
 import { applySupplyMarketSource } from './supplyMarketTransition'
+import { projectLegacySupplyEndFollowup, projectSupplyEndFollowup } from './supplyEndFollowup'
 import {publishSourceSwitchCommit, type SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
@@ -82,14 +83,7 @@ async function recordEvent(input: {
   })
 }
 
-async function endingPeriodScopes(companyId: string, periods: ReadonlyArray<{ id: string; status: string }>) {
-  const ids = periods.filter(p => p.status === 'ending' || p.status === 'ended').map(p => p.id)
-  if (!ids.length) return []
-  const { data, error } = await supabaseService.from('customer_supply_periods').select('id,customer_id,metering_point_id').eq('company_id', companyId).in('id', ids)
-  if (error) throw error
-  return ((data ?? []) as Array<{ customer_id: string | null; metering_point_id: string | null }>)
-    .filter((row): row is { customer_id: string; metering_point_id: string | null } => typeof row.customer_id === 'string')
-}
+
 
 async function createReviewCase(input: {
   message: EdielMessageRow
@@ -152,7 +146,7 @@ function tenantMessageForOutcome(outcome: InboundBusinessOutcome, message: Ediel
   if (outcome === 'mandatory_purchase_supply_started') return 'Mottagningspliktig leverans har registrerats.'
   if (outcome === 'supply_termination_requested') return 'Begäran om att avsluta leveransen är registrerad.'
   if (outcome === 'supply_terminated') return 'Leveransen upphör enligt nätägarens besked.'
-  if (outcome === 'supply_continuation_confirmed') return 'Leveransen fortsätter. Tidigare avslut har återtagits.'
+  if (outcome === 'supply_continuation_confirmed') return 'Nätägaren har återtagit det tidigare leveransslutet. Kontrollera att avtalet gäller innan faktureringen fortsätter.'
   if (outcome === 'masterdata_update_received') return 'Ändrade kund-/anläggningsuppgifter är mottagna och väntar på säker granskning.'
   if (outcome === 'meter_change_received') return 'Mätarbyte är mottaget och väntar på säker granskning.'
   if (outcome === 'permission_requested') return 'Begäran om mätvärdesrapportering är registrerad.'
@@ -261,24 +255,25 @@ export async function applyInboundBusinessStateMachine(input: {
         tenantMessage = outcome === 'assigned_supply_started' ? 'Anvisningsprocessen och nätägarens starttid är registrerade.' : 'Den separata produktions- och mottagningsrelationen är registrerad.'
       }
       if (outcome === 'supply_terminated' && sourceResult.periods.some(p => p.status === 'ending')) tenantMessage = 'Leveransslutet är registrerat och träder i kraft vid nätägarens giltiga sluttid.'
-      // Final-value/billing follow-up is an operational task, not authority to
-      // delete a customer, close another object or revive a beneficiary grant.
-      // The task is scoped to each committed ending period. A bound message
-      // carries that scope; an unbound received H end takes it from the
-      // committed periods.
-      // The reception consumer attempts receipt-bound projection before passing
-      // its committed result, including retries after a held projection. A direct
-      // native apply has no preceding projector and retains this scoped task.
-      const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent && input.committedSupplyResult?.partition == null
-        ? await endingPeriodScopes(companyId, sourceResult.periods)
-        : []
-      if (companyId) for (const period of scopes) {
-        const caseId = await createReviewCase({ message: { ...input.message, customer_id: period.customer_id, metering_point_id: period.metering_point_id ?? input.message.metering_point_id },
-          companyId, switchRequestId: input.matchedSwitchRequestId ?? null,
-          caseType: 'other', reviewIntent: 'final_metering_and_billing', title: 'Leveransen upphör – slutför mätvärden och fakturering',
-          description: 'Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.',
-          nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.' })
-        if (caseId) updated.push('customer_cases')
+      if (outcome === 'supply_terminated' && companyId && input.message.company_id === companyId) {
+        const scope = { companyId, actorUserId: input.actorUserId }
+        // An exact current transition owns legacy final work. Partition-owned
+        // reception already projects its immutable object receipts.
+        if (sourceResult.partition === null) {
+          const periods = new Set(sourceResult.periods
+            .filter(period => period.status === 'ending' || period.status === 'ended')
+            .map(period => period.id))
+          for (const supplyPeriodId of periods) {
+            const result = await projectLegacySupplyEndFollowup({ ...scope, sourceMessageId: input.message.id, supplyPeriodId })
+            if (result.status === 'created') updated.push('customer_cases')
+          }
+        } else if (!input.committedSupplyResult) {
+          for (const effectReceiptId of sourceResult.effectReceiptIds) {
+            const result = await projectSupplyEndFollowup({ ...scope, effectReceiptId })
+            if (result.sourceMessageId !== input.message.id) throw Error('supply_followup_result_source_mismatch')
+            if (result.status === 'created') updated.push('customer_cases')
+          }
+        }
       }
     }
   }

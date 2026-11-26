@@ -69,8 +69,9 @@ it('saved qualified intention cannot use its earlier policy after the actual act
   try {
     const result = await run(f, outboxId)
     expect(['blocked', 'failed']).toContain(result.status)
-    expect(result.error).toContain('CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')
-    expect(state(outboxId)).toMatchObject({ status: result.status, last_error: result.error, locked_at: null, locked_by: null })
+    const error = 'error' in result ? result.error : undefined
+    expect(error).toContain('CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')
+    expect(state(outboxId)).toMatchObject({ status: result.status, last_error: error, locked_at: null, locked_by: null })
     expectPreserved(f, original); expectNoEntry(f)
   } finally {
     sql(`UPDATE public.ediel_rule_packs SET status=${literal(prior)} WHERE id=${literal(packId)}`)

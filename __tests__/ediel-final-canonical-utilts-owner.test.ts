@@ -7,6 +7,9 @@ import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegis
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
+
+const retainedMessage=()=>receivedUtiltsOwnerFixture(energyHandoffMessage())
 beforeEach(()=>{io.registry.mockReset();io.registry.mockImplementation(async()=>({profileKey:'utilts_e66',databaseProfileKey:'UTILTS:E66:E5SE5A:3',messageProfileId:'p',rulePackId:'r',sourceHash:'a'.repeat(64),originalVersion:'25-A-3:r3',originalSnapshot:{rulePack:{id:'r',guide_version:'25-A-3',guide_revision:'3'},messageProfile:{id:'p',profile_key:'UTILTS:E66:E5SE5A:3'},guideSources:[]}}))})
 /** Modeled external issuer evidence retains the original owner invariants;
  * this is neither an authenticated issuer/history nor a native replay proof. */
@@ -17,7 +20,7 @@ async function initialFor(message:ReturnType<typeof energyHandoffMessage>){
 }
 describe('final shared UTILTS actual owner retains first guide and witness',()=>{
  it('consumes one real final runtime and retains exact original guide and registry witness without another read',async()=>{
-  const message=energyHandoffMessage(),initialDecision=await initialFor(message)
+  const message=retainedMessage(),initialDecision=await initialFor(message)
   expect(initialDecision.applicationDecision).toBe('accepted')
   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!,issuerIdentityAuthority:readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})!})
   const final=finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime})
@@ -28,14 +31,15 @@ describe('final shared UTILTS actual owner retains first guide and witness',()=>
   expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
  })
  it('rejects an unregistered initial decision, a copied initial owner and altered original source',async()=>{
-  const message=energyHandoffMessage(),initialDecision=await initialFor(message)
+  const message=retainedMessage(),initialDecision=await initialFor(message)
   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!,issuerIdentityAuthority:readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})!})
   for(const original of [resolveCanonicalRuntimeDecision(message),{...initialDecision}])expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision:original,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
   expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message:{...message,company_id:'foreign'},initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
   expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message:{...message,raw_payload:message.raw_payload+' '},initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
  })
  it('retains genuine all-negative own scope under a failed registry with no positive authority',async()=>{
-  const message=energyHandoffMessage();message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("QTY+136:500'","QTY+136:500'\nQTY+136:501'"))
+  const original=energyHandoffMessage();original.raw_payload=recountEdifactUnt(original.raw_payload!.replace("QTY+136:500'","QTY+136:500'\nQTY+136:501'"))
+  const message=receivedUtiltsOwnerFixture(original)
   io.registry.mockRejectedValue(new Error('registry-local-unavailable'))
   const initialDecision=await initialFor(message)
   expect(initialDecision.utiltsTransactionValidation?.transactions.every(item=>item.disposition!=='accepted')).toBe(true)
@@ -48,14 +52,14 @@ describe('final shared UTILTS actual owner retains first guide and witness',()=>
   expect(final.utiltsTransactionValidation?.transactions.every(item=>item.disposition!=='accepted')).toBe(true)
  })
  it('cannot mint an initial no-witness owner when any physical sibling was accepted',async()=>{
-  const message=energyHandoffMessage();io.registry.mockRejectedValue(new Error('registry-local-unavailable'))
+  const message=retainedMessage();io.registry.mockRejectedValue(new Error('registry-local-unavailable'))
   const initialDecision=await initialFor(message)
   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!,issuerIdentityAuthority:readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})!})
   expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
  })
  it('cannot promote a copied or mutated final runtime into a new own-IDE acceptance',async()=>{
   for(const mutate of [(r:ReturnType<typeof runUtiltsRuntimeForMessage>)=>({...r}),(r:ReturnType<typeof runUtiltsRuntimeForMessage>)=>{r.transactionDispositions[0].issueCodes.push('FORGED');return r}]){
-   const message=energyHandoffMessage(),initialDecision=await initialFor(message)
+   const message=retainedMessage(),initialDecision=await initialFor(message)
    const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!,issuerIdentityAuthority:readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})!})
    expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime:mutate(runtime)})).toThrow('ediel_final_utilts_owner_unavailable')
   }

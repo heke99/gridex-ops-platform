@@ -458,14 +458,14 @@ function extractPdfTextFromContentStream(stream: string): string {
   return parts.join('\n')
 }
 
-function inflatePdfStream(rawStream: Buffer): string {
+function inflatePdfStream(rawStream: Buffer): string | null {
   try {
     return inflateSync(rawStream).toString('latin1')
   } catch {
     try {
       return inflateRawSync(rawStream).toString('latin1')
     } catch {
-      return rawStream.toString('latin1')
+      return null
     }
   }
 }
@@ -474,21 +474,22 @@ function bestEffortPdfText(buffer: Buffer): string {
   const raw = buffer.toString('latin1')
   const streamTexts: string[] = []
 
-  for (const match of raw.matchAll(/<<(?:[\s\S]{0,1200}?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g)) {
-    const objectHeader = match[0].slice(0, Math.min(match[0].indexOf('stream'), 1200))
-    const rawStream = Buffer.from(match[1] ?? '', 'latin1')
-    const decoded = /\/Filter\s*\/FlateDecode/i.test(objectHeader)
-      ? inflatePdfStream(rawStream)
-      : rawStream.toString('latin1')
-    const text = extractPdfTextFromContentStream(decoded)
+  const fallbackSource = raw.replace(/<<([\s\S]{0,1200}?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g, (stream, header: string, body: string) => {
+    const encoded = /\/Filter\b/i.test(header)
+    const flate = /\/Filter\s*(?:\/FlateDecode\b|\[\s*\/FlateDecode\s*\])/i.test(header)
+    const decoded = flate ? inflatePdfStream(Buffer.from(body, 'latin1')) : encoded ? null : body
+    const text = decoded === null ? '' : extractPdfTextFromContentStream(decoded)
     if (text.trim()) streamTexts.push(text)
-  }
+    // An extracted stream is already represented as text. Filtered bodies
+    // never enter the raw fallback, even when the filter cannot be decoded.
+    return encoded || text.trim() ? '\n' : stream
+  })
 
-  const literalText = Array.from<RegExpMatchArray>(raw.matchAll(/\((?:\\.|[^\\()]){2,}\)/g))
+  const literalText = Array.from<RegExpMatchArray>(fallbackSource.matchAll(/\((?:\\.|[^\\()]){2,}\)/g))
     .map((match) => decodePdfString(match[0].slice(1, -1)))
     .join('\n')
 
-  const fallback = raw.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
+  const fallback = fallbackSource.replace(/[^\x09\x0A\x0D\x20-\x7EÅÄÖåäö]/g, ' ')
   return normalizePdfExtractedText([streamTexts.join('\n'), literalText, fallback].filter(Boolean).join('\n'))
 }
 

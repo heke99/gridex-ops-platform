@@ -7,7 +7,7 @@ import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMoni
 
 
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
-import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
+import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, normalizeEnvironment, nowIso } from './edielMailboxPoller.part-1'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
 
 export async function runInboundEdielMailEngine(
@@ -23,20 +23,36 @@ export async function runInboundEdielMailEngine(
     forcePoll?: boolean;
     markSeen?: boolean;
     includeSeenRecent?: boolean;
+    continueUnreadRun?: boolean;
+  unreadProgressScope?: string;
     recentDays?: number;
     allowMissingMailboxConfig?: boolean;
     actorUserId?: string | null;
     sharedOnly?: boolean;
     createDiagnosticMessagesForUnresolved?: boolean;
+    resumeDurableE66?: boolean;
+    resumeDurableE66RequestRetry?: boolean;
   } = {},
 ): Promise<InboundEngineRunResult> {
+  const environment = normalizeEnvironment(input.environment);
+  if (input.environment != null && environment === null) {
+    throw new Error("inbound_processing_environment_invalid");
+  }
+  const durableScope = input.resumeDurableE66 && environment && input.actorUserId
+    ? { environment, actorUserId: input.actorUserId } : null;
+  if (input.resumeDurableE66 && !durableScope) throw new Error("inbound_e66_scope_required");
+  const requestRetryScope = input.resumeDurableE66RequestRetry && environment && input.actorUserId
+    ? { environment, actorUserId: input.actorUserId } : null;
+  if (input.resumeDurableE66RequestRetry && !requestRetryScope) throw new Error("e66_scheduled_request_scope_required");
+  const durableRuntime = durableScope ? await import("@/lib/inbound-mail/runDurableE66") : null;
   const startedAt = nowIso();
   const workerId = input.workerId ?? `inbound-mail-engine-${startedAt}`;
   const force = input.force ?? input.forcePoll ?? false;
+  const markSeen = input.markSeen !== false;
   const sharedOnly = input.sharedOnly ?? (!input.companyId && !input.mailboxId);
   const configuredMailboxes = await listConfiguredEdielMailboxes({
     companyId: input.companyId,
-    environment: input.environment,
+    environment,
     mailboxId: input.mailboxId,
     sharedOnly,
   });
@@ -77,8 +93,11 @@ export async function runInboundEdielMailEngine(
       maxMessages:
         input.messageLimitPerMailbox ??
         envInt("EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX", 25),
-      markSeen: input.markSeen,
+      markSeen,
       includeSeenRecent: input.includeSeenRecent,
+      continueUnreadRun: input.continueUnreadRun,
+      unreadProgressScope: input.unreadProgressScope,
+      trackUids: input.includeSeenRecent !== true,
       recentDays: input.recentDays,
       forceLock: force,
     }),
@@ -86,8 +105,10 @@ export async function runInboundEdielMailEngine(
 
   const queueResult = await processQueuedInboundProcessingJobs({
     workerId,
+    environment,
     limit: input.processLimit ?? envInt("EDIEL_INBOUND_PROCESS_LIMIT", 50),
     actorUserId: input.actorUserId ?? null,
+    ...(durableRuntime ? { completeE66Classification: durableRuntime.completeE66Classification } : {}),
   });
   const overdueTasks = await createInboundOverdueTasks();
   const inboundEmailMessageIds = results.flatMap(
@@ -105,34 +126,82 @@ export async function runInboundEdielMailEngine(
         ]),
       )
     : allInboundEmailMessageIds;
-  const edielMessageIds = input.createDiagnosticMessagesForUnresolved
+  const fetchedEdielMessageIds = input.createDiagnosticMessagesForUnresolved
     ? await ensureDiagnosticEdielMessagesForInboundEmails(
         diagnosticInboundEmailIds,
       )
     : await listEdielMessageIdsForInboundEmails(allInboundEmailMessageIds);
+  // A queue retry can complete even when IMAP returns no (unseen) mail.
+  const configuredMailboxById = new Map(configuredMailboxes.map((mailbox) => [mailbox.id, mailbox]));
+  const recoveredAckIds = (queueResult.recoveredAckOriginals ?? []).flatMap((original) => {
+    const mailbox = configuredMailboxById.get(original.mailboxId);
+    return mailbox && mailbox.environment === original.environment &&
+        (!input.companyId || input.companyId === original.companyId) &&
+        (!mailbox.company_id || mailbox.company_id === original.companyId) &&
+        (!input.environment || input.environment === mailbox.environment)
+      ? [original.edielMessageId] : [];
+  });
+  const edielMessageIds = [...new Set([...fetchedEdielMessageIds, ...recoveredAckIds])];
   let autoProcessedEdielMessages = 0;
   const autoProcessErrors: string[] = [];
-  if (edielMessageIds.length > 0) {
+  let deferredE66Requests = 0;
+  let e66RequestRetryStatus: InboundEngineRunResult["debug"]["e66RequestRetryStatus"];
+  let polledE66RequestScope: import("@/lib/inbound-mail/e66RequestRetry").PolledE66RequestScope | undefined;
+  if (requestRetryScope) {
+    polledE66RequestScope = {
+      environment: requestRetryScope.environment,
+      mailboxIds: configuredMailboxes.map((mailbox) => mailbox.id),
+    };
     try {
+      const { runScheduledE66RequestRetry } = await import("@/lib/inbound-mail/runScheduledE66RequestRetry");
+      e66RequestRetryStatus = await runScheduledE66RequestRetry({
+        ...polledE66RequestScope,
+        actorUserId: requestRetryScope.actorUserId,
+        companyId: input.companyId ?? null,
+      });
+    } catch {
+      e66RequestRetryStatus = "error";
+      autoProcessErrors.push("e66-request-retry: Kunde inte återuppta väntande begäran.");
+    }
+  }
+  let legacyEdielMessageIds = edielMessageIds;
+  if (durableRuntime && durableScope) {
+    const work = await durableRuntime.prepareDurableE66Work({
+      ...durableScope,
+      companyId: input.companyId ?? null,
+      mailboxIds: configuredMailboxes.map((mailbox) => mailbox.id),
+      sourceIds: edielMessageIds,
+    });
+    legacyEdielMessageIds = edielMessageIds.filter((id) => !work.ownedSources.has(id));
+    const durableErrors = await mapWithConcurrency(work.scopes, 2, async (scope) =>
+      durableRuntime.runDurableE66Scope(scope));
+    autoProcessErrors.push(...durableErrors.flat());
+  }
+  if (legacyEdielMessageIds.length > 0) {
+    try {
+      const { E66RequestDeferred } = await import("@/lib/inbound-mail/e66RequestRetry");
       const { processInboundEdielMessage } =
         await import("@/lib/ediel/flows/inboundProcessing");
       const processing = await mapWithConcurrency(
-        edielMessageIds,
+        legacyEdielMessageIds,
         envInt("EDIEL_INBOUND_MESSAGE_CONCURRENCY", 4),
         async (edielMessageId) => {
           try {
             await processInboundEdielMessage({
               actorUserId: input.actorUserId ?? "system",
               edielMessageId,
+              ...(polledE66RequestScope ? { polledE66RequestScope } : {}),
             });
-            return { edielMessageId, error: null as string | null };
+            return { edielMessageId, status: "processed" as const };
           } catch (error) {
-            return { edielMessageId, error: error instanceof Error ? error.message : "Okänt fel" };
+            if (error instanceof E66RequestDeferred) return { edielMessageId, status: "deferred" as const };
+            return { edielMessageId, status: "failed" as const, error: error instanceof Error ? error.message : "Okänt fel" };
           }
         },
       );
       for (const item of processing) {
-        if (item.error) autoProcessErrors.push(`${item.edielMessageId}: ${item.error}`);
+        if (item.status === "failed") autoProcessErrors.push(`${item.edielMessageId}: ${item.error}`);
+        else if (item.status === "deferred") deferredE66Requests += 1;
         else autoProcessedEdielMessages += 1;
       }
     } catch (error) {
@@ -200,10 +269,11 @@ export async function runInboundEdielMailEngine(
         configuredMailboxes.length === 0 ? NO_ACTIVE_EDIEL_MAILBOX_ERROR : null,
       autoProcessedEdielMessages,
       autoProcessErrors,
+      ...(e66RequestRetryStatus ? { e66RequestRetryStatus, deferredE66Requests } : {}),
     },
     results,
   };
 
-  await logInboundPollRun(result, input.environment ?? null).catch(() => null);
+  await logInboundPollRun(result, input.environment ?? null, markSeen).catch(() => null);
   return result;
 }

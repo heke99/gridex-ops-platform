@@ -127,6 +127,7 @@ const COMPLETION_TYPE: Record<string, string> = {
   metering_point_update: 'Mätpunktsuppgift',
   contact_update: 'Kontaktuppgift',
   case_reply: 'Svar på ärende',
+  move_out: 'Utflyttningsanmälan',
 }
 
 export function portalCompletionTypeLabel(type: string | null | undefined): string {

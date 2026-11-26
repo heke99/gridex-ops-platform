@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 
 // These fixtures qualify read scope only; mutation controls are intentionally read-only.
+vi.mock('server-only', () => ({}))
 vi.mock('@/lib/admin/actionPresentation', () => ({
   canPresentAdminAction: async () => false,
   canPresentOperationalAction: async () => false,

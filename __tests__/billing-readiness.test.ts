@@ -383,3 +383,61 @@ describe('evaluateContractBillingAccountReadiness', () => {
     ])
   })
 })
+
+it('requires the native underlay qualification for the same terminated contract and ended supply', () => {
+  const base = billableInput()
+  const input = {
+    ...base,
+    contract: { ...base.contract, status: 'terminated' },
+    supplyPeriods: [{ ...base.supplyPeriods?.[0], status: 'ended', contract_id: 'contract-1' }],
+    qualifiedTerminatedSupply: { contractId: 'contract-1', supplyPeriodId: 'sp-1' },
+  }
+  expect(evaluateBillingReadinessCore(input).billable).toBe(true)
+  expect(evaluateBillingReadinessCore({ ...input, qualifiedTerminatedSupply: undefined }).blockers
+    .map(entry => entry.code)).toContain('contract_not_approved')
+  expect(evaluateBillingReadinessCore({
+    ...input, qualifiedTerminatedSupply: { contractId: 'another-contract', supplyPeriodId: 'sp-1' },
+  }).blockers.map(entry => entry.code)).toContain('contract_not_approved')
+  expect(evaluateBillingReadinessCore({
+    ...input, qualifiedTerminatedSupply: { contractId: 'contract-1', supplyPeriodId: 'another-period' },
+  }).blockers.map(entry => entry.code)).toContain('delivery_not_started')
+})
+
+describe('readiness for the exact native qualified planned move-out underlay', () => {
+  const base = billableInput()
+  const pair = { contractId: 'contract-1', supplyPeriodId: 'sp-1' }
+  const input = {
+    ...base,
+    contract: { ...base.contract, status: 'terminated' },
+    supplyPeriods: [{ ...base.supplyPeriods?.[0], company_id: 'company-1', customer_id: 'customer-1',
+      contract_id: 'contract-1', metering_point_id: 'mp-1' }],
+    qualifiedPlannedMoveOutSupply: pair,
+  }
+
+  it.each(['active', 'confirmed_by_grid_owner'])('accepts the qualified old delivery interval when market status is %s', status => {
+    const result = evaluateBillingReadinessCore({
+      ...input,
+      supplyPeriods: [{ ...input.supplyPeriods[0], status }],
+    })
+    expect(result.blockers).toEqual([])
+    expect(result.billable).toBe(true)
+  })
+
+  it.each([
+    ['missing proof', undefined, {}],
+    ['wrong contract', { ...pair, contractId: 'contract-2' }, {}],
+    ['wrong period', { ...pair, supplyPeriodId: 'sp-2' }, {}],
+    ['wrong tenant', pair, { company_id: 'company-2' }],
+    ['wrong customer', pair, { customer_id: 'customer-2' }],
+    ['wrong meter', pair, { metering_point_id: 'mp-2' }],
+    ['wrong status', pair, { status: 'ended' }],
+    ['outside delivery', pair, { end_date: '2026-05-30' }],
+  ] as const)('keeps the other case blocked for %s', (_label, qualification, period) => {
+    const result = evaluateBillingReadinessCore({
+      ...input,
+      supplyPeriods: [{ ...input.supplyPeriods[0], ...period }],
+      qualifiedPlannedMoveOutSupply: qualification,
+    } as BillingReadinessInput)
+    expect(result.billable).toBe(false)
+  })
+})

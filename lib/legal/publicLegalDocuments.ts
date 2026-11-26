@@ -172,6 +172,12 @@ function deriveBrandName(row: Record<string, unknown>): string | null {
   return null;
 }
 
+type CompanySlugFields = { slug?: string | null; company_slug?: string | null };
+
+export function resolvePublicCompanySlug(row: CompanySlugFields): string | null {
+  return row.slug ?? row.company_slug ?? null;
+}
+
 function mapCompanyRow(row: Record<string, unknown>): PublicLegalCompany {
   return {
     id: String(row.id),
@@ -187,14 +193,15 @@ function mapCompanyRow(row: Record<string, unknown>): PublicLegalCompany {
     postal_code: (row.postal_code as string | null) ?? null,
     city: (row.city as string | null) ?? null,
     country: (row.country_code as string | null) ?? null,
-    slug:
-      (row.slug as string | null) ??
-      (row.company_slug as string | null) ??
-      null,
+    slug: resolvePublicCompanySlug(row as CompanySlugFields),
   };
 }
 
 const PUBLIC_COMPANY_SLUG = /^[a-z0-9-]{1,100}$/;
+
+export function isPublicCompanySlug(value: string | null): value is string {
+  return value !== null && value === value.trim() && PUBLIC_COMPANY_SLUG.test(value);
+}
 
 export async function loadCompanyBySlug(
   slug: string,
@@ -202,7 +209,7 @@ export async function loadCompanyBySlug(
   const cleaned = slug.trim().toLowerCase();
   // The slug comes from the public URL and is interpolated into a PostgREST
   // `or` filter; anything beyond [a-z0-9-] could inject filter syntax.
-  if (!PUBLIC_COMPANY_SLUG.test(cleaned)) return null;
+  if (!isPublicCompanySlug(cleaned)) return null;
   const { data, error } = await supabaseService
     .from("companies")
     .select(COMPANY_PUBLIC_LEGAL_COLUMNS)
@@ -224,8 +231,7 @@ export async function loadCompanySlugById(
     .eq("id", companyId)
     .maybeSingle();
   if (error || !data) return null;
-  const row = data as { slug?: string | null; company_slug?: string | null };
-  return row.slug ?? row.company_slug ?? null;
+  return resolvePublicCompanySlug(data as CompanySlugFields);
 }
 
 type ExactBundleDocumentRow = {

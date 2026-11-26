@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
 type Receipt = { table: string; mode: string; filters: Array<[string, string, unknown]>; row?: Row }
-const io = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, queries: [] as Receipt[], rpcs: [] as Array<{ name: string; args: Row }>, scopes: [] as unknown[], serial: 500, client: {} as Row, failingRead: null as string | null }))
+const io = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, queries: [] as Receipt[], rpcs: [] as Array<{ name: string; args: Row }>, scopes: [] as unknown[], serial: 500, client: {} as Row, failingRead: null as string | null, failingReadCode: '08006' }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/service', () => {
   class Query {
@@ -54,10 +54,14 @@ vi.mock('@/lib/supabase/service', () => {
       if (!(this.table in io.rows)) throw new Error(`Undeclared database transport table: ${this.table}`)
       io.queries.push({ table: this.table, mode: this.mode, filters: structuredClone(this.filters), ...(this.mode !== 'select' ? { row: structuredClone(this.pending[0] ?? this.patch) } : {}) })
       if (this.mode === 'select' && io.failingRead === this.table) {
-        return { data: null, error: { code: '08006', message: 'Synthetic database read failure' }, count: 0 }
+        return { data: null, error: { code: io.failingReadCode, message: 'Synthetic database read failure' }, count: 0 }
       }
       let rows = io.rows[this.table].filter(row => this.match(row))
       if (this.mode === 'insert' || this.mode === 'upsert') {
+        // The verified external mirror table has no scalar quote_reference column.
+        if (this.table === 'external_contract_intakes' && this.pending.some(row => Object.hasOwn(row, 'quote_reference'))) {
+          return { data: null, error: { code: 'PGRST204', message: 'Synthetic external-intake schema rejects quote_reference as a column' }, count: 0 }
+        }
         if (this.mode === 'insert' && this.table === 'integration_api_write_idempotency' && this.pending.some(candidate => io.rows[this.table].some(existing => ['company_id','api_client_id','route','idempotency_key'].every(key => candidate[key] === existing[key])))) {
           return { data: null, error: { code: '23505', message: 'Synthetic exact idempotency unique boundary' }, count: 0 }
         }
@@ -230,14 +234,17 @@ function commercialSnapshot() {
 }
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(NOW)); vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', id(99)); vi.stubEnv('CUSTOMER_OPERATION_CRON_SECRET', 'synthetic-test-only');
-  io.serial = 500; io.queries = []; io.rpcs = []; io.scopes = []; io.failingRead = null
+  io.serial = 500; io.queries = []; io.rpcs = []; io.scopes = []; io.failingRead = null; io.failingReadCode = '08006'
   io.client = { id: CLIENT, company_id: COMPANY, name: 'Synthetic Website', status: 'active', key_prefix: 'unit', secret_hash: 'synthetic-unit', scopes: [...TENANT_WEBSITE_RECOMMENDED_SCOPES, 'website_contracts.diagnostics', 'api_contracts.diagnostics'], allowed_ips: [], allowed_origins: ['https://synthetic.example.invalid'], rate_limit_per_minute: 100, expires_at: null, metadata: { api_contract_profiles: { website: '2026-10-09.1' } } }
-  const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','supplier_switch_events','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances']
+  const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','gridex_supplier_switch_business_events_v','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances']
   io.rows = Object.fromEntries(empty.map(table => [table, []]))
   io.rows.user_profiles = [{ id: id(99), user_status: 'active' }]
   io.rows.companies = [{ id: COMPANY, status: 'active', name: 'Synthetic electricity', org_number: '5560160680', slug: 'synthetic', external_tenant_reference: 'tenant_synthetic_0123456789abcdef0123456789', customer_portal_url: 'https://synthetic.example.invalid/portal', branding: {}, metadata: { website_portal_identity_mode: 'post_auth_allowed' } }]
   io.rows.tenant_website_readiness_v = [{ company_id: COMPANY, has_public_contracts: true, has_terms: true, has_privacy_policy: true, has_withdrawal: true, has_power_of_attorney_text: true, has_price_terms: true, has_verified_sender: true, has_mail_templates: true }]
-  io.rows.company_email_settings = [{ id: id(60), company_id: COMPANY, verification_status: 'verified' }]
+  io.rows.company_email_settings = [{
+    id: id(60), company_id: COMPANY, verification_status: 'verified', is_active: true,
+    sender_name: 'Synthetic electricity', sender_email: 'sender@example.invalid', sender_mode: 'verified_domain',
+  }]
   io.rows.company_email_templates = DEFAULT_EMAIL_TEMPLATES.map((row, index) => ({ id: id(100 + index), company_id: COMPANY, language: 'sv', is_active: true, ...row }))
   io.rows.email_event_rules = DEFAULT_EMAIL_EVENT_RULES.map(row => ({ company_id: COMPANY, enabled: true, is_active: true, ...row }))
   io.rows.manual_communication_mailboxes = [{ id: id(61), company_id: COMPANY, environment: 'production', is_active: true, is_verified: true }]
@@ -399,26 +406,28 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(asRecord(body.data).historical_final_prices).toEqual([expect.objectContaining({ period_month: '2026-09-01', price_area_code: 'SE3', amount: 82, status: 'locked' })])
   })
   it('switch status selects its own application switch and emits an opaque reference and ordered events', async () => {
-    addApplication(); io.rows.supplier_switch_events = [
-      { company_id: COMPANY, switch_request_id: SWITCH, event_type: 'requested', event_status: 'accepted', message: 'Synthetic request accepted', created_at: NOW },
-      { company_id: FOREIGN, switch_request_id: SWITCH, event_type: 'foreign', created_at: NOW },
+    addApplication(); io.rows.gridex_supplier_switch_business_events_v = [
+      { company_id: COMPANY, switch_request_id: SWITCH, include_all_business_history: true, event_type: 'requested', event_status: 'accepted', message: 'Synthetic request accepted', created_at: NOW },
+      { company_id: COMPANY, switch_request_id: SWITCH, include_all_business_history: false, event_type: 'shadow', created_at: NOW },
+      { company_id: FOREIGN, switch_request_id: SWITCH, include_all_business_history: true, event_type: 'foreign', created_at: NOW },
     ]
     const path = '/api/v1/website/switch-status'
     const body = await bodyContract(await switchGET(request(path + '?application_number=SYNTHETIC-APPLICATION')), path)
-    assertScope(['website_switch_status.read']); assertCompanyQuery('website_customer_applications'); assertCompanyQuery('supplier_switch_events')
+    assertScope(['website_switch_status.read']); assertCompanyQuery('website_customer_applications'); assertCompanyQuery('gridex_supplier_switch_business_events_v')
     expect(asRecord(asRecord(body.data).switch)).toMatchObject({ status: 'requested', switch_reference: expect.stringMatching(/^switch_/), events: [expect.objectContaining({ event_type: 'requested' })] })
+    expect(asRecord(asRecord(body.data).switch).events).toEqual([{ event_type: 'requested', event_status: 'accepted', message: 'Synthetic request accepted', created_at: NOW }])
   })
   it('uses the same switch status without a history read when the receipt opts out', async () => {
     addApplication()
-    io.rows.supplier_switch_events = Array.from({ length: 100 }, () => ({
-      company_id: COMPANY, switch_request_id: SWITCH, event_type: 'requested', event_status: 'accepted',
+    io.rows.gridex_supplier_switch_business_events_v = Array.from({ length: 100 }, () => ({
+      company_id: COMPANY, switch_request_id: SWITCH, include_all_business_history: true, event_type: 'requested', event_status: 'accepted',
       message: 'Synthetic switch history note', created_at: NOW,
     }))
     const path = '/api/v1/website/switch-status'
     const url = path + '?application_number=SYNTHETIC-APPLICATION'
     const full = await bodyContract(await switchGET(request(url)), path)
     expect(asRecord(asRecord(full.data).switch).events).toHaveLength(100)
-    expect(io.queries.filter(query => query.table === 'supplier_switch_events')).toHaveLength(1)
+    expect(io.queries.filter(query => query.table === 'gridex_supplier_switch_business_events_v')).toHaveLength(1)
 
     io.queries = []
     const optedOut = request(url)
@@ -428,7 +437,7 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(response.headers.get('vary')).toContain('Prefer')
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     const summary = await bodyContract(response, path)
-    expect(io.queries.some(query => query.table === 'supplier_switch_events')).toBe(false)
+    expect(io.queries.some(query => query.table === 'gridex_supplier_switch_business_events_v')).toBe(false)
     const { events, ...fullStatus } = asRecord(asRecord(full.data).switch)
     expect(summary.data).toEqual({ ...asRecord(full.data), switch: { ...fullStatus, events: [] } })
     expect(Buffer.byteLength(JSON.stringify(full.data)) - Buffer.byteLength(JSON.stringify(summary.data)))
@@ -459,12 +468,12 @@ describe('Website operations: mounted routes against published contracts', () =>
     if (scenario === 'duplicate-link') io.rows.supplier_switch_requests.push({ ...ownSwitch, id: id(108), status: 'completed' })
     if (scenario === 'bad-direct-id') payload.supplier_switch_request_id = 'not-a-uuid'
     if (scenario === 'foreign-direct-id') ownSwitch.customer_id = id(109)
-    io.rows.supplier_switch_events = [{ company_id: COMPANY, switch_request_id: SWITCH, event_type: 'completed', created_at: NOW }]
+    io.rows.gridex_supplier_switch_business_events_v = [{ company_id: COMPANY, switch_request_id: SWITCH, include_all_business_history: true, event_type: 'completed', created_at: NOW }]
 
     const switchPath = '/api/v1/website/switch-status'
     const switched = await bodyContract(await switchGET(request(switchPath + '?application_number=SYNTHETIC-APPLICATION')), switchPath)
     expect(asRecord(switched.data).switch).toBeNull()
-    expect(io.queries.some(query => query.table === 'supplier_switch_events')).toBe(false)
+    expect(io.queries.some(query => query.table === 'gridex_supplier_switch_business_events_v')).toBe(false)
 
     const applicationPath = '/api/v1/website/customer-applications/{application_number}'
     const status = await bodyContract(await applicationStatusGET(request('/api/v1/website/customer-applications/SYNTHETIC-APPLICATION'), { params: Promise.resolve({ applicationId: 'SYNTHETIC-APPLICATION' }) }), applicationPath)
@@ -547,7 +556,16 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(asRecord(command.contract)).toMatchObject({ offer_reference: OFFER_REFERENCE, public_contract_offer_id: OFFER, price_option_reference: 'fixed_standard', area_price_reference: 'fixed_standard_se3', legal_bundle_version_id: BUNDLE })
     expect(asRecord(body.data)).toMatchObject({ application_number: 'SYNTHETIC-APPLICATION', customer_number: 'SYNTHETIC-CUSTOMER', status: 'accepted', next_step: 'automatic_processing', quote_bound: true })
     expect(io.rows.external_contract_intakes).toHaveLength(1)
-    expect(io.rows.external_contract_intakes[0]).toMatchObject({ company_id: COMPANY, source_channel: 'external_website_api', created_customer_id: CUSTOMER, created_site_id: SITE, created_contract_id: CONTRACT, payload: { external_customer_id: 'synthetic-customer' } })
+    const application = io.rows.website_customer_applications[0]
+    expect(application.quote_reference).toBe(quote.quote_reference)
+    expect(io.rows.external_contract_intakes[0]).toMatchObject({
+      company_id: COMPANY,
+      source_channel: 'external_website_api',
+      created_customer_id: CUSTOMER,
+      created_site_id: SITE,
+      created_contract_id: CONTRACT,
+      payload: { external_customer_id: 'synthetic-customer', website_application_id: application.id, quote_reference: quote.quote_reference },
+    })
     expect(io.rpcs.find(call => call.name === 'gridex_commit_customer_application_provisioning')?.args).toMatchObject({ p_company_id: COMPANY, p_customer_id: CUSTOMER, p_contract_id: CONTRACT })
   })
   it('quote idempotency replays the accepted commercial selection and rejects a different count without another quote', async () => {
@@ -603,5 +621,76 @@ describe('Website operations: mounted routes against published contracts', () =>
     const response = await bodyContract(await applicationStatusGET(request('/api/v1/website/customer-applications/SYNTHETIC-APPLICATION'), { params: Promise.resolve({ applicationId: 'SYNTHETIC-APPLICATION' }) }), path, 'GET', 404)
     expect(asRecord(response.error).code).toBe('application_not_found')
     expect(io.queries.some(query => query.table === 'customer_contracts')).toBe(false)
+  })
+})
+
+
+describe('website checkout readiness and the sender actually used to queue required mail', () => {
+  async function freshSenderModules(fallback: string) {
+    vi.stubEnv('PLATFORM_FALLBACK_FROM_EMAIL', fallback)
+    vi.stubEnv('DEFAULT_FROM_EMAIL', '')
+    vi.stubEnv('RESEND_FROM_EMAIL', '')
+    vi.resetModules()
+    const { evaluateCustomerApplicationAutomationReadiness } = await import('@/lib/website/customerApplicationAutomationReadiness')
+    const { loadTenantWebsiteFlowReadiness } = await import('@/lib/integrations/tenantWebsiteReadiness')
+    const { getEffectiveSender } = await import('@/lib/email/companyEmailSettings')
+    return {
+      readiness: () => evaluateCustomerApplicationAutomationReadiness(COMPANY),
+      website: () => loadTenantWebsiteFlowReadiness({
+        companyId: COMPANY, client: io.client as unknown as import('@/lib/integrations/apiAuth').IntegrationApiClient,
+      }),
+      dispatchSender: () => getEffectiveSender(COMPANY, { legalOrCritical: true, requireSendReady: true }),
+    }
+  }
+
+  it.each([
+    ['missing sender name', { sender_name: null }, ''],
+    ['disabled sender', { sender_mode: 'disabled' }, 'fallback@example.invalid'],
+    ['disallowed fallback', { sender_name: null, sender_mode: 'fallback_platform_sender', fallback_allowed: false }, 'fallback@example.invalid'],
+  ])('keeps the verified flag and blocks unqueueable required mail for %s', async (_label, attributes, fallback) => {
+    Object.assign(io.rows.company_email_settings[0], attributes)
+    const { readiness, website, dispatchSender } = await freshSenderModules(fallback)
+    await expect(dispatchSender()).rejects.toBeInstanceOf(Error)
+    expect(await readiness()).toMatchObject({
+      ready: false,
+      checks: {
+        verified_customer_email_sender: true, required_email_sender_queueable: false,
+        required_email_templates_renderable: true,
+      },
+    })
+    expect(await website()).toMatchObject({
+      website_checkout_ready: false,
+      blockers: expect.arrayContaining([expect.objectContaining({ code: 'verified_email_sender_not_queueable' })]),
+    })
+  })
+
+  it('keeps the verified tenant sender and the allowed configured fallback queueable', async () => {
+    const { readiness, dispatchSender } = await freshSenderModules('fallback@example.invalid')
+    await expect(dispatchSender()).resolves.toMatchObject({ mode: 'verified_domain', sendReady: true })
+    expect(await readiness()).toMatchObject({
+      ready: true, checks: { verified_customer_email_sender: true },
+    })
+
+    Object.assign(io.rows.company_email_settings[0], {
+      sender_name: null, sender_mode: 'fallback_platform_sender', fallback_allowed: true,
+    })
+    await expect(dispatchSender()).resolves.toMatchObject({ mode: 'fallback', sendReady: true })
+    expect(await readiness()).toMatchObject({
+      ready: true, checks: { verified_customer_email_sender: true },
+    })
+  })
+
+  it('preserves the non-ready result when the sender schema is missing', async () => {
+    const { readiness } = await freshSenderModules('')
+    io.failingRead = 'company_email_settings'
+    io.failingReadCode = 'PGRST204'
+    expect(await readiness()).toMatchObject({ ready: false, checks: { verified_customer_email_sender: false } })
+  })
+
+  it('propagates an actual sender settings read failure', async () => {
+    const { readiness, dispatchSender } = await freshSenderModules('')
+    io.failingRead = 'company_email_settings'
+    await expect(dispatchSender()).rejects.toMatchObject({ code: '08006' })
+    await expect(readiness()).rejects.toMatchObject({ code: '08006' })
   })
 })

@@ -1,5 +1,6 @@
+import { invoiceGroupPreparationMessages, readInvoiceGroupPreparationCode, type InvoiceGroupPreparationCode } from '@/lib/billing/invoiceGroupPreparationFeedback'
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
-import type { DispatchProvider } from '@/lib/billing/providers/registry'
+import { isFileProvider, type DispatchProvider } from '@/lib/billing/providers/registry'
 import { invoiceDeliveryMode, resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -48,13 +49,16 @@ function monthParts(value: string) {
   return { billingMonth: value.trim(), year: Number(match[1]), month: Number(match[2]) }
 }
 
-async function loadUnderlays(companyId: string, billingMonth: string) {
+async function loadUnderlays(companyId: string, billingMonth: string, includeSeriesBasis: boolean) {
   const { year, month } = monthParts(billingMonth)
   const rows: Row[] = []
+  const columns = 'id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type'
   for (let from = 0; ; from += 1_000) {
-    const result = await supabaseService
-      .from('billing_underlays')
-      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
+    const source = supabaseService.from('billing_underlays')
+    const select = includeSeriesBasis
+      ? source.select(`${columns},price_timeline_basis_sha256:payload->contract_price_timeline->>basisSha256`)
+      : source.select(columns)
+    const result = await select
       .eq('company_id', companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -95,7 +99,7 @@ async function loadContracts(companyId: string, contractIds: string[]) {
     if (chunk.length === 0) continue
     const result = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,contract_number,contract_name,contract_type,status,price_area_used,contract_price_snapshot_id,price_plan_id,price_plan_version_id,contract_product_version_id,snapshot_hash,customer_site_id,site_id,metering_point_id,billing_address_same_as_site,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_country,billing_level,consolidated_invoice,vat_rate')
+      .select('id,company_id,customer_id,contract_number,contract_name,contract_type,status,price_area_used,contract_price_snapshot_id,price_plan_id,price_plan_version_id,contract_product_version_id,snapshot_hash,customer_site_id,site_id,metering_point_id,billing_address_same_as_site,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_country,billing_level,consolidated_invoice,vat_rate,updated_at')
       .eq('company_id', companyId)
       .in('id', chunk)
     if (result.error) throw result.error
@@ -297,21 +301,34 @@ async function createDraft(input: {
     companyId: input.companyId, customerId, contractId, underlay: input.underlay, contract: input.contract,
   }) : null
   await requireInvoiceSourceCopiesAvailable({ companyId: input.companyId, underlayId })
+  const snapshotId = text(input.underlay.contract_price_snapshot_id) ?? text(input.underlay.pricing_snapshot_id) ?? text(input.contract.contract_price_snapshot_id)
+  const priceSnapshot = await loadPriceSnapshot(input.companyId, snapshotId)
+  if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
+  const invoiceCustomer = shared ? shared.customer : await loadInvoiceCustomer(input.companyId, customerId)
+  const customerNumber = text(invoiceCustomer?.customer_number)
+  // Same effective recipient/delivery as billing readiness and export.
+  const delivery = shared?.delivery ?? resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer }, mode)
+  const deliveryMethod = isFileProvider(input.provider) ? text(priceSnapshot.invoice_delivery_method) : null
+  if (deliveryMethod && deliveryMethod !== 'paper' && deliveryMethod !== 'email') {
+    throw new Error('Filexporten stöder inte fakturans valda leveranssätt.')
+  }
+  if (deliveryMethod === 'paper' && !delivery.postalAddress) {
+    throw new Error('Pappersfaktura har valts men en komplett fakturaadress saknas.')
+  }
+  if (deliveryMethod === 'email' && !delivery.email) {
+    throw new Error('Faktura via e-post har valts men en bekräftad faktura-e-post saknas.')
+  }
   const pricing = await ensureLockedPricing({
     companyId: input.companyId,
     billingUnderlayId: underlayId,
     actorUserId: input.actorUserId,
   })
   if (!pricing.pricingRunId) throw new Error('Låst pricing_run saknas.')
-  const snapshotId = text(input.underlay.contract_price_snapshot_id) ?? text(input.underlay.pricing_snapshot_id) ?? text(input.contract.contract_price_snapshot_id)
-  const priceSnapshot = await loadPriceSnapshot(input.companyId, snapshotId)
-  if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
-  const calculationSnapshot = buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth })
+  const calculationSnapshot = {
+    ...buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth }),
+    ...(deliveryMethod ? { invoice_delivery_method: deliveryMethod } : {}),
+  }
   const calculationHash = hash(calculationSnapshot)
-  const invoiceCustomer = shared ? shared.customer : await loadInvoiceCustomer(input.companyId, customerId)
-  const customerNumber = text(invoiceCustomer?.customer_number)
-  // Same effective recipient/delivery as billing readiness and export.
-  const delivery = shared?.delivery ?? resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer }, mode)
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()
@@ -420,7 +437,10 @@ async function createDraft(input: {
     metadata: { source: 'invoice_review_v1', approval, calculation_snapshot_sha256: calculationHash, customer_number: customerNumber },
   }
   // Export graph and calculation snapshot are written in one transaction; a failure leaves no reservation.
-  const created = await supabaseService.rpc('gridex_create_invoice_review_draft_v1', {
+  const draftRpc = input.provider === 'capway_aptic'
+    ? 'gridex_create_capway_invoice_review_draft_v1'
+    : 'gridex_create_invoice_review_draft_v1'
+  const created = await supabaseService.rpc(draftRpc, {
     p_company_id: input.companyId,
     p_run: {
       id: runId,
@@ -449,7 +469,14 @@ async function createDraft(input: {
       metadata: canonicalInvoice.metadata,
     },
   })
+  if (created.error?.code === '23514' && created.error.message === 'price_timeline_invoice_review_required') {
+    return 'price-timeline-review' as const
+  }
+  if (created.error?.code === '23514' && created.error.message === 'billing_underlay_contract_case_hold') {
+    throw new Error('Ett aktivt kundärende blockerar fakturering för det valda avtalet.')
+  }
   if (created.error) throw created.error
+  if (created.data?.existing === true) return 'existing' as const
 
   await emitDomainEvent({
     companyId: input.companyId,
@@ -462,7 +489,82 @@ async function createDraft(input: {
     payload: { billing_month: input.billingMonth, billing_underlay_id: underlayId, pricing_run_id: pricing.pricingRunId, approval_status: 'pending_review' },
     idempotencyKey: `invoice-review-created:${canonicalKey}`,
   }).catch(() => null)
-  return { runId, itemId }
+  return 'created' as const
+}
+
+class GroupedDraftError extends Error {
+  constructor(readonly code: InvoiceGroupPreparationCode) {
+    super(invoiceGroupPreparationMessages[code])
+  }
+}
+
+async function createGroupedDraft(input: {
+  companyId: string
+  customerId: string
+  billingMonth: string
+  provider: DispatchProvider
+  environment: 'test' | 'production'
+  actorUserId: string | null
+  underlays: Row[]
+  contracts: Map<string, Row>
+}) {
+  if (!input.actorUserId) throw new Error('Välj en behörig fakturaberedare för samlingsfakturan.')
+  if (input.underlays.length < 2) throw new GroupedDraftError('invoice_group_distinct_sites_required')
+  const profile = await supabaseService.from('customers')
+    .select('billing_profile_revision').eq('company_id', input.companyId).eq('id', input.customerId).single()
+  if (profile.error || !profile.data) throw new Error('Kundens aktuella fakturauppgifter kunde inte bekräftas.')
+
+  const sources = []
+  for (const underlay of input.underlays) {
+    const underlayId = text(underlay.id)
+    const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
+    const contract = contractId ? input.contracts.get(contractId) : null
+    const siteId = text(underlay.customer_site_id) ?? text(underlay.site_id)
+    if (!underlayId || !contractId || !contract || !siteId ||
+      underlay.status !== 'validated' || underlay.readiness_status !== 'ready') {
+      throw new GroupedDraftError('invoice_group_source_not_ready')
+    }
+    const site = await supabaseService.from('customer_sites').select('updated_at')
+      .eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('id', siteId).single()
+    if (site.error || !site.data) throw new GroupedDraftError('invoice_group_site_mismatch')
+    const { delivery } = await loadSharedDraftDelivery({
+      companyId: input.companyId, customerId: input.customerId, contractId, underlay, contract,
+    })
+    const pricing = await loadLockedUnderlayPricingWithCore({ companyId: input.companyId, billingUnderlayId: underlayId })
+    if (!pricing?.locked || !pricing.pricingRunId) throw new GroupedDraftError('invoice_group_price_not_locked')
+    const priceSnapshot = await loadPriceSnapshot(input.companyId,
+      text(underlay.contract_price_snapshot_id) ?? text(underlay.pricing_snapshot_id) ?? text(contract.contract_price_snapshot_id))
+    if (!priceSnapshot) throw new Error('En vald anläggning saknar bekräftade pris- och leveransvillkor.')
+    const channel = text(priceSnapshot.invoice_delivery_method)
+    sources.push({
+      underlayId,
+      pricingRunId: pricing.pricingRunId,
+      contractUpdatedAt: text(contract.updated_at),
+      customerBillingProfileRevision: profile.data.billing_profile_revision,
+      siteUpdatedAt: site.data.updated_at,
+      delivery: { recipient: delivery.recipient, reference: delivery.reference,
+        ...(channel === 'email' ? { email: delivery.email } : { postalAddress: delivery.postalAddress }) },
+      calculation: buildCalculationSnapshot({ underlay, contract, priceSnapshot, pricing, billingMonth: input.billingMonth }),
+    })
+  }
+
+  // A generated ABI follows the native migration. Supabase already supports
+  // additive RPC names in this source's handwritten runtime boundary.
+  const saved = await supabaseService.rpc('gridex_prepare_consolidated_invoice_v1', {
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_billing_month: input.billingMonth,
+    p_provider: input.provider,
+    p_environment: input.environment,
+    p_actor_user_id: input.actorUserId,
+    p_sources: sources,
+  })
+  if (saved.error) throw new GroupedDraftError(readInvoiceGroupPreparationCode(saved.error.message) ?? 'invoice_group_prepare_failed')
+  const receipt = saved.data as { invoice_id?: string; existing?: boolean } | null
+  if (!receipt?.invoice_id || typeof receipt.existing !== 'boolean') {
+    throw new Error('Samlingsfakturans kvitto kunde inte bekräftas. Läs om beredningen.')
+  }
+  return receipt.existing
 }
 
 export async function prepareInvoiceDraftsForReview(input: {
@@ -474,6 +576,8 @@ export async function prepareInvoiceDraftsForReview(input: {
   actorUserId?: string | null
   customerId?: string | null
   billingUnderlayId?: string | null
+  priceTimelineReviewContractIds?: readonly string[]
+  freshPriceableUnderlayIds?: readonly string[]
 }) {
   await requireCompanyOperationalForWrites(input.companyId)
   monthParts(input.billingMonth)
@@ -489,7 +593,8 @@ export async function prepareInvoiceDraftsForReview(input: {
     throw new Error('Fakturaförberedelse fick ett tomt billingUnderlayId-scope.')
   }
 
-  const allUnderlays = await loadUnderlays(input.companyId, input.billingMonth)
+  const includeSeriesBasis = Boolean(input.freshPriceableUnderlayIds?.length && input.priceTimelineReviewContractIds?.length)
+  const allUnderlays = await loadUnderlays(input.companyId, input.billingMonth, includeSeriesBasis)
   const underlays = allUnderlays.filter((row) =>
     (!customerScope || text(row.customer_id) === customerScope) &&
     (!underlayScope || text(row.id) === underlayScope),
@@ -500,19 +605,136 @@ export async function prepareInvoiceDraftsForReview(input: {
 
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const reservedUnderlays = await loadExistingUnderlayIds(input.companyId, underlayIds)
-  const ready = underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !reservedUnderlays.has(String(row.id)))
-  const contractIds = Array.from(new Set(ready.map((row) => text(row.customer_contract_id) ?? text(row.contract_id)).filter((value): value is string => Boolean(value))))
+  const timelineReviewContracts = new Set(input.priceTimelineReviewContractIds)
+  const timelineReviewsWithoutUnderlays = new Set(timelineReviewContracts)
+  const invoiceReviewHolds = new Set<string>()
+  for (const row of underlays) {
+    const contractId = text(row.customer_contract_id) ?? text(row.contract_id)
+    if (row.billing_block_reason === 'price_timeline_invoice_review_required' ||
+      (contractId && timelineReviewContracts.has(contractId))) {
+      invoiceReviewHolds.add(String(row.id))
+      if (contractId) timelineReviewsWithoutUnderlays.delete(contractId)
+    }
+  }
+  const contractIds = Array.from(new Set(underlays.map((row) => text(row.customer_contract_id) ?? text(row.contract_id))
+    .filter((value): value is string => Boolean(value))))
   const contracts = await loadContracts(input.companyId, contractIds)
+  const groupedByCustomer = new Map<string, Row[]>()
+  const groupUnderlayIds = new Set<string>()
+  for (const underlay of underlays) {
+    const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
+    const customerId = text(underlay.customer_id)
+    const underlayId = text(underlay.id)
+    if (!contractId || !customerId || !underlayId || contracts.get(contractId)?.consolidated_invoice !== true ||
+      (text(underlay.energy_direction) ?? 'consumption') !== 'consumption' ||
+      (text(underlay.settlement_type) ?? 'invoice') !== 'invoice') continue
+    const grouped = groupedByCustomer.get(customerId) ?? []
+    grouped.push(underlay)
+    groupedByCustomer.set(customerId, grouped)
+    groupUnderlayIds.add(underlayId)
+  }
+
+  for (const group of groupedByCustomer.values()) {
+    // Explicit grouping must keep every selected member together.
+    if (group.some(underlay => invoiceReviewHolds.has(String(underlay.id)))) {
+      for (const underlay of group) invoiceReviewHolds.add(String(underlay.id))
+    }
+  }
+  const ready = underlays.filter(row => row.status === 'validated' && row.readiness_status === 'ready' &&
+    !invoiceReviewHolds.has(String(row.id)) && !reservedUnderlays.has(String(row.id)))
+
   let created = 0
+  let alreadyPrepared = reservedUnderlays.size
   let failed = 0
   const errors: Array<{ billingUnderlayId: string; error: string }> = []
-  const jobs = ready.map((underlay) => async () => {
+  const groupErrorCodes = new Set<InvoiceGroupPreparationCode>()
+  for (const [customerId, group] of groupedByCustomer) {
+    // A held member is part of the selected scope. Do not prepare only the other sites.
+    if (group.some(underlay => invoiceReviewHolds.has(String(underlay.id)))) continue
+    try {
+      const existing = await createGroupedDraft({
+        companyId: input.companyId, customerId, billingMonth: input.billingMonth,
+        provider: input.provider ?? 'capway_aptic', environment: input.environment ?? 'test',
+        actorUserId: input.actorUserId ?? null, underlays: group, contracts,
+      })
+      if (existing) alreadyPrepared += group.filter(underlay => !reservedUnderlays.has(String(underlay.id))).length
+      else created += 1
+    } catch (error) {
+      failed += 1
+      groupErrorCodes.add(error instanceof GroupedDraftError ? error.code : 'invoice_group_prepare_failed')
+      errors.push({ billingUnderlayId: String(group[0].id), error: error instanceof Error ? error.message : 'Samlingsfakturan kunde inte beredas.' })
+    }
+  }
+  let preparedSeriesSources = 0
+  if (input.provider === 'file_export' && input.environment === 'test' && input.actorUserId && !underlayScope) {
+    const fresh = new Set(input.freshPriceableUnderlayIds)
+    const separateSeries = new Map<string, { rows: Row[]; held: boolean }>()
+    for (const underlay of underlays) {
+      const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
+      const siteId = text(underlay.customer_site_id) ?? text(underlay.site_id)
+      const pointId = text(underlay.metering_point_id)
+      const customerId = text(underlay.customer_id)
+      if (!contractId || !pointId || !customerId ||
+          underlay.energy_direction !== 'consumption' || underlay.settlement_type !== 'invoice') continue
+      const held = timelineReviewContracts.has(contractId)
+      if (!held && !siteId) continue
+      const key = JSON.stringify(held ? [customerId, contractId, pointId] : [customerId, contractId, siteId, pointId])
+      const series = separateSeries.get(key) ?? { rows: [], held }
+      series.rows.push(underlay)
+      separateSeries.set(key, series)
+    }
+    for (const { rows, held } of separateSeries.values()) {
+      const candidates = rows.filter(row => {
+        const id = text(row.id)
+        return id && row.billing_block_reason === 'price_timeline_invoice_review_required' &&
+          row.status === 'validated' && row.readiness_status === 'ready' &&
+          !groupUnderlayIds.has(id) && !reservedUnderlays.has(id)
+      })
+      if (candidates.length < 2) continue
+      if (held) {
+        // A fresh, complete series can be offered for TEST preparation. The
+        // native owner still checks the current basis, prices and scope.
+        const siteId = text(rows[0].customer_site_id) ?? text(rows[0].site_id)
+        const basis = text(rows[0].price_timeline_basis_sha256)
+        if (!siteId || !basis || !/^[a-f0-9]{64}$/.test(basis) || rows.length !== candidates.length ||
+            !rows.every(row => fresh.has(String(row.id)) && row.price_timeline_basis_sha256 === basis &&
+              (text(row.customer_site_id) ?? text(row.site_id)) === siteId)) continue
+      }
+      const members = candidates.map(row => String(row.id))
+      const result = await supabaseService.rpc('gridex_prepare_test_price_series_by_underlays_v1', {
+        p_company_id: input.companyId, p_actor_user_id: input.actorUserId,
+        p_billing_month: input.billingMonth, p_underlay_ids: members,
+      })
+      const receipt = result.data as { invoiceId?: unknown; existing?: unknown } | null
+      if (result.error || typeof receipt?.invoiceId !== 'string' || typeof receipt.existing !== 'boolean') {
+        errors.push({ billingUnderlayId: members[0], error: 'Testfakturans prisperioder behöver granskas före beredning.' })
+        continue
+      }
+      const { captureTestPriceSeriesBillingConfiguration } = await import('@/lib/billing/invoiceReadiness')
+      const configurationCaptured = await captureTestPriceSeriesBillingConfiguration({
+        companyId: input.companyId, billingMonth: input.billingMonth, underlayIds: members,
+      }).catch(() => null)
+      if (configurationCaptured) {
+        for (const id of members) invoiceReviewHolds.delete(id)
+      } else {
+        errors.push({ billingUnderlayId: members[0], error: configurationCaptured === null
+          ? 'Testfakturans betalvillkor kunde inte sparas just nu.'
+          : 'Testfakturans bekräftade betalvillkor behöver granskas.' })
+      }
+      if (receipt.existing) alreadyPrepared += members.length
+      else {
+        created += 1
+        preparedSeriesSources += members.length
+      }
+    }
+  }
+  const jobs = ready.filter(underlay => !groupUnderlayIds.has(String(underlay.id))).map((underlay) => async () => {
     const underlayId = text(underlay.id) ?? 'unknown'
     try {
       const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
       const contract = contractId ? contracts.get(contractId) : null
       if (!contract) throw new Error('Exakt kundavtal saknas eller ligger utanför tenant.')
-      await createDraft({
+      const outcome = await createDraft({
         companyId: input.companyId,
         billingMonth: input.billingMonth,
         environment: input.environment ?? 'test',
@@ -521,7 +743,9 @@ export async function prepareInvoiceDraftsForReview(input: {
         underlay,
         contract,
       })
-      created += 1
+      if (outcome === 'existing') alreadyPrepared += 1
+      else if (outcome === 'price-timeline-review') invoiceReviewHolds.add(underlayId)
+      else created += 1
     } catch (error) {
       failed += 1
       errors.push({ billingUnderlayId: underlayId, error: error instanceof Error ? error.message : 'Draftfakturan kunde inte skapas.' })
@@ -530,7 +754,8 @@ export async function prepareInvoiceDraftsForReview(input: {
   for (let offset = 0; offset < jobs.length; offset += 10) {
     await Promise.all(jobs.slice(offset, offset + 10).map((run) => run()))
   }
-  const blocked = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready').length
+  const blocked = underlays.filter(row => row.status !== 'validated' || row.readiness_status !== 'ready' ||
+    invoiceReviewHolds.has(String(row.id))).length
   return {
     billingMonth: input.billingMonth,
     scope: {
@@ -538,11 +763,13 @@ export async function prepareInvoiceDraftsForReview(input: {
       billingUnderlayId: underlayScope,
     },
     underlays: underlays.length,
-    alreadyPrepared: reservedUnderlays.size,
-    candidates: ready.length,
+    alreadyPrepared,
+    candidates: ready.length + preparedSeriesSources,
     created,
     blocked,
+    ...(timelineReviewsWithoutUnderlays.size ? { timelineReviewsWithoutUnderlays: timelineReviewsWithoutUnderlays.size } : {}),
     failed,
     errors,
+    ...(groupErrorCodes.size ? { groupErrorCodes: [...groupErrorCodes] } : {}),
   }
 }

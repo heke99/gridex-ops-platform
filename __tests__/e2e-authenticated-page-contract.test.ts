@@ -42,9 +42,12 @@ async function renderedDashboard(platformAdmin: boolean): Promise<Snapshot> {
       if (name === 'next/navigation') return { redirect: () => { throw new Error('unexpected dashboard redirect') } }
       if (name === '@/lib/auth/currentUser') return { getVerifiedAuthUser: async () => ({ id: 'synthetic-user', email }) }
       if (name === '@/lib/auth/logoutAction') return { logoutAction: '/synthetic-logout' }
-      if (name === '@/lib/supabase/server') return { createSupabaseServerClient: async () => ({ rpc: async () => ({ data: platformAdmin ? ['platform_admin'] : [], error: null }) }) }
-      if (name === '@/lib/tenant/scope') return { getOperationalCompanyScope: async () => ({ companyName: 'Syntetiskt bolag' }) }
-      if (name === '@/lib/rbac/roleKeys') return { isPlatformAdminRole: (role: string) => role === 'platform_admin' }
+      if (name === './access') return {
+        getDashboardAccess: async (userId: string) => {
+          expect(userId).toBe('synthetic-user')
+          return { status: 'allowed', isPlatformAdmin: platformAdmin, companyName: platformAdmin ? null : 'Syntetiskt bolag' }
+        },
+      }
       if (name === 'react/jsx-runtime') return require(name)
       throw new Error(`unexpected dashboard dependency: ${name}`)
     } }, { filename: file, timeout: 1000 })

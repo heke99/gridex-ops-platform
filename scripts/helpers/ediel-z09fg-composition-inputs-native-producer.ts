@@ -400,7 +400,7 @@ async function baseline(f:Stage){
  const wire=buildCancellationProspectiveZ04({...f,caseReference:caseReference!}),receivedAt=new Date(Date.parse(clock())).toISOString()
  expect(Date.parse(receivedAt)).toBeGreaterThanOrEqual(Date.parse(sent!.message_sent_at!))
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch});expect(id).toMatch(/^[0-9a-f-]{36}$/)
  const message=(await getEdielMessageById(id!))!;expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_code:'Z04',raw_payload:wire,inbound_email_message_id:mail.inboundEmailMessageId})
  expect(Date.parse(message.message_received_at!)).toBe(Date.parse(receivedAt))

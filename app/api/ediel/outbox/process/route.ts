@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { readEdielOutboxRunResponse } from '@/lib/ediel/outbox/batchReadResponse'
 import { drainEdielOutbox } from '@/lib/ediel/outbox/drainEdielOutbox'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
@@ -72,6 +73,12 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
     console.error('[ediel-outbox-cron] automation actor configuration failed', error)
     return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })
   }
+  if (searchParams.has('run_id') || searchParams.has('recent')) {
+    if (request.method !== 'GET') {
+      return NextResponse.json({ok:false,code:'outbox_run_read_requires_get'},{status:405,headers:{Allow:'GET'}})
+    }
+    return readEdielOutboxRunResponse(searchParams,actorUserId,null)
+  }
   const ignoredCompanyId = clean(String(body.companyId ?? body.company_id ?? '')) ?? clean(searchParams.get('companyId')) ?? clean(searchParams.get('company_id'))
   const environment =
     parseEnvironment(String(body.environment ?? '')) ?? parseEnvironment(searchParams.get('environment'))
@@ -84,14 +91,15 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
       limit,
     })
 
+    const interrupted = result.stoppedBy === 'dependency_failure'
     return NextResponse.json({
-      ok: true,
+      ok: !interrupted,
       source: 'ediel_outbox_cron',
       environment,
       companyId: null,
       ignoredCompanyOverride: ignoredCompanyId ? 'blocked_on_generic_cron' : null,
       result,
-    })
+    }, { status: interrupted ? 503 : 200 })
   } catch (error) {
     console.error('[ediel-outbox-cron] Run failed', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(

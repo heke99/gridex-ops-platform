@@ -33,7 +33,7 @@ beforeEach(()=>{
 })
 it('repairs frozen accepted clock before current route, service, guide or provider calls',async()=>{
  const result=await sendEdielMessageViaSmtp(message(),{actorUserId})
- expect(result).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt})
+ expect(result).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt,delivery:'repaired_projection'})
  expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
  expect(io.register).not.toHaveBeenCalled()
  expect(io.current).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled();expect(io.status).not.toHaveBeenCalled()
@@ -44,7 +44,7 @@ it('retains historical production acceptance when the current row now points at 
   if(name==='gridex_ediel_accepted_transport_projection_v1'||name==='gridex_ediel_repair_accepted_transport_projection_v1')return {data:{...receipt(),environment:'production'},error:null}
   throw new Error(`unexpected_rpc:${name}`)
  })
- expect(await sendEdielMessageViaSmtp(row,{actorUserId})).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt})
+ expect(await sendEdielMessageViaSmtp(row,{actorUserId})).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt,delivery:'repaired_projection'})
  expect(io.provider).not.toHaveBeenCalled();expect(io.current).not.toHaveBeenCalled();expect(io.status).not.toHaveBeenCalled()
  expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
 })

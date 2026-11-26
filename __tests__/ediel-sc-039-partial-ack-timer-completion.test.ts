@@ -30,6 +30,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from(table: string
   Object.assign(q, { select: (value: string) => { fields = value.split(',').map(field => field.trim()); return q },
     eq: (key: string, value: unknown) => { filters.push(row => row[key] === value); return q },
     in: (key: string, values: unknown[]) => { filters.push(row => values.includes(row[key])); return q },
+    lte: (key: string, value: string) => { filters.push(row => Date.parse(String(row[key])) <= Date.parse(value)); return q },
     order: () => q, limit: () => q, update: (value: Record<string, unknown>) => { patch = value; return q },
     maybeSingle: async () => ({ data: execute()[0] ?? null, error: null }),
     then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: execute(), error: null }).then(resolve) })

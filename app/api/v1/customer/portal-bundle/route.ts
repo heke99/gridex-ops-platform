@@ -1,3 +1,4 @@
+import { readPortalCustomerStatus } from '@/lib/customer-portal/supplierSwitchStatus'
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
@@ -28,7 +29,6 @@ import {
   portalQueryErrorMetadata,
 } from '@/lib/customer-portal/apiData'
 import {
-  buildPortalCustomerStatus,
   displayNameFromCustomer,
   hasContractPricePlan,
   removeFalsePricePlanBlockers,
@@ -227,7 +227,9 @@ async function buildBundleResponse(input: {
     })
     const contracts = rawContracts.map((contract) => removeFalsePricePlanBlockers(contract, hasPricePlan))
     const websiteApplications = rawWebsiteApplications.map((application) => removeFalsePricePlanBlockers(application, hasPricePlan))
-    const customerStatus = buildPortalCustomerStatus({
+    const customerStatus = await readPortalCustomerStatus({
+      companyId: portalContext.companyId, customerIds: [portalContext.customerId],
+    }, {
       customer: input.identity.customer,
       contracts,
       sites,

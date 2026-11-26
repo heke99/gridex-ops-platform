@@ -14,6 +14,8 @@ async function hasOpenTask(input: {
   customerSiteId?: string | null;
   meteringPointId?: string | null;
   taskType: string;
+  description: string;
+  matchDescription?: boolean;
 }) {
   const siteColumn = input.table === "customer_data_tasks" ? "customer_site_id" : "site_id"
   let query = supabaseService
@@ -27,6 +29,8 @@ async function hasOpenTask(input: {
 
   query = input.customerSiteId ? query.eq(siteColumn, input.customerSiteId) : query.is(siteColumn, null)
   query = input.meteringPointId ? query.eq("metering_point_id", input.meteringPointId) : query.is("metering_point_id", null)
+
+  if (input.matchDescription) query = query.eq("description", input.description)
 
   const { data, error } = await query
   if (error) {
@@ -55,6 +59,8 @@ export async function createCustomerDataTask(input: {
   description: string;
   actorUserId?: string | null;
   priority?: "low" | "normal" | "high";
+  requirePersisted?: boolean;
+  matchDescription?: boolean;
 }): Promise<void> {
   if (await hasOpenTask({ table: "customer_data_tasks", ...input })) return
   if (await hasOpenTask({ table: "customer_operation_tasks", ...input })) return
@@ -105,11 +111,15 @@ export async function createCustomerDataTask(input: {
   const { error: fallbackError } = await supabaseService
     .from("customer_operation_tasks")
     .insert(fallback);
-  if (fallbackError)
+  if (fallbackError) {
     console.warn(
       "[customerDataTasks] Kunde inte skapa fallback customer_operation_tasks",
       fallbackError,
     );
+    if (input.requirePersisted) {
+      throw new Error("Handläggningsuppgiften kunde inte sparas.");
+    }
+  }
 }
 
 export async function createMissingCustomerDataTasks(input: {

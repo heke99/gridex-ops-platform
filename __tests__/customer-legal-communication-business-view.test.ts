@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { CustomerOpsReadiness, CustomerLegalAcceptance, CustomerDocument, CustomerOpsTimelineEvent } from '@/lib/opsMaster/readiness'
 import type { CommunicationLog } from '@/lib/email/communicationLogs'
+import { CUSTOMER_EMAIL_RESEND, getRoleProfilePermissions, hasPermissionRequirement } from '@/lib/admin/accessModel'
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => React.createElement('a', { href }, children) }))
 vi.mock('@/app/admin/customers/[id]/email-actions', () => ({ resendCustomerEmailAction: async () => {} }))
 import LegalCard from '@/components/admin/customers/CustomerLegalReadinessCard'
@@ -82,9 +83,49 @@ it('omits resend for an incomplete log even when the operator has permission', (
   const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, { logs: [{ ...log('failed'), template_key: null }], canResend: true }))
   expect(html).not.toContain('<form')
 })
-it('server caller passes resend permission matching the unchanged server action', () => {
+it('uses the shared resend requirement for both customer-card presentations and the server action', () => {
   const page = fs.readFileSync('app/admin/customers/[id]/page.part-4.tsx', 'utf8')
-  expect(page).toContain('isPlatformAdmin || hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] })')
+  const action = fs.readFileSync('app/admin/customers/[id]/email-actions.ts', 'utf8')
+  expect(page).toContain('isPlatformAdmin || hasPermissionRequirement(access.permissions, CUSTOMER_EMAIL_RESEND)')
+  expect(action).toContain('requireAdminActionAccess(CUSTOMER_EMAIL_RESEND)')
   expect(page.match(/canResend={canResendCustomerEmail}/g)).toHaveLength(2)
   expect(page).toContain('isPlatformAdmin={isPlatformAdmin}\n            customerIdentity=')
 })
+
+it.each([
+  [getRoleProfilePermissions('operations_agent'), false],
+  [['customers.read', 'communication.send'], false],
+  [['customers.write', 'communication.send'], true],
+] as const)('only offers resend to company actors with both rights', (permissions, expected) => {
+  const canResend = hasPermissionRequirement([...permissions], CUSTOMER_EMAIL_RESEND)
+  const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, { logs: [log('failed')], canResend }))
+  expect(html.includes('<form')).toBe(expected)
+  expect(html).toContain('Kundmeddelande')
+})
+
+it.each([
+  ['queued', 'Omtaget har lagts i utskickskön.', 'status'],
+  ['duplicate', 'Omtaget finns redan registrerat.', 'status'],
+  ['requires_reconciliation', 'Granska tidigare försök i kommunikationshistoriken.', 'alert'],
+  ['failed', 'Omtaget kunde inte köas.', 'alert'],
+  ['already_pending', 'Ett omtag pågår redan.', 'status'],
+])('communication renders the fixed result for %s without enabling resend', (resend, message, role) => {
+  for (const isPlatformAdmin of [false, true]) {
+    const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, {
+      logs: [], resend, isPlatformAdmin,
+    }))
+    expect(html).toContain(message)
+    expect(html).toContain('role="' + role + '"')
+    expect(html).not.toContain('<form')
+  }
+})
+
+it.each([{resend: 'secret@example.invalid'}, {resend: '__proto__'}, {resend: ['queued', 'failed']}])(
+  'communication ignores unrecognized or repeated status values',
+  ({resend}) => {
+    const html = renderToStaticMarkup(React.createElement(CustomerCommunicationSection, { logs: [], resend }))
+    expect(html).not.toContain('role="status"')
+    expect(html).not.toContain('role="alert"')
+    expect(html).not.toContain('secret@example.invalid')
+  },
+)

@@ -1,10 +1,10 @@
+import { formatE66ImportProgress, readE66ImportProgress } from '@/lib/ediel/operations/e66ImportProgress'
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { loadGridOwnerRequestForAdmin } from '@/lib/ediel/loadGridOwnerRequestForAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listGridOwners, listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listOutboundDispatchEventsByRequestIds,
@@ -19,6 +19,7 @@ import {
  prepareUtiltsE73Action,
  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
+import { ManualOutboundDeliveryForm } from '@/components/admin/outbound/ManualOutboundDeliveryForm'
 import type {
  GridOwnerDataRequestRow,
  OutboundDispatchEventRow,
@@ -95,6 +96,62 @@ function getString(value: unknown, key: string): string | null {
  return typeof raw === 'string' ? raw : null
 }
 
+const coverageDate = new Intl.DateTimeFormat('sv-SE', {
+ timeZone: 'Europe/Stockholm',
+ dateStyle: 'short',
+ timeStyle: 'long',
+})
+
+const coverageDuration = new Intl.NumberFormat('sv-SE', {
+ maximumFractionDigits: 3,
+})
+
+function formatCoverageDate(instant: string): string {
+ return coverageDate.format(new Date(instant))
+}
+
+function formatCoverageDuration(seconds: number): string {
+ return `${coverageDuration.format(seconds / 3600)} h`
+}
+
+function isMeteringReceipt(request: GridOwnerDataRequestRow): boolean {
+ return request.status === 'received' && (request.request_scope === 'meter_values' || request.request_scope === 'billing_underlay')
+}
+
+async function readMeteringImportSummary(
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ request: GridOwnerDataRequestRow,
+ companyId: string | null,
+): Promise<string | null> {
+ if (!isMeteringReceipt(request)) return null
+
+ const unverified = 'Det finns ingen verifierad importstatus för svaret.'
+ const receipt = request.response_payload
+ const inboundEmailMessageId = getString(receipt, 'inboundEmailMessageId')
+ const parseResultId = getString(receipt, 'parseResultId')
+ if (!companyId || !inboundEmailMessageId || !parseResultId || getString(receipt, 'inboundFamily') !== 'UTILTS' || getString(receipt, 'inboundCode') !== 'E66') return unverified
+
+ const saved = await supabase.from('gridex_operator_meter_request_links_v1').select('id')
+  .eq('source', 'meter_value').eq('company_id', companyId).eq('customer_id', request.customer_id)
+  .eq('request_id', request.id).eq('receipt_value_saved', true).limit(1)
+ if (saved.error) return 'Importstatusen kunde inte läsas. Försök igen.'
+ if (saved.data?.length) return 'Mätvärden har sparats från detta svar. Kontrollera periodens täckning i Mätvärden.'
+
+ // The inbound worker records outbound provenance on the failed import task.
+ // Correlate both the retained email and the exact parse result for this reply.
+ const { data, error } = await supabase.from('customer_operation_tasks').select('id')
+  .eq('company_id', companyId)
+  .eq('customer_id', request.customer_id)
+  .eq('task_type', 'ediel_utilts_meter_value_review')
+  .in('status', ['open', 'in_progress', 'blocked'])
+  .contains('metadata', { inboundEmailMessageId, parseResultId, outbound: { source_type: 'grid_owner_data_request', source_id: request.id } })
+  .limit(1)
+
+ if (error) return 'Importstatusen kunde inte läsas. Försök igen.'
+ if (data?.length) return 'Ett öppet importärende behöver granskas. Mätvärdena kunde inte sparas vid ett importförsök.'
+ return unverified
+}
+
 function summarizeResponse(
  request: GridOwnerDataRequestRow,
  outbounds: OutboundRequestRow[]
@@ -120,6 +177,7 @@ function summarizeResponse(
  return bTime - aTime
  })[0] ?? null
 
+ if (isMeteringReceipt(request)) return 'Svar mottaget från nätägare'
  if (request.status === 'received') return 'Underlag mottaget från nätägare'
  if (latestOutbound?.status === 'acknowledged') return "Utskick bekräftat"
  if (latestOutbound?.status === 'sent') return 'Skickad, inväntar svar'
@@ -212,37 +270,18 @@ function buildTimeline(params: {
 }
 
 export default async function GridOwnerRequestDetailPage({ params }: PageProps) {
- const access = await requireAdminPageKeyAccess('operations.grid_owner_request_detail')
- const tenantScope = await resolveAdminTenantReadScope(access)
-
  const { id } = await params
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
- const requestQuery = await supabase
- .from('grid_owner_data_requests')
- .select('*')
- .eq('id', id)
- .maybeSingle()
-
- if (requestQuery.error) throw requestQuery.error
- const request = (requestQuery.data as GridOwnerDataRequestRow | null) ?? null
-
- if (!request) notFound()
-
- const requestCompanyId = typeof request.company_id === 'string' ? request.company_id : null
- if (!tenantScope.isPlatformAdmin && (!requestCompanyId || requestCompanyId !== tenantScope.companyId)) {
- notFound()
- }
+ const detail = await loadGridOwnerRequestForAdmin(id)
+ if (!detail) notFound()
+ const { access, tenantScope, user, supabase, request, requestCompanyId, readRequestMessages, readRequestMeteringHistory, readRequestCorrelationReviews } = detail
 
  const [
  siteQuery,
  documentQuery,
  gridOwners,
  outboundByCustomer,
- edielMessagesQuery,
+ edielMessages,
+ meteringHistory,
  ] = await Promise.all([
  request.site_id
  ? supabase.from('customer_sites').select('*').eq('id', request.site_id).maybeSingle()
@@ -256,20 +295,15 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  : Promise.resolve({ data: null, error: null }),
  listGridOwners(supabase),
  listOutboundRequestsByCustomerId(request.customer_id),
- supabase
- .from('ediel_messages')
- .select('*')
- .eq('grid_owner_data_request_id', request.id)
- .order('created_at', { ascending: false }),
+ readRequestMessages(),
+ readRequestMeteringHistory(),
  ])
 
  if (siteQuery.error) throw siteQuery.error
  if (documentQuery.error) throw documentQuery.error
- if (edielMessagesQuery.error) throw edielMessagesQuery.error
 
  const site = (siteQuery.data as CustomerSiteRow | null) ?? null
  const document = (documentQuery.data as CustomerAuthorizationDocumentRow | null) ?? null
- const edielMessages = (edielMessagesQuery.data as EdielMessageRow[] | null) ?? []
 
  const meteringPoints = await listMeteringPointsBySiteIds(supabase, site ? [site.id] : [])
  const meteringPoint =
@@ -297,7 +331,64 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  edielMessages,
  })
 
- const responseSummary = summarizeResponse(request, relatedOutbounds)
+ const meteringRequest = request.request_scope === 'meter_values' || request.request_scope === 'billing_underlay'
+ const coverage = meteringHistory?.coverage
+ const hasVerifiedCoverage = isMeteringReceipt(request) && coverage?.remainingSeconds === 0
+ const responseSummary = isMeteringReceipt(request) && meteringHistory
+  ? hasVerifiedCoverage ? 'Mätperioden har verifierad täckning' : 'Begäran är markerad som mottagen'
+  : summarizeResponse(request, relatedOutbounds)
+ const importSummary = hasVerifiedCoverage
+  ? 'Aktuella mätvärden har sparats för hela den begärda perioden.'
+  : await readMeteringImportSummary(supabase, request, requestCompanyId)
+ const importProgress = meteringRequest && requestCompanyId && ['pending', 'sent', 'received'].includes(request.status)
+  ? await readE66ImportProgress(supabase, requestCompanyId, request.id)
+    .then(rows => rows.filter(row => row.customer_id === request.customer_id).map(formatE66ImportProgress))
+    .catch(() => [])
+  : []
+ const e66RequestReviews = await readRequestCorrelationReviews()
+ const meteringCoverage = meteringRequest ? (
+  <section className="rounded-2xl border border-slate-200 bg-white p-4">
+   <h2 className="text-lg font-semibold text-slate-950">Täckning av begärd mätperiod</h2>
+   {meteringHistory ? <p className="mt-2 text-sm text-slate-700">
+    Källbundna E66-svar {meteringHistory.responseCount}. Första verifierade mottagning{' '}
+    {meteringHistory.firstObservedAt ? formatCoverageDate(meteringHistory.firstObservedAt) : 'okänd'}.
+    {' '}Senaste verifierade mottagning{' '}
+    {meteringHistory.latestObservedAt ? formatCoverageDate(meteringHistory.latestObservedAt) : 'okänd'}.
+   </p> : null}
+   {meteringHistory?.requestReference ? <p className="mt-2 break-words text-sm text-slate-700">Begärans referens {meteringHistory.requestReference}</p> : null}
+   {meteringHistory?.responses?.length ? <ul className="mt-2 list-disc pl-5 text-sm text-slate-700" aria-label="E66-svar per källa">
+    {meteringHistory.responses.map(response => <li key={response.sourceId} className="break-words">
+     {response.reference || 'Svar utan referens'} · Verifierad mottagning{' '}
+     {response.observedAt ? <time dateTime={response.observedAt}>{formatCoverageDate(response.observedAt)}</time> : 'okänd'}.
+     {' '}{response.historicalOnly ? 'Endast historik' :
+       <>Aktuella värden {response.currentValueCount} av {response.storedValueCount}.</>}
+    </li>)}
+   </ul> : null}
+   {e66RequestReviews.length>0 ? <div className="mt-4 border-t border-slate-200 pt-3">
+    <h3 className="font-semibold text-slate-950">E66-svar att utreda</h3>
+    <p className="mt-1 text-sm text-slate-700">Jämför med nätägarens underlag för att avgöra vilken begäran svaret gäller.</p>
+    <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-700">
+     {e66RequestReviews.map(review=><li key={review.sourceId}>
+      <p>{review.responseReference || review.sourceId} · {review.environment==='test'?'Test':'Produktion'} · {review.description}</p>
+      {review.receivedAt ? <p>Mottaget <time dateTime={review.receivedAt}>{formatCoverageDate(review.receivedAt)}</time></p> : null}
+      {review.periodFrom && review.periodUntil ? <p>Angiven leveransperiod {formatCoverageDate(review.periodFrom)} till {formatCoverageDate(review.periodUntil)}</p> : null}
+      {review.requestReference ? <p>Angiven begäran {review.requestReference}</p> : null}
+      {review.pointReference ? <p>Angiven mätpunkt {review.pointReference}</p> : null}
+     </li>)}
+    </ul>
+   </div> : null}
+   {coverage ? <>
+    <p className="mt-2 text-sm text-slate-700">Utsänd period {formatCoverageDate(coverage.requestedFrom)} till {formatCoverageDate(coverage.requestedUntil)}.</p>
+    <p className="mt-2 text-sm text-slate-700">Täckt tid {formatCoverageDuration(coverage.coveredSeconds)}. Återstående tid{' '}
+     {formatCoverageDuration(coverage.remainingSeconds)}. Glapp {coverage.gaps.length}.</p>
+    {coverage.gaps.length > 0 ? <ul className="mt-2 list-disc pl-5 text-sm text-slate-700">
+     {coverage.gaps.map(gap => <li key={gap.from}>{formatCoverageDate(gap.from)} till {formatCoverageDate(gap.until)}</li>)}
+    </ul> : null}
+   </> : <p className="mt-2 text-sm text-slate-700">Verifierad periodtäckning saknas.</p>}
+  </section>
+ ) : null
+
+ const adminNote = getString(request.response_payload, 'admin_note') ?? ''
 
  // Company operators receive business data only. The diagnostic page below
  // is rendered exclusively for a server-verified platform administrator.
@@ -325,11 +416,17 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
              ].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-slate-500">{label}</dt><dd className="mt-1 break-words font-medium text-slate-950">{value}</dd></div>)}
            </dl>
            <p className="mt-4 text-sm font-medium text-slate-800">{responseSummary}</p>
-           {request.status === 'failed' ? <p role="status" className="mt-2 text-sm text-red-800">Begäran misslyckades. {request.failure_reason ?? 'Kontakta support om orsaken är oklar.'}</p> : null}
+           {importProgress.length ? (
+   <ul aria-label="Pågående E66-import" className="mt-2 space-y-1 text-sm text-amber-900">
+    {importProgress.map(status => <li key={status}>{status}</li>)}
+   </ul>
+  ) : importSummary ? <p role="status" className="mt-2 text-sm text-slate-700">{importSummary}</p> : null}
+           {request.status === 'failed' ? <p role="status" className="mt-2 text-sm text-red-800">Begäran misslyckades. Kontrollera anläggningens uppgifter och utskickets status innan du försöker igen.</p> : null}
            {request.notes ? <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700">{request.notes}</p> : null}
            {request.requested_period_start || request.requested_period_end ? <p className="mt-2 text-sm text-slate-600">Period: {request.requested_period_start ?? '—'} – {request.requested_period_end ?? '—'}</p> : null}
            {document ? <div className="mt-2 text-sm text-slate-600"><p>Fullmakt: {document.title ?? document.file_name ?? 'Dokument registrerat'}</p><a href={`/api/admin/customer-documents/${document.id}?mode=open`} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center font-semibold text-emerald-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Öppna dokument</a></div> : null}
          </section>
+         {meteringCoverage}
          <details className="rounded-2xl border border-slate-200 bg-white p-4">
            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Utskick och svar ({relatedOutbounds.length})</summary>
            <ul className="mt-3 max-h-80 space-y-2 overflow-auto text-sm">
@@ -342,6 +439,10 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
            <form action={updateGridOwnerDataRequestStatusAction} className="mt-3 grid gap-3 sm:grid-cols-2">
              <input type="hidden" name="request_id" value={request.id} />
              <input type="hidden" name="customer_id" value={request.customer_id} />
+             <input type="hidden" name="original_status" value={request.status} />
+             <input type="hidden" name="original_external_reference" value={request.external_reference ?? ''} />
+             <input type="hidden" name="original_notes" value={request.notes ?? ''} />
+             <input type="hidden" name="original_response_payload_note" value={adminNote} />
              <label className="grid gap-1 text-sm">Status
                <select name="status" defaultValue={request.status} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2">
                  <option value="pending">Väntar</option><option value="sent">Skickad</option><option value="received">Mottagen</option><option value="failed">Misslyckad</option><option value="cancelled">Avbruten</option>
@@ -349,8 +450,8 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
              </label>
              <label className="grid gap-1 text-sm">Anteckning<input name="notes" defaultValue={request.notes ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
              <label className="grid gap-1 text-sm">Referens<input name="external_reference" defaultValue={request.external_reference ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
-             <label className="grid gap-1 text-sm">Orsak vid misslyckad begäran<input name="failure_reason" defaultValue={request.failure_reason ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
-             <label className="grid gap-1 text-sm">Svar eller intern notering<input name="response_payload_note" defaultValue={getString(request.response_payload, 'admin_note') ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <label className="grid gap-1 text-sm">Ny orsak vid misslyckad begäran<input name="failure_reason" placeholder="Lämna tomt för att behålla sparad orsak" className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <label className="grid gap-1 text-sm">Svar eller intern notering<input name="response_payload_note" defaultValue={adminNote} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
              <button className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Spara status</button>
            </form>
          </details> : null}
@@ -368,6 +469,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  />
 
  <div className="space-y-6 p-8">
+ {meteringCoverage}
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
@@ -425,6 +527,11 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <div className="mt-2 text-sm font-semibold text-slate-950 ">
  {responseSummary}
  </div>
+ {importProgress.length ? (
+   <ul aria-label="Pågående E66-import" className="mt-2 space-y-1 text-sm text-amber-900">
+    {importProgress.map(status => <li key={status}>{status}</li>)}
+   </ul>
+  ) : importSummary ? <p role="status" className="mt-2 text-sm text-slate-700">{importSummary}</p> : null}
  </div>
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
@@ -849,6 +956,11 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <form action={updateGridOwnerDataRequestStatusAction} className="mt-5 grid gap-3">
  <input type="hidden" name="request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={request.status} />
+ <input type="hidden" name="original_external_reference" value={request.external_reference ?? ''} />
+ <input type="hidden" name="original_notes" value={request.notes ?? ''} />
+ <input type="hidden" name="original_response_payload_note" value={adminNote} />
+ <input type="hidden" name="original_failure_reason" value={request.failure_reason ?? ''} />
 
  <select
  name="status"
@@ -871,6 +983,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
 
  <input
  name="response_payload_note"
+ defaultValue={adminNote}
  placeholder="Svar / intern notering"
  className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
@@ -908,15 +1021,21 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <input type="hidden" name="outbound_request_id" value={outbound.id} />
  <input type="hidden" name="customer_id" value={outbound.customer_id} />
 
+ <input type="hidden" name="original_status" value={outbound.status} />
+ <input type="hidden" name="original_external_reference" value={outbound.external_reference ?? ''} />
+ <input type="hidden" name="original_failure_reason" value={outbound.failure_reason ?? ''} />
+ <input type="hidden" name="original_response_payload_note" value="" />
+ <input type="hidden" name="original_dispatch_step" value="" />
  <select
  name="status"
  defaultValue={outbound.status}
  className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
+ {!['queued', 'prepared', 'failed', 'cancelled'].includes(outbound.status) ? (
+ <option value={outbound.status}>Behåll aktuell status</option>
+ ) : null}
  <option value="queued">Queued</option>
  <option value="prepared">Prepared</option>
- <option value="sent">Sent</option>
- <option value="acknowledged">Acknowledged</option>
  <option value="failed">Failed</option>
  <option value="cancelled">Cancelled</option>
  </select>
@@ -951,6 +1070,8 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  Uppdatera outboundstatus
  </button>
  </form>
+ <ManualOutboundDeliveryForm request={outbound} action={updateOutboundRequestStatusAction}
+   linkedOriginal={edielMessages.some(message => message.direction === 'outbound' && message.outbound_request_id === outbound.id)} />
  </div>
  ))}
 

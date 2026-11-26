@@ -7,7 +7,7 @@ type Row = Record<string, unknown>
 type RpcResult = { data: unknown; error: unknown }
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>, calls: [] as Array<{ name: string; args: Row }>,
-  rpc: null as null | (() => Promise<RpcResult>), denied: 0, authError: null as Error | null,
+  timelineReads: [] as Row[], rpc: null as null | (() => Promise<RpcResult>), denied: 0, authError: null as Error | null,
   companyError: null as Error | null, periodError: null as Error | null, identityError: false,
 }))
 vi.mock('node:crypto', async importOriginal => {
@@ -37,6 +37,16 @@ vi.mock('@/lib/admin/apiGuards', () => ({
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: (table: string) => builder(table),
   rpc: (name: string, args: Row) => {
+    if (name === 'gridex_read_effective_contract_price_timeline_v1') {
+      expect(args).toEqual({
+        p_company_id: 'private-company', p_customer_id: 'customer', p_contract_id: 'contract',
+        p_start: '2026-08-31T22:00:00.000Z', p_end: '2026-09-30T22:00:00.000Z',
+      })
+      io.timelineReads.push(args)
+      return Promise.resolve({ data: { kind: 'legacy' }, error: null })
+    }
+    expect(name).toBe('gridex_store_billing_underlay_batch')
+    expect(io.timelineReads.length).toBeGreaterThan(io.calls.length)
     io.calls.push({ name, args })
     if (io.rpc) return io.rpc()
     return Promise.resolve({ data: (args.p_commands as unknown[]).map((_, i) => `private-underlay-${i}`), error: null })
@@ -96,7 +106,7 @@ async function successful(req = request()) {
   return response
 }
 beforeEach(() => {
-  lines = []; io.calls = []; io.rpc = null; io.denied = 0; io.authError = null; io.companyError = null; io.periodError = null; io.identityError = false
+  lines = []; io.calls = []; io.timelineReads = []; io.rpc = null; io.denied = 0; io.authError = null; io.companyError = null; io.periodError = null; io.identityError = false
   vi.spyOn(console, 'info').mockImplementation((...args) => { lines.push(args) })
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unexpected network request'))
@@ -159,9 +169,16 @@ describe('original underlay operation observation without business interference'
     io.denied = status; const response = await POST(request()); expect(response.status).toBe(status); expect(await response.text()).toBe('denied')
     expect(io.calls).toEqual([]); expect(events().at(-1)).toMatchObject({ engineState: 'not_entered', status })
   })
-  it.each(['{}', '{invalid'])('preserves invalid month400 for %s', async body => {
+  it.each(['{}', '{invalid', 'null'])('preserves invalid month400 for %s', async body => {
     const response = await POST(request(correlation, undefined, body)); expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'billing_month måste anges som YYYY-MM.' }); expect(io.calls).toEqual([])
+  })
+  it.each(['2026-00', '2026-13', '1999-12', '2201-01'])('rejects a disallowed calendar month %s before the engine', async billingMonth => {
+    const response = await POST(request(correlation, undefined, JSON.stringify({ billing_month: billingMonth })))
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: 'Fakturamånad är ogiltig.' })
+    expect(io.calls).toEqual([])
+    expect(events().at(-1)).toMatchObject({ engineState: 'not_entered', status: 400 })
   })
   it('preserves billingMonth alias and ignores diagnostic metadata in engine args', async () => {
     await successful(request(correlation, undefined, JSON.stringify({ billingMonth: '2026-09', extra: 'do-not-log' })))
@@ -220,7 +237,7 @@ describe('original underlay operation observation without business interference'
   it('correlation/header and signal getter failures cannot change business success', async () => {
     const req = request(); vi.spyOn(req.headers, 'get').mockImplementation(() => { throw new Error('header failure') })
     await successful(req)
-    io.calls = []; const other = request(); Object.defineProperty(other, 'signal', { get() { throw new Error('signal failure') } })
+    io.calls = []; io.timelineReads = []; const other = request(); Object.defineProperty(other, 'signal', { get() { throw new Error('signal failure') } })
     await successful(other)
   })
   it('removes the listener on rejection and ignores remove failure', async () => {

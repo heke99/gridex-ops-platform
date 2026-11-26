@@ -38,6 +38,7 @@ function schemaMissing(error: unknown): boolean {
 }
 
 type NormalizedValueRow = {
+  id: string
   metering_point_id: string
   period_start: string
   period_end: string
@@ -55,19 +56,30 @@ function chunk<T>(items: T[], size: number): T[][] {
 async function loadNormalizedValues(input: { companyId: string; meteringPointIds: string[]; startIso: string; endIso: string }): Promise<NormalizedValueRow[] | null> {
   const rows: NormalizedValueRow[] = []
   for (const ids of chunk(input.meteringPointIds, 100)) {
-    const { data, error } = await supabaseService
-      .from('normalized_metering_values')
-      .select('metering_point_id,period_start,period_end,quantity_kwh,quality_status')
-      .eq('company_id', input.companyId)
-      .in('metering_point_id', ids)
-      .lt('period_start', input.endIso)
-      .gt('period_end', input.startIso)
-      .limit(50_000)
-    if (error) {
-      if (schemaMissing(error)) return null
-      throw error
+    let cursor: string | undefined
+    for (;;) {
+      const query = supabaseService
+        .from('normalized_metering_values')
+        .select('id,metering_point_id,period_start,period_end,quantity_kwh,quality_status')
+        .eq('company_id', input.companyId)
+        .in('metering_point_id', ids)
+        .lt('period_start', input.endIso)
+        .gt('period_end', input.startIso)
+        .order('id', { ascending: true })
+        .limit(1_000)
+      if (cursor) query.gt('id', cursor)
+      const { data, error } = await query
+      if (error) {
+        if (schemaMissing(error)) return null
+        throw error
+      }
+      const page = (data ?? []) as NormalizedValueRow[]
+      if (!page.length) break
+      const next = page.at(-1)?.id
+      if (!next || (cursor && next <= cursor)) throw new Error('metering_completeness_cursor_not_advanced')
+      rows.push(...page)
+      cursor = next
     }
-    rows.push(...((data ?? []) as NormalizedValueRow[]))
   }
   return rows
 }
@@ -78,6 +90,7 @@ export async function evaluateMeteringCompletenessForMonth(input: {
   meteringPoints: Array<{
     meteringPointId: string
     expectedKwh?: number | null
+    expectedPeriod?: { start: string; end: string }
     /** Resolution the customer's contract needs; values coarser than this cannot be billed. */
     requiredResolution?: MeteringResolution | null
     /** The meter cannot deliver the contract's resolution (e.g. hourly contract on a monthly-read meter). */
@@ -147,7 +160,16 @@ export async function evaluateMeteringCompletenessForMonth(input: {
     if (estimatedForPoint > 0) issues.push({ code: 'metering_estimated', message: `${estimatedForPoint} mätvärde(n) är preliminära/estimerade. Slutfaktura kräver slutliga värden.`, severity: input.allowEstimatedValues ? 'warning' : 'blocked', meteringPointId: entry.meteringPointId, details: { estimated_count: estimatedForPoint } })
     const expectedKwh = typeof entry.expectedKwh === 'number' && Number.isFinite(entry.expectedKwh) ? entry.expectedKwh : null
     if (expectedKwh !== null && expectedKwh > 0) {
-      const actualKwh = intervals.reduce((sum, interval) => sum + (typeof interval.quantity === 'number' && Number.isFinite(interval.quantity) ? interval.quantity : 0), 0)
+      let quantities = intervals.map(interval => interval.quantity)
+      if (entry.expectedPeriod) {
+        const start = toMs(entry.expectedPeriod.start)
+        const end = toMs(entry.expectedPeriod.end)
+        if (!(start >= window.startMs && end <= window.endMs && end > start)) continue
+        const periodRows = pointRows.filter(row => toMs(row.period_start) < end && toMs(row.period_end) > start)
+        if (!periodRows.length || periodRows.some(row => toMs(row.period_start) < start || toMs(row.period_end) > end)) continue
+        quantities = periodRows.map(row => typeof row.quantity_kwh === 'string' ? Number(row.quantity_kwh) : row.quantity_kwh)
+      }
+      const actualKwh = quantities.reduce<number>((sum, quantity) => sum + (typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0), 0)
       const difference = Math.abs(actualKwh - expectedKwh)
       if (difference > Math.max(expectedKwh * TOTAL_MISMATCH_TOLERANCE, 1)) issues.push({ code: 'metering_total_mismatch', message: `Summan av mätvärden (${actualKwh.toFixed(1)} kWh) avviker från underlagets kWh (${expectedKwh.toFixed(1)} kWh).`, severity: 'warning', meteringPointId: entry.meteringPointId, details: { actual_kwh: actualKwh, expected_kwh: expectedKwh } })
     }

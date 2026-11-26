@@ -26,11 +26,16 @@ export default async function LoginPage({
     sanitizeLoginErrorFlash(params.error) ?? loginReasonErrorFlash(params.reason)
   const message = sanitizeLoginSuccessFlash(params.message)
   const next = getSafeNextPath(params.next)
+  const appOrigin = 'https://gridex.invalid'
+  const destination = URL.parse(next, appOrigin)
+  const isPortalLogin = destination?.origin === appOrigin &&
+    (destination.pathname === '/portal' || destination.pathname.startsWith('/portal/'))
+  const Heading = isPortalLogin ? 'h1' : 'h2'
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100">
-      <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-2">
-        <section className="hidden justify-between border-r bg-white/70 p-12 backdrop-blur lg:flex lg:flex-col">
+      <div className={`mx-auto grid min-h-screen max-w-7xl grid-cols-1${isPortalLogin ? '' : ' lg:grid-cols-2'}`}>
+        {!isPortalLogin ? <section className="hidden justify-between border-r bg-white/70 p-12 backdrop-blur lg:flex lg:flex-col">
           <div>
             <Link
               href="/"
@@ -72,20 +77,24 @@ export default async function LoginPage({
               </p>
             </div>
           </div>
-        </section>
+        </section> : null}
 
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
               <div className="mb-8">
-                <div className="mb-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
-                  Intern inloggning
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Logga in till Gridex CIS
-                </h2>
+                {!isPortalLogin ? (
+                  <div className="mb-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
+                    Intern inloggning
+                  </div>
+                ) : null}
+                <Heading className="text-2xl font-bold tracking-tight text-slate-900">
+                  {isPortalLogin ? 'Logga in på Mina sidor' : 'Logga in till Gridex CIS'}
+                </Heading>
                 <p className="mt-2 text-sm text-slate-600">
-                  Efter inloggning skickas du vidare till systemets dashboard.
+                  {isPortalLogin
+                    ? 'Här hittar du dina fakturor, avtal och anläggningar.'
+                    : 'Efter inloggning skickas du vidare till systemets dashboard.'}
                 </p>
               </div>
 
@@ -154,7 +163,7 @@ export default async function LoginPage({
                 </button>
               </form>
 
-              <div className="mt-6 border-t pt-6">
+              {!isPortalLogin ? <div className="mt-6 border-t pt-6">
                 <p className="text-xs leading-6 text-slate-500">
                   Den här inloggningen är avsedd för interna användare i Gridex
                   CIS. Åtkomst styrs av roller, permissions och individuella
@@ -169,7 +178,7 @@ export default async function LoginPage({
                     Tillbaka till startsidan
                   </Link>
                 </div>
-              </div>
+              </div> : null}
             </div>
           </div>
         </section>

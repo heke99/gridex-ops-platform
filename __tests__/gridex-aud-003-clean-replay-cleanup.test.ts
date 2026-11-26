@@ -28,9 +28,13 @@ const supabaseVersionPort="if [[ \"$1\" == --version ]]; then printf '2.101.0\\n
 const quote=(v:string)=>"'" + v.replaceAll("'","'\\''") + "'"
 function copy(root:string,relative:string){const target=join(root,relative);mkdirSync(dirname(target),{recursive:true});copyFileSync(join(repo,relative),target)}
 function executable(path:string,body:string){writeFileSync(path,'#!/bin/bash\nset -eu\n'+body);chmodSync(path,0o755)}
-function fixture(full=false){
+function fixture(full=false,externalDatabaseUrl=""){
  const root=mkdtempSync(join(tmpdir(),'gridex-replay-cleanup-'));temps.push(root)
  for(const input of inputs)copy(root,input)
+ if(externalDatabaseUrl){
+  copy(root,'scripts/gridex-clean-replay-external-preflight.py')
+  copy(root,'scripts/sql/gridex-supabase-compatible-bootstrap.sql')
+ }
  if(full){
   const tracked=execFileSync('git',['ls-files','-z','--','supabase'],{cwd:repo,encoding:'utf8'}).split('\0').filter(Boolean)
   for(const path of tracked)if(path.startsWith('supabase/migrations/')||path.startsWith('supabase/bootstrap/')||path==='supabase/config.toml')copy(root,path)
@@ -44,7 +48,7 @@ function fixture(full=false){
  symlinkSync(python,join(bin,'python3'));symlinkSync('/usr/bin/cp',join(bin,'cp'))
  executable(join(bin,'supabase'),supabaseVersionPort+"printf 'supabase:%s\\n' \"$1\" >> "+quote(trace)+"\nif [[ \"$1\" == start ]]; then exit 71; fi\n")
  executable(join(bin,'psql'),"printf 'psql\\n' >> "+quote(trace)+"\nexit 86\n")
- const run=()=>spawnSync('/bin/bash',[join(root,script)],{cwd:root,encoding:'utf8',timeout:30_000,env:{...process.env,PATH:bin,GRIDEX_REPLAY_DB_URL:'',TMPDIR:root}})
+ const run=()=>spawnSync('/bin/bash',[join(root,script)],{cwd:root,encoding:'utf8',timeout:30_000,env:{...process.env,PATH:bin,GRIDEX_REPLAY_DB_URL:externalDatabaseUrl,TMPDIR:root}})
  const calls=()=>existsSync(trace)?readFileSync(trace,'utf8').trim().split('\n'):[]
  return {root,migrations,seed,bin,trace,run,calls}
 }
@@ -89,4 +93,33 @@ it('first SQL failure after successful local start restores originals and stops 
  const f=fixture(true),before=snapshot(f)
  executable(join(f.bin,'supabase'),supabaseVersionPort+"printf 'supabase:%s\\n' \"$1\" >> "+quote(f.trace)+"\n")
  const result=preservedFailure(f,before);expect(result.status).toBe(86);expect(f.calls()).toEqual(['supabase:start','psql','supabase:stop']);expect(existsSync(join(f.root,'supabase/.temp/postgres-version'))).toBe(false)
+})
+
+const localDatabase='postgresql://postgres@127.0.0.1/postgres'
+
+it('external replay rejects a remote URL before any SQL or source mutation',()=>{
+ const f=fixture(false,'postgresql://postgres@replay-target.invalid/postgres'),before=snapshot(f)
+ const result=preservedFailure(f,before)
+ expect(result.stderr).toContain('external_replay_local_database_required')
+ expect(f.calls()).toEqual([])
+})
+
+it('external replay rejects a nonempty catalogue before bootstrap',()=>{
+ const f=fixture(false,localDatabase),before=snapshot(f)
+ executable(join(f.bin,'psql'),"printf 'catalogue\n' >> "+quote(f.trace)+"\nprintf 'occupied\n'\n")
+ const result=preservedFailure(f,before)
+ expect(result.stderr).toContain('external_replay_application_catalogue_not_empty')
+ expect(f.calls()).toEqual(['catalogue'])
+})
+
+it('external replay admits a local empty catalogue before its ordinary bootstrap',()=>{
+ const f=fixture(true,localDatabase),before=snapshot(f)
+ executable(join(f.bin,'psql'),
+  'for arg in "$@"; do\n'+
+  ' if [[ "$arg" == -c ]]; then printf "catalogue\\n" >> '+quote(f.trace)+'; printf "empty\\n"; exit 0; fi\n'+
+  ' if [[ "$arg" == */gridex-supabase-compatible-bootstrap.sql ]]; then printf "bootstrap\\n" >> '+quote(f.trace)+'; exit 86; fi\n'+
+  'done\nexit 87\n')
+ const result=preservedFailure(f,before)
+ expect(result.status).toBe(86)
+ expect(f.calls()).toEqual(['catalogue','bootstrap'])
 })

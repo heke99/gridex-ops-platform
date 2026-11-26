@@ -28,6 +28,13 @@ beforeEach(() => {
   io.calls = []
 })
 
+it.each(['ediel_supply_end_effect', 'ediel_supply_end_legacy'])('dispatches status maintenance to the exact selected source %s', async source => {
+  io.row.source = source
+  const { updateEdielOperationalCaseStatusAction } = await import('@/app/admin/ediel/operational-cases/actions')
+  await updateEdielOperationalCaseStatusAction(form('resolved'))
+  expect(io.calls.some(entry => entry.startsWith('update:') && entry.includes(`"expectedSource":"${source}"`) && entry.includes('"companyId":"company-a"'))).toBe(true)
+})
+
 it('triages only the exact company/source with an atomic source predicate', async () => {
   const { updateEdielOperationalCaseStatusAction } = await import('@/app/admin/ediel/operational-cases/actions')
   await updateEdielOperationalCaseStatusAction(form())

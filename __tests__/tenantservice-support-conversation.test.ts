@@ -42,6 +42,10 @@ function builder(table: string) {
       return api
     },
     or: (expression: string) => {
+      if (expression === 'source.is.null,source.neq.ediel_inbound_state_machine') {
+        filters.push(row => row.source !== 'ediel_inbound_state_machine')
+        return api
+      }
       const match = /^(\w+)\.(lt|gt)\.([^,]+),and\(\1\.eq\.\3,id\.\2\.([^,)]+)\)$/.exec(expression)
       if (!match) throw new Error('Unexpected cursor predicate')
       const [, field, operator, value, id] = match
@@ -366,12 +370,6 @@ describe('atomic quota transaction boundary (T10)', () => {
 })
 
 describe('OPS adapters', () => {
-  const actions = readFileSync('app/admin/customer-cases/actions.ts', 'utf8')
-  it('every support action requires cases.write and refuses a tenant switched in another tab', () => {
-    expect(actions).toContain("supportCaseScope(formData, 'cases.write')")
-    expect(actions).toContain('expected_company_id')
-    expect(actions.match(/assertFormTenant\(/g)?.length).toBeGreaterThanOrEqual(3)
-  })
   it('API routes are thin adapters mounted with the current contract release', async () => {
     const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
     expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")

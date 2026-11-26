@@ -67,7 +67,7 @@ async function receiveProdat(f: Fixture, wire: string, subtype: 'L' | 'C') {
   return nativePhase('public_intake_Z04' + subtype, async () => {
     const receivedAt = new Date().toISOString(), config = assertEdielSmtpReadiness()
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire, receivedAt, smtpFrom: config.from })
-    const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, parsed: mail.parsed,
+    const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, environment: mail.environment, parsed: mail.parsed,
       inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
     const meteringPointMatch = await matchMeteringPointForInbound({ companyId: f.companyId, parsed: mail.parsed })
     const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test',
@@ -285,7 +285,7 @@ describe('actual native received Z04C prohibited effects', () => {
       expect(diagnostic.applicationErrors.every(isQualifiedProdatApplicationError)).toBe(true)
       const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
         receivedAt: new Date().toISOString(), smtpFrom: assertEdielSmtpReadiness().from })
-      const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, parsed: mail.parsed,
+      const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, environment: mail.environment, parsed: mail.parsed,
         inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
       const meteringPointMatch = await matchMeteringPointForInbound({ companyId: f.companyId, parsed: mail.parsed })
       const warning = vi.spyOn(console, 'warn')

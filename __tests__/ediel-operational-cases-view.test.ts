@@ -9,8 +9,9 @@ const io = vi.hoisted(() => ({
   counts: [] as Array<{ table: string; filters: Array<[string, unknown]> }>,
 }))
 
-vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => io.context }))
-vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => io.scope }))
+vi.mock('server-only', () => ({}))
+vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: async () => { throw new Error('Forbidden') }, requireAdminPageKeyAccess: async () => io.context }))
+vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => io.scope, resolveAdminSelectedCompanyReadScope: async () => io.scope }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => ({ companyId: io.scope.companyId, companyName: io.scope.companyName }) }))
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: { from: (table: string) => ({
@@ -54,7 +55,7 @@ describe('Ediel operational cases at the actual Control Tower entry', () => {
     expect(html).toContain('/admin/ediel/operational-cases?caseId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
     expect(html).toContain('Öppna Ediel-ärenden')
     expect(html).toContain('href="/admin/ediel/operational-cases?view=exceptions"')
-    expect(io.counts.some(({ table, filters }) => table === 'customer_cases' && filters.some(([key, value]) => key === 'source' && value === 'ediel_inbound_state_machine'))).toBe(true)
+    expect(io.counts.some(({ table, filters }) => table === 'customer_cases' && filters.some(([key, value]) => key === 'source' && Array.isArray(value) && value.length === 3 && value.includes('ediel_supply_end_effect') && value.includes('ediel_supply_end_legacy')))).toBe(true)
     expect(html).not.toMatch(/href="\/admin\/customer-cases"[^>]*>[^<]*Granska oväntat PRODAT/)
   })
 

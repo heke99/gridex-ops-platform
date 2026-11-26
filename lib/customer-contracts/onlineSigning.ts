@@ -9,6 +9,9 @@ import { getBaseAppUrl } from "@/lib/auth/urls";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf, downloadAndVerifyCustomerContractDocument, CUSTOMER_CONTRACT_DOCUMENT_BUCKET, type CustomerContractDocumentRow } from "@/lib/customer-contracts/documents";
 import { sendCompanyEmail } from "@/lib/email/sendCompanyEmail";
+import { getEffectiveSender } from "@/lib/email/companyEmailSettings";
+import { getCompanyEmailTemplate } from "@/lib/email/emailTemplates";
+import { renderEmailTemplate } from "@/lib/email/templateRenderer";
 import { sendContractSignatureEmailNow } from "@/lib/email/emailOutbox";
 import { getSupabaseServiceEnv } from "@/lib/env/supabaseServer";
 import { supabaseService } from "@/lib/supabase/service";
@@ -294,109 +297,118 @@ export async function sendOnlineContractSignatureRequest(input: {
   actorUserId: string;
   channel?: OnlineSignatureChannel;
   expiresInHours?: number;
+  command?: { id: string; expectedRequestId: string | null };
 }) {
   await requireContractRecordsAvailable({ companyId: input.companyId, contractId: input.contractId });
-  const token = randomBytes(32).toString("hex");
-  const tokenHash = hashOnlineSignatureToken(token);
-  // Fail before replacing a live unused request if origin configuration is bad.
-  const url = signingUrl(token);
-  const expiresInHours = Math.min(Math.max(input.expiresInHours ?? 72, 1), 336);
-  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabaseService.rpc(
-    "gridex_prepare_customer_contract_signature_request_v1",
-    {
-      p_company_id: input.companyId,
-      p_customer_id: input.customerId,
-      p_contract_id: input.contractId,
-      p_token_hash: tokenHash,
-      p_recipient_email: input.recipientEmail,
-      p_expires_at: expiresAt,
-      p_actor_user_id: input.actorUserId,
-      p_channel: input.channel ?? "internal",
-    },
-  );
-  if (error) throw error;
-  const request = parseSignatureRequestResult(data);
-  if (!request.ok) throw new Error("signature_request_prepare_failed");
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (
+    name: 'gridex_queue_customer_contract_signature_command_v1',
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+  const args = {
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_contract_id: input.contractId,
+    p_actor_user_id: input.actorUserId,
+    p_recipient_email: input.recipientEmail.trim().toLowerCase(),
+    p_channel: input.channel ?? 'internal',
+    p_expires_in_hours: Math.min(Math.max(input.expiresInHours ?? 72, 1), 336),
+    p_command_id: input.command?.id ?? null,
+    p_expected_request_id: input.command?.expectedRequestId ?? null,
+  };
+  async function command(mail: Record<string, unknown> | null) {
+    const { data, error } = await rpc('gridex_queue_customer_contract_signature_command_v1', { ...args, p_mail: mail });
+    if (error?.message === 'signature_command_stale' || error?.message === 'signature_command_scope_conflict') {
+      throw new Error('Signeringsläget har ändrats. Ladda om sidan innan du skapar en ny länk.');
+    }
+    if (error) throw new Error('Signeringslänkens läge kunde inte bekräftas. Kontrollera befintliga länkar och utskick innan du skapar en ny länk.');
+    return data;
+  }
 
-  const [company, customerResult] = await Promise.all([
-    companyEmailContext(input.companyId, input.contractId),
-    supabaseService
-      .from("customers")
-      .select("full_name,company_name,first_name,last_name,email,customer_number")
-      .eq("id", input.customerId)
-      .eq("company_id", input.companyId)
-      .single(),
-  ]);
-  if (customerResult.error) throw customerResult.error;
-  await ensureSignatureRequestTemplate(input.companyId);
+  let data = await command(null);
+  if (data === null) {
+    const url = signingUrl(randomBytes(32).toString('hex'));
+    const [company, customerResult, contractResult, sender] = await Promise.all([
+      companyEmailContext(input.companyId, input.contractId),
+      supabaseService.from('customers').select('full_name,company_name,first_name,last_name,customer_number')
+        .eq('id', input.customerId).eq('company_id', input.companyId).single(),
+      supabaseService.from('customer_contracts').select('contract_name,contract_number')
+        .eq('id', input.contractId).eq('company_id', input.companyId).eq('customer_id', input.customerId).single(),
+      getEffectiveSender(input.companyId, { legalOrCritical: true, requireSendReady: true }),
+    ]);
+    if (customerResult.error) throw customerResult.error;
+    if (contractResult.error) throw contractResult.error;
+    await ensureSignatureRequestTemplate(input.companyId);
+    const template = await getCompanyEmailTemplate(input.companyId, SIGNATURE_TEMPLATE_KEY);
+    if (!template) throw new Error('signature_request_email_template_missing');
 
-  const customer = customerResult.data;
-  const customerName =
-    customer.full_name ??
-    customer.company_name ??
-    [customer.first_name, customer.last_name].filter(Boolean).join(" ") ??
-    request.recipient_email;
-  const emailResult = await sendCompanyEmail({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    eventKey: SIGNATURE_EVENT_KEY,
-    templateKey: SIGNATURE_TEMPLATE_KEY,
-    to: request.recipient_email,
-    createdBy: input.actorUserId,
-    legalOrCritical: true,
-    idempotencyKey: `contract_signature_request:${request.request_id}`,
-    variables: {
-      customer_name: customerName || request.recipient_email,
-      customer_number: customer.customer_number ?? "",
+    const customer = customerResult.data;
+    const contract = contractResult.data;
+    const customerName = customer.full_name ?? customer.company_name ?? [customer.first_name, customer.last_name].filter(Boolean).join(' ');
+    const rendered = renderEmailTemplate(template, {
+      customer_name: customerName || args.p_recipient_email,
+      customer_number: customer.customer_number ?? '',
       company_name: company.name,
-      contract_name: request.contract_name,
-      contract_number: request.contract_number ?? request.contract_id,
+      contract_name: contract.contract_name,
+      contract_number: contract.contract_number ?? input.contractId,
       portal_url: url,
-      support_email: company.supportEmail ?? company.replyTo ?? request.recipient_email,
-    },
-    metadata: {
-      contract_id: request.contract_id,
-      customer_number: customer.customer_number ?? null,
-      signature_request_id: request.request_id,
-      signature_channel: request.channel,
-      signature_expires_at: request.expires_at,
-      contract_publication_version_id: request.contract_publication_version_id,
-      price_plan_version_id: request.price_plan_version_id,
-      legal_bundle_version_id: request.legal_bundle_version_id,
-      contract_price_snapshot_id: request.contract_price_snapshot_id,
-    },
-  });
-  if (!emailResult.ok) {
-    throw new Error(
-      "error" in emailResult && typeof emailResult.error === "string"
-        ? emailResult.error
-        : "signature_request_email_queue_failed",
-    );
-  }
-
-  // This legacy RPC records request notification/queue acknowledgement, not a
-  // transport receipt. communication_logs is authoritative for sent/delivered.
-  const markSent = await supabaseService.rpc(
-    "gridex_mark_customer_contract_signature_request_sent_v1",
-    { p_request_id: request.request_id, p_company_id: input.companyId },
-  );
-  if (markSent.error) throw markSent.error;
-
-  let deliveryStatus: string;
-  try {
-    const delivery = await sendContractSignatureEmailNow({
-      companyId: input.companyId, customerId: input.customerId, contractId: input.contractId,
-      signatureRequestId: request.request_id, communicationLogId: emailResult.log.id,
+      support_email: company.supportEmail ?? company.replyTo ?? args.p_recipient_email,
+    }, { eventKey: SIGNATURE_EVENT_KEY });
+    const branding = {
+      sender_mode: sender.mode,
+      sender_email: sender.senderEmail,
+      from_name: sender.fromName ?? null,
+      domain_verified_at: sender.domainVerifiedAt ?? null,
+    };
+    data = await command({
+      signing_url: url,
+      from: sender.from,
+      reply_to: sender.replyTo ?? null,
+      sender_email: sender.senderEmail,
+      sender_mode: sender.mode,
+      from_name: sender.fromName ?? null,
+      domain_verified_at: sender.domainVerifiedAt ?? null,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text?.trim() || null,
+      template_id: template.id,
+      template_updated_at: template.updated_at ?? null,
+      template_version: String(template.updated_at ?? template.created_at ?? ''),
+      contract_name: contract.contract_name,
+      contract_number: contract.contract_number,
+      customer_number: customer.customer_number,
+      branding_snapshot: branding,
+      sender_snapshot: { from: sender.from, sender_email: sender.senderEmail, reply_to: sender.replyTo ?? null,
+        mode: sender.mode, domain_verified_at: sender.domainVerifiedAt ?? null },
+      template_snapshot: { template_id: template.id, template_key: template.template_key, template_name: template.name,
+        subject: template.subject, body_html: template.body_html, body_text: template.body_text,
+        language: template.language, updated_at: template.updated_at },
     });
-    deliveryStatus = delivery.status;
-  } catch {
-    // The durable queue already exists. Do not create a second intent or claim
-    // that a potentially accepted provider request failed; retain it for review.
-    deliveryStatus = 'unknown';
   }
 
-  return { request, signingUrl: url, emailResult, deliveryStatus };
+  const receipt = asObject(data);
+  const request = parseSignatureRequestResult(receipt.request);
+  const communicationLogId = requiredString(receipt.communication_log_id, 'signature_command_log_missing');
+  if (!request.ok || request.company_id !== input.companyId || request.customer_id !== input.customerId ||
+    request.contract_id !== input.contractId || request.recipient_email !== args.p_recipient_email ||
+    request.channel !== args.p_channel || typeof receipt.replayed !== 'boolean') {
+    throw new Error('signature_command_receipt_invalid');
+  }
+  let deliveryStatus = requiredString(receipt.delivery_status, 'signature_command_delivery_missing');
+  if (!receipt.replayed && deliveryStatus === 'queued') {
+    try {
+      const delivery = await sendContractSignatureEmailNow({
+        companyId: input.companyId, customerId: input.customerId, contractId: input.contractId,
+        signatureRequestId: request.request_id, communicationLogId,
+      });
+      deliveryStatus = delivery.status;
+    } catch {
+      deliveryStatus = 'unknown';
+    }
+  }
+  return {
+    request, deliveryStatus,
+    emailResult: { ok: true, log: { id: communicationLogId }, senderMode: optionalString(receipt.sender_mode) ?? 'unknown' },
+  };
 }
 
 async function signedContractState(receipt: OnlineSignatureReceipt) {

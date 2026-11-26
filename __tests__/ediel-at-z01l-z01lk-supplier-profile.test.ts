@@ -169,6 +169,28 @@ class FiniteBoundary {
         expect(args).toMatchObject({ p_actor_user_id: n.actor, p_company_id: n.company })
         if (!['communication.read', 'communication.write', 'metering.read', 'ediel_testing.write'].includes(String(args.p_permission))) this.deny(`permission:${String(args.p_permission)}`)
         return { data: true, error: null }
+      case 'gridex_apply_ediel_outbound_provider_status_v1': {
+        const payload = object(args.p_response_patch)
+        expect(args).toEqual({
+          p_outbound_request_id: n.outbound, p_company_id: n.company, p_actor_id: n.actor,
+          p_status: 'prepared', p_external_reference: n.document, p_failure_reason: null,
+          p_response_patch: payload, p_grid_owner_request_id: null, p_source_message_id: null, p_ack_message_id: null,
+        })
+        expect(payload).toMatchObject({
+          edielMessageId: n.message, edielOutboxQueued: true, gridOwnerDataRequestId: n.request,
+          operationId: n.operation, intentId: n.intent, processVariant: this.profile.variant,
+          expectedZ02Variant: this.profile.expected,
+        })
+        expect(this.rows.ediel_outbox).toHaveLength(1)
+        expect(this.rows.ediel_outbox[0]).toMatchObject({ ediel_message_id: n.message, company_id: n.company, status: 'queued' })
+        const outbound = this.rows.outbound_requests.find(row => row.id === n.outbound && row.company_id === n.company)!
+        expect(outbound).toBeDefined()
+        Object.assign(outbound, {
+          status: args.p_status, external_reference: args.p_external_reference, failure_reason: null,
+          response_payload: { ...object(outbound.response_payload), ...payload }, prepared_at: asOf, updated_by: n.actor,
+        })
+        return { data: copy(outbound), error: null }
+      }
       case 'ediel_customer_life_event_export_projection_v1':
         expect(args).toEqual({ p_company_id: n.company, p_customer_id: n.customer, p_actor_user_id: n.actor })
         return { data: { status: 'not_applicable' }, error: null }
@@ -426,6 +448,7 @@ describe.each(profiles)('ordinary supplier Z01$variant finite coupled producer',
     expect(boundary.rows.ediel_business_references.length).toBeGreaterThan(0)
     expect(boundary.rows.ediel_message_events.some(row => row.event_type === 'queued')).toBe(true)
     expect(ports.rpc.mock.calls.filter(([name]) => name === 'ediel_prepare_outbound_owner_witness_v1')).toHaveLength(1)
+    expect(ports.rpc.mock.calls.filter(([name]) => name === 'gridex_apply_ediel_outbound_provider_status_v1')).toHaveLength(1)
     assertProcessReads()
     boundary.assertNonEffects()
   })

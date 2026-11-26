@@ -78,7 +78,7 @@ describe('customer card for tenant staff (P5b)', () => {
 
   it('"Registrera kontakt" preselects the customer and phone channel on the case form', () => {
     const list = readFileSync('app/admin/customer-cases/page.tsx', 'utf8')
-    expect(list).toContain('customers.some((customer) => customer.id === query.customer)')
+    expect(list).toContain('customers.some((customer) => customer.id === customerId)')
     expect(list).toContain("query.channel === 'phone'")
   })
 })

@@ -2,6 +2,7 @@ import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit } from '@/lib/customer-portal/keysetPagination'
 import type { CustomerCaseStatus } from '@/lib/customer-cases/types'
+import { CUSTOMER_SUPPORT_CASE_SOURCE_FILTER, EDIEL_OPERATIONAL_CASE_SOURCE } from '@/lib/customer-cases/supportPolicy'
 import { supabaseService } from '@/lib/supabase/service'
 
 /**
@@ -163,6 +164,7 @@ export async function listCustomerSupportCases(
   let query = tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
     .eq('customer_id', scope.customerId)
     .eq('metadata->>support_case', 'true')
+    .or(CUSTOMER_SUPPORT_CASE_SOURCE_FILTER)
   if (cursor) {
     query = query.or(`updated_at.lt.${cursor.orderValue},and(updated_at.eq.${cursor.orderValue},id.lt.${cursor.id})`)
   }
@@ -191,11 +193,12 @@ export async function findCustomerSupportCase(scope: CustomerScope, caseReferenc
     const direct = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
       .eq('customer_id', scope.customerId)
       .eq('metadata->>support_case', 'true')
+      .or(CUSTOMER_SUPPORT_CASE_SOURCE_FILTER)
       .eq('metadata->>support_public_reference', reference)
       .limit(1)
     if (direct.error) throw direct.error
     const hit = (direct.data ?? [])[0] as unknown as SupportCaseRow | undefined
-    if (hit) return hit
+    if (hit && hit.source !== EDIEL_OPERATIONAL_CASE_SOURCE) return hit
   }
   throw new SupportConversationError('support_case_not_found', 'Ärendet hittades inte.', 404)
 }

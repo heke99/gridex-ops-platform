@@ -47,6 +47,7 @@ const ALLOWED_LOGIN_ERROR_FLASHES = new Set([
 
 const ALLOWED_LOGIN_REASON_FLASHES = new Map<string, string>([
   ['account_disabled', LOGIN_ACCOUNT_DISABLED_MESSAGE],
+  ['session_expired', 'Din session har gått ut. Logga in igen.'],
 ])
 
 const ALLOWED_LOGIN_SUCCESS_FLASHES = new Set([

@@ -4,6 +4,11 @@ import { normalizeCapwayFinanceStatus, normalizeCapwayInvoiceStatus } from '@/li
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmLocalToUtc } from '@/lib/time/stockholm'
+import {
+  automaticPurchaseCheckpointGuid,
+  automaticPurchaseHeldStatuses,
+  hasAutomaticPurchaseCheckpoint,
+} from '@/lib/billing/automaticPurchaseCheckpoint'
 
 type JsonRecord = Record<string, unknown>
 
@@ -276,17 +281,22 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
     return { eventId: eventId ?? 'unknown', outcome: 'needs_review', reason: 'provider_event_identity_incomplete' }
   }
 
-  const itemResult = await supabaseService
-    .from('invoice_export_items')
-    .select('*')
-    .eq('id', itemId)
-    .eq('company_id', companyId)
-    .eq('provider', provider)
-    .eq('environment', environment)
-    .eq('provider_invoice_guid', invoiceGuid)
-    .maybeSingle()
+  const scopedItem = () => supabaseService.from('invoice_export_items').select('*')
+    .eq('id', itemId).eq('company_id', companyId).eq('provider', provider).eq('environment', environment)
+  const itemResult = await scopedItem().eq('provider_invoice_guid', invoiceGuid).maybeSingle()
   if (itemResult.error) throw itemResult.error
-  const item = (itemResult.data as JsonRecord | null) ?? null
+  let item = (itemResult.data as JsonRecord | null) ?? null
+  let heldPurchase = false
+  if (!item && provider === 'capway_aptic') {
+    const heldResult = await scopedItem().is('provider_invoice_guid', null).is('provider_invoice_id', null)
+      .in('status', automaticPurchaseHeldStatuses).eq(automaticPurchaseCheckpointGuid, invoiceGuid).maybeSingle()
+    if (heldResult.error) throw heldResult.error
+    const held = (heldResult.data as JsonRecord | null) ?? null
+    if (held && hasAutomaticPurchaseCheckpoint(held, invoiceGuid)) {
+      item = held
+      heldPurchase = true
+    }
+  }
   if (!item) {
     await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'no_matching_export_item' })
     return { eventId, outcome: 'needs_review', reason: 'no_matching_export_item' }
@@ -346,6 +356,14 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
   if (present(rawOccurredAt) && !occurredAt) {
     await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'invalid_provider_event_time' })
     return { eventId, outcome: 'needs_review', reason: 'invalid_provider_event_time' }
+  }
+
+  if (heldPurchase) {
+    // Keep the exact signed event attached and reviewable. Only the published
+    // invoice path can project its status to the export item and customer portal.
+    const reason = 'signed_event_bound_to_automatic_purchase_checkpoint'
+    await markEvent({ eventId, companyId, token, status: 'needs_review', reason })
+    return { eventId, outcome: 'needs_review', reason }
   }
 
   // Optimistic concurrency: the update only applies while provider_status is

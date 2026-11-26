@@ -28,9 +28,45 @@ describe('source-bound supply consumer execution', () => {
   expect(await applySupplyMarketSource({ actorUserId: 'actor', message: source() })).toMatchObject({ applied: false, reason: 'regulated_supply_authentic_ground_required', periods: [] })
  })
  it('bounds due-source projection and does not create retry or send commands', async () => {
-  io.rpc.mockResolvedValue({ data: { updated: 3 }, error: null })
+  io.rpc.mockResolvedValueOnce({ data: { updated: 3 }, error: null })
+    .mockResolvedValueOnce({ data: [], error: null })
+    .mockResolvedValueOnce({ data: [], error: null })
   expect(await advanceSupplyMarketDeadlines({ actorUserId: 'actor', limit: 10000 })).toEqual({ updated: 3 })
-  expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_advance_supply_deadlines_v1', { p_company_id: null, p_actor_user_id: 'actor', p_limit: 200 }); expect(io.from).not.toHaveBeenCalled()
+  const scope = { p_company_id: null, p_actor_user_id: 'actor', p_limit: 200 }
+  expect(io.rpc.mock.calls).toEqual([
+    ['ediel_advance_supply_deadlines_v1', scope],
+    ['gridex_list_due_supply_end_followups_v1', { p_company_id: null, p_actor_user_id: 'actor' }],
+    ['gridex_list_due_legacy_supply_end_followups_v1', { p_company_id: null, p_actor_user_id: 'actor' }],
+  ])
+  expect(io.from).not.toHaveBeenCalled()
+ })
+ it('runs remaining eligible cases after a failure and reports durable retry', async () => {
+  const id = (suffix: number) => '00000000-0000-4000-8000-' + String(suffix).padStart(12, '0')
+  io.rpc.mockResolvedValueOnce({ data: { updated: 0 }, error: null })
+    .mockResolvedValueOnce({ data: [{ company_id: id(2), effect_receipt_id: id(3) }], error: null })
+    .mockResolvedValueOnce({ data: [], error: null })
+    .mockResolvedValueOnce({ data: null, error: new Error('local fixture failure') })
+    .mockResolvedValueOnce({ data: [{ company_id: id(2), effect_receipt_id: id(4) }], error: null })
+    .mockResolvedValueOnce({ data: {
+      status: 'created', effectReceiptId: id(4), sourceMessageId: id(5), caseId: id(6),
+    }, error: null })
+  await expect(advanceSupplyMarketDeadlines({ actorUserId: id(1), companyId: id(2), limit: 2 }))
+    .rejects.toThrow('Uppföljningen av leveransslut kunde inte slutföras')
+  expect(io.rpc).toHaveBeenNthCalledWith(6, 'ediel_project_supply_end_followup_v1', {
+    p_company_id: id(2), p_effect_receipt_id: id(4), p_actor_user_id: id(1),
+  })
+ })
+ it('stops on a same-run claim wrap and leaves one durable failed item eligible', async () => {
+  const id = '00000000-0000-4000-8000-000000000001'
+  const due = { data: [{ company_id: id, effect_receipt_id: id }], error: null }
+  io.rpc.mockResolvedValueOnce({ data: { updated: 0 }, error: null })
+    .mockResolvedValueOnce(due)
+    .mockResolvedValueOnce({ data: [], error: null })
+    .mockResolvedValueOnce({ data: null, error: new Error('local fixture failure') })
+    .mockResolvedValueOnce(due)
+  await expect(advanceSupplyMarketDeadlines({ actorUserId: id, companyId: id, limit: 4 }))
+    .rejects.toThrow('Uppföljningen av leveransslut kunde inte slutföras')
+  expect(io.rpc.mock.calls.filter(call => call[0] === 'ediel_project_supply_end_followup_v1')).toHaveLength(1)
  })
  it('registers an actual assigned supply without ordinary Z03 and without announcing consumer activation', async () => {
   const result = await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: source() })
@@ -38,9 +74,17 @@ describe('source-bound supply consumer execution', () => {
   expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', { p_company_id: 'tenant-a', p_source_message_id: 'actual-source', p_actor_user_id: 'actor' }); expect(io.workflow).not.toHaveBeenCalled(); expect(io.notification).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled()
  })
  it('keeps a future end pending and replay avoids duplicated final-billing task', async () => {
-  io.lifecycle.mockReturnValue({ outcome: 'supply_terminated', subtype: 'L', process: 'termination', state: 'supply_ended' });io.rpc.mockResolvedValue({ data: { applied: true, idempotent: true, periods: [{ id: 'own-period', status: 'ending' }] }, error: null })
-  const result = await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: source({ message_code: 'Z05' }) })
-  expect(result.tenantMessage).toContain('giltiga sluttid');expect(io.from).not.toHaveBeenCalled();expect(io.notification).not.toHaveBeenCalled()
+  const actor = '00000000-0000-4000-8000-000000000001'
+  const company = '00000000-0000-4000-8000-000000000002'
+  const messageId = '00000000-0000-4000-8000-000000000003'
+  const periodId = '00000000-0000-4000-8000-000000000004'
+  io.lifecycle.mockReturnValue({ outcome: 'supply_terminated', subtype: 'L', process: 'termination', state: 'supply_ended' })
+  io.rpc.mockResolvedValueOnce({ data: { applied: true, idempotent: true, periods: [{ id: periodId, status: 'ending' }] }, error: null })
+    .mockResolvedValueOnce({ data: { status: 'scheduled', sourceMessageId: messageId, supplyPeriodId: periodId }, error: null })
+  const result = await applyInboundBusinessStateMachine({ actorUserId: actor, message: source({ id: messageId, company_id: company, message_code: 'Z05' }) })
+  expect(result.tenantMessage).toContain('giltiga sluttid')
+  expect(io.from).not.toHaveBeenCalled()
+  expect(io.notification).not.toHaveBeenCalled()
  })
  it('does not reaccept an ordinary start already cancelled by the exact source ledger', async () => {
   io.lifecycle.mockReturnValue({ outcome: 'supplier_switch_accepted', subtype: 'L', process: 'supplier_switch', state: 'switch_accepted' });io.rpc.mockResolvedValue({ data: true, error: null })

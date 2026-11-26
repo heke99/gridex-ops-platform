@@ -18,6 +18,7 @@ export default async function CustomerPortfolioPage({ searchParams }: PageProps)
     return <div className="p-8">Bolag saknas.</div>
   }
 
+  const exportParams = new URLSearchParams({ month: month.slice(0, 7), expected_company_id: companyId })
   const from = addMonths(month, -11)
   const [portfolio, insights] = await Promise.all([
     getCustomerPortfolio(companyId, from, month),
@@ -34,7 +35,7 @@ export default async function CustomerPortfolioPage({ searchParams }: PageProps)
             <input type="month" name="month" defaultValue={month.slice(0, 7)} className="mt-1 block rounded-2xl border border-slate-300 px-3 py-2" />
           </label>
           <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Visa</button>
-          <a href={`/admin/analytics/portfolio/export?month=${month.slice(0, 7)}`} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Exportera CSV</a>
+          <a href={`/admin/analytics/portfolio/export?${exportParams}`} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Exportera CSV</a>
         </form>
         <CustomerPortfolioPanel {...portfolio} />
         <PortfolioInsightsPanel insights={insights} />

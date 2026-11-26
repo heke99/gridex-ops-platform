@@ -3,6 +3,7 @@ import { DEFAULT_EMAIL_EVENT_RULES } from '@/lib/email/emailEvents'
 import { DEFAULT_EMAIL_TEMPLATES, type CompanyEmailTemplate } from '@/lib/email/emailTemplates'
 import { renderEmailTemplate } from '@/lib/email/templateRenderer'
 import { sampleEmailVariablesForEvent } from '@/lib/email/eventVariableContracts'
+import { canQueueLegalCompanyEmail, type CompanyEmailSenderConfiguration } from '@/lib/email/companyEmailSettings'
 import { validateAutomationUserConfig } from '@/lib/customer-operations/automationConfig'
 
 export type CustomerApplicationAutomationReadiness = {
@@ -54,7 +55,7 @@ function templateRenderCheck(
 export async function evaluateCustomerApplicationAutomationReadiness(companyId: string): Promise<CustomerApplicationAutomationReadiness> {
   const [automationUser, sender, templates, rules, manualMailbox, contacts, runtimeContract] = await Promise.all([
     validateAutomationUserConfig(),
-    supabaseService.from('company_email_settings').select('id').eq('company_id', companyId).in('verification_status', ['verified', 'completed', 'active']).limit(1),
+    supabaseService.from('company_email_settings').select('verification_status,is_active,sender_mode,fallback_allowed,sender_email,sender_name').eq('company_id', companyId).in('verification_status', ['verified', 'completed', 'active']).limit(1),
     supabaseService.from('company_email_templates').select('id,company_id,template_key,name,subject,body_html,body_text,language,is_active,created_at,updated_at').eq('company_id', companyId).eq('language', 'sv'),
     supabaseService.from('email_event_rules').select('event_key,template_key,enabled,is_active').eq('company_id', companyId),
     supabaseService.from('manual_communication_mailboxes').select('id,company_id').eq('environment', 'production').eq('is_active', true).eq('is_verified', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
@@ -87,6 +88,7 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
     cron_secret_configured: Boolean(process.env.CUSTOMER_OPERATION_CRON_SECRET?.trim() || process.env.CRON_SECRET?.trim()),
     runtime_contract_ready: runtimeContractData?.ready === true,
     verified_customer_email_sender: Boolean(sender.data?.length),
+    required_email_sender_queueable: ((sender.data ?? []) as CompanyEmailSenderConfiguration[]).some(canQueueLegalCompanyEmail),
     required_email_templates_active: requiredTemplateKeys.every((key) => activeTemplateKeys.has(key)),
     required_email_rules_active: requiredRulePairs.every((key) => activeRulePairs.has(key)),
     required_email_templates_renderable: requiredRender.ok,
@@ -104,6 +106,7 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
   if (!checks.cron_secret_configured) blockers.push('CUSTOMER_OPERATION_CRON_SECRET eller CRON_SECRET saknas; kundautomationens workers kan inte skyddas eller köras.')
   if (!checks.runtime_contract_ready) blockers.push('Produktionsdatabasens runtime-kontrakt för kundautomation är inte komplett; automatisk fortsättning stoppas tills schema, routes, pgcrypto och integritetstriggers är verifierade.')
   if (!checks.verified_customer_email_sender) blockers.push('Verifierad avsändaridentitet för obligatoriska kundmail saknas.')
+  else if (!checks.required_email_sender_queueable) blockers.push('Den verifierade avsändaren kan inte köa obligatoriska kundmail. Kontrollera avsändarnamn och inställningarna på bolagskortet.')
   if (!checks.required_email_templates_active) blockers.push('En eller flera obligatoriska kundmailmallar saknas eller är inaktiva.')
   if (!checks.required_email_rules_active) blockers.push('En eller flera obligatoriska kundmailregler saknas eller är inaktiva.')
   if (!checks.required_email_templates_renderable) blockers.push(`En eller flera obligatoriska kundmailmallar bryter mot eventets variabelkontrakt: ${requiredRender.failures.join(' | ')}`)

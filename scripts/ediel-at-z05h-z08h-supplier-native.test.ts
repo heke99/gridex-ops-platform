@@ -99,7 +99,7 @@ async function ackRoute(f:Ground){
 class ExpectedPhysicalBirthRefusal extends Error{}
 async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.companyId,omittedField?:string){
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:company,environment:'test',raw,smtpFrom:edielSmtpConfig().from})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:company,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:company,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:company,parsed:mail.parsed})
  let id:string|null
  const observedOmission=!!omittedField&&['311','314','223'].includes(omittedField)
@@ -427,7 +427,7 @@ for(const reason of ['Z25','Z22'] as const)it('SOURCE_ONLY actual public Z05/'+r
  expect(business()).toEqual(before);expect(provider).not.toHaveBeenCalled()
  const originals=protectedOriginals()
  for(const [table,rows]of Object.entries(originals))expect(table==='public.ediel_message_payloads'?rows.filter(row=>row.ediel_message_id!==m.sourceId):rows,table).toEqual(originalsBefore[table])
- const born=custody(m.sourceId),outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:m.parsed,inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:m.parsed})
+ const born=custody(m.sourceId),outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,environment:m.environment,parsed:m.parsed,inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:m.parsed})
  const replay=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId,parsed:m.parsed,outboundMatch,meteringPointMatch})
  expect(replay).toBe(m.sourceId);expect(custody(m.sourceId)).toEqual(born)
  expect(sql(`SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}`)).toEqual(proof.context)

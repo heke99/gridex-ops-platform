@@ -472,6 +472,19 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               For customer sync, <code>authenticated_user_reference</code> is the authenticated account subject from your organization&apos;s login system. It must resolve an already linked active account in the API credential&apos;s organization. An unlinked, disabled or other-organization subject does not grant access or create a link.
             </p>
+            <h3 className="text-lg font-semibold text-slate-950">Customer documents and pagination</h3>
+            <p className="leading-7 text-slate-700">
+              For <code>GET /api/v1/customer/documents</code>, send the JSON <code>page.next_cursor</code> as the <code>cursor</code> query parameter while <code>page.has_more</code> is true. Use the same linked customer for every page.
+            </p>
+            <p className="leading-7 text-slate-700">
+              A new traversal on the current profile uses one stable <code>document_reference</code> for each linked power of attorney. Its position stays fixed when the visible document source changes. Titles and displayed timestamps describe that visible copy.
+            </p>
+            <p className="leading-7 text-slate-700">
+              Older cursors retain their earlier ordering and may show another physical copy during a source change. To get a stable list, use the current profile, start without a cursor and replace the previous list when the traversal completes.
+            </p>
+            <p className="leading-7 text-slate-700">
+              See <a className="font-medium underline" href="#poa-archive-heading">archived powers of attorney</a> to retrieve a verified original PDF.
+            </p>
             <h3 className="text-lg font-semibold text-slate-950">Support cases and attachments</h3>
             <p className="leading-7 text-slate-700">
               Your support page can open cases, exchange messages and attach files with the explicit <code>customer_support.read</code> and <code>customer_support.write</code> scopes.

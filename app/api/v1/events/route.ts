@@ -5,10 +5,11 @@ import { ApiInputError, customerPortalWriteError, readJsonObject } from '@/lib/a
 import { canonicalApiError } from '@/lib/api/apiError'
 import { listDomainEventsForCompany } from '@/lib/events/domainEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { decodePortalCursor, encodePortalCursor, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
 import { isSupportEvent, parseCustomerEventPayload, recordWebsiteCustomerEvent } from '@/lib/customer-portal/customerEvents'
 import { createSupportCaseFromCustomerEvent } from '@/lib/customer-cases/support'
-import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
+import { buildPublicWebhookPayload, WEBHOOK_EVENT_REGISTRY } from '@/lib/integrations/webhooks'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import {
   logIntegrationApiRequest,
@@ -18,7 +19,9 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ALLOWED_QUERY_PARAMETERS = new Set(['event_type', 'external_customer_id', 'before', 'limit'])
+const ALLOWED_QUERY_PARAMETERS = new Set(['event_type', 'external_customer_id', 'before', 'cursor', 'limit'])
+const CURSOR_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/
+const PUBLIC_EVENT_TYPES = Object.keys(WEBHOOK_EVENT_REGISTRY)
 
 function singleQueryValue(request: NextRequest, name: string): string | null {
   const values = request.nextUrl.searchParams.getAll(name)
@@ -41,7 +44,29 @@ function validateQuery(request: NextRequest) {
   if (eventType && !/^customer\.[a-z0-9_]+$/.test(eventType)) throw new ApiInputError('event_type has an invalid format.', 'invalid_event_type', 422, 'event_type')
   const before = singleQueryValue(request, 'before')
   if (before && !Number.isFinite(new Date(before).getTime())) throw new ApiInputError('before must be a valid ISO timestamp.', 'invalid_cursor', 400, 'before')
-  return { eventType, externalCustomerId: singleQueryValue(request, 'external_customer_id'), before, limit: parseLimit(singleQueryValue(request, 'limit')) }
+  const cursor = singleQueryValue(request, 'cursor')
+  if (request.nextUrl.searchParams.has('cursor') && (!cursor || cursor.length > 2048 || request.nextUrl.searchParams.has('before'))) {
+    throw new ApiInputError('cursor must be used without before and contain a valid continuation.', 'invalid_cursor', 400, 'cursor')
+  }
+  return { eventType, externalCustomerId: singleQueryValue(request, 'external_customer_id'), before, cursor, limit: parseLimit(singleQueryValue(request, 'limit')) }
+}
+
+function decodeEventCursor(scope: Parameters<typeof decodePortalCursor>[0], cursor: string | null) {
+  try {
+    const position = decodePortalCursor({ ...scope, cursor })
+    if (position && !CURSOR_TIMESTAMP.test(position.orderValue)) throw new PortalCursorError()
+    return position
+  } catch (error) {
+    if (error instanceof PortalCursorError) throw new ApiInputError(error.message, error.code, error.status, error.field)
+    throw error
+  }
+}
+
+function nextEventsLink(query: ReturnType<typeof validateQuery>, continuation: string) {
+  const params = new URLSearchParams({ cursor: continuation, limit: String(query.limit) })
+  if (query.eventType) params.set('event_type', query.eventType)
+  if (query.externalCustomerId) params.set('external_customer_id', query.externalCustomerId)
+  return `</api/v1/events?${params}>; rel="next"`
 }
 
 export const GET = withApiContractRepresentation(['website', 'customer'], getEvents)
@@ -62,12 +87,36 @@ async function getEvents(request: NextRequest) {
       if (!resolution.ok) throw new ApiInputError(resolution.error, resolution.code, resolution.status, 'external_customer_id')
       customerId = resolution.customer.customer_id
     }
+    const cursorScope = {
+      companyId: auth.context.companyId,
+      customerId: customerId ?? 'company',
+      resource: JSON.stringify(['public-domain-events', auth.client.id, query.eventType]),
+    }
+    const cursorPosition = decodeEventCursor(cursorScope, query.cursor)
     const [events, tenantReference] = await Promise.all([
-      listDomainEventsForCompany({ companyId: auth.context.companyId, eventType: query.eventType, customerId, cursorOccurredBefore: query.before, limit: query.limit }),
+      listDomainEventsForCompany({
+        companyId: auth.context.companyId,
+        eventType: query.eventType,
+        allowedEventTypes: PUBLIC_EVENT_TYPES,
+        customerId,
+        cursorOccurredBefore: query.before,
+        cursorPosition: cursorPosition ? { occurredAt: cursorPosition.orderValue, id: cursorPosition.id } : null,
+        limit: query.limit,
+        includeLookahead: true,
+      }),
       loadExternalTenantReference(auth.context.companyId),
     ])
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: events.length, request_id: requestId } })
-    return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference, 'events')), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
+    const page = events.slice(0, query.limit)
+    const last = page.at(-1)
+    const data = page.map((event) => buildPublicWebhookPayload(event, tenantReference, 'events'))
+    const headers = new Headers()
+    if (last && events.length > query.limit) {
+      const continuation = encodePortalCursor({ ...cursorScope, tuple: { orderValue: last.occurred_at, id: last.id } })
+      headers.set('Link', nextEventsLink(query, continuation))
+    }
+    const response = customerPortalJson({ data, next_before: last?.occurred_at ?? null, request_id: requestId, correlation_id: requestId }, { headers })
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: data.length, request_id: requestId } })
+    return response
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500

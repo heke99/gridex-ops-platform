@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { logoutAction } from "@/lib/auth/logoutAction";
 import { getCustomerPortalContext } from "@/lib/customer-portal/db";
+import { PortalSupportContact } from "./supportContact";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,12 @@ export default async function PortalLayout({
   children: ReactNode;
 }) {
   const context = await getCustomerPortalContext();
+  const supportEmail = context.companyId && context.customerIds.length > 0 && context.branding.companyId === context.companyId
+    ? context.branding.supportEmail
+    : null;
+  const supportHref = supportEmail
+    ? `mailto:${encodeURIComponent(supportEmail).replace("%40", "@")}`
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
@@ -96,7 +103,9 @@ export default async function PortalLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">
+        <PortalSupportContact href={supportHref}>{children}</PortalSupportContact>
+      </main>
     </div>
   );
 }

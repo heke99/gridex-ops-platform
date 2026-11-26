@@ -32,3 +32,18 @@ it('propagates transaction rejection without a fallback status write', async () 
   expect(io.requests).toHaveLength(1)
   expect(io.requests[0].url.pathname).toBe('/rest/v1/rpc/gridex_update_customer_case_status')
 })
+
+it('uses only the atomic support status owner when a rendered expectation is present', async () => {
+  const { updateObservedSupportCaseStatus } = await import('@/lib/customer-cases/db')
+  const result = await updateObservedSupportCaseStatus({
+    companyId: 'company-a', customerId: 'customer-a', caseId: 'case-a', actorUserId: 'actor-a',
+    status: 'resolved', expectedStatus: 'open', expectedSource: null, message: null,
+  })
+  expect(result.status).toBe('resolved')
+  expect(io.requests).toHaveLength(1)
+  expect(io.requests[0].url.pathname).toBe('/rest/v1/rpc/gridex_update_ops_support_case_status_if_current_v1')
+  expect(io.requests[0].body).toEqual({
+    p_case_id: 'case-a', p_company_id: 'company-a', p_customer_id: 'customer-a', p_status: 'resolved',
+    p_actor_user_id: 'actor-a', p_expected_status: 'open', p_expected_source: null, p_message: null,
+  })
+})

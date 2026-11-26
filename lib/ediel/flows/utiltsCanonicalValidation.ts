@@ -4,7 +4,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-import type {UtiltsRuntimeResult} from '@/lib/ediel/utiltsEngine'
+import {E66_REGISTRATION_RECEIPT_UNAVAILABLE,hasUnavailableE66RegistrationReceipt,type UtiltsRuntimeResult} from '@/lib/ediel/utiltsEngine'
 
 /** Keep the actual initial owner object through matching. A policy alone does
  * not reproduce its locked original registry witness or its one-use receipt. */
@@ -37,6 +37,13 @@ export async function recordFinalCanonicalUtiltsDecision(input:{original:EdielMe
  * code this platform never receives) and no final owner exists. The source is
  * held for manual review: no ACK, receipt, consumption or business effect. */
 export async function holdCanonicalEvidenceGateBlocked(input:{actorUserId:string;message:EdielMessageRow;initialDecision:CanonicalRuntimeDecision}):Promise<boolean> {
+  if(input.initialDecision.issues.some(issue=>issue.code===E66_REGISTRATION_RECEIPT_UNAVAILABLE)
+    &&hasUnavailableE66RegistrationReceipt(input.message,input.initialDecision.policy)) {
+    await createEdielMessageEvent({actorUserId:input.actorUserId,edielMessageId:input.message.id,eventType:'validated',eventStatus:'warning',
+      message:'Mottagningstiden för E66 kunde inte verifieras. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',
+      payload:{reason:E66_REGISTRATION_RECEIPT_UNAVAILABLE,manualReviewRequired:true}})
+    return true
+  }
   if(!isEvidenceGateBlockedDecision(input.initialDecision)) return false
   await createEdielMessageEvent({actorUserId:input.actorUserId,edielMessageId:input.message.id,eventType:'validated',eventStatus:'warning',
     message:'Källans regelunderlag blockerades vid mottagning. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',

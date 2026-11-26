@@ -163,8 +163,11 @@ check(
     /publishContractChannel\(/.test(publicationService),
   "all admin surfaces route channel publication through the canonical action and service",
 );
+const internalPublishForm = adminPage.match(
+  /contractLifecycleAllows\(offer\.lifecycle_status,\s*"publish_version"\)\s*\?\s*\(\s*<form action=\{publishContractVersionAction\}>([\s\S]*?)<\/form>/,
+)?.[1] ?? "";
 check(
-  /Kontrollera och aktivera för kundregistrering/.test(adminPage) &&
+  /Kontrollera och publicera versionen internt/.test(internalPublishForm) &&
     /Publicera på hemsidan/.test(channelControl) &&
     /name="channel" value="website"/.test(channelControl) &&
     !/name="channel" value="internal"/.test(channelControl) &&

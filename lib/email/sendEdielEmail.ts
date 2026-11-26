@@ -1,7 +1,11 @@
+import { createHash } from 'node:crypto'
+import { isIP } from 'node:net'
+import * as tls from 'node:tls'
 import nodemailer from 'nodemailer'
 import MailComposer from 'nodemailer/lib/mail-composer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { assertEdielSmtpReadiness, edielSmtpConfig } from '@/lib/ediel/mailReadiness'
+import { SmtpCertificateRejectedBeforeSmtpError } from '@/lib/ediel/transport/smtpOutcome'
 import { archiveTransportRawMime, type TransportMimeArchiveContext } from '@/lib/ediel/transport/rawMimeArchive'
 
 /** Optional server-owned authority gate. The existing journal entry must have
@@ -30,7 +34,75 @@ export type SendEdielEmailInput = (
     }
 ) & { finalProviderGate?: EdielFinalProviderGate }
 
-export type EdielProviderEntry = { archiveContext?: TransportMimeArchiveContext; beforeProviderCall: (binding: Record<string, unknown>) => Promise<void> }
+export type EdielProviderEntry = {
+  archiveContext?: TransportMimeArchiveContext
+  includeLocalSmtpIdentity?: true
+  beforeProviderCall: (binding: Record<string, unknown>) => Promise<void>
+}
+
+// Node 22 builds before the runtime CA inspection API cannot qualify a
+// local policy. Ordinary sends still use the existing default TLS context.
+const getCACertificates = (tls as typeof tls & {
+  getCACertificates?: (type: 'default') => readonly string[]
+}).getCACertificates
+
+function localSmtpIdentity(config: ReturnType<typeof edielSmtpConfig>) {
+  if ((config.host !== '127.0.0.1' && config.host !== '::1') || config.provider !== 'strato'
+    || !Number.isInteger(config.port) || config.port < 1 || config.port > 65_535
+    || typeof getCACertificates !== 'function') return null
+  const ca = [...getCACertificates('default')].sort()
+  if (ca.length === 0) return null
+  const caTrustSha256 = createHash('sha256').update(ca.join('\n')).digest('hex')
+  const fingerprint = createHash('sha256').update([
+    'local-smtp-endpoint-v1', config.provider, config.host, config.port, config.secure,
+    true, true, 'TLSv1.2', 'no-servername', caTrustSha256,
+  ].join('\n')).digest('hex')
+  return { ca, endpoint: { version: 1, provider: config.provider, host: config.host, port: config.port,
+    secure: config.secure, requireTLS: true, rejectUnauthorized: true, minVersion: 'TLSv1.2', servername: null,
+    caTrustSha256, fingerprint } }
+}
+
+// Retain the native verification result before Nodemailer can relabel socket
+// errors. The SMTP client receives this socket only after strict TLS succeeds.
+const connectImplicitSmtpTls = (ca?: string[]): NonNullable<SMTPTransport.Options['getSocket']> => (options, done) => {
+  const { host } = options
+  const port = Number(options.port)
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65_535) {
+    done(new Error('ediel_smtp_endpoint_required'))
+    return
+  }
+  const socket = tls.connect({
+    host, port, servername: isIP(host) ? undefined : host,
+    rejectUnauthorized: true, minVersion: 'TLSv1.2', ca,
+  })
+  const timeout = setTimeout(() => {
+    socket.destroy(Object.assign(new Error('SMTP TLS connection timed out'), {code:'ETIMEDOUT', command:'CONN'}))
+  }, options.connectionTimeout ?? 120_000)
+  const cleanup = () => {
+    clearTimeout(timeout)
+    socket.off('secureConnect', secured)
+    socket.off('error', failed)
+    socket.off('close', closed)
+  }
+  const failed = (error: Error) => {
+    cleanup()
+    socket.destroy()
+    done(SmtpCertificateRejectedBeforeSmtpError.fromTlsHandshake(error))
+  }
+  const closed = () => failed(Object.assign(new Error('SMTP TLS connection closed'), {code:'ECONNECTION', command:'CONN'}))
+  const secured = () => {
+    if (!socket.authorized) {
+      failed(new Error('ediel_smtp_tls_authorization_required'))
+      return
+    }
+    cleanup()
+    socket.setKeepAlive(true)
+    done(null, {connection: socket, secured: true})
+  }
+  socket.once('secureConnect', secured)
+  socket.once('error', failed)
+  socket.once('close', closed)
+}
 
 export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielProviderEntry): Promise<{
   accepted: unknown[]
@@ -48,16 +120,18 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
   const config = edielSmtpConfig()
   const envelopeFrom = ('raw' in input ? input.envelopeFrom : input.from) ?? config.from
   const envelopeTo = input.to
+  const localIdentity = entry?.includeLocalSmtpIdentity ? localSmtpIdentity(config) : null
   const transportOptions: SMTPTransport.Options = {
     host: config.host,
     port: config.port,
     secure: config.secure,
+    ...(config.secure ? {getSocket: connectImplicitSmtpTls(localIdentity?.ca)} : {}),
     requireTLS: true,
     auth: {
       user: config.user ?? '',
       pass: config.password,
     },
-    tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' },
+    tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2', ca: localIdentity?.ca },
   }
   const transporter = nodemailer.createTransport(transportOptions)
 
@@ -66,6 +140,7 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
   const enterProvider = async (binding: Record<string, unknown>) => {
     // The optional final gate receives its own actual-MIME snapshot, rather
     // than an object an earlier callback could mutate during its awaits.
+    if (localIdentity) binding.localSmtpEndpoint = localIdentity.endpoint
     const finalBinding = finalProviderGate ? structuredClone(binding) : null
     await providerEntry.beforeProviderCall(binding)
     if (finalProviderGate && finalBinding) await finalProviderGate(Object.freeze(finalBinding))

@@ -47,13 +47,16 @@ export function asNumber(value: unknown): number {
 export function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return ''
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value)
-  if (/[",\n;]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`
-  return raw
+  const cell = typeof value === 'string' && (/^[\t\r\n]|^\s*[=+\-@]/u).test(raw)
+    ? `'${raw}`
+    : raw
+  if (/[",\r\n;]/.test(cell)) return `"${cell.replace(/"/g, '""')}"`
+  return cell
 }
 
 export function buildCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
   return [
-    headers.join(';'),
+    headers.map(csvEscape).join(';'),
     ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(';')),
   ].join('\n')
 }

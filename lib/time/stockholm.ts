@@ -108,6 +108,30 @@ export function stockholmDateForInstant(value: string | Date): string {
 }
 
 
+export function stockholmDateTimeInputValue(instant: Date): string {
+  const parts = partsFor(instant)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`
+}
+
+export function stockholmDateTimeInputToUtc(value: string, offsetChoice: string | null): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value)
+  if (!match || Number(match[4]) > 23 || Number(match[5]) > 59) {
+    throw new Error('Ange ett giltigt datum och klockslag för mottagningen.')
+  }
+  strictIsoDate(value.slice(0, 10), 'Mottaget datum')
+  const [year, month, day, hour, minute] = match.slice(1).map(Number)
+  const civilAsUtc = Date.UTC(year, month - 1, day, hour, minute)
+  const offsets = new Set([civilAsUtc - DAY_MS, civilAsUtc + DAY_MS].map(time => timeZoneOffsetMs(new Date(time))))
+  const candidates = [...offsets].map(offset => ({ offset, instant: new Date(civilAsUtc - offset) }))
+    .filter(({ instant }) => stockholmDateTimeInputValue(instant) === value)
+  if (!candidates.length) throw new Error('Det angivna klockslaget finns inte i svensk tid.')
+  if (!offsetChoice && candidates.length > 1) throw new Error('Klockslaget inträffar två gånger. Välj sommartid eller vintertid.')
+  const selected = offsetChoice ? candidates.find(({ offset }) => String(offset / 60_000) === offsetChoice) : candidates[0]
+  if (!selected) throw new Error('Vald sommartid eller vintertid gäller inte för det angivna klockslaget.')
+  return selected.instant.toISOString()
+}
+
 export function previousStockholmCalendarDate(now = new Date()): string {
   const parts = partsFor(now)
   const previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.day - 1))
@@ -132,7 +156,7 @@ export function stockholmHourForInstant(now = new Date()): number {
 const WITHDRAWAL_PERIOD_DAYS = 14
 const DAY_MS = 24 * 60 * 60 * 1000
 
-function addCalendarDays(isoDate: string, days: number): string {
+export function addCalendarDays(isoDate: string, days: number): string {
   const [year, month, day] = isoDate.split('-').map(Number)
   const next = new Date(Date.UTC(year, month - 1, day + days))
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`

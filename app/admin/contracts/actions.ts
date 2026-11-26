@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceRequestClient, supabaseService } from "@/lib/supabase/service";
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import { isCompanyWritableInTenantWorkspace } from "@/lib/tenant/lifecycle";
 import { normalizeContractPricing } from "@/lib/pricing/contractPricingVersioning";
 import { commonFixedPriceOrePerKwh } from "@/lib/pricing/fixedAreaPricing";
 import { buildCanonicalContractPricingCommand } from "@/lib/pricing/canonicalInvoiceFee";
@@ -820,8 +821,13 @@ export async function publishContractVersionAction(formData: FormData) {
     const actor = await requireContractPermissionAction("contracts.publish");
     await requireContractPermissionAction("pricing.publish");
     if (!companyId) throw new Error("Bolag saknas.");
-    await assertUserCanOperateCompany(actor.userId, companyId);
-    await requireCompanyOperationalForWrites(companyId);
+    if (!actor.isPlatformAdmin) {
+      await assertUserCanOperateCompany(actor.userId, companyId);
+    }
+    const company = await requireCompanyOperationalForWrites(companyId);
+    if (actor.isPlatformAdmin && !isCompanyWritableInTenantWorkspace(company.status)) {
+      throw new Error("Bolaget är inte operativt för avtalspublicering.");
+    }
     const offerId = getString(formData, "id");
     if (!offerId) throw new Error("Avtal saknas.");
 

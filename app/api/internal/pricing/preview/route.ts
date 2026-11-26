@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const body = (await request.json().catch(() => null) ?? {}) as Record<string, unknown>
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     const persist = body.persist !== false
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: result })
     }
 
-    if (/^\d{4}-\d{2}$/.test(billingMonth)) {
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(billingMonth)) {
       const result = await calculatePricingPreviewForBillingMonth({ companyId, billingMonth, persist })
       if (result.underlays === 0) return NextResponse.json({ error: result.errors[0], data: result }, { status: 400 })
       return NextResponse.json({ data: result })

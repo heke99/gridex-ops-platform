@@ -6,6 +6,7 @@ import CustomerIntakeWorkspace from "@/components/admin/customers/CustomerIntake
 import CustomerActionsMenu from "@/components/admin/customers/CustomerActionsMenu";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
+import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions";
 import {
   listElectricitySuppliers,
   listGridOwners,
@@ -62,7 +63,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
     canReadCustomer: canReadCustomers,
     canReadContracts: canReadCustomers && canPresentAdminLink(access, { anyOf: ["contracts.read"] }),
     canReadInfoRequests: canPresentAdminLink(access, { anyOf: ["customers.read", "poa.read", "metering.read"] }),
-    canRequestData: await canPresentAdminAction(["masterdata.write"]),
+    canRequestData: canRegister && await canPresentAdminAction([MASTERDATA_PERMISSIONS.WRITE]),
   };
   const notices: Record<string, string> = {
     blocked_missing_poa: "Begäran stoppades eftersom signerad fullmakt saknas.",

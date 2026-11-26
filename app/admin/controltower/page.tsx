@@ -1,12 +1,16 @@
+import { EDIEL_OPERATIONAL_CASE_SOURCES, isEdielOperationalCaseSource } from '@/lib/ediel/operations/operationalCaseSources'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getCompanyById, isCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { getAdminPageRequirement, hasPermissionRequirement } from '@/lib/admin/accessModel'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope, resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { isMissingRelationError } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { customerCaseTypeLabel } from '@/lib/customer-cases/db'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { canPresentAdminAction, canPresentOperationalAction } from '@/lib/admin/actionPresentation'
+import { BATCH2C_AUTOMATION_ACCESS, CONTROL_TOWER_ROW_ACCESS } from '@/lib/operations/automationPermissions'
 import {
   createControlTowerCasesAction,
   resolveControlTowerQueueItemAction,
@@ -28,7 +32,7 @@ type SafeSupabaseQuery = {
 }
 type RecentCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null }
 type CustomerCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null; reason_category: string | null; source: string | null; metadata: Record<string, unknown> | null }
-type QueueRow = { queue_type: string | null; company_id: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null }
+type QueueRow = { queue_type: string | null; company_id: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null; payload: Record<string, unknown> | null }
 
 const SEVERITY_LABEL: Record<string, string> = { critical: 'Kritisk', warning: 'Varning', info: 'Info' }
 
@@ -88,7 +92,8 @@ function formatDate(value: string | null | undefined) {
 export default async function AdminControlTowerPage({ searchParams }: { searchParams: SearchParams }) {
   const context = await requireAdminPageKeyAccess('operations.control_tower')
   const tenantScope = await resolveAdminTenantReadScope(context)
-  const companyScope = await getOperationalCompanyScope(context.userId)
+  const companyScope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true })
+  const canRunAutomation = await canPresentOperationalAction(BATCH2C_AUTOMATION_ACCESS, companyScope.companyId)
   const resolvedSearchParams = await searchParams
   const companyId = tenantScope.companyId
   if (!tenantScope.isPlatformAdmin && !companyId) {
@@ -96,6 +101,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
   }
   const canReadCases = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('customer.cases'))
   const canReadSupport = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('operations.tasks'))
+  const canReadBilling = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('billing.workspace'))
   const exceptionTaskStatuses = ['open', 'in_progress', 'blocked', 'pending_review']
   const exceptionCaseStatuses = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up']
 
@@ -103,7 +109,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     safeCount('customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: exceptionTaskStatuses }]),
     safeCount('customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: exceptionTaskStatuses }, { column: 'priority', op: 'in', value: ['high', 'critical'] }]),
     safeCount('customer_cases', companyId, [{ column: 'status', op: 'in', value: exceptionCaseStatuses }]),
-    safeCount('customer_cases', companyId, [{ column: 'source', value: 'ediel_inbound_state_machine' }, { column: 'status', op: 'in', value: exceptionCaseStatuses }]),
+    safeCount('customer_cases', companyId, [{ column: 'source', op: 'in', value: [...EDIEL_OPERATIONAL_CASE_SOURCES] }, { column: 'status', op: 'in', value: exceptionCaseStatuses }]),
     safeCount('supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['blocked', 'rejected', 'cancelled'] }]),
     safeCount('outbound_requests', companyId, [{ column: 'status', value: 'failed' }]),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
@@ -111,8 +117,15 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', op: 'in', value: ['warning', 'blocked', 'requires_correction'] }]),
     safeRows<RecentCaseRow>('customer_operation_tasks', companyId, 'id,title,status,priority,created_at,customer_id', [{ column: 'status', op: 'in', value: exceptionTaskStatuses }], 8),
     safeRows<CustomerCaseRow>('customer_cases', companyId, 'id,title,status,priority,created_at,customer_id,reason_category,source,metadata', [{ column: 'status', op: 'in', value: exceptionCaseStatuses }], 8),
-    safeRows<QueueRow>('gridex_batch_2c_drift_queue_v', companyId, 'queue_type,company_id,source_id,title,severity,status,created_at', [], 8),
+    safeRows<QueueRow>('gridex_batch_2c_drift_queue_v', companyId, 'queue_type,company_id,source_id,title,severity,status,created_at,payload', [], 8),
   ])
+  const rowCompanies = new Set(queueRows.flatMap((row) =>
+    row.company_id && row.source_id && row.queue_type !== 'billing_export_item' ? [row.company_id] : []))
+  const writableRowCompanies = new Set(await Promise.all([...rowCompanies].map(async (id) => {
+    if (!await canPresentAdminAction(CONTROL_TOWER_ROW_ACCESS, { companyId: id })) return null
+    const company = await getCompanyById(id)
+    return company && isCompanyOperationalForWrites(company.status) ? id : null
+  })))
   const exceptionSignals = openTasks + customerCases + switchBlocked + outboundFailed + outboundUnresolved + meteringGaps + blockedBilling
   const workspaceName = tenantScope.isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName ?? 'Bolag saknas'
 
@@ -146,21 +159,55 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             <div className="mt-5 space-y-3">
               {recentTasks.length === 0 && recentCustomerCases.length === 0 && queueRows.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga öppna avvikelser hittades för valt bolag.</p> : null}
               {recentCustomerCases.map((row) => {
-                const href = row.source === 'ediel_inbound_state_machine'
+                const href = isEdielOperationalCaseSource(row.source)
                   ? (canReadCases ? `/admin/ediel/operational-cases?caseId=${encodeURIComponent(row.id)}` : null)
                   : ((row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')) && canReadSupport ? '/admin/customer-cases' : null)
-                const content = <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p><p className="mt-1 text-xs text-slate-500">{customerCaseTypeLabel(row.reason_category)} · {formatDate(row.created_at)}</p>{row.source === 'ediel_inbound_state_machine' && !canReadCases ? <p className="mt-1 text-xs text-slate-600">Ärendedetaljer kräver ärendeläsbehörighet.</p> : null}</div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div>
+                const content = <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p><p className="mt-1 text-xs text-slate-500">{customerCaseTypeLabel(row.reason_category)} · {formatDate(row.created_at)}</p>{isEdielOperationalCaseSource(row.source) && !canReadCases ? <p className="mt-1 text-xs text-slate-600">Ärendedetaljer kräver ärendeläsbehörighet.</p> : null}</div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div>
                 return href ? <Link key={`case-${row.id}`} href={href} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">{content}</Link> : <article key={`case-${row.id}`} className="rounded-2xl border border-slate-200 p-4">{content}</article>
               })}
               {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
-              {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="company_id" value={row.company_id ?? ''} /><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
+              {queueRows.map((row) => {
+                const key = `${row.queue_type}-${row.source_id}`
+                const heading = (
+                  <div>
+                    <p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p>
+                    <p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p>
+                  </div>
+                )
+                if (row.queue_type === 'billing_export_item') {
+                  const underlay = row.payload?.billing_underlay_id
+                  const href = typeof underlay === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(underlay)
+                    ? `/admin/billing/underlays/${encodeURIComponent(underlay)}` : '/admin/billing'
+                  return (
+                    <article key={key} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
+                      {heading}
+                      {canReadBilling ? <Link href={href} className="text-sm font-semibold underline">Öppna fakturaunderlag</Link>
+                        : <p className="text-sm text-slate-600">Blockeringen hanteras i faktureringen.</p>}
+                    </article>
+                  )
+                }
+                if (!row.company_id || !row.source_id || !row.queue_type || !writableRowCompanies.has(row.company_id)) {
+                  return <article key={key} className="rounded-2xl border border-slate-200 p-4">{heading}</article>
+                }
+                return (
+                  <form key={key} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4">
+                    <input type="hidden" name="company_id" value={row.company_id ?? ''} />
+                    <input type="hidden" name="queue_type" value={row.queue_type ?? ''} />
+                    <input type="hidden" name="source_id" value={row.source_id ?? ''} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      {heading}
+                      <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button>
+                    </div>
+                  </form>
+                )
+              })}
             </div>
           </div>
 
           <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Snabbåtgärder</h2>
-            <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Kör periodmotor</p><p className="mt-1 text-xs text-slate-600">Identifierar mätvärdesluckor och skapar utskick och driftuppgifter där underlag saknas.</p><div className="mt-3 grid gap-2"><input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /><input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div><button className="mt-3 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Kör</button></form>
-            <form action={createControlTowerCasesAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Skapa driftuppgifter från köer</p><p className="mt-1 text-xs text-slate-600">Återanvänder befintliga driftuppgifter och skapar bara där det saknas.</p><button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera driftuppgifter</button></form>
+            {canRunAutomation ? <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Kör periodmotor</p><p className="mt-1 text-xs text-slate-600">Identifierar mätvärdesluckor och förbereder begäranden och uppföljning.</p><div className="mt-3 grid gap-2"><input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /><input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div><button className="mt-3 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Kör</button></form> : null}
+            {canRunAutomation ? <form action={createControlTowerCasesAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Skapa driftuppgifter från köer</p><p className="mt-1 text-xs text-slate-600">Följer upp mätvärdesluckor och blockerade faktura- eller partnerexportrader.</p><button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera driftuppgifter</button></form> : null}
             {canReadSupport ? <Link href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Öppna supportärenden →</Link> : null}
           </aside>
         </section>

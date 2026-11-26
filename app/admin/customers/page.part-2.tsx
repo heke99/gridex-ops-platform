@@ -8,6 +8,8 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomersPage } from '@/lib/customers/getCustomers'
 import { contractBillingSummaryLabel } from '@/lib/customers/contractBillingSummary'
 import { supabaseService } from '@/lib/supabase/service'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { readSwitchActivationPresentation } from '@/lib/operations/switchActivationPresentation'
 import { customerOperationsReadKind, readCustomerOperationsRows } from '@/lib/customers/operationsSummaryRead'
 
 import { type LatestCustomerContractSummary } from '@/lib/customer-contracts/db'
@@ -100,7 +102,7 @@ export async function AdminCustomersPage({
  readCustomerOperationsRows<SupplierSwitchRequestRow>(() => {
  let query = supabaseService
  .from('supplier_switch_requests')
- .select('id, company_id, customer_id, site_id, metering_point_id, request_type, status, external_reference, failure_reason, submitted_at, completed_at, failed_at, lifecycle_blocked, lifecycle_block_source, lifecycle_block_id, inbound_z04_message_id, confirmed_start_date, requested_start_date, created_at, updated_at', { count: 'exact' })
+ .select('id, company_id, customer_id, site_id, metering_point_id, request_type, status, external_reference, failure_reason, submitted_at, completed_at, failed_at, paused_at, lifecycle_blocked, lifecycle_block_source, lifecycle_block_id, inbound_z04_message_id, confirmed_start_date, requested_start_date, created_at, updated_at', { count: 'exact' })
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
  else query = query.in('company_id', selectedCompanyIds)
@@ -129,18 +131,28 @@ export async function AdminCustomersPage({
  const switchRequests = requestsRead.kind === 'unavailable' ? [] : requestsRead.data
  const outboundRequests = outboundRead.kind === 'unavailable' ? [] : outboundRead.data
 
+ const operationsReadKinds = new Map(customers.map(customer => [customer.id, customerOperationsReadKind({
+ customerId: customer.id,
+ companyId: scopedCompanyId && customer.company_id !== scopedCompanyId ? null : customer.company_id,
+ sites: sitesRead, requests: requestsRead, outbound: outboundRead,
+ })]))
+ const activationRequests = switchRequests.filter(request =>
+ request.status === 'accepted' && operationsReadKinds.get(request.customer_id) === 'ready')
+ const switchActivation = activationRequests.length
+ ? await readSwitchActivationPresentation(await createSupabaseServerClient(), activationRequests, { companyId: scopedCompanyId })
+ : null
+
  const customersWithOperations: CustomerWithOperations[] = customers.map(
  (customer) => ({
  ...customer,
  operations: buildCustomerOperationsSummary({
  customerId: customer.id,
  companyId: customer.company_id,
- readKind: customerOperationsReadKind({ customerId: customer.id,
- companyId: scopedCompanyId && customer.company_id !== scopedCompanyId ? null : customer.company_id,
- sites: sitesRead, requests: requestsRead, outbound: outboundRead }),
+ readKind: operationsReadKinds.get(customer.id),
  sites,
  switchRequests,
  outboundRequests,
+ activationByRequestId: switchActivation?.byRequestId,
  }),
  })
  )

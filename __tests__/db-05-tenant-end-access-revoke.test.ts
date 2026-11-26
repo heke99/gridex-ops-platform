@@ -5,7 +5,7 @@
 // gridex_can_read_company, gridex_can_write_company and their dependencies
 // (copied verbatim from supabase/schema.sql), the actual audit_logs RLS policies
 // from supabase/schema.sql, and the actual DB-05 hard-delete guard migrations.
-// Fixture-only: auth.uid() mirrors Supabase's JWT-claim reader; tables carry
+// Fixture-only: auth.uid() and auth.jwt() mirror Supabase's JWT claims; tables carry
 // only the columns these bodies read; status changes are made by the database
 // owner, modelling the canonical lifecycle command without claiming RPC proof.
 import { readFileSync } from 'node:fs';
@@ -52,7 +52,7 @@ function functionDefinition(name: string): string {
 
 function auditLogPolicies(): string[] {
   const policies = schema.match(/^CREATE POLICY \S+ ON public\.audit_logs .*;$/gm) ?? [];
-  if (policies.length !== 7) throw new Error(`audit_logs policy count changed: ${policies.length}`);
+  if (policies.length !== 9) throw new Error(`audit_logs policy count changed: ${policies.length}`);
   return policies;
 }
 
@@ -93,7 +93,8 @@ async function visibleAuditLogs(user: string): Promise<number> {
 
 async function insertAuditLog(user: string): Promise<string | undefined> {
   const outcome = await asUser(user, () => db.query(
-    `insert into public.audit_logs (company_id, action) values ($1, 'member_write')`, [company],
+    `insert into public.audit_logs (company_id, action, actor_user_id, actor_type)
+     values ($1, 'member_write', auth.uid(), 'user')`, [company],
   ));
   return outcome.code;
 }
@@ -115,11 +116,16 @@ describe('DB05 tenant end revokes member access and keeps retained journals', ()
     await db.exec(`
       create role anon; create role authenticated; create role service_role; create role supabase_admin;
       create schema auth;
+      grant usage on schema auth to authenticated;
       create function auth.uid() returns uuid language sql stable as $$
         select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
           (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid
       $$;
+      create function auth.jwt() returns jsonb language sql stable as $$
+        select nullif(current_setting('request.jwt.claims', true), '')::jsonb
+      $$;
       create table auth.users (id uuid primary key, deleted_at timestamptz, banned_until timestamptz, email_confirmed_at timestamptz);
+      create table auth.sessions (id uuid primary key, user_id uuid not null, not_after timestamptz);
       create table public.user_profiles (id uuid primary key, user_status text, disabled_at timestamptz);
       create table public.companies (id uuid primary key, status text not null);
       create table public.company_memberships (
@@ -139,7 +145,10 @@ describe('DB05 tenant end revokes member access and keeps retained journals', ()
       create table public.audit_logs (
         id uuid primary key default gen_random_uuid(),
         company_id uuid references public.companies(id),
-        action text not null
+        action text not null,
+        actor_user_id uuid,
+        actor_type text,
+        system_actor text
       );
     `);
     for (const table of [...originalCategories, ...journals]) {
@@ -183,7 +192,8 @@ describe('DB05 tenant end revokes member access and keeps retained journals', ()
     expect(await access(member)).toEqual({ read: true, write: false });
     // Membership is tenant-scoped: no access to a company the user is not in.
     expect(await access(owner, other)).toEqual({ read: false, write: false });
-    expect(await visibleAuditLogs(owner)).toBe(1);
+    expect(await visibleAuditLogs(owner)).toBe(0);
+    expect(await visibleAuditLogs(platformAdmin)).toBe(1);
     expect(await insertAuditLog(owner)).toBeUndefined();
   });
 
@@ -224,7 +234,8 @@ describe('DB05 tenant end revokes member access and keeps retained journals', ()
     await setStatus('paused');
     expect(await access(owner)).toEqual({ read: true, write: false });
     expect(await access(member)).toEqual({ read: true, write: false });
-    expect(await visibleAuditLogs(owner)).toBe(1);
+    expect(await visibleAuditLogs(owner)).toBe(0);
+    expect(await visibleAuditLogs(platformAdmin)).toBe(1);
     expect(await insertAuditLog(owner)).toBe('42501');
   });
 

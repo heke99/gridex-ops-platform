@@ -78,4 +78,5 @@ export type ReportDefinition = {
   key: string
   label: string
   description: string
+  periodScope?: 'current' | 'all-history'
 }

@@ -52,6 +52,11 @@ vi.mock('@/lib/supabase/service', async () => {
           for (const [field, expression] of url.searchParams) {
             if (['select', 'order', 'limit'].includes(field)) continue
             if (field === 'or') {
+              const ownCustomer = expression.match(/^\(customer_id\.eq\.([0-9a-f-]{36}),customer_id\.is\.null\)$/)
+              if (table === 'customer_invoice_documents' && ownCustomer) {
+                rows = rows.filter(row => row.customer_id == null || row.customer_id === ownCustomer[1])
+                continue
+              }
               const cursor = expression.match(/^\(created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)\)$/)
               if (!cursor) throw new Error(`Unexpected cursor filter: ${expression}`)
               rows = rows.filter(row => String(row.created_at) < cursor[1]

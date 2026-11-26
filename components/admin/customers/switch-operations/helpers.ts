@@ -1,3 +1,5 @@
+import type { SwitchActivationByRequest } from '@/lib/operations/switchActivationPresentation'
+import type { SupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type {
   CustomerSiteRow,
@@ -149,6 +151,7 @@ export function nextActionLabel(params: {
   outboundRequest: OutboundRequestRow | null
   validation: ValidationSummary
   lifecycleLabel: string
+  activation?: SupplierSwitchActivationReadiness
 }): string {
   const { request, outboundRequest, validation, lifecycleLabel } = params
 
@@ -159,6 +162,8 @@ export function nextActionLabel(params: {
   if (request.status === 'failed' || request.status === 'rejected') {
     return 'Öppna ärendet och avgör om det ska rättas, skickas igen eller avslutas.'
   }
+
+  if (request.status === 'accepted' && params.activation) return params.activation.reason
 
   if (validation.isReady === false) {
     return 'Öppna ärendet, åtgärda det som saknas och kontrollera igen.'
@@ -290,6 +295,7 @@ export function getLatestEventForRequest(
 export function buildSiteLifecycleSummaries(params: {
   sites: CustomerSiteRow[]
   switchRequests: SupplierSwitchRequestRow[]
+  activationByRequestId?: SwitchActivationByRequest
   switchEvents: SupplierSwitchEventRow[]
   switchOutboundRequests: OutboundRequestRow[]
 }): SiteLifecycleSummary[] {
@@ -310,6 +316,7 @@ export function buildSiteLifecycleSummaries(params: {
     const lifecycle = latestRequest
       ? getSwitchLifecycle({
           request: latestRequest,
+          activation: params.activationByRequestId?.[latestRequest.id],
           readiness: null,
           outboundRequest: outbound,
         })
@@ -329,6 +336,7 @@ export function buildSiteLifecycleSummaries(params: {
       stuckReason: latestRequest
         ? explainWhySwitchIsStuck({
             request: latestRequest,
+            activation: params.activationByRequestId?.[latestRequest.id],
             outboundRequest: outbound,
             readiness: null,
           })
@@ -339,6 +347,7 @@ export function buildSiteLifecycleSummaries(params: {
 
 export function buildSwitchRecommendationSummary(params: {
   switchRequests: SupplierSwitchRequestRow[]
+  activationByRequestId?: SwitchActivationByRequest
   switchEvents: SupplierSwitchEventRow[]
   switchOutboundRequests: OutboundRequestRow[]
 }): SwitchRecommendationSummary {
@@ -358,6 +367,7 @@ export function buildSwitchRecommendationSummary(params: {
   const latestLifecycle = latestRequest
     ? getSwitchLifecycle({
         request: latestRequest,
+        activation: params.activationByRequestId?.[latestRequest.id],
         readiness: null,
         outboundRequest: latestOutbound,
       })
@@ -370,6 +380,7 @@ export function buildSwitchRecommendationSummary(params: {
     latestRequest && latestValidation && latestLifecycle
       ? nextActionLabel({
           request: latestRequest,
+          activation: params.activationByRequestId?.[latestRequest.id],
           outboundRequest: latestOutbound,
           validation: latestValidation,
           lifecycleLabel: latestLifecycle.label,
@@ -405,6 +416,7 @@ export function buildSwitchRecommendationSummary(params: {
 
     const lifecycle = getSwitchLifecycle({
       request,
+      activation: params.activationByRequestId?.[request.id],
       readiness: null,
       outboundRequest: outbound,
     })
@@ -417,6 +429,7 @@ export function buildSwitchRecommendationSummary(params: {
 
     const lifecycle = getSwitchLifecycle({
       request,
+      activation: params.activationByRequestId?.[request.id],
       readiness: null,
       outboundRequest: outbound,
     })

@@ -10,7 +10,10 @@ import {
   recordEdielCertificationEvidence,
   type EdielCertificationEvidenceType,
 } from '@/lib/ediel/certificationEvidence'
-import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
+import {
+  provisionTenantWebsiteIntegration,
+  TenantWebsiteProvisioningError,
+} from '@/lib/integrations/tenantWebsiteProvisioning'
 import { selectTenantWebsitePrimaryClient } from '@/lib/integrations/tenantWebsiteClient'
 
 function text(formData: FormData, key: string): string {
@@ -161,6 +164,11 @@ export async function verifyTenantWebsiteGoLiveAction(formData: FormData) {
     rateLimitPerMinute: currentClient.rate_limit_per_minute ?? 120,
     customerPortalUrl,
     webhook: null,
+  }).catch((error: unknown) => {
+    if (error instanceof TenantWebsiteProvisioningError && error.code === 'TENANT_PUBLIC_LEGAL_SLUG_REQUIRED') {
+      finish(companyId, 'blocked', error.message)
+    }
+    throw error
   })
 
   await logAdminActionAndUsage({

@@ -296,13 +296,54 @@ export async function lockBillingPeriodForInvoiceExport(input: {
   })
 }
 
-export async function evaluateBillingMonthInvoiceReadiness(input: {
-  companyId: string
+type InvoiceReadinessScope = { companyId: string; billingMonth: string }
+
+type MonthInvoiceReadiness = {
   billingMonth: string
-}) {
+  status: InvoiceReadinessStatus
+  underlayCount: number
+  readyUnderlayCount: number
+  readyUnderlayIds: string[]
+  pricedUnderlayCount: number
+  totalKwh: string
+  meteringCompleteness: Awaited<ReturnType<typeof evaluateMeteringCompletenessForMonth>> | null
+  issues: InvoiceReadinessIssue[]
+}
+
+export function evaluateBillingMonthInvoiceReadiness(input: InvoiceReadinessScope) {
+  return evaluateInvoiceReadiness(input)
+}
+
+/** Only called after the native TEST-series owner accepted the complete cohort. */
+export function captureTestPriceSeriesBillingConfiguration(input: InvoiceReadinessScope & { underlayIds: readonly string[] }) {
+  const ids = [...new Set(input.underlayIds)]
+  if (ids.length !== input.underlayIds.length || ids.length < 2 || ids.length > 32) return Promise.resolve(false)
+  return evaluateInvoiceReadiness(input, ids)
+}
+
+function hasFrozenTestSeriesConfiguration(row: JsonRecord, companyId: string) {
+  const configuration = object(row.billing_configuration_snapshot)
+  return configuration.schema === 'billing_configuration_v1' &&
+    configuration.company_id === companyId &&
+    configuration.customer_id === row.customer_id && configuration.contract_id === row.contract_id &&
+    readPath(configuration, 'provider.provider') === 'file_export' &&
+    readPath(configuration, 'provider.environment') === 'test' &&
+    readPath(configuration, 'payment_terms.defaulted') === false &&
+    /^[0-9]{1,9}$/.test(String(readPath(configuration, 'payment_terms.dueDays'))) &&
+    typeof row.billing_configuration_snapshot_sha256 === 'string' &&
+    row.billing_configuration_snapshot_sha256 === sha256(configuration) &&
+    typeof row.billing_configuration_snapshotted_at === 'string'
+}
+
+function evaluateInvoiceReadiness(input: InvoiceReadinessScope): Promise<MonthInvoiceReadiness>
+function evaluateInvoiceReadiness(input: InvoiceReadinessScope, captureIds: string[]): Promise<boolean>
+async function evaluateInvoiceReadiness(input: InvoiceReadinessScope, captureIds?: string[]) {
   const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
   const blockedUnderlayIds = new Set<string>()
+  const terminatedSupplyByUnderlay = new Map<string, { contractId: string; supplyPeriodId: string }>()
+  const endingSupplyByUnderlay = new Map<string, { contractId: string; supplyPeriodId: string }>()
+  const plannedMoveOutByUnderlay = new Map<string, { contractId: string; supplyPeriodId: string }>()
 
   const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
@@ -313,18 +354,29 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const underlays: Record<string, unknown>[] = []
   const pageSize = 1_000
   for (let from = 0; ; from += pageSize) {
-    const underlayResult = await supabaseService
-      .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
+    const query = supabaseService.from('billing_underlays')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,supply_period_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,invoice_readiness_status,invoice_export_locked_at,billing_block_reason,payload')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
-      .order('id', { ascending: true })
-      .range(from, from + pageSize - 1)
+    if (captureIds) query.in('id', captureIds)
+    const underlayResult = await query.order('id', { ascending: true }).range(from, from + pageSize - 1)
     if (underlayResult.error) throw underlayResult.error
     const page = (underlayResult.data ?? []) as Record<string, unknown>[]
     underlays.push(...page)
     if (page.length < pageSize) break
+  }
+
+  if (captureIds) {
+    const returnedIds = new Set(underlays.map(row => String(row.id)))
+    if (underlays.length !== captureIds.length || !captureIds.every(id => returnedIds.has(id))) return false
+    if (underlays.every(row => hasFrozenTestSeriesConfiguration(row, input.companyId))) {
+      return new Set(underlays.map(row => readPath(object(row.billing_configuration_snapshot), 'payment_terms.dueDays'))).size === 1
+    }
+    if (issues.some(issue => issue.severity === 'blocked') || underlays.some(row =>
+      row.status !== 'validated' || row.readiness_status !== 'ready' ||
+      row.billing_block_reason !== 'price_timeline_invoice_review_required' ||
+      row.invoice_export_locked_at || ['invoiced', 'exported'].includes(String(row.invoice_readiness_status)))) return false
   }
 
   for (let offset = 0; offset < underlays.length; offset += pageSize) {
@@ -337,6 +389,26 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       const basis = bases.get(String(row.id))
       if (!basis || (basis.totalKwh !== null && !isCanonicalUtiltsDecimal(basis.totalKwh))) throw new Error('invoice_underlay_source_basis_invalid')
       row.total_kwh = basis.totalKwh
+      if (basis.qualified === true && basis.correctionRequired !== true
+        && typeof basis.terminatedContractId === 'string'
+        && typeof basis.terminatedSupplyPeriodId === 'string') {
+        terminatedSupplyByUnderlay.set(String(row.id), {
+          contractId: basis.terminatedContractId, supplyPeriodId: basis.terminatedSupplyPeriodId,
+        })
+      }
+      if (basis.qualified === true && basis.correctionRequired !== true
+        && typeof basis.endingContractId === 'string' && typeof basis.endingSupplyPeriodId === 'string') {
+        endingSupplyByUnderlay.set(String(row.id), {
+          contractId: basis.endingContractId, supplyPeriodId: basis.endingSupplyPeriodId,
+        })
+      }
+      if (basis.qualified === true && basis.correctionRequired === false
+        && typeof basis.plannedMoveOutContractId === 'string' && basis.plannedMoveOutContractId === row.contract_id
+        && typeof basis.plannedMoveOutSupplyPeriodId === 'string' && basis.plannedMoveOutSupplyPeriodId === row.supply_period_id) {
+        plannedMoveOutByUnderlay.set(String(row.id), {
+          contractId: basis.plannedMoveOutContractId, supplyPeriodId: basis.plannedMoveOutSupplyPeriodId,
+        })
+      }
       if (basis.qualified !== true || basis.correctionRequired === true) {
         blockedUnderlayIds.add(String(row.id))
         issues.push({ code: basis.correctionRequired === true ? 'billing_source_correction_required' : 'billing_source_basis_unavailable', message: `Underlag ${String(row.id)} saknar aktuellt låst källunderlag eller kräver rättelseprövning.`, severity: 'blocked' })
@@ -385,7 +457,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 
   const companyResult = await supabaseService
     .from('companies')
-    .select('id,name,legal_name,org_number,operating_environment,billing_settings')
+    .select('id,name,legal_name,org_number,operating_environment,billing_settings,is_active,status,invoice_export_target_system,billing_provider_environment,invoice_export_enabled')
     .eq('id', input.companyId)
     .maybeSingle()
   if (companyResult.error) throw companyResult.error
@@ -395,12 +467,20 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     org_number?: string | null
     operating_environment?: string | null
     billing_settings?: JsonRecord | null
+    is_active?: boolean | null
+    status?: string | null
+    invoice_export_target_system?: string | null
+    billing_provider_environment?: string | null
+    invoice_export_enabled?: boolean | null
   } | null
 
+  if (captureIds && (company?.is_active !== true || company.status !== 'active' ||
+    company.invoice_export_enabled !== true || company.invoice_export_target_system !== 'file_export' ||
+    company.billing_provider_environment !== 'test')) return false
   const billingSettings = object(company?.billing_settings)
-  const desiredProvider = firstText([billingSettings], ['provider', 'billing_provider', 'invoice_provider'])
-  const desiredEnvironment = firstText([billingSettings], ['environment', 'provider_environment'])
-    ?? (typeof company?.operating_environment === 'string' ? company.operating_environment : null)
+  const desiredProvider = captureIds ? 'file_export' : firstText([billingSettings], ['provider', 'billing_provider', 'invoice_provider'])
+  const desiredEnvironment = captureIds ? 'test' : (firstText([billingSettings], ['environment', 'provider_environment'])
+    ?? (typeof company?.operating_environment === 'string' ? company.operating_environment : null))
   const providerResult = await supabaseService
     .from('billing_provider_connections')
     .select('id,provider,environment,status,settings,updated_at')
@@ -542,6 +622,8 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
+  if (captureIds && (paymentTerms.dueDays === null || !/^[0-9]{1,9}$/.test(String(paymentTerms.dueDays)))) return false
+  const candidateConfigurations: Array<{ hash: string; snapshot: JsonRecord }> = []
   for (const underlay of underlays) {
     const underlayId = String(underlay.id ?? 'okänt')
     const contractId = typeof underlay.contract_id === 'string' ? underlay.contract_id : ''
@@ -609,6 +691,9 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         actual_start_date?: string | null
         actual_end_date?: string | null
       }>,
+      qualifiedTerminatedSupply: terminatedSupplyByUnderlay.get(underlayId),
+      qualifiedEndingSupply: endingSupplyByUnderlay.get(underlayId),
+      qualifiedPlannedMoveOutSupply: plannedMoveOutByUnderlay.get(underlayId),
       billingPeriod: {
         start: typeof underlay.billing_period_start === 'string' ? underlay.billing_period_start : bounds.start,
         end: typeof underlay.billing_period_end === 'string' ? underlay.billing_period_end : bounds.end,
@@ -670,7 +755,12 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     const storedHash = typeof underlay.billing_configuration_snapshot_sha256 === 'string'
       ? underlay.billing_configuration_snapshot_sha256
       : null
-    if (storedHash && storedHash !== configurationHash) {
+    if (captureIds) {
+      if (readiness.billable && !blockedUnderlayIds.has(underlayId) &&
+        (storedHash === null || hasFrozenTestSeriesConfiguration(underlay, input.companyId) && storedHash === configurationHash)) {
+        candidateConfigurations.push({ hash: configurationHash, snapshot: billingConfigurationSnapshot })
+      }
+    } else if (storedHash && storedHash !== configurationHash) {
       blockedUnderlayIds.add(underlayId)
       issues.push({
         code: 'billing_configuration_changed_after_snapshot',
@@ -698,6 +788,26 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
+  if (captureIds) {
+    const first = candidateConfigurations[0]
+    if (!first || candidateConfigurations.length !== captureIds.length ||
+        candidateConfigurations.some(item => item.hash !== first.hash)) return false
+    const unfrozen = underlays.filter(row => !row.billing_configuration_snapshot_sha256).map(row => String(row.id))
+    if (!unfrozen.length) return true
+    const now = new Date().toISOString()
+    const update = await supabaseService.from('billing_underlays').update({
+      billing_configuration_snapshot: first.snapshot,
+      billing_configuration_snapshot_sha256: first.hash,
+      billing_configuration_snapshotted_at: now,
+      updated_at: now,
+    }).eq('company_id', input.companyId).in('id', unfrozen)
+      .eq('status', 'validated').eq('readiness_status', 'ready')
+      .eq('billing_block_reason', 'price_timeline_invoice_review_required')
+      .is('invoice_export_locked_at', null).is('billing_configuration_snapshot_sha256', null).select('id')
+    if (update.error) throw update.error
+    return (update.data ?? []).length === unfrozen.length
+  }
+
   // Metering completeness gate: final invoicing requires complete,
   // non-overlapping and (unless the tenant explicitly allows it) non-estimated
   // metering coverage for every billed metering point in the period.
@@ -713,6 +823,9 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     .map((row) => ({
       meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : '',
       expectedKwh: typeof row.total_kwh === 'number' ? row.total_kwh : typeof row.total_kwh === 'string' ? Number(row.total_kwh) : null,
+      expectedPeriod: typeof row.billing_period_start === 'string' && typeof row.billing_period_end === 'string'
+        ? { start: row.billing_period_start, end: row.billing_period_end }
+        : undefined,
     }))
     .filter((entry) => entry.meteringPointId)
   if (meteringPoints.length > 0) {

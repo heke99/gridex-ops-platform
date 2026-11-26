@@ -22,8 +22,10 @@ function contracts(input: BoundSinkInput) {
     return [contract]
   })
 }
-export async function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<MeteringValueRow[]> {
-  const rows: MeteringValueRow[] = []
+export function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<MeteringValueRow[]>
+export function ingestBoundUtiltsMetering(input: BoundSinkInput, result: 'ids'): Promise<Array<Pick<MeteringValueRow, 'id'>>>
+export async function ingestBoundUtiltsMetering(input: BoundSinkInput, result: 'rows' | 'ids' = 'rows') {
+  const rows: Array<Pick<MeteringValueRow, 'id'>> = []
   for (const contract of contracts(input)) {
     const a = contract.metering
     if (a.capability !== 'write') continue
@@ -40,7 +42,9 @@ export async function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<
       })
       if (stored.status !== 'stored') consumptionConflict('metering_not_stored')
       await updateMeterValueBillingReadiness({ meterValue: stored.meteringValue, sourceMessageId: input.message.id })
-      rows.push(stored.meteringValue)
+      // The normal workflow only retains the ID. Keep the complete row for
+      // callers that explicitly use the existing full-row interface.
+      rows.push(result === 'ids' ? { id: stored.meteringValue.id } : stored.meteringValue)
     }
   }
   return rows

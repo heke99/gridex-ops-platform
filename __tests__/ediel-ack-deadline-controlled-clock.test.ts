@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildAckTimerPlan } from '@/lib/ediel/sla/createAckTimers'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 type Row = Record<string, unknown>
@@ -30,6 +31,14 @@ vi.mock('@/lib/supabase/service', () => ({
         },
         in: (field: string, values: unknown[]) => {
           filters.push(row => values.includes(row[field]))
+          return query
+        },
+        lte: (field: string, value: string) => {
+          const cutoff = parseSourceReceiptInstant(value)
+          filters.push(row => {
+            const sent = parseSourceReceiptInstant(row[field])
+            return sent !== null && cutoff !== null && sent <= cutoff
+          })
           return query
         },
         update: (value: Row) => { patch = value; return query },
@@ -79,6 +88,16 @@ describe('ACK deadlines use the same evaluation clock for the timer and sent rec
 
     await expect(settle(later)).resolves.toMatchObject({ updated: 1, expired: 0 })
     expect(timer()).toMatchObject({ status: 'resolved', updated_at: later })
+  })
+
+  it('waits until the exact retained ACK instant within the evaluation millisecond', async () => {
+    const sentAt = later.replace('.000Z', '.000001Z')
+    port.rows.ediel_messages[1].message_sent_at = sentAt
+
+    await expect(settle(later)).resolves.toMatchObject({ expired: 1 })
+    expect(timer()).toMatchObject({ status: 'expired', updated_at: later })
+    await expect(settle(sentAt)).resolves.toMatchObject({ updated: 1, expired: 0 })
+    expect(timer()).toMatchObject({ status: 'resolved', updated_at: sentAt })
   })
 
   it('keeps an application timer active until a later syntax rejection is sent', async () => {

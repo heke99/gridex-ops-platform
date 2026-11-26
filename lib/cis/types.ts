@@ -60,6 +60,7 @@ export type MeteringValueRow = {
   customer_site_id?: string | null
   metering_point_id: string
   source_request_id: string | null
+  grid_owner_request_link_id?: string | null
   grid_owner_id: string | null
   reading_type: MeteringValueReadingType
   value_kwh: number

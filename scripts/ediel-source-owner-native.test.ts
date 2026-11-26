@@ -172,7 +172,7 @@ async function seed(delegated=false, structural=false) {
   const receivedAt=new Date().toISOString()
   const mail=await seedOriginalMailboxNative(<T>(statement:string)=>sql<T>(statement,true),literal,{companyId:ids.company,environment:'test',raw:wire,
     receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
-  const outboundMatch=await matchOutboundRequestForInbound({companyId:ids.company,parsed:mail.parsed,
+  const outboundMatch=await matchOutboundRequestForInbound({companyId:ids.company,environment:mail.environment,parsed:mail.parsed,
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const meteringPointMatch=await matchMeteringPointForInbound({companyId:ids.company,parsed:mail.parsed})
   const source=await createInboundEdielMessage({companyId:ids.company,actorUserId:ids.actor,environment:'test',

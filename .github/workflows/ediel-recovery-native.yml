@@ -40,6 +40,7 @@ jobs:
         with:
           version: 2.101.0
       - name: Execute the actual recovery owners after disposable clean replay
+        id: recovery_native
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -48,9 +49,16 @@ jobs:
           mkdir -p recovery-native-working
           # The existing owner keeps its EXIT cleanup trap. Replay/status
           # output can contain disposable credentials and is never uploaded.
+          printf '%s\n' 'Recovery phase: clean-replay'
+          export GRIDEX_CAPTURE_ERROR_BOUNDARY=1
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/recovery-replay.log" 2>&1
+          unset GRIDEX_CAPTURE_ERROR_BOUNDARY
+          trap - ERR
+          set +E
+          printf '%s\n' 'Recovery phase: read-disposable-status'
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/recovery-native-status.json"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf '%s\n' 'Recovery phase: run-native-tests'
           native_exit=0
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
             --config scripts/ediel-source-owner-native.config.ts \
@@ -60,6 +68,7 @@ jobs:
             --reporter=default --reporter=junit \
             --outputFile=recovery-native-working/native-junit.xml \
             > recovery-native-working/native.log 2>&1 || native_exit=$?
+          printf '%s\n' 'Recovery phase: record-native-result'
           export RECOVERY_NATIVE_EXIT="$native_exit"
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
@@ -88,6 +97,7 @@ jobs:
           }
           pathlib.Path('recovery-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
+          printf '%s\n' 'Recovery phase: redact-evidence'
           python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$GRIDEX_NATIVE_STATUS" --root recovery-native-working
           # Only successfully redacted files enter the uploaded directory.
@@ -96,6 +106,44 @@ jobs:
           cat recovery-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$native_exit"
+      - name: Report the bounded recovery replay failure location
+        if: failure() && steps.recovery_native.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_RECOVERY_REPLAY_BOUNDARY'
+          import json, os, stat
+
+          # Read only the fixed cleanup receipt. The replay and status files stay private.
+          try:
+              directory = os.open(os.environ['RUNNER_TEMP'], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+              try:
+                  descriptor = os.open('staff-schema-capture-error-boundary.json',
+                                       os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+                  with os.fdopen(descriptor, 'rb') as stream:
+                      info = os.fstat(stream.fileno())
+                      if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= 4096:
+                          raise ValueError('invalid replay boundary file')
+                      raw = stream.read(4097)
+                      if len(raw) > 4096:
+                          raise ValueError('oversized replay boundary file')
+                      entries = json.loads(raw, object_pairs_hook=tuple)
+              finally:
+                  os.close(directory)
+              if type(entries) is not tuple or len(entries) != 3:
+                  raise ValueError('invalid replay boundary shape')
+              boundary = dict(entries)
+              script = 'scripts/gridex-aud-003-clean-replay.sh'
+              if (set(boundary) != {'source', 'source_line', 'exit_code'}
+                  or boundary['source'] != script
+                  or type(boundary['source_line']) is not int or not 1 <= boundary['source_line'] <= 1000000
+                  or type(boundary['exit_code']) is not int or not 1 <= boundary['exit_code'] <= 255):
+                  raise ValueError('invalid replay boundary values')
+              print(json.dumps({'phase': 'clean_replay', 'source': script,
+                                'source_line': boundary['source_line'], 'exit_code': boundary['exit_code']}))
+          except (OSError, KeyError, TypeError, ValueError, RecursionError):
+              print('recovery clean replay boundary unavailable.')
+          PY_RECOVERY_REPLAY_BOUNDARY
       - name: Upload redacted native feedback
         if: always()
         uses: actions/upload-artifact@v4

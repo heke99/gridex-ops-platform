@@ -39,6 +39,23 @@ it('shows unknown fields as business text without internal identifier fallbacks'
   expect(html).toContain('Mätpunktsnummer saknas')
   expect(html).toContain('Nätägaruppgifter saknas')
 })
+it('gives the focused own site a stable anchor without rendering internal IDs', () => {
+  const selectedId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const otherId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  const sites = [
+    site(selectedId, { site_name: 'Vald anläggning', facility_id: '735000000000000001' }),
+    site(otherId, { site_name: 'Annan egen anläggning', facility_id: '735000000000000002' }),
+  ]
+  const html = renderToStaticMarkup(React.createElement(SitesView, {
+    companyId: 'company-a', customerId: 'customer', primarySiteId: otherId, focusedSiteId: selectedId,
+    sites, meteringPoints: [], gridOwners: owners,
+  }))
+  expect(html.match(/id="vald-anlaggning"/g)).toHaveLength(1)
+  expect(html.match(/<article id="vald-anlaggning".*?<\/article>/)?.[0]).toContain('Vald anläggning')
+  expect(html).not.toContain(selectedId)
+  expect(html).not.toContain(otherId)
+})
+
 it('identifies inconsistent network owners without replacing their actual recorded identities', () => {
   const html = render([site('one')], [point('meter1', 'one', { grid_owner_id: 'different-owner' })])
   expect(html).toContain('Syntetisk nätägare')

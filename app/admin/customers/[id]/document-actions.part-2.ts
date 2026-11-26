@@ -1,4 +1,5 @@
 // Extracted from document-actions.ts; keep public imports on the facade module.
+import { customerCalendarE73Selection } from '@/lib/ediel/flows/e73CustomerCalendar'
 import { revalidatePath } from 'next/cache'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -15,7 +16,7 @@ import { ensureAuthorizationScopeFromPowerOfAttorney, getSignedPowerOfAttorneyCo
 import type { CustomerAuthorizationDocumentRow } from '@/lib/operations/types'
 
 import type { CustomerDocumentActionContext, UploadCustomerAuthorizationDocumentActionState } from './document-actions.part-1'
-import { buildCustomerDocumentPath, buildFileChecksum, ensureSwitchRequestAndOutboundFromDocument, formValue, formatMessageLines, getActor, handleArchivedDocumentLinkedRecords, isIsoDateBefore, normalizeDateOrNull, normalizeSwitchRequestType, queueGridOwnerRequestsFromDocument, requireCustomerDocumentActionContext, resolveUploadAutomationDecision, toBoolean } from './document-actions.part-1'
+import { buildCustomerDocumentPath, buildFileChecksum, ensureSwitchRequestAndOutboundFromDocument, formValue, formatMessageLines, handleArchivedDocumentLinkedRecords, isIsoDateBefore, normalizeDateOrNull, normalizeSwitchRequestType, queueGridOwnerRequestsFromDocument, requireCustomerDocumentActionContext, resolveUploadAutomationDecision, toBoolean } from './document-actions.part-1'
 
 export async function uploadCustomerAuthorizationDocumentAction(
   _previousState: UploadCustomerAuthorizationDocumentActionState,
@@ -140,6 +141,20 @@ export async function uploadCustomerAuthorizationDocumentAction(
       message: 'Begär period till kan inte vara tidigare än begär period från.',
       documentId: null,
       duplicateDocumentId: null,
+    }
+  }
+
+  let meteringSelection: ReturnType<typeof customerCalendarE73Selection> | null = null
+  if (autoCreateGridOwnerRequests && includeMeterValues) {
+    try {
+      meteringSelection = customerCalendarE73Selection(requestedPeriodStart, requestedPeriodEnd, formValue(formData, 'metering_ediel_environment'))
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Mätvärdesperioden kunde inte kontrolleras.',
+        documentId: null,
+        duplicateDocumentId: null,
+      }
     }
   }
 
@@ -368,6 +383,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
   if (siteId && automationDecision.shouldCreateGridOwnerRequests) {
     const requestResult = await queueGridOwnerRequestsFromDocument({
       actorUserId: actor.id,
+      companyId: actionContext.companyId,
       customerId,
       siteId,
       document: savedDocument,
@@ -378,7 +394,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
       requestedPeriodEnd,
       notes,
       includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
-      includeMeterValues: automationDecision.includeMeterValues,
+      meteringSelection: automationDecision.includeMeterValues ? meteringSelection : null,
       includeBillingUnderlay: automationDecision.includeBillingUnderlay,
     })
 
@@ -446,6 +462,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
   await createAuditLogEntry(supabase, {
+    companyId: actionContext.companyId,
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: savedDocument.id,
@@ -552,6 +569,9 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
   }
 
   const actionContext = await requireCustomerDocumentActionContext(customerId, guard)
+  const meteringSelection = toBoolean(formData, 'include_meter_values')
+    ? customerCalendarE73Selection(requestedPeriodStart, requestedPeriodEnd, formValue(formData, 'metering_ediel_environment'))
+    : null
 
   if (isIsoDateBefore(requestedPeriodEnd, requestedPeriodStart)) {
     throw new Error('Begär period till kan inte vara tidigare än begär period från')
@@ -562,7 +582,8 @@ export async function verifyCustomerAuthorizationDocumentAndRequestDataAction(
     documentId
   )
 
-  if (!existingDocument || existingDocument.customer_id !== customerId) {
+  if (!existingDocument || existingDocument.customer_id !== customerId ||
+      existingDocument.company_id !== actionContext.companyId) {
     throw new Error('Fullmaktsdokumentet hittades inte för aktuell kund')
   }
 
@@ -694,7 +715,7 @@ Verifierad manuellt från kundkortet.`
     savedPowerOfAttorneyId: powerOfAttorneyId,
     autoCreateGridOwnerRequests: true,
     includeCustomerMasterdata: true,
-    includeMeterValues: true,
+    includeMeterValues: Boolean(meteringSelection),
     includeBillingUnderlay: true,
     autoCreateSwitchRequest: true,
     autoQueueSwitchOutbound: true,
@@ -713,6 +734,7 @@ Verifierad manuellt från kundkortet.`
   if (siteId && automationDecision.shouldCreateGridOwnerRequests) {
     const requestResult = await queueGridOwnerRequestsFromDocument({
       actorUserId: actor.id,
+      companyId: actionContext.companyId,
       customerId,
       siteId,
       document,
@@ -723,7 +745,7 @@ Verifierad manuellt från kundkortet.`
       requestedPeriodEnd,
       notes: document.notes,
       includeCustomerMasterdata: automationDecision.includeCustomerMasterdata,
-      includeMeterValues: automationDecision.includeMeterValues,
+      meteringSelection: automationDecision.includeMeterValues ? meteringSelection : null,
       includeBillingUnderlay: automationDecision.includeBillingUnderlay,
     })
 
@@ -791,6 +813,7 @@ Verifierad manuellt från kundkortet.`
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
   await createAuditLogEntry(supabase, {
+    companyId: actionContext.companyId,
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: document.id,
@@ -828,9 +851,9 @@ Verifierad manuellt från kundkortet.`
 export async function archiveCustomerAuthorizationDocumentAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = await getActor()
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const documentId = formValue(formData, 'document_id') ?? ''
@@ -842,8 +865,14 @@ export async function archiveCustomerAuthorizationDocumentAction(
     throw new Error('customer_id och document_id krävs')
   }
 
+  const actionContext = await requireCustomerDocumentActionContext(customerId, guard)
+  const document = await getCustomerAuthorizationDocumentById(supabase, documentId)
+  if (!document || document.customer_id !== customerId || document.company_id !== actionContext.companyId) {
+    throw new Error('Dokumentet hittades inte för aktuell kund')
+  }
+
   const archived = await archiveCustomerAuthorizationDocument(supabase, {
-    documentId,
+    documentId: document.id,
     reason,
   })
 
@@ -862,6 +891,7 @@ export async function archiveCustomerAuthorizationDocumentAction(
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
   await createAuditLogEntry(supabase, {
+    companyId: actionContext.companyId,
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: archived.documentAfter.id,
@@ -887,9 +917,9 @@ export async function archiveCustomerAuthorizationDocumentAction(
 export async function setCustomerAuthorizationDocumentActiveAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
 
-  const actor = await getActor()
+  const actor = { id: guard.userId }
   const supabase = await createSupabaseServerClient()
   const customerId = formValue(formData, 'customer_id') ?? ''
   const documentId = formValue(formData, 'document_id') ?? ''
@@ -898,12 +928,13 @@ export async function setCustomerAuthorizationDocumentActiveAction(
     throw new Error('customer_id och document_id krävs')
   }
 
+  const actionContext = await requireCustomerDocumentActionContext(customerId, guard)
   const targetBefore = await getCustomerAuthorizationDocumentById(
     supabase,
     documentId
   )
-  if (!targetBefore) {
-    throw new Error('Dokumentet hittades inte')
+  if (!targetBefore || targetBefore.customer_id !== customerId || targetBefore.company_id !== actionContext.companyId) {
+    throw new Error('Dokumentet hittades inte för aktuell kund')
   }
 
   const activation = await setCustomerAuthorizationDocumentAsActive(supabase, {
@@ -924,6 +955,7 @@ export async function setCustomerAuthorizationDocumentActiveAction(
     : await syncCustomerOperationsForCustomer(supabase, customerId)
 
   await createAuditLogEntry(supabase, {
+    companyId: actionContext.companyId,
     actorUserId: actor.id,
     entityType: 'customer_authorization_document',
     entityId: activeDocument.id,

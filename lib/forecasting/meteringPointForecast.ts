@@ -54,7 +54,7 @@ async function resolveMissingBasisIssue(companyId: string, meteringPointId: stri
 
 /** One aggregate row covers the complete existing raw selection in one SQL
  * statement. Never fall back to a capped raw list when its evidence fails. */
-export async function actualKwhForPeriod(companyId: string, meteringPointId: string, start: string, end: string): Promise<number> {
+export async function actualKwhForPeriod(companyId: string, meteringPointId: string, start: string, end: string): Promise<number | null> {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (
     name: 'gridex_forecast_metering_period_totals_v1',
     args: { p_company_id: string; p_metering_point_id: string; p_period_start: string; p_period_end: string },
@@ -77,7 +77,9 @@ export async function actualKwhForPeriod(companyId: string, meteringPointId: str
   if (!Number.isFinite(total) || !Number.isSafeInteger(count) || count < 0 || count === 0 && total !== 0) {
     throw new Error('forecast_metering_period_totals_result_invalid')
   }
-  return total
+  // The SQL zero for an empty selection is an aggregate identity. A
+  // period without raw values has no observed actual to store or compare.
+  return count === 0 ? null : total
 }
 
 export async function calculateMeteringPointForecast(input: {
@@ -85,12 +87,13 @@ export async function calculateMeteringPointForecast(input: {
   meteringPointId: string
   periodStart: string
   periodEnd: string
+  lifecycleSupplyFraction?: number
 }): Promise<MeteringPointForecastResult> {
   const periodStart = monthStart(input.periodStart)
   const periodEnd = input.periodEnd || monthEndExclusive(periodStart)
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, bidding_zone_code, estimated_annual_consumption_kwh, consumption_profile_id, start_date, end_date, customer_sites(annual_consumption_kwh)')
+    .select('id, customer_id, site_id, grid_owner_id, bidding_zone_code, estimated_annual_consumption_kwh, consumption_profile_id, start_date, end_date, customer_sites!metering_points_company_site_fk(annual_consumption_kwh)')
     .eq('company_id', input.companyId)
     .eq('id', input.meteringPointId)
     .maybeSingle()
@@ -99,28 +102,30 @@ export async function calculateMeteringPointForecast(input: {
   if (!data) return { forecastKwh: null, confidenceScore: 0, method: 'missing_basis', issues: ['metering_point_missing'] }
 
   const mp = data as unknown as MeteringPointRow & { customer_sites?: { annual_consumption_kwh?: number | null } | Array<{ annual_consumption_kwh?: number | null }> }
+  const supplyFraction = input.lifecycleSupplyFraction ?? 1
+  const lifecycleIssues = supplyFraction < 1 ? ['partial_active_period'] : []
   const lastYearStart = `${Number(periodStart.slice(0, 4)) - 1}${periodStart.slice(4)}`
   const lastYearEnd = `${Number(periodEnd.slice(0, 4)) - 1}${periodEnd.slice(4)}`
   const sameMonthPreviousYear = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastYearStart, lastYearEnd)
-  if (sameMonthPreviousYear > 0) {
+  if (sameMonthPreviousYear !== null && sameMonthPreviousYear > 0) {
     await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
-    return { forecastKwh: sameMonthPreviousYear, confidenceScore: 95, method: 'history', issues: [] }
+    return { forecastKwh: sameMonthPreviousYear * supplyFraction, confidenceScore: 95, method: 'history', issues: lifecycleIssues }
   }
 
   const lastTwelveStart = new Date(`${periodStart}T00:00:00.000Z`)
   lastTwelveStart.setUTCMonth(lastTwelveStart.getUTCMonth() - 12)
   const lastTwelveKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastTwelveStart.toISOString().slice(0, 10), periodStart)
-  if (lastTwelveKwh > 0) {
+  if (lastTwelveKwh !== null && lastTwelveKwh > 0) {
     await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
-    return { forecastKwh: lastTwelveKwh / 12, confidenceScore: 85, method: 'history', issues: ['average_last_12_months'] }
+    return { forecastKwh: lastTwelveKwh / 12 * supplyFraction, confidenceScore: 85, method: 'history', issues: ['average_last_12_months', ...lifecycleIssues] }
   }
 
   const lastThreeStart = new Date(`${periodStart}T00:00:00.000Z`)
   lastThreeStart.setUTCMonth(lastThreeStart.getUTCMonth() - 3)
   const lastThreeKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastThreeStart.toISOString().slice(0, 10), periodStart)
-  if (lastThreeKwh > 0) {
+  if (lastThreeKwh !== null && lastThreeKwh > 0) {
     await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
-    return { forecastKwh: lastThreeKwh / 3, confidenceScore: 85, method: 'hybrid', issues: ['partial_history'] }
+    return { forecastKwh: lastThreeKwh / 3 * supplyFraction, confidenceScore: 85, method: 'hybrid', issues: ['partial_history', ...lifecycleIssues] }
   }
 
   const site = Array.isArray(mp.customer_sites) ? mp.customer_sites[0] : mp.customer_sites
@@ -128,7 +133,7 @@ export async function calculateMeteringPointForecast(input: {
   if (annualEstimate > 0) {
     const monthNumber = Number(periodStart.slice(5, 7))
     const weight = await getMonthlyWeightPercent(input.companyId, mp.consumption_profile_id, monthNumber)
-    const factor = activeDaysFactor(periodStart, periodEnd, mp.start_date, mp.end_date)
+    const factor = input.lifecycleSupplyFraction ?? activeDaysFactor(periodStart, periodEnd, mp.start_date, mp.end_date)
     await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
     return {
       forecastKwh: annualEstimate * (weight / 100) * factor,

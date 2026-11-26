@@ -7,7 +7,7 @@ import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRu
 import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
 import { runTestCenterMeteringToInvoiceChain } from '@/lib/ediel/testing/testCenterRuntimeChain'
 import { importRawEdifactAndRunTestCenterChain } from '@/lib/ediel/testing/testCenterRawEdifactImport'
-import { materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
+import { isExpectedMissingValuesBlock, materializeTestCenterScenario, type TestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import { supabaseService } from '@/lib/supabase/service'
 import { formatErrorMessage } from '@/lib/errors'
 
@@ -208,23 +208,15 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
         lastResult = result
       } catch (error) {
         unstable_rethrow(error)
-        if (run.expectation === 'blocked_missing_values') {
-          const detail = formatErrorMessage(error, 'Missing-values-scenariot blockerades.')
-          if (!detail.includes('Fakturatest kräver positiv fakturerbar periodenergi i QTY+136')) {
-            throw error
-          }
-          expectedBlock = detail
+        if (run.expectation === 'blocked_missing_values' && isExpectedMissingValuesBlock(error)) {
+          expectedBlock = error.message
           break
         }
         throw error
       }
     }
 
-    if (expectedBlock) {
-      assertScenarioRunEvidence(scenario, results)
-    } else {
-      assertScenarioRunEvidence(scenario, results)
-    }
+    assertScenarioRunEvidence(scenario, results)
 
     if (expectedBlock && !lastResult) {
       message = `Scenario ${scenario} verifierat: kedjan blockerade den deterministiskt ofullständiga UTILTS-filen av rätt orsak. ${expectedBlock}`

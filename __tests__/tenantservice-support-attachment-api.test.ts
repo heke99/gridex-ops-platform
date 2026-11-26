@@ -257,6 +257,48 @@ describe('mounted customer support attachment routes', () => {
     expect(objects.size).toBe(0)
   })
 
+  it('returns the oversized upload response while stream cleanup is still pending', async () => {
+    const reference = await openCase()
+    const route = await import('@/app/api/v1/customer/support/cases/[reference]/attachments/route')
+    let finishCleanup!: () => void
+    let signalCancellation!: () => void
+    const cleanup = new Promise<void>((resolve) => { finishCleanup = resolve })
+    const cancellationStarted = new Promise<void>((resolve) => { signalCancellation = resolve })
+    const cancel = vi.fn(() => {
+      signalCancellation()
+      return cleanup
+    })
+    const initialReceipts = db.customer_portal_write_idempotency.length
+    const request = new NextRequest(`https://app.gridex.se/api/v1/customer/support/cases/${reference}/attachments`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/pdf', 'idempotency-key': 'key-att-stream-abcdefgh' },
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(4 * 1024 * 1024))
+          controller.enqueue(new Uint8Array(1))
+        },
+        cancel,
+      }),
+    })
+    const pending = route.POST(request, params(reference))
+    try {
+      const response = await Promise.race([
+        pending,
+        cancellationStarted.then(() => new Promise<null>((resolve) => setImmediate(() => resolve(null)))),
+      ])
+      expect(response?.status, 'expected a response before cleanup settled').toBe(413)
+      expect(await response?.json()).toMatchObject({ error: { code: 'attachment_too_large' } })
+      expect(cancel).toHaveBeenCalledTimes(1)
+      expect(request.body?.locked).toBe(false)
+      expect(db.customer_case_attachments).toHaveLength(0)
+      expect(db.customer_portal_write_idempotency).toHaveLength(initialReceipts)
+      expect(objects.size).toBe(0)
+    } finally {
+      finishCleanup()
+      await pending
+    }
+  })
+
   it('replays the same Idempotency-Key and bytes without a second file, and rejects a different file under the same key', async () => {
     const reference = await openCase()
     const route = await import('@/app/api/v1/customer/support/cases/[reference]/attachments/route')

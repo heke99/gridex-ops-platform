@@ -5,7 +5,7 @@ import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
  * Until an agency89 owner exists, a plain-text alias cannot authorize its data. */
 export function supportedUtiltsConsumptionIdentity(raw: string, index: number): { transactionId: string; point: string } | null {
   try {
-    const ast = singleMessage(raw, 'UTILTS')
+    const ast = singleMessage(raw, 'UTILTS', true)
     if (!ast || !Number.isSafeInteger(index) || index < 0
       || !legalParty(ast, 'MS', 'IDE', ['SVK', '260']) || !legalParty(ast, 'MR', 'IDE', ['SVK', '260'])) return null
     const transactions = ast.messages[0].utiltsTransactions ?? [], transaction = transactions[index]

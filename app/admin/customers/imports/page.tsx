@@ -1,7 +1,16 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { requireAdminPageAccess, isPlatformAdminContext } from "@/lib/admin/guards";
+import { hasPermissionRequirement } from "@/lib/admin/accessModel";
+import { requireAdminPageAccess, isPlatformAdminContext, type GuardResult } from "@/lib/admin/guards";
+import {
+  CUSTOMER_IMPORT_AUDIT_ACTION,
+  CUSTOMER_IMPORT_AUDIT_ENTITY,
+  isMissingCustomerImportRelation,
+  shortCustomerImportReceipt,
+  toCustomerImportAuditSummary,
+} from "@/lib/customers/importHistory";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import {
   createCustomerFromImportRowAction,
@@ -44,7 +53,7 @@ type CustomerPickRow = {
 type ImportRow = {
   id: string;
   import_batch_id: string;
-  row_number: number;
+  row_number: number | null;
   status: string;
   customer_id: string | null;
   error_message?: string | null;
@@ -55,6 +64,17 @@ type ImportRow = {
   created_at: string;
 };
 
+function isLegacyImportRow(value: unknown): value is ImportRow {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.id === "string" && typeof row.import_batch_id === "string" &&
+    (row.row_number === null || (typeof row.row_number === "number" && Number.isSafeInteger(row.row_number))) && typeof row.status === "string" &&
+    (row.customer_id === null || typeof row.customer_id === "string") &&
+    (row.error_message == null || typeof row.error_message === "string") &&
+    (row.parser_confidence == null || (typeof row.parser_confidence === "number" && Number.isSafeInteger(row.parser_confidence))) &&
+    typeof row.created_at === "string" && Number.isFinite(Date.parse(row.created_at));
+}
+
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("sv-SE", {
@@ -63,29 +83,30 @@ function formatDateTime(value: string | null | undefined): string {
   }).format(new Date(value));
 }
 
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+function importMessages(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.length > 0) : [];
 }
 
 function issueText(row: ImportRow): string {
-  const issues = row.issues as {
-    missingFields?: string[];
-    uncertainFields?: string[];
-    duplicateWarnings?: string[];
-  } | null;
+  const issues = row.issues && typeof row.issues === "object"
+    ? row.issues as Record<string, unknown>
+    : {};
+  const missingFields = importMessages(issues.missingFields);
+  const uncertainFields = importMessages(issues.uncertainFields);
+  const duplicateWarnings = importMessages(issues.duplicateWarnings);
+  const warnings = importMessages(row.warnings);
   const parts: string[] = [];
-  if (issues?.missingFields?.length)
-    parts.push(`Saknas: ${issues.missingFields.join(", ")}`);
-  if (issues?.uncertainFields?.length)
-    parts.push(`Osäkert: ${issues.uncertainFields.join(", ")}`);
-  if (issues?.duplicateWarnings?.length)
-    parts.push(`Dubblett: ${issues.duplicateWarnings.join(", ")}`);
-  const warnings = asArray(row.warnings)
-    .map((item) => String(item))
-    .filter(Boolean);
+  if (missingFields.length) parts.push(`Saknas: ${missingFields.join(", ")}`);
+  if (uncertainFields.length) parts.push(`Osäkert: ${uncertainFields.join(", ")}`);
+  if (duplicateWarnings.length) parts.push(`Dubblett: ${duplicateWarnings.join(", ")}`);
   if (warnings.length) parts.push(warnings.slice(0, 3).join(" · "));
   if (row.error_message) parts.push(row.error_message);
   return parts.join(" · ") || "—";
+}
+
+function isMissingLegacyRowDetails(error: { code: string; message: string } | null): boolean {
+  return error?.code === "42703" &&
+    /^column (?:public\.)?customer_import_rows\.(?:issues|parser_confidence) does not exist$/.test(error.message);
 }
 
 function statusTone(status: string | null | undefined): string {
@@ -131,58 +152,77 @@ function rowStatusLabel(status: string | null | undefined): string {
   }
 }
 
+async function loadLegacyImportQueue(companyId: string, canReview: boolean, canSeeParserDetails: boolean) {
+  const supabase = await createSupabaseServerClient();
+  const { data: batches, error: batchError } = await supabase
+    .from("customer_import_batches")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(25);
+  if (isMissingCustomerImportRelation(batchError, "customer_import_batches")) return null;
+  if (batchError) throw batchError;
+
+  const batchRows = (batches ?? []) as ImportBatchRow[];
+  const batchIds = batchRows.map((row) => row.id);
+  const baseRowColumns = "id, import_batch_id, row_number, status, customer_id, error_message, warnings, created_at";
+  const rowColumns = canSeeParserDetails ? `${baseRowColumns}, normalized_payload` : baseRowColumns;
+  const queryRows = (columns: string) => {
+    const query = supabase.from("customer_import_rows").select(columns).eq("company_id", companyId);
+    return batchIds.length
+      ? query.in("import_batch_id", batchIds).order("created_at", { ascending: false }).limit(250)
+      : query.limit(0);
+  };
+  const details = canSeeParserDetails ? "issues, parser_confidence" : "issues";
+  const detailedRows = await queryRows(`${rowColumns}, ${details}`);
+  const { data: rows, error: rowsError } = isMissingLegacyRowDetails(detailedRows.error)
+    ? await queryRows(rowColumns)
+    : detailedRows;
+  if (isMissingCustomerImportRelation(rowsError, "customer_import_rows")) return null;
+  if (rowsError) throw rowsError;
+
+  const returnedRows: readonly unknown[] = rows ?? [];
+  const importRows = returnedRows.filter(isLegacyImportRow);
+  let customerOptions: CustomerPickRow[] = [];
+  if (canReview && importRows.some((row) => !row.customer_id && !["created", "rejected"].includes(row.status))) {
+    const { data: customerPickRows, error: customerPickError } = await supabase
+      .from("customers")
+      .select("id, customer_number, full_name, first_name, last_name, company_name, email, personal_number, org_number")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(250);
+    if (customerPickError) throw customerPickError;
+    customerOptions = (customerPickRows ?? []) as CustomerPickRow[];
+  }
+
+  return { batchRows, importRows, customerOptions };
+}
+
+async function loadImportAuditHistory(access: GuardResult, companyId: string) {
+  if (access.companyId !== companyId) return null;
+  if (!access.isPlatformAdmin && !hasPermissionRequirement(access.permissions, { allOf: ["audit.read"] })) return null;
+
+  const { data, error } = await tenantSelect(companyId, "audit_logs", "id, created_at, source_kind:metadata->sourceKind, total_rows:metadata->totalRows, created_rows:new_values->created, review_rows:new_values->review, failed_rows:new_values->failed")
+    .eq("action", CUSTOMER_IMPORT_AUDIT_ACTION)
+    .eq("entity_type", CUSTOMER_IMPORT_AUDIT_ENTITY)
+    .order("created_at", { ascending: false })
+    .limit(25);
+  if (error) throw error;
+
+  return (data ?? []).map(toCustomerImportAuditSummary).filter((row) => row !== null);
+}
+
 export default async function CustomerImportQueuePage() {
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "customers.read", "masterdata.read"],
   });
   const isPlatformAdmin = isPlatformAdminContext(access);
-  const companyScope = await resolveAdminSelectedCompanyReadScope(access);
-  const supabase = await createSupabaseServerClient();
-  const { data: authResult } = await supabase.auth.getUser();
-
-  let batchQuery = supabase
-    .from("customer_import_batches")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(25);
-
-  if (companyScope.companyId)
-    batchQuery = batchQuery.eq("company_id", companyScope.companyId);
-
-  const { data: batches, error: batchError } = await batchQuery;
-  if (batchError) throw batchError;
-
-  const batchRows = (batches ?? []) as ImportBatchRow[];
-  const batchIds = batchRows.map((row) => row.id);
-
-  const { data: rows, error: rowsError } =
-    batchIds.length > 0
-      ? await supabase
-          .from("customer_import_rows")
-          .select("*")
-          .in("import_batch_id", batchIds)
-          .order("created_at", { ascending: false })
-          .limit(250)
-      : { data: [], error: null };
-
-  if (rowsError) throw rowsError;
-
-  const importRows = (rows ?? []) as ImportRow[];
-
-  let customerPickQuery = supabase
-    .from("customers")
-    .select("id, customer_number, full_name, first_name, last_name, company_name, email, personal_number, org_number")
-    .order("created_at", { ascending: false })
-    .limit(250);
-
-  if (companyScope.companyId) {
-    customerPickQuery = customerPickQuery.eq("company_id", companyScope.companyId);
-  }
-
-  const { data: customerPickRows, error: customerPickError } = await customerPickQuery;
-  if (customerPickError) throw customerPickError;
-
-  const customerOptions = (customerPickRows ?? []) as CustomerPickRow[];
+  const companyScope = await resolveAdminSelectedCompanyReadScope(access, { allowMissing: true });
+  const companyId = companyScope.companyId === access.companyId ? companyScope.companyId : null;
+  const canReview = isPlatformAdmin || hasPermissionRequirement(access.permissions, { allOf: ["customers.write"] });
+  const legacy = companyId ? await loadLegacyImportQueue(companyId, canReview, isPlatformAdmin) : null;
+  const receipts = companyId && !legacy ? await loadImportAuditHistory(access, companyId) : null;
+  const { batchRows, importRows, customerOptions } = legacy ?? { batchRows: [], importRows: [], customerOptions: [] };
 
   const rowsByBatch = new Map<string, ImportRow[]>();
   for (const row of importRows) {
@@ -196,7 +236,7 @@ export default async function CustomerImportQueuePage() {
       <AdminHeader
         title="Importgranskning"
         subtitle="Granska osäkra bulk- och PDF-rader innan de skapar kunder, avtal och fullmakter."
-        userEmail={authResult.user?.email ?? null}
+        userEmail={access.email}
       />
 
       <div className="space-y-6 p-8">
@@ -215,6 +255,30 @@ export default async function CustomerImportQueuePage() {
           </Link>
         </div>
 
+        {!companyId ? (
+          <p role="status">Välj bolag för att visa importgranskning.</p>
+        ) : !legacy ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Importhistorik</h2>
+            <p className="mt-1 text-sm text-slate-700">Den manuella granskningskön är inte tillgänglig för valt bolag.</p>
+            {receipts === null ? (
+              <p className="mt-3 text-sm text-slate-700">Importkvitton kräver behörighet till revisionsloggen.</p>
+            ) : receipts.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-700">Inga verifierbara importkvitton finns för valt bolag.</p>
+            ) : (
+              <ul className="mt-4 divide-y divide-slate-200">
+                {receipts.map((receipt) => (
+                  <li key={receipt.receiptId} className="py-3 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-950">Kvitto {shortCustomerImportReceipt(receipt.receiptId)}</p>
+                    <p>{formatDateTime(receipt.createdAt)} · {receipt.sourceKind.toUpperCase()}</p>
+                    <p>{receipt.totalRows} rader · {receipt.createdRows} skapade · {receipt.reviewRows} för granskning eller redan importerade · {receipt.failedRows} misslyckade</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : (
+          <>
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
           <h2 className="text-lg font-semibold text-slate-950 ">
             Manuell granskningskö
@@ -314,7 +378,7 @@ export default async function CustomerImportQueuePage() {
                           className="grid gap-3 px-6 py-4 text-sm xl:grid-cols-[90px_180px_140px_minmax(0,1fr)_210px]"
                         >
                           <div className="font-medium text-slate-700">
-                            Rad {row.row_number}
+                            Rad {row.row_number ?? "—"}
                           </div>
                           <div>
                             <span
@@ -351,7 +415,7 @@ export default async function CustomerImportQueuePage() {
                               >
                                 Öppna kund
                               </Link>
-                            ) : ["created", "rejected"].includes(row.status) ? (
+                            ) : !canReview || ["created", "rejected"].includes(row.status) ? (
                               <span className="text-slate-500">
                                 Ingen åtgärd
                               </span>
@@ -437,6 +501,8 @@ export default async function CustomerImportQueuePage() {
             })
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

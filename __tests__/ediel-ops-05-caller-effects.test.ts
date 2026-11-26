@@ -108,6 +108,34 @@ vi.mock('@/lib/supabase/service', () => {
       if (name === 'gridex_witness_source_objects_v1') return { data: { version: 1, companyId: company, environment: 'test', assessmentId: args.p_assessment_id, factsHash: args.p_facts_hash, witnessId: '40000000-0000-4000-8000-000000000004', availableAt: new Date().toISOString() }, error: null }
       // A declared held native owner is not a customer-effect success receipt.
       if (name === 'ediel_apply_supply_source_v1') return { data: { applied: false, reason: 'declared_native_owner_held', idempotent: false, periods: [], commits: [] }, error: null }
+      if (name === 'gridex_list_held_e66_technical_imap_uids_v1') return { data: [], error: null }
+      if (name === 'gridex_checkpoint_ediel_imap_scan_v1') {
+        const mailbox = port.tables.ediel_mailboxes[0]
+        expect(args).toMatchObject({
+          p_mailbox_id: mailbox.id,
+          p_locked_by: mailbox.locked_by,
+          p_locked_at: mailbox.locked_at,
+          p_expected_metadata: mailbox.metadata,
+        })
+        expect(Object.values(args.p_scan as Row)).toEqual([{ uidValidity: 42, lastUid: 42 }])
+        mailbox.metadata = { ...(mailbox.metadata as Row), ediel_imap_scan_v1: args.p_scan }
+        return { data: true, error: null }
+      }
+      if (name === 'gridex_store_verified_imap_intake_v1') {
+        const mail = port.tables.inbound_email_messages[0]
+        expect(args.p_message).toMatchObject({
+          mailbox_id: mail.mailbox_id,
+          observed_mailbox_company_id: company,
+          company_id: company,
+          environment: 'test',
+          internet_message_id: mail.internet_message_id,
+          raw_mailbox_bytes_sha256: hash(port.mime),
+          imap_folder: 'INBOX',
+          imap_uid_validity: 42,
+          imap_uid: 42,
+        })
+        return { data: { id: mail.id, deduped: true }, error: null }
+      }
       if (['claim_inbound_processing_jobs', 'gridex_claim_customer_operation_jobs'].includes(name)) return { data: [], error: null }
       throw Error(`Unexpected RPC ${name}`)
     })
@@ -117,9 +145,22 @@ vi.mock('@/lib/supabase/service', () => {
 })
 
 vi.mock('imapflow', () => ({ ImapFlow: class {
+  mailbox = { path: 'INBOX', uidValidity: BigInt(42), uidNext: 43 }
   async connect() {}
   async getMailboxLock() { return { release() {} } }
-  async *fetch() { yield { uid: 42, source: Buffer.from(port.mime), internalDate: new Date(), envelope: { messageId: '<ops05-fixture@example.invalid>', from: [{ address: 'source@example.invalid' }], to: [{ address: 'recipient@example.invalid' }], subject: 'Synthetic PRODAT' } } }
+  async search(query: unknown, options: unknown) {
+    expect(query).toEqual({ seen: false })
+    expect(options).toEqual({ uid: true })
+    return [42]
+  }
+  async fetchOne(uid: string, _fields: unknown, options: unknown) {
+    expect(uid).toBe('42')
+    expect(options).toEqual({ uid: true })
+    return { uid: 42, source: Buffer.from(port.mime), internalDate: new Date(), envelope: {
+      messageId: '<ops05-fixture@example.invalid>', from: [{ address: 'source@example.invalid' }],
+      to: [{ address: 'recipient@example.invalid' }], subject: 'Synthetic PRODAT',
+    } }
+  }
   async messageFlagsAdd() {}
   async logout() {}
 } }))
@@ -154,7 +195,7 @@ beforeEach(() => {
     ediel_messages: [message],
     company_memberships: [{ company_id: company, user_id: actor, status: 'active', is_active: true, accepted_at: '2026-01-01T00:00:00Z' }],
     user_profiles: [{ id: actor, user_status: 'active' }],
-    inbound_email_messages: [{ id: 'email-ops05', mailbox_id: 'mailbox-ops05', internet_message_id: '<ops05-fixture@example.invalid>', raw_email: port.mime, body_text: raw, match_status: 'parsed' }],
+    inbound_email_messages: [{ id: 'email-ops05', mailbox_id: 'mailbox-ops05', environment: 'test', ediel_mailboxes: { environment: 'test' }, internet_message_id: '<ops05-fixture@example.invalid>', raw_email: port.mime, body_text: raw, match_status: 'parsed' }],
     ediel_mailboxes: [{ id: 'mailbox-ops05', company_id: company, mailbox_name: 'Synthetic OPS05', environment: 'test', is_active: true, imap_host: 'example.invalid', imap_port: 993, username: 'fixture', secret_reference: 'env:OPS05_SYNTHETIC_MAILBOX_PASSWORD', locked_at: null, last_polled_at: null, poll_interval_minutes: 1, metadata: {} }],
   }
   vi.stubEnv('OPS05_SYNTHETIC_MAILBOX_PASSWORD', 'synthetic-only')
@@ -300,6 +341,26 @@ describe('OPS-05 actual caller effects through finite external ports', () => {
     expect(port.writes).toEqual([])
     expect(port.ack.raw_payload).toContain('UCI+I+12345:14+54321:14+1')
     assertOriginalAndAckPreserved(before)
+  })
+
+  it.each([
+    [undefined, true],
+    [true, true],
+    [false, false],
+  ] as const)('records the configured IMAP Seen policy for option %s on a run without messages', async (markSeen, effectivePolicy) => {
+    port.tables.ediel_mailboxes = []
+    const result = await runInboundEdielMailEngine({
+      environment: 'test', mailboxId: 'mailbox-ops05', allowMissingMailboxConfig: true, markSeen,
+    })
+
+    expect(result.fetchedMessages).toBe(0)
+    expect(result.results).toEqual([])
+    expect(port.tables.ediel_inbound_poll_runs).toEqual([
+      expect.objectContaining({
+        environment: 'test',
+        metadata: expect.objectContaining({ pollOptions: { includeSeenRecent: false, markSeen: effectivePolicy } }),
+      }),
+    ])
   })
 
   it('actual mailbox catch persists its warning without inventing a tenant event or ACK', async () => {

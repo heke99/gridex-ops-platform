@@ -17,6 +17,7 @@ export type OriginalMailboxNativeInput = {
 }
 export type OriginalMailboxNative = {
   mailboxId: string
+  environment: OriginalMailboxNativeInput['environment']
   inboundEmailMessageId: string
   parseResultId: string
   parsed: ParsedEdifactEnvelope
@@ -40,7 +41,7 @@ export async function seedOriginalMailboxNative(sql: Sql, literal: Literal, inpu
     INSERT INTO public.inbound_email_messages(id,company_id,environment,mailbox_id,internet_message_id,received_at,from_address,to_address,raw_email,raw_edifact_payload,body_text,processing_status,match_status)
     VALUES(${literal(inboundEmailMessageId)},${literal(input.companyId)},${literal(input.environment)},${literal(mailboxId)},${literal(`${inboundEmailMessageId}@example.invalid`)},${literal(receivedAt)}::timestamptz,${literal(senderEmail)},${literal(input.smtpFrom)},${literal(rawEmail)},${literal(input.raw)},${literal(input.raw)},'received','not_checked');`)
   const parseResultId = await createParseResult({ inboundEmailMessageId, companyId: input.companyId, parsed })
-  return { mailboxId, inboundEmailMessageId, parseResultId, parsed, sourcePayloadHash: createHash('sha256').update(input.raw, 'utf8').digest('hex') }
+  return { mailboxId, environment: input.environment, inboundEmailMessageId, parseResultId, parsed, sourcePayloadHash: createHash('sha256').update(input.raw, 'utf8').digest('hex') }
 }
 
 /** Actual canonical SEND-authorized production RPC; no private receipts or extra grants.

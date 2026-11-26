@@ -7,6 +7,7 @@ import { join } from 'path'
 import { promisify } from 'util'
 import { formatErrorMessage } from '@/lib/errors'
 import { encodeEdifactUnoc } from '@/lib/ediel/core/edifactEncoding'
+import { inspectMimeStructure, isEncryptedMimePart, type MimeEntity } from '@/lib/inbound-mail/mimeStructure'
 import { loadInboundPrivateCertificates, type InboundPrivateCertificateProfile } from '@/lib/ediel/security/privateCertificateStore'
 
 const execFileAsync = promisify(execFile)
@@ -37,6 +38,7 @@ export type InboundSmimeUnpackResult = {
   matchedOwnerSubaddress?: string | null
   recipientFingerprint?: string | null
   recipientSerialNumber?: string | null
+  isolatedOuterTransferIssues?: boolean
   evidence?: Record<string, unknown>
 }
 
@@ -54,31 +56,50 @@ export function looksLikeSmimeMessage(rawEmail: string | null | undefined): bool
   )
 }
 
-function extractBase64PayloadFromSmimeMime(rawEmail: string): string | null {
-  const blocks: string[] = []
-  const pkcs7Regex = /content-type:\s*application\/(?:x-)?pkcs7-mime[\s\S]*?\r?\n\r?\n([A-Za-z0-9+/=\r\n]+)(?=\r?\n--|$)/gi
-  let match: RegExpExecArray | null
-  while ((match = pkcs7Regex.exec(rawEmail)) !== null) {
-    if (match[1]) blocks.push(match[1])
-  }
+const MIME_SELECTION_ERROR = {
+  missing: 'S/MIME upptäcktes men den krypterade MIME-delen saknas.',
+  ambiguous: 'S/MIME innehåller flera möjliga krypterade MIME-delar.',
+  invalid: 'S/MIME upptäcktes men den krypterade MIME-delen kunde inte läsas.',
+} as const
 
-  if (blocks.length === 0) {
-    const firstBlank = rawEmail.search(/\r?\n\r?\n/)
-    if (firstBlank >= 0 && looksLikeSmimeMessage(rawEmail.slice(0, firstBlank))) {
-      blocks.push(rawEmail.slice(firstBlank).trim())
+type SmimeMimeSelection = { der: Buffer; isolatedTransferIssues: boolean } | { failure: keyof typeof MIME_SELECTION_ERROR; issues: string[] }
+
+function belongsToOriginal(entity: MimeEntity, entities: readonly MimeEntity[]): boolean {
+  // A forwarded message has its own source envelope, even inside a multipart.
+  for (let parent = entity.parent; parent !== null; parent = entities[parent].parent) {
+    if (!entities[parent].mediaType.startsWith('multipart/')) return false
+  }
+  return true
+}
+
+function selectEncryptedMimePart(rawEmail: string): SmimeMimeSelection {
+  const { entities, issues, deliveryStatus, exceededLimits } = inspectMimeStructure(rawEmail, { preserveBytes: true })
+  const attributedIssues = new Set<string>()
+  for (const entity of entities) {
+    if (entity.transferEncodingIssue) attributedIssues.add(entity.transferEncodingIssue)
+  }
+  if (deliveryStatus || exceededLimits || issues.some(issue => !attributedIssues.has(issue))) {
+    return { failure: 'invalid', issues }
+  }
+  const uncertainContainer = entities.some(entity => entity.transferEncodingIssue &&
+    (entity.mediaType.startsWith('multipart/') || entity.mediaType.startsWith('message/')))
+  if (uncertainContainer) return { failure: 'invalid', issues }
+
+  const candidates = entities.filter(entity => isEncryptedMimePart(entity) && belongsToOriginal(entity, entities))
+  if (candidates.length !== 1) return { failure: candidates.length === 0 ? 'missing' : 'ambiguous', issues }
+  const [part] = candidates
+  if (part.transferEncodingIssue || (part.headers.get('content-disposition')?.length ?? 0) > 1) return { failure: 'invalid', issues }
+
+  const encoding = part.headers.get('content-transfer-encoding')?.[0]?.toLowerCase()
+  if (encoding === 'base64' && part.body.length > 0) return { der: Buffer.from(part.body, 'latin1'), isolatedTransferIssues: issues.length > 0 }
+  if (encoding === undefined || encoding === '7bit' || encoding === '8bit' || encoding === 'binary') {
+    // Older inputs can carry textual base64 without a base64 transfer label.
+    const compact = part.body.replace(/[ \t\r\n]/g, '')
+    if (compact.length > 32 && compact.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(compact)) {
+      return { der: Buffer.from(compact, 'base64'), isolatedTransferIssues: issues.length > 0 }
     }
   }
-
-  for (const block of blocks) {
-    const compact = block
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('--') && !line.includes(':'))
-      .join('')
-    if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 32) return compact
-  }
-
-  return null
+  return { failure: 'invalid', issues }
 }
 
 function readPkcs7Content(content: unknown): Buffer | null {
@@ -102,25 +123,23 @@ function recipientMatchesProfile(recipient: unknown, profile: InboundPrivateCert
   return serial.replace(/^0+/, '') === profile.serialNumber.replace(/^0+/, '')
 }
 
-function decryptPkcs7WithProfile(der: Buffer, profile: InboundPrivateCertificateProfile): { text: string; recipientSerialNumber: string | null } {
-  const asn1 = forge.asn1.fromDer(der.toString('binary'))
-  const p7 = forge.pkcs7.messageFromAsn1(asn1) as unknown as {
-    recipients?: unknown[]
-    findRecipient?: (cert: forge.pki.Certificate) => unknown
-    decrypt?: (recipient: unknown, privateKey: forge.pki.PrivateKey) => void
-    content?: unknown
+function readPkcs7Envelope(asn1: forge.asn1.Asn1): forge.pkcs7.PkcsEnvelopedData {
+  const envelope = forge.pkcs7.messageFromAsn1(asn1)
+  if (!('recipients' in envelope) || envelope.recipients.length === 0) {
+    throw new Error('CMS saknar recipientInfo.')
   }
+  return envelope
+}
 
-  const recipient =
-    (typeof p7.findRecipient === 'function' ? p7.findRecipient(profile.certificate) : null) ??
-    (p7.recipients ?? []).find((candidate) => recipientMatchesProfile(candidate, profile)) ??
-    null
+function decryptPkcs7WithProfile(envelope: forge.pkcs7.PkcsEnvelopedData, profile: InboundPrivateCertificateProfile): { text: string; recipientSerialNumber: string | null } {
+  const recipient = envelope.findRecipient(profile.certificate) ??
+    envelope.recipients.find((candidate) => recipientMatchesProfile(candidate, profile))
 
   if (!recipient) throw new Error('CMS recipientInfo matchade inte certifikatet.')
-  if (typeof p7.decrypt !== 'function') throw new Error('PKCS#7-dekryptering stöds inte av runtime-biblioteket.')
+  if (!('decrypt' in profile.privateKey)) throw new Error('PKCS#7-dekryptering kräver en privat RSA-nyckel.')
 
-  p7.decrypt(recipient, profile.privateKey)
-  const content = readPkcs7Content(p7.content)
+  envelope.decrypt(recipient, profile.privateKey)
+  const content = readPkcs7Content(envelope.content)
   if (!content) throw new Error('S/MIME dekrypterades men innehållet kunde inte läsas.')
   const utf8 = content.toString('utf8')
   const latin1 = content.toString('latin1')
@@ -131,27 +150,42 @@ function decryptPkcs7WithProfile(der: Buffer, profile: InboundPrivateCertificate
 }
 
 async function decryptSmimeWithPrivateStore(input: {
-  rawEmail: string
+  der: Buffer
+  encryptedPayloadRef: string
   environment?: string | null
   companyId?: string | null
-}): Promise<InboundSmimeUnpackResult | null> {
-  const base64Payload = extractBase64PayloadFromSmimeMime(input.rawEmail)
-  if (!base64Payload) return null
+}): Promise<InboundSmimeUnpackResult> {
+  let asn1: forge.asn1.Asn1
+  let initialEnvelope: forge.pkcs7.PkcsEnvelopedData
+  try {
+    asn1 = forge.asn1.fromDer(input.der.toString('binary'))
+    initialEnvelope = readPkcs7Envelope(asn1)
+  } catch {
+    return {
+      detected: true,
+      decryptedText: null,
+      encryptedPayloadRef: input.encryptedPayloadRef,
+      securityStatus: 'decrypt_failed',
+      validationError: 'S/MIME upptäcktes men den krypterade delen har ett ogiltigt CMS-format.',
+      evidence: { decryptMethod: 'node_forge_pkcs7', cmsValidation: 'invalid', dbAttempt: null },
+    }
+  }
 
-  const der = Buffer.from(base64Payload, 'base64')
   const loaded = await loadInboundPrivateCertificates({
     environment: input.environment,
     companyId: input.companyId,
   })
   const errors: string[] = []
 
-  for (const profile of loaded.profiles) {
+  for (const [index, profile] of loaded.profiles.entries()) {
     try {
-      const decrypted = decryptPkcs7WithProfile(der, profile)
+      // Forge mutates its envelope during decryption, so each retry gets a fresh one.
+      const envelope = index === 0 ? initialEnvelope : readPkcs7Envelope(asn1)
+      const decrypted = decryptPkcs7WithProfile(envelope, profile)
       return {
         detected: true,
         decryptedText: decrypted.text,
-        encryptedPayloadRef: `inbound-smime://${sha256(input.rawEmail).slice(0, 32)}`,
+        encryptedPayloadRef: input.encryptedPayloadRef,
         securityStatus: 'decrypted',
         validationError: null,
         matchedCertificateId: profile.id,
@@ -176,7 +210,7 @@ async function decryptSmimeWithPrivateStore(input: {
   return {
     detected: true,
     decryptedText: null,
-    encryptedPayloadRef: `inbound-smime://${sha256(input.rawEmail).slice(0, 32)}`,
+    encryptedPayloadRef: input.encryptedPayloadRef,
     securityStatus: 'decrypt_failed',
     validationError: [
       loaded.profiles.length === 0
@@ -212,24 +246,31 @@ export async function unpackInboundSmimeIfNeeded(input: {
 
   const encryptedPayloadRef = `inbound-smime://${sha256(rawEmail).slice(0, 32)}`
 
-  const storeDecrypt = await decryptSmimeWithPrivateStore({
-    rawEmail,
-    environment: input.environment,
-    companyId: input.companyId,
-  })
-  if (storeDecrypt) return storeDecrypt
+  const selection = selectEncryptedMimePart(rawEmail)
+  if ('der' in selection) {
+    const result = await decryptSmimeWithPrivateStore({
+      der: selection.der,
+      encryptedPayloadRef,
+      environment: input.environment,
+      companyId: input.companyId,
+    })
+    return result.securityStatus === 'decrypted' && selection.isolatedTransferIssues
+      ? { ...result, isolatedOuterTransferIssues: true }
+      : result
+  }
 
   return {
     detected: true,
     decryptedText: null,
     encryptedPayloadRef,
     securityStatus: 'decrypt_failed',
-    validationError:
-      'S/MIME upptäcktes men inget DB/env-PFX kunde användas för inbound-dekryptering. Inbound på Vercel får inte falla tillbaka till openssl-paths; lägg in EDIEL_PRODUCTION_SMIME_P12_BASE64 + EDIEL_PRODUCTION_SMIME_P12_PASSWORD och koppla certifikatposten till env-referenser.',
+    validationError: MIME_SELECTION_ERROR[selection.failure],
     evidence: {
       decryptMethod: 'node_forge_pkcs7_required',
       dbAttempt: null,
       dbValidationError: null,
+      mimeSelection: selection.failure,
+      mimeIssues: selection.issues,
     },
   }
 }

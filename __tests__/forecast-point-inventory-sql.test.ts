@@ -15,6 +15,8 @@ function capturedFunction(name: string) {
 }
 const forward = readFileSync('supabase/migrations/20261020163100_forecast_point_inventory_snapshot.sql', 'utf8')
 const signature = 'public.gridex_forecast_point_inventory_v1(uuid)'
+const lifecycleForward = readFileSync('supabase/migrations/20261124005500_forecast_lifecycle_supply_window.sql', 'utf8')
+const lifecycleSignature = 'public.gridex_forecast_point_inventory_v2(uuid,date,date)'
 const company = '11111111-1111-4111-8111-111111111111'
 const foreignCompany = '33333333-3333-4333-8333-333333333333'
 const customer = '22222222-2222-4222-8222-222222222222'
@@ -39,6 +41,10 @@ beforeAll(async () => {
   await db.exec(compositeFk)
   await db.exec('GRANT SELECT ON public.metering_points,public.customers TO service_role;')
   await db.exec(forward)
+  await db.exec(capturedTable('customer_lifecycle_events'))
+  await db.exec(capturedTable('customer_supply_periods'))
+  await db.exec('GRANT SELECT ON public.customer_lifecycle_events,public.customer_supply_periods TO service_role;')
+  await db.exec(lifecycleForward)
 }, 20_000)
 afterAll(async () => { await db?.close() })
 beforeEach(async () => { await db.exec('BEGIN') })
@@ -137,5 +143,59 @@ describe('actual single-statement bounded point snapshot forward', () => {
 
   it('rejects an unspecified tenant instead of returning a cross-company inventory', async () => {
     await expect(snapshot(null)).rejects.toMatchObject({ code: '22023' })
+  })
+})
+
+
+async function lifecycleSnapshot(periodStart: string, periodEnd: string) {
+  await db.exec('SET LOCAL ROLE service_role')
+  return (await db.query<Snapshot>('SELECT * FROM public.gridex_forecast_point_inventory_v2($1,$2,$3)', [company, periodStart, periodEnd])).rows[0]
+}
+
+describe('actual lifecycle supply window forward', () => {
+  it('keeps service-only execution and rejects an empty period', async () => {
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      const { rows } = await db.query<{ allowed: boolean }>("SELECT has_function_privilege($1,$2,'EXECUTE') AS allowed", [role, lifecycleSignature])
+      expect(rows[0].allowed).toBe(role === 'service_role')
+    }
+    await expect(lifecycleSnapshot('2026-10-01', '2026-10-01')).rejects.toMatchObject({
+      code: '22023', message: 'forecast_point_inventory_period_invalid',
+    })
+  })
+
+  it('preserves only the scoped inclusive delivery days of a journaled soft close', async () => {
+    const meteringPoint = '00000000-0000-4000-8000-000000000061'
+    const unrelatedPoint = '00000000-0000-4000-8000-000000000062'
+    const ordinaryPoint = '00000000-0000-4000-8000-000000000063'
+    await db.query("INSERT INTO public.customers(id,company_id,source) VALUES ($1,$2,'manual')", [customer, company])
+    await db.query(`INSERT INTO public.metering_points(id,company_id,customer_id,status,end_date,closed_at) VALUES
+      ($1,$4,$5,'closed','2026-10-15','2026-10-06T10:00:00Z'),
+      ($2,$4,$5,'closed','2026-10-15','2026-10-07T10:00:00Z'),
+      ($3,$4,$5,'active',NULL,NULL)`, [meteringPoint, unrelatedPoint, ordinaryPoint, company, customer])
+    await db.query(`INSERT INTO public.customer_lifecycle_events(company_id,customer_id,event_type,effective_date,created_at)
+      VALUES ($1,$2,'move_out','2026-10-15','2026-10-06T10:00:00Z')`, [company, customer])
+    await db.query(`INSERT INTO public.customer_supply_periods(company_id,customer_id,metering_point_id,start_date,end_date,status) VALUES
+      ($1,$2,$3,'2026-10-01','2026-10-10','active'),
+      ($1,$2,$3,'2026-10-05','2026-10-15','active'),
+      ($1,$2,$4,'2026-10-01','2026-10-15','active'),
+      ($5,$2,$3,'2026-09-01','2026-10-15','active'),
+      ($1,$6,$3,'2026-09-01','2026-10-15','active'),
+      ($1,$2,$3,'2026-09-01','2026-10-15','cancelled')`, [company, customer, meteringPoint, unrelatedPoint, foreignCompany, foreignCustomer])
+
+    expect((await lifecycleSnapshot('2026-09-01', '2026-10-01')).points).toEqual([
+      expect.objectContaining({ id: ordinaryPoint, lifecycle_supply_fraction: null }),
+    ])
+    const october = await lifecycleSnapshot('2026-10-01', '2026-11-01')
+    expect(Number(october.total_count)).toBe(2)
+    expect(october.points).toEqual([
+      expect.objectContaining({ id: meteringPoint, lifecycle_supply_fraction: expect.closeTo(15 / 31, 8) }),
+      expect.objectContaining({ id: ordinaryPoint, lifecycle_supply_fraction: null }),
+    ])
+    expect((await lifecycleSnapshot('2026-10-15', '2026-10-16')).points[0]).toMatchObject({
+      id: meteringPoint, lifecycle_supply_fraction: 1,
+    })
+    expect((await lifecycleSnapshot('2026-10-16', '2026-10-17')).points).toEqual([
+      expect.objectContaining({ id: ordinaryPoint, lifecycle_supply_fraction: null }),
+    ])
   })
 })

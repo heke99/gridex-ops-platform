@@ -5,15 +5,20 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {closureFixture} from './helpers/closureWireFixtures'
 import {createHash} from 'node:crypto'
+const ids=vi.hoisted(()=>Object.fromEntries(['source','company','actor','supply','case'].map((key,index)=>[key,'00000000-0000-4000-8000-'+String(index+1).padStart(12,'0')])))
 const io=vi.hoisted(()=>({writes:[] as {table:string;row:Record<string,unknown>}[],failSupply:false,failCase:false,supplyRows:[] as Record<string,unknown>[],
  source:null as EdielMessageRow|null,nativeCalls:[] as Record<string,unknown>[],committed:false}))
 const validCaseTypes=new Set(['withdrawal','rejected_customer','onboarding_aborted','supplier_switch_aborted','sales_misunderstanding','dual_invoice_concern','binding_period_too_long','incorrect_identity','incorrect_site_data','missing_authorization','credit_risk','technical_blocker','business_rejection','technical_rejection','metering_values_error','supplier_switch_review','other'])
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>{
+ if(name==='gridex_project_legacy_supply_end_followup_v1'){
+  expect(args).toEqual({p_company_id:ids.company,p_source_message_id:ids.source,p_supply_period_id:ids.supply,p_actor_user_id:ids.actor})
+  return {data:{status:'created',sourceMessageId:ids.source,supplyPeriodId:ids.supply,caseId:ids.case},error:null}
+ }
  // Finite external native-result transport for the final-work case consumer.
  // It cannot prove native source qualification, RLS or market persistence.
  expect(name).toBe('ediel_apply_supply_source_v1')
  expect(io.source).not.toBeNull()
- expect(args).toEqual({p_company_id:io.source!.company_id,p_source_message_id:io.source!.id,p_actor_user_id:'actor'})
+ expect(args).toEqual({p_company_id:io.source!.company_id,p_source_message_id:io.source!.id,p_actor_user_id:ids.actor})
  expect(Object.keys(args)).toHaveLength(3)
  io.nativeCalls.push({...args})
  if(io.failSupply)return {data:null,error:Error('supply unavailable')}
@@ -22,7 +27,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
  expect(io.source!.raw_payload).toContain('CAV+Z25')
  expect(createHash('sha256').update(io.source!.raw_payload!).digest('hex')).toHaveLength(64)
  io.committed=true
- return {data:{applied:true,idempotent:false,periods:[{id:'supply',status:io.source!.message_code==='Z04'?'confirmed_by_grid_owner':'ended'}],commits:io.source!.message_code==='Z04'?[{switchRequestId:'native-switch',supplyPeriodId:'supply',customerId:'customer',meteringPointId:'point',siteId:'site'}]:[]},error:null}
+ return {data:{applied:true,idempotent:false,periods:[{id:ids.supply,status:io.source!.message_code==='Z04'?'confirmed_by_grid_owner':'ended'}],commits:io.source!.message_code==='Z04'?[{switchRequestId:'native-switch',supplyPeriodId:ids.supply,customerId:'customer',meteringPointId:'point',siteId:'site'}]:[]},error:null}
 },from:(table:string)=>{
  let values:Record<string,unknown>|null=null
  const q={select:()=>q,eq:()=>q,in:()=>q,is:()=>q,order:()=>q,limit:()=>q,
@@ -39,20 +44,20 @@ vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
-function message(code='Z04',hold=false){const wire=closureFixture({reason:'Z25',minute:'202610150000'}).wire.replace('BGM+Z05','BGM+'+code).replace('DTM+93','DTM+'+(code==='Z04'?'92':'93'));const row={id:'source',company_id:'company',environment:'test',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:code,direction:'inbound',raw_payload:wire,parsed_payload:{subtype:'H',nativeHold:hold,bilateralCapabilityVerified:true}} as unknown as EdielMessageRow;io.source=structuredClone(row);return row}
+function message(code='Z04',hold=false){const wire=closureFixture({reason:'Z25',minute:'202610150000'}).wire.replace('BGM+Z05','BGM+'+code).replace('DTM+93','DTM+'+(code==='Z04'?'92':'93'));const row={id:ids.source,company_id:ids.company,environment:'test',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:code,direction:'inbound',raw_payload:wire,parsed_payload:{subtype:'H',nativeHold:hold,bilateralCapabilityVerified:true}} as unknown as EdielMessageRow;io.source=structuredClone(row);return row}
 beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[{id:'supply',customer_id:'customer',metering_point_id:'point'}];io.source=null;io.nativeCalls=[];io.committed=false})
 it('real H start consumer waits for exact external native commit and publishes only its committed scope once',async()=>{
- const observed:unknown[]=[];const result=await applyInboundBusinessStateMachine({message:message(),actorUserId:'actor',onSourceSwitchCommitted:async value=>{observed.push(value)}})
- expect(result).toMatchObject({outcome:'supplier_switch_accepted',reviewRequired:false,updated:['supplier_switch_requests','customer_supply_periods']});expect(io.nativeCalls).toHaveLength(1);expect(observed).toHaveLength(1);expect(observed[0]).toMatchObject({switchRequestId:'native-switch',supplyPeriodId:'supply',message:{customer_id:'customer',site_id:'site',metering_point_id:'point'}});expect(io.writes).toEqual([])
+ const observed:unknown[]=[];const result=await applyInboundBusinessStateMachine({message:message(),actorUserId:ids.actor,onSourceSwitchCommitted:async value=>{observed.push(value)}})
+ expect(result).toMatchObject({outcome:'supplier_switch_accepted',reviewRequired:false,updated:['supplier_switch_requests','customer_supply_periods']});expect(io.nativeCalls).toHaveLength(1);expect(observed).toHaveLength(1);expect(observed[0]).toMatchObject({switchRequestId:'native-switch',supplyPeriodId:ids.supply,message:{customer_id:'customer',site_id:'site',metering_point_id:'point'}});expect(io.writes).toEqual([])
 })
 it('caller bilateral marker cannot create H success when the actual native owner holds',async()=>{
- const observed:unknown[]=[];const result=await applyInboundBusinessStateMachine({message:message('Z04',true),actorUserId:'actor',onSourceSwitchCommitted:async value=>{observed.push(value)}})
+ const observed:unknown[]=[];const result=await applyInboundBusinessStateMachine({message:message('Z04',true),actorUserId:ids.actor,onSourceSwitchCommitted:async value=>{observed.push(value)}})
  expect(result).toMatchObject({outcome:'manual_review_required',reviewRequired:true,updated:[]});expect(io.nativeCalls).toHaveLength(1);expect(io.committed).toBe(false);expect(observed).toEqual([]);expect(io.writes).toEqual([])
 })
 it('real H end consumer creates final-work task only after its exact native period end',async()=>{
- const result=await applyInboundBusinessStateMachine({message:message('Z05'),actorUserId:'actor'})
- expect(result).toMatchObject({outcome:'supply_terminated',reviewRequired:false,updated:['customer_supply_periods','customer_cases']});expect(io.nativeCalls).toHaveLength(1);expect(io.writes).toHaveLength(1);expect(io.writes[0]).toMatchObject({table:'customer_cases',row:{company_id:'company',metering_point_id:'point',reason_category:'final_metering_and_billing'}})
+ const result=await applyInboundBusinessStateMachine({message:message('Z05'),actorUserId:ids.actor})
+ expect(result).toMatchObject({outcome:'supply_terminated',reviewRequired:false,updated:['customer_supply_periods','customer_cases']});expect(io.nativeCalls).toHaveLength(1);expect(io.writes).toEqual([])
 })
 it('failed native H commit propagates before any positive consumer scope or case',async()=>{
- io.failSupply=true;await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:'actor'})).rejects.toThrow('supply unavailable');expect(io.writes).toEqual([]);expect(io.committed).toBe(false)
+ io.failSupply=true;await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:ids.actor})).rejects.toThrow('supply unavailable');expect(io.writes).toEqual([]);expect(io.committed).toBe(false)
 })

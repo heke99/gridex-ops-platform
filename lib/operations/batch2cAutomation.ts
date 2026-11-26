@@ -1,5 +1,8 @@
+import { scanMeteringPeriodPoints } from '@/lib/operations/meteringPeriodScan'
+import { ensureBillingExportBlockerTask } from '@/lib/billing/exportBlockerTasks'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { updatePartnerExportStatus } from '@/lib/cis/db-data'
 
 type MaybeDbError = { code?: string; message?: string }
 
@@ -55,24 +58,6 @@ export type Batch2CPeriodMotorResult = {
   notes: string[]
 }
 
-type SiteRow = {
-  id: string
-  company_id: string
-  customer_id: string
-  grid_owner_id: string | null
-  facility_id?: string | null
-  status?: string | null
-}
-
-type MeteringPointRow = {
-  id: string
-  company_id: string
-  site_id: string | null
-  meter_point_id: string | null
-  grid_owner_id: string | null
-  status: string | null
-}
-
 export function isMissingRelationError(error: unknown): boolean {
   const maybe = error as MaybeDbError | null
   return Boolean(
@@ -85,19 +70,22 @@ export function isMissingRelationError(error: unknown): boolean {
   )
 }
 
-function monthStart(value: string): Date | null {
-  if (!/^\d{4}-\d{2}$/.test(value)) return null
-  const [year, month] = value.split('-').map(Number)
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null
-  return new Date(Date.UTC(year, month - 1, 1))
+function monthStart(value: string): Date {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value)
+  if (!match || Number(match[1]) === 0 || value === '9999-12') {
+    throw new Error('Ogiltig månad för periodmotorn. Ange en månad i formatet ÅÅÅÅ-MM.')
+  }
+  return new Date(`${value}-01T00:00:00.000Z`)
 }
 
 function addMonths(date: Date, months: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1))
+  const result = new Date(date.getTime())
+  result.setUTCMonth(result.getUTCMonth() + months)
+  return result
 }
 
 function monthKey(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+  return date.toISOString().slice(0, 7)
 }
 
 function isoDate(date: Date): string {
@@ -113,25 +101,24 @@ function defaultPeriodRange(): { startMonth: string; endMonth: string } {
 
 function enumeratePeriods(input?: { startMonth?: string | null; endMonth?: string | null; periodMonths?: string[] | null }): Array<{ month: string; start: string; end: string }> {
   if (input?.periodMonths?.length) {
-    return Array.from(new Set(input.periodMonths))
-      .map((raw) => raw.trim())
-      .filter((raw) => /^\d{4}-\d{2}$/.test(raw))
-      .map((raw) => {
-        const start = monthStart(raw) as Date
-        return { month: raw, start: isoDate(start), end: isoDate(addMonths(start, 1)) }
-      })
+    const months = Array.from(new Set(input.periodMonths.map((month) => month.trim()))).sort()
+    if (months.length > 36) throw new Error('Periodmotorn kan köra högst 36 månader åt gången.')
+    return months.map((month) => {
+      const start = monthStart(month)
+      return { month, start: isoDate(start), end: isoDate(addMonths(start, 1)) }
+    })
   }
 
   const defaults = defaultPeriodRange()
-  const start = monthStart(input?.startMonth ?? defaults.startMonth) ?? (monthStart(defaults.startMonth) as Date)
-  const end = monthStart(input?.endMonth ?? defaults.endMonth) ?? (monthStart(defaults.endMonth) as Date)
+  const start = monthStart(input?.startMonth?.trim() ?? defaults.startMonth)
+  const end = monthStart(input?.endMonth?.trim() ?? defaults.endMonth)
+  if (start > end) throw new Error('Periodmotorns slutmånad får inte ligga före startmånaden.')
+  if (addMonths(start, 36) <= end) throw new Error('Periodmotorn kan köra högst 36 månader åt gången.')
   const periods: Array<{ month: string; start: string; end: string }> = []
   let cursor = start
-  let guard = 0
-  while (cursor <= end && guard < 36) {
+  while (cursor <= end) {
     periods.push({ month: monthKey(cursor), start: isoDate(cursor), end: isoDate(addMonths(cursor, 1)) })
     cursor = addMonths(cursor, 1)
-    guard += 1
   }
   return periods
 }
@@ -149,158 +136,73 @@ async function insertAutomationRun(input: {
   exportsCreated?: number
   blockersFound?: number
 }) {
-  try {
-    await supabaseService.from('operations_automation_runs').insert({
-      company_id: input.companyId,
-      run_type: input.runType,
-      status: input.status,
-      customers_scanned: input.customersScanned ?? 0,
-      tasks_created: input.tasksCreated ?? 0,
-      requests_created: input.requestsCreated ?? 0,
-      cases_created: input.casesCreated ?? 0,
-      exports_created: input.exportsCreated ?? 0,
-      blockers_found: input.blockersFound ?? 0,
-      metadata: input.metadata,
-      created_by: input.actorUserId,
-    })
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error
-  }
+  const { error } = await supabaseService.from('operations_automation_runs').insert({
+    company_id: input.companyId,
+    run_type: input.runType,
+    status: input.status,
+    customers_scanned: input.customersScanned ?? 0,
+    tasks_created: input.tasksCreated ?? 0,
+    requests_created: input.requestsCreated ?? 0,
+    cases_created: input.casesCreated ?? 0,
+    exports_created: input.exportsCreated ?? 0,
+    blockers_found: input.blockersFound ?? 0,
+    metadata: input.metadata,
+    created_by: input.actorUserId,
+  })
+  if (error) throw new Error('Körhistoriken kunde inte sparas.', { cause: error })
 }
 
-async function ensureOutboundForGap(input: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId: string | null
-  meteringPointId: string
-  gridOwnerId: string | null
-  periodMonth: string
-  periodStart: string
-  periodEnd: string
-  meterPointId: string | null
-}): Promise<string | null> {
-  const automationKey = `batch2c:meter-values:${input.meteringPointId}:${input.periodMonth}`
-  const { data: existing, error: existingError } = await supabaseService
-    .from('outbound_requests')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('automation_key', automationKey)
-    .limit(1)
-
-  if (existingError) {
-    if (isMissingRelationError(existingError)) return null
-    throw existingError
+async function reconcileMeteringPeriodGap(
+  input: { companyId: string; actorUserId: string },
+  gapId: string,
+  mode: 'motor' | 'case_only',
+): Promise<{ requestCreated: boolean; caseCreated: boolean }> {
+  const db = supabaseService as unknown as {
+    rpc(
+      name: 'gridex_reconcile_metering_period_gap_v1',
+      args: { p_company_id: string; p_gap_id: string; p_actor_user_id: string; p_mode: 'motor' | 'case_only' },
+    ): PromiseLike<{
+      data: { outcome?: unknown; gapId?: unknown; requestCreated?: unknown; caseCreated?: unknown } | null
+      error: unknown
+    }>
   }
-
-  const existingId = (existing?.[0] as { id?: string } | undefined)?.id
-  if (existingId) return existingId
-
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId,
-      site_id: input.siteId,
-      metering_point_id: input.meteringPointId,
-      grid_owner_id: input.gridOwnerId,
-      request_type: 'meter_values',
-      source_type: 'bulk_generation',
-      source_id: null,
-      status: 'queued',
-      channel_type: 'unresolved',
-      payload: {
-        automation: 'batch_2c_period_motor',
-        periodMonth: input.periodMonth,
-        meterPointId: input.meterPointId,
-        periodStart: input.periodStart,
-        periodEnd: input.periodEnd,
-      },
-      response_payload: {},
-      period_start: input.periodStart,
-      period_end: input.periodEnd,
-      automation_origin: 'batch_2c_period_motor',
-      automation_key: automationKey,
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    if (isMissingRelationError(error)) return null
-    throw error
+  const { data, error } = await db.rpc('gridex_reconcile_metering_period_gap_v1', {
+    p_company_id: input.companyId,
+    p_gap_id: gapId,
+    p_actor_user_id: input.actorUserId,
+    p_mode: mode,
+  })
+  if (error) throw new Error('Mätvärdesluckans begäran och ärende kunde inte hanteras.', { cause: error })
+  if (!data || data.gapId !== gapId || typeof data.requestCreated !== 'boolean' || typeof data.caseCreated !== 'boolean'
+    || (data.outcome !== 'linked' && data.outcome !== 'held' && data.outcome !== 'case_closed')
+    || (mode === 'case_only' && data.requestCreated)) {
+    throw new Error('Mätvärdesluckans körkvitto är ogiltigt.')
   }
-
-  return (data as { id: string }).id
+  return { requestCreated: data.requestCreated, caseCreated: data.caseCreated }
 }
 
-async function ensureCase(input: {
-  actorUserId: string
-  companyId: string
-  customerId: string
-  siteId?: string | null
-  meteringPointId?: string | null
-  title: string
-  description: string
-  reasonCategory: string
-  sourceTable: string
-  sourceId: string
-  metadata?: Record<string, unknown>
-  linkedOutboundRequestId?: string | null
-  linkedPartnerExportId?: string | null
-  linkedMeteringGapId?: string | null
-  linkedExternalIntakeId?: string | null
-}): Promise<string | null> {
-  const { data: existing, error: existingError } = await supabaseService
-    .from('customer_cases')
-    .select('id')
-    .eq('company_id', input.companyId)
-    .eq('blocker_source_table', input.sourceTable)
-    .eq('blocker_source_id', input.sourceId)
-    .in('status', ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'])
-    .limit(1)
-
-  if (existingError && !isMissingRelationError(existingError)) throw existingError
-  const existingId = (existing?.[0] as { id?: string } | undefined)?.id
-  if (existingId) return existingId
-
-  const { data, error } = await supabaseService
-    .from('customer_cases')
-    .insert({
-      company_id: input.companyId,
-      customer_id: input.customerId,
-      site_id: input.siteId ?? null,
-      metering_point_id: input.meteringPointId ?? null,
-      case_type: 'technical_blocker',
-      status: 'action_required',
-      priority: 'high',
-      title: input.title,
-      description: input.description,
-      reason_category: input.reasonCategory,
-      billing_blocked: input.reasonCategory.includes('billing') || input.sourceTable === 'billing_export_run_items',
-      billing_manual_review: true,
-      next_action: 'Granska underlaget, komplettera saknad data och kör om automation/export för berörd rad.',
-      source: 'batch_2c_operations',
-      blocker_source_table: input.sourceTable,
-      blocker_source_id: input.sourceId,
-      linked_outbound_request_id: input.linkedOutboundRequestId ?? null,
-      linked_partner_export_id: input.linkedPartnerExportId ?? null,
-      linked_metering_gap_id: input.linkedMeteringGapId ?? null,
-      linked_external_intake_id: input.linkedExternalIntakeId ?? null,
-      metadata: input.metadata ?? {},
-      created_by: input.actorUserId,
-      updated_by: input.actorUserId,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    if (isMissingRelationError(error)) return null
-    throw error
+async function reconcilePartnerExportCase(
+  input: { companyId: string; actorUserId: string },
+  exportId: string,
+): Promise<boolean> {
+  const db = supabaseService as unknown as {
+    rpc(
+      name: 'gridex_reconcile_partner_export_case_v1',
+      args: { p_company_id: string; p_export_id: string; p_actor_user_id: string },
+    ): PromiseLike<{ data: { outcome?: unknown; partnerExportId?: unknown; caseCreated?: unknown } | null; error: unknown }>
   }
-
-  return (data as { id: string }).id
+  const { data, error } = await db.rpc('gridex_reconcile_partner_export_case_v1', {
+    p_company_id: input.companyId,
+    p_export_id: exportId,
+    p_actor_user_id: input.actorUserId,
+  })
+  if (error) throw new Error('Partnerexportens uppföljning kunde inte hanteras.', { cause: error })
+  if (!data || data.partnerExportId !== exportId || typeof data.caseCreated !== 'boolean'
+    || (data.outcome !== 'linked' && data.outcome !== 'held')
+    || (data.outcome === 'held' && data.caseCreated)) {
+    throw new Error('Partnerexportens körkvitto är ogiltigt.')
+  }
+  return data.caseCreated
 }
 
 export async function listBatch2CRlsPolicyReport(): Promise<Batch2CRlsPolicyReportRow[]> {
@@ -362,73 +264,32 @@ export async function runBatch2CPeriodMotor(input: {
   await requireCompanyOperationalForWrites(input.companyId)
 
   const periods = enumeratePeriods(input)
-  const notes: string[] = []
-  if (periods.length === 0) notes.push('Ingen giltig period angavs.')
-
-  const { data: sitesData, error: sitesError } = await supabaseService
-    .from('customer_sites')
-    .select('id, company_id, customer_id, grid_owner_id, facility_id, status')
-    .eq('company_id', input.companyId)
-    .limit(5000)
-
-  if (sitesError) throw sitesError
-  const sites = (sitesData ?? []) as SiteRow[]
-  const sitesById = new Map(sites.map((site) => [site.id, site]))
-
-  const { data: pointsData, error: pointsError } = await supabaseService
-    .from('metering_points')
-    .select('id, company_id, site_id, meter_point_id, grid_owner_id, status')
-    .eq('company_id', input.companyId)
-    .limit(5000)
-
-  if (pointsError) throw pointsError
-  const meteringPoints = ((pointsData ?? []) as MeteringPointRow[]).filter((point) => point.site_id && sitesById.has(point.site_id))
-  const pointIds = meteringPoints.map((point) => point.id)
-  const valueKeys = new Set<string>()
-
-  if (pointIds.length > 0 && periods.length > 0) {
-    const minStart = periods[0].start
-    const maxEnd = periods[periods.length - 1].end
-    const { data: values, error: valuesError } = await supabaseService
-      .from('metering_values')
-      .select('metering_point_id, period_start, read_at')
-      .eq('company_id', input.companyId)
-      .gte('period_start', minStart)
-      .lt('period_start', maxEnd)
-      .in('metering_point_id', pointIds)
-      .limit(10000)
-
-    if (valuesError && !isMissingRelationError(valuesError)) throw valuesError
-
-    for (const row of (values ?? []) as Array<{ metering_point_id: string | null; period_start: string | null; read_at: string | null }>) {
-      if (!row.metering_point_id) continue
-      const source = row.period_start ?? row.read_at
-      if (!source) continue
-      const date = new Date(source)
-      if (Number.isNaN(date.getTime())) continue
-      valueKeys.add(`${row.metering_point_id}:${monthKey(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)))}`)
-    }
-  }
+  const { pointsWithGaps, meteringPointsScanned } = await scanMeteringPeriodPoints({
+    companyId: input.companyId,
+    monthStarts: periods.map((period) => period.start),
+    includeUnlinked: false,
+  })
 
   let gapsCreated = 0
   let outboundRequestsCreated = 0
   let casesCreated = 0
 
-  for (const point of meteringPoints) {
-    const site = point.site_id ? sitesById.get(point.site_id) : null
-    if (!site?.customer_id) continue
+  for (const point of pointsWithGaps) {
+    const customerId = point.customer_id
+    if (!customerId || !point.site_id) continue
 
+    const missingMonths = new Set(point.missing_months)
     for (const period of periods) {
-      if (valueKeys.has(`${point.id}:${period.month}`)) continue
+      if (!missingMonths.has(period.start)) continue
 
-      const { data: gap, error: gapError } = await supabaseService
+      const { data: newGap, error: gapError } = await supabaseService
         .from('metering_period_gaps')
         .upsert({
           company_id: input.companyId,
-          customer_id: site.customer_id,
-          site_id: site.id,
-          metering_point_id: point.id,
-          grid_owner_id: point.grid_owner_id ?? site.grid_owner_id ?? null,
+          customer_id: customerId,
+          site_id: point.site_id,
+          metering_point_id: point.point_id,
+          grid_owner_id: point.grid_owner_id,
           period_month: period.month,
           period_start: period.start,
           period_end: period.end,
@@ -436,74 +297,45 @@ export async function runBatch2CPeriodMotor(input: {
           severity: 'warning',
           metadata: {
             meterPointId: point.meter_point_id,
-            siteFacilityId: site.facility_id ?? null,
+            siteFacilityId: point.facility_id,
             detectedBy: 'batch_2c_period_motor',
           },
           created_by: input.actorUserId,
-        }, { onConflict: 'company_id,metering_point_id,period_month' })
-        .select('id, outbound_request_id, customer_case_id')
-        .single()
+        }, { onConflict: 'company_id,metering_point_id,period_month', ignoreDuplicates: true })
+        .select('id')
+        .maybeSingle()
 
       if (gapError) throw gapError
-      gapsCreated += 1
+      if (newGap) gapsCreated += 1
 
-      const outboundRequestId = await ensureOutboundForGap({
-        actorUserId: input.actorUserId,
-        companyId: input.companyId,
-        customerId: site.customer_id,
-        siteId: site.id,
-        meteringPointId: point.id,
-        gridOwnerId: point.grid_owner_id ?? site.grid_owner_id ?? null,
-        periodMonth: period.month,
-        periodStart: period.start,
-        periodEnd: period.end,
-        meterPointId: point.meter_point_id,
-      })
-
-      if (outboundRequestId && !(gap as { outbound_request_id?: string | null }).outbound_request_id) {
-        outboundRequestsCreated += 1
-        await supabaseService
+      let gapId = newGap?.id
+      if (!gapId) {
+        const { data, error } = await supabaseService
           .from('metering_period_gaps')
-          .update({ status: 'request_queued', outbound_request_id: outboundRequestId, updated_at: new Date().toISOString() })
+          .select('id')
           .eq('company_id', input.companyId)
-          .eq('id', (gap as { id: string }).id)
+          .eq('metering_point_id', point.point_id)
+          .eq('period_month', period.month)
+          .single()
+        if (error) throw error
+        gapId = data?.id
       }
+      if (!gapId) throw new Error('Mätvärdesluckan kunde inte läsas tillbaka.')
 
-      const caseId = await ensureCase({
-        actorUserId: input.actorUserId,
-        companyId: input.companyId,
-        customerId: site.customer_id,
-        siteId: site.id,
-        meteringPointId: point.id,
-        title: 'Saknade mätvärden',
-        description: `Mätvärden saknas för ${period.month}. Perioden ska begäras eller kompletteras innan underlaget kan faktureras.`,
-        reasonCategory: 'missing_meter_values',
-        sourceTable: 'metering_period_gaps',
-        sourceId: (gap as { id: string }).id,
-        linkedOutboundRequestId: outboundRequestId,
-        linkedMeteringGapId: (gap as { id: string }).id,
-        metadata: { periodMonth: period.month, meterPointId: point.meter_point_id },
-      })
-
-      if (caseId && !(gap as { customer_case_id?: string | null }).customer_case_id) {
-        casesCreated += 1
-        await supabaseService
-          .from('metering_period_gaps')
-          .update({ customer_case_id: caseId, updated_at: new Date().toISOString() })
-          .eq('company_id', input.companyId)
-          .eq('id', (gap as { id: string }).id)
-      }
+      const effect = await reconcileMeteringPeriodGap(input, gapId, 'motor')
+      if (effect.requestCreated) outboundRequestsCreated += 1
+      if (effect.caseCreated) casesCreated += 1
     }
   }
 
   const result: Batch2CPeriodMotorResult = {
     companyId: input.companyId,
     periodsChecked: periods.map((period) => period.month),
-    meteringPointsScanned: meteringPoints.length,
+    meteringPointsScanned,
     gapsCreated,
     outboundRequestsCreated,
     casesCreated,
-    notes,
+    notes: [],
   }
 
   await insertAutomationRun({
@@ -531,23 +363,14 @@ export async function createCasesForBatch2CQueues(input: {
 
   for (const row of queue) {
     if (!row.customer_id) continue
-    const caseId = await ensureCase({
-      actorUserId: input.actorUserId,
-      companyId: input.companyId,
-      customerId: row.customer_id,
-      siteId: row.site_id,
-      meteringPointId: row.metering_point_id,
-      title: row.title,
-      description: row.description ?? 'Blockeraren behöver granskas.',
-      reasonCategory: row.queue_type,
-      sourceTable: row.queue_type === 'billing_export_item' ? 'billing_export_run_items' : row.queue_type,
-      sourceId: row.source_id,
-      linkedMeteringGapId: row.queue_type === 'metering_period_gap' ? row.source_id : null,
-      linkedPartnerExportId: row.queue_type === 'partner_export' ? row.source_id : null,
-      linkedExternalIntakeId: row.queue_type === 'external_contract_intake' ? row.source_id : null,
-      metadata: { queueType: row.queue_type, queuePayload: row.payload },
-    })
-    if (caseId) casesCreated += 1
+    if (row.queue_type === 'metering_period_gap') {
+      const effect = await reconcileMeteringPeriodGap(input, row.source_id, 'case_only')
+      if (effect.caseCreated) casesCreated += 1
+    } else if (row.queue_type === 'billing_export_item') {
+      if (await ensureBillingExportBlockerTask(input, row.source_id)) casesCreated += 1
+    } else if (row.queue_type === 'partner_export') {
+      if (await reconcilePartnerExportCase(input, row.source_id)) casesCreated += 1
+    }
   }
 
   await insertAutomationRun({
@@ -573,23 +396,32 @@ export async function resolveBatch2CQueueItem(input: {
   const now = new Date().toISOString()
 
   if (input.queueType === 'metering_period_gap') {
-    await supabaseService
+    const { data, error } = await supabaseService
       .from('metering_period_gaps')
       .update({ status: 'resolved', resolved_at: now, resolved_by: input.actorUserId, updated_at: now })
       .eq('company_id', input.companyId)
       .eq('id', input.sourceId)
+      .in('status', ['open', 'request_queued', 'waiting_for_data', 'failed'])
+      .select('id')
+      .maybeSingle()
+    if (error) throw new Error('Mätvärdesluckan kunde inte markeras som hanterad.', { cause: error })
+    if (!data) throw new Error('Mätvärdesluckan är inte längre tillgänglig för åtgärden.')
   } else if (input.queueType === 'billing_export_item') {
-    await supabaseService
-      .from('billing_export_run_items')
-      .update({ status: 'ready', export_status: 'not_queued', blocker_reasons: [], updated_at: now })
-      .eq('company_id', input.companyId)
-      .eq('id', input.sourceId)
+    throw new Error('Öppna fakturaunderlaget för att hantera blockeringen. Exportens status följer fakturaflödet.')
   } else if (input.queueType === 'partner_export') {
-    await supabaseService
+    const { data, error } = await supabaseService
       .from('partner_exports')
-      .update({ status: 'queued', failure_reason: null, failed_at: null, updated_at: now, updated_by: input.actorUserId })
+      .select('customer_id,status')
       .eq('company_id', input.companyId)
       .eq('id', input.sourceId)
+      .maybeSingle()
+    if (error) throw error
+    if (!data?.customer_id) throw new Error('Partnerexporten hittades inte för valt bolag.')
+    if (data.status === 'queued') throw new Error('Partnerexporten är redan köad.')
+    await updatePartnerExportStatus({
+      actorUserId: input.actorUserId, companyId: input.companyId, customerId: data.customer_id,
+      exportId: input.sourceId, originalStatus: data.status, changes: { status: 'queued', failure_reason: null },
+    })
   } else if (input.queueType === 'external_contract_intake') {
     await supabaseService
       .from('external_contract_intakes')

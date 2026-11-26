@@ -34,10 +34,8 @@ it.each([
 ])('physical native reading interval survives actual preparation at $requestedStartDate/$nextDay/+$offset',async fixture=>{
  const message=observationHandoffMessage('2026-09-30')
  message.application_reference='23-DDQ-E66-T'
- // Without the native meter's separate multiplier, these own physical readings
- // differ by 1000kWh. Keep the pure parser input internally consistent.
  message.raw_payload=z06fNativeReadingWire({...scope,requestedStartDate:fixture.requestedStartDate},fixture.nextDay?{date:'next-day'}:{})
-  .replace('?+0100:406',`?+${fixture.offset}:406`).replace("QTY+136:500'","QTY+136:1000'")
+  .replace('?+0100:406',`?+${fixture.offset}:406`)
  const runtime=runUtiltsRuntimeForMessage(message),policy=resolveCanonicalMessagePolicy(message)!
  expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
  const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,dataRequest:null,

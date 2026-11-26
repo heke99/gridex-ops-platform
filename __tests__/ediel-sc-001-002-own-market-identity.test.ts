@@ -101,7 +101,7 @@ describe('SC001 own legal supplier public Z03L order',()=>{
   expect(io.queue).not.toHaveBeenCalled();expect(intent.outboxStatus).toBe('queued')
   expect(io.outboundService).not.toHaveBeenCalled();expect(io.routeService).not.toHaveBeenCalled()
   expect(io.link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({edielMessageId:message.id,switchRequestId:switchRow.id,outboundRequestId:uid(37),actorUserId:actor}))
-  expect(io.event).toHaveBeenCalledExactlyOnceWith(expect.anything(),expect.objectContaining({companyId:A,switchRequestId:switchRow.id,eventType:'ediel_prepared',eventStatus:'queued',payload:expect.objectContaining({actorUserId:actor,edielMessageId:message.id,outboundRequestId:uid(37)})}))
+  expect(io.event).toHaveBeenCalledExactlyOnceWith(expect.anything(),expect.objectContaining({companyId:A,switchRequestId:switchRow.id,eventType:'ediel_prepared',eventStatus:'queued',payload:expect.objectContaining({actorUserId:actor,edielMessageId:message.id,outboundRequestId:uid(37),externalReference:message.external_reference})}))
  })
  it('does not repeat linking or preparation audit for the same already queued original',async()=>{
   const first=await orderA(),saved=[...intents.values()][0]

@@ -84,13 +84,12 @@ function actionFromPrimaryAction(action: WorkflowPrimaryAction, workflow: Custom
 }
 
 function switchStatus(workflow: CustomerCardWorkflow): CustomerStatusCard {
-  const switchStep = workflow.workflowSteps.find((step) => step.id === 'next_step')
-  if (switchStep?.explanation?.toLowerCase().includes('leverantörsbyte pågår')) {
+  if (workflow.primaryAction === 'follow_supplier_switch') {
     return {
       id: 'supplier_switch',
       label: 'Leverantörsbyte',
       value: 'Pågår',
-      description: 'Bytet är startat och inväntar nästa svar eller bekräftelse.',
+      description: 'Leveransärendet är registrerat. Aktuellt läge visas i ärendet.',
       tone: 'waiting',
       targetTab: 'switch-operations',
     }
