@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
       return csvResponse(buildCsv(headers, rows), `analytics-open-deviations-page-${page}.csv`)
     }
 
-    const month = definition?.periodScope ? monthStart(params.get('month')) : readAnalyticsExportMonth(params)
+    const month = definition?.periodScope
+      ? monthStart(params.get('month'))
+      : readAnalyticsExportMonth(params, { monthsAfter: report === 'forecast_run_items' ? 1 : 0 })
     if (month === null) return new NextResponse('Månaden måste anges som ÅÅÅÅ-MM.', { status: 400 })
     const rows = await getReportRows(companyId, report, month, { month, biddingZoneCode: params.get('biddingZoneCode'), gridOwnerId: params.get('gridOwnerId'), customerType: params.get('customerType'), meteringMethod: params.get('meteringMethod'), status: params.get('status') })
     const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))))

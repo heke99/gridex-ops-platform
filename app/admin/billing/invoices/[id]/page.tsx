@@ -84,8 +84,9 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
   const awaitingProjection = detail.lifecycleStage === 'awaiting_invoice_projection'
   const reservation = detail.reservation
   const fileExport = detail.fileExport
-  const waitingForFile = !fileExport && !reservation && invoice.status === 'draft' &&
+  const pendingFilePath = !fileExport && !reservation && invoice.status === 'draft' &&
     detail.lifecycleStage === 'approved' && detail.item.status === 'pending' && isFileProvider(detail.item.provider)
+  const pendingFileLabel = detail.reservationReadFailed ? 'Fakturavägen behöver kontrolleras' : 'Väntar på fakturafil'
   const fileReceipt = detail.lifecycleStage === 'file_created' && fileExport?.id &&
     hasInvoiceFileDownloadPermission(admin.permissions)
     ? new URLSearchParams({ ...(billingMonth ? { month: billingMonth } : {}), file: fileExport.id })
@@ -149,8 +150,8 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
         ) : null}
 
         <section className={`rounded-2xl border p-5 text-sm ${detail.exportStatus.needsAction ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'}`}>
-          <h2 className="font-semibold">{fileExport || waitingForFile ? 'Fakturafil' : 'Överföring till fakturapartner'}</h2>
-          <p className="mt-1">{waitingForFile ? 'Väntar på fakturafil' : detail.exportStatus.label}</p>
+          <h2 className="font-semibold">{fileExport || pendingFilePath ? 'Fakturafil' : 'Överföring till fakturapartner'}</h2>
+          <p className="mt-1">{pendingFilePath ? pendingFileLabel : detail.exportStatus.label}</p>
           {fileExport?.id ? <p className="mt-1">Följ upp överlämningen till mottagaren separat.</p> : null}
           {fileReceipt ? (
             <Link href={`/admin/billing?${fileReceipt}`} prefetch={false} className="mt-2 inline-block font-semibold underline">

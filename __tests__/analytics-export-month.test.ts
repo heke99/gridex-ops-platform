@@ -35,7 +35,8 @@ vi.mock('@/lib/tenant/adminScope', () => ({
 vi.mock('@/lib/analytics/db', () => ({
   ANALYTICS_REPORTS: [
     { key: 'company_monthly_metrics' },
-    { key: 'data_quality_issues', periodScope: 'all' },
+    { key: 'forecast_run_items' },
+    { key: 'data_quality_issues', periodScope: 'all-history' },
   ],
   getReportRows: fixture.readAnalytics,
 }))
@@ -57,6 +58,7 @@ const exporters = [
 ]
 const invalidMonths: Array<[string, string[]]> = [
   ['an out-of-range month', ['2026-13']],
+  ['year zero', ['0000-01']],
   ['a suffix', ['2026-10garbage']],
   ['an empty explicit month', ['']],
   ['a newline', ['2026-10\n']],
@@ -116,6 +118,29 @@ it('keeps archive export period independent', async () => {
   const path = '/admin/analytics/export?report=data_quality_issues'
   const response = await analyticsExport(exportRequest(path, ['garbage']))
   expect(response.status).toBe(200)
-  expect(response.headers.get('content-disposition')).toContain('data_quality_issues-all.csv')
+  expect(response.headers.get('content-disposition')).toContain('data_quality_issues-all-history.csv')
   expect(fixture.readAnalytics).toHaveBeenCalledOnce()
+})
+
+describe.each(exporters.slice(1))('$name history range', ({ handle, path }) => {
+  it('rejects months whose twelve-month history crosses before year one', async () => {
+    const response = await handle(exportRequest(path, ['0001-11']))
+    expect(response.status).toBe(400)
+    expect(fixture.readPortfolio).not.toHaveBeenCalled()
+    expect(fixture.readWhiteLabelOverview).not.toHaveBeenCalled()
+  })
+
+  it('allows the first month with a representable twelve-month history', async () => {
+    const response = await handle(exportRequest(path, ['0001-12']))
+    expect(response.status).toBe(200)
+    expect(fixture.readPortfolio).toHaveBeenCalledWith(fixture.companyId, '0001-01-01', '0001-12-01')
+  })
+})
+
+it('rejects a forecast month whose exclusive end exceeds the four-digit date format', async () => {
+  const response = await analyticsExport(
+    exportRequest('/admin/analytics/export?report=forecast_run_items', ['9999-12']),
+  )
+  expect(response.status).toBe(400)
+  expect(fixture.readAnalytics).not.toHaveBeenCalled()
 })

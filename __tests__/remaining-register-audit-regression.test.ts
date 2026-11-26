@@ -113,6 +113,22 @@ it.each([
     expect(html).toContain(label);
     expect(html).not.toContain('Fil skapad');
 });
+it('shows an uncertain file path when the reservation check could not be read', async () => {
+    billingRows();
+    io.tables.invoice_export_items = [{
+        id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract',
+        billing_underlay_id: 'underlay', pricing_run_id: 'run', provider: 'file_export', status: 'pending',
+        metadata: { approval: { status: 'approved' } },
+    }];
+    io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }];
+    io.failedTable = 'companies';
+    const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page');
+    const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) }));
+    expect(html).toContain('Avstämningen kunde inte läsas');
+    expect(html).toContain('Fakturavägen behöver kontrolleras');
+    expect(html).not.toContain('Väntar på fakturafil');
+    expect(html).not.toContain('Överföring till fakturapartner');
+});
 it('keeps the fourth billing blocker accessible', async () => { io.tables.customers = [{ id: 'customer', company_id: 'A', full_name: 'Syntetisk kund' }]; io.blockers = Array.from({ length: 4 }, (_, i) => ({ code: `blocker-${i}`, title: `Orsak ${i}` })); const { default: Page } = await import('@/app/admin/billing/quality/page'); expect(captureRender(await Page())).toContain('Orsak 3'); });
 it('keeps audit raw codes and IDs in the platform view only', async () => {
     io.tables.audit_logs = [{ id: 'audit', company_id: 'A', action: 'customer.updated', entity_type: 'customer', entity_id: 'raw-internal-identity', new_values: { provider: 'raw-technical-diagnostic' }, created_at: '2026-10-01' }];
