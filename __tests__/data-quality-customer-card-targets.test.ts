@@ -11,6 +11,7 @@ const io = vi.hoisted(() => ({
   missing: '10000100-0000-4000-8000-000000000006',
   checked: [] as Array<{ columns: string; ids: string[]; companyId: string | null }>,
   lookupFailed: false,
+  extendedIssues: false,
 }))
 
 vi.mock('server-only', () => ({}))
@@ -34,18 +35,36 @@ vi.mock('@/lib/supabase/service', () => ({
       [io.foreignCompany, io.foreign, 'foreign'],
     ] as const
     const scoped = affected.map(([company_id, customer_id, label]) => ({
-      company_id, customer_id, entity_id: label, entity_type: 'customer', issue_key: 'missing_signed_power_of_attorney',
+      company_id, customer_id, entity_id: String(label), entity_type: 'customer', issue_key: 'missing_signed_power_of_attorney',
       severity: 'warning', message: 'Fullmakt behöver granskas ' + label,
     }))
+    if (io.extendedIssues) {
+      for (const [severity, count] of [['critical', 102], ['warning', 31]] as const) {
+        for (let i = 0; i < count; i++) {
+          scoped.push({ ...scoped[0], severity, entity_id: severity + '-' + i })
+        }
+      }
+      scoped.push({ ...scoped[0], severity: 'critical', company_id: io.foreignCompany })
+    }
     let companyId: string | null = null
+    let severity: string | null = null
+    let head = false
+    let from = 0
+    let to = scoped.length
     const query = {
-      select: () => query, order: () => query, limit: () => query, in: () => query, neq: () => query,
-      eq: (column: string, value: string) => { expect(column).toBe('company_id'); companyId = value; return query },
-      then: (resolve: (outcome: unknown) => void) => Promise.resolve({
-        data: table === 'customer_data_quality_open_issues'
-          ? scoped.filter(row => !companyId || row.company_id === companyId) : [],
-        error: null,
-      }).then(resolve),
+      select: (_columns: string, options?: { head?: boolean }) => { head = options?.head === true; return query },
+      order: () => query,
+      range: (start: number, end: number) => { from = start; to = end + 1; return query },
+      in: () => query,
+      neq: () => query,
+      match: (filter: { company_id?: string }) => { companyId = filter.company_id ?? null; return query },
+      eq: (column: string, value: string) => { expect(column).toBe('severity'); severity = value; return query },
+      then: (resolve: (outcome: unknown) => void) => {
+        const matching = table === 'customer_data_quality_open_issues'
+          ? scoped.filter(row => (!companyId || row.company_id === companyId) && (!severity || row.severity === severity))
+          : []
+        return Promise.resolve({ data: head ? null : matching.slice(from, to), count: head ? matching.length : null, error: null }).then(resolve)
+      },
     }
     return query
   } },
@@ -83,6 +102,7 @@ beforeEach(() => {
   io.admin.permissions = ['metering.read', 'customers.read']
   io.admin.isPlatformAdmin = false
   io.lookupFailed = false
+  io.extendedIssues = false
   io.checked = []
 })
 
@@ -120,4 +140,13 @@ it('keeps the issue visible without an unverified link if the authenticated look
   expect(html).toContain('Fullmakt behöver granskas normal')
   expect(html).toContain('Manuell kontroll')
   expect(html).not.toContain(href(io.ordinary))
+})
+
+it('counts the selected company across all customer issue pages', async () => {
+  io.extendedIssues = true
+  const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ customerPage: '2' }) }))
+  expect(html).toMatch(/Kritiska kundfel<\/p><p[^>]*>102<\/p>/)
+  expect(html).toMatch(/Varningar<\/p><p[^>]*>35<\/p>/)
+  expect(html).toContain('Sida 2 av 3 · 137 rader')
+  expect(html).toContain('/admin/data-quality?customerPage=3#kunddata')
 })

@@ -47,7 +47,9 @@ function query(table: string) {
       }
       return value;
     };
-    const q: Query = { select: (value: string) => { columns = value; return q; }, eq: (key: string, value: unknown) => { filters.push([key, value]); return q; }, in: (key: string, value: unknown[]) => { filters.push([key, value]); return q; }, order: (key: string, options?: {
+    const q: Query = { select: (value: string) => { columns = value; return q; },
+        match: (scope: Record<string, unknown>) => { filters.push(...Object.entries(scope)); return q; },
+        eq: (key: string, value: unknown) => { filters.push([key, value]); return q; }, in: (key: string, value: unknown[]) => { filters.push([key, value]); return q; }, order: (key: string, options?: {
             ascending?: boolean;
         }) => { orders.push([key, options?.ascending !== false]); return q; }, limit: (limit: number) => { end = limit - 1; return q; }, range: (a: number, b: number) => { start = a; end = b; return q; }, or: () => q, neq: () => q, gt: () => q, gte: () => q, lt: () => q, lte: () => q, not: () => q, ilike: () => q, is: () => q,
         single: async () => ({ ...result(), data: result().data[0] ?? null }), maybeSingle: async () => ({ ...result(), data: result().data[0] ?? null }), then: (resolve: (value: unknown) => unknown) => Promise.resolve(response()).then(resolve) };
