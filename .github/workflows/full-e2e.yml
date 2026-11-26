@@ -308,6 +308,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'real' || inputs.mode == 'all'))
+    environment: staging-e2e
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

@@ -137,8 +137,9 @@ const coverageCaseBindings = [
     name: 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval',
     classes: ['TGT'], qualification: 'code_modelling', ports: { stateMachine: 'real_product_function', messages: 'synthetic', portal: 'not_entered' } },
 ]
-// Both reviewed workflows execute the same coverage producer and bind its receipts.
+// These reviewed workflow versions share the coverage producer and its receipt binding.
 const coverageWorkflowDigests = [
+  '9779c7778d9f2c81fba23d49714786e475a2db001d1172648c44dd9c4c8bcc14',
   '1b11210146cf41ef6d6af40923249a8f34f34c440a50c4415bbffe924eedcfc3',
   '011ff2e81ef3902a3c64b4ef5a75d60f3d7ab50c76c5bd43f28f7cb1410087b8',
 ]

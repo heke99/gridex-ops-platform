@@ -43,6 +43,7 @@ const headers = {
 
 async function rpc(name, args) {
   const response = await fetch(`${baseUrl}/rest/v1/rpc/${name}`, {
+    redirect: "error",
     method: "POST",
     headers,
     body: JSON.stringify(args),
@@ -53,7 +54,7 @@ async function rpc(name, args) {
 }
 
 async function selectOne(path) {
-  const response = await fetch(`${baseUrl}/rest/v1/${path}`, { headers });
+  const response = await fetch(`${baseUrl}/rest/v1/${path}`, { headers, redirect: "error" });
   const payload = await response.json().catch(() => null);
   if (!response.ok) throw new Error(`read failed: ${JSON.stringify(payload ?? response.statusText)}`);
   return Array.isArray(payload) ? payload[0] ?? null : payload;
