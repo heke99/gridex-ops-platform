@@ -634,7 +634,10 @@ it('JSONB key order is immaterial and wrong source code/environment fail interna
 })
 it('distinguishable observation order is immutable, not a set comparison', async () => {
   const f = await seed()
-  const lines = f.original.raw_payload!.replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+  const lines = f.original.raw_payload!
+    .replace('202607010000202607010015:719', '202607010000202607010030:719')
+    .replace('DTM+597:202607010020:203', 'DTM+597:202607010035:203')
+    .split('\n')
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
@@ -648,7 +651,10 @@ it('distinguishable observation order is immutable, not a set comparison', async
 })
 it('equivalent valid hour/minute wire spellings cannot replace a bound source', async () => {
   const f = await seed()
-  const raw = f.original.raw_payload!.replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719')
+  const raw = f.original.raw_payload!
+    .replace('15:806', '1:805')
+    .replace('202607010000202607010015:719', '202607010000202607010100:719')
+    .replace('DTM+597:202607010020:203', 'DTM+597:202607010105:203')
   const source = await f.insertSource(raw.replaceAll(f.original.interchange_reference!, 'HOUR'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'HOURE66001')), input = await f.prepare(source)
   await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
   const changed = { ...source, raw_payload: source.raw_payload!.replace('1:805', '60:806') }, prepared = await f.prepare(changed)
