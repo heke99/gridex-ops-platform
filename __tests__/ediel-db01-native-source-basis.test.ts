@@ -7,6 +7,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSyn
 import {tmpdir} from 'node:os'
 import {dirname, join, resolve} from 'node:path'
 import {afterAll, afterEach, beforeAll, beforeEach, expect, it, vi} from 'vitest'
+import {db01ContrlSchemaSha256, readDb01ContrlSchemaCapture} from './helpers/db01ContrlSchemaCapture'
 
 const s01DependencyExtensions = [
   {
@@ -352,13 +353,14 @@ it('does not use a guard result for another source or a different schema', async
   await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
 
-it('qualifies current function definitions, ACLs and exact delivered guard objects independently of native cases', () => {
-  const currentSchemaSha256 = createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')
-  expect(currentSchemaSha256).toBe('3838f1fd17e8a72a7086868747071106147bc37615626ebf1107c1640b07383c')
+it('qualifies function definitions, ACLs and delivered guard objects from the historical DB01 capture', () => {
+  const fixtureRoot = join(temp, 'qualified-contrl')
+  mkdirSync(join(fixtureRoot, 'supabase'), {recursive: true})
+  writeFileSync(join(fixtureRoot, 'supabase/schema.sql'), readDb01ContrlSchemaCapture())
   const currentReceipt = structuredClone(receipt) as {
     root_source: {blobs: Record<string, {sha256: string}>}
   }
-  currentReceipt.root_source.blobs['supabase/schema.sql'].sha256 = currentSchemaSha256
+  currentReceipt.root_source.blobs['supabase/schema.sql'].sha256 = db01ContrlSchemaSha256
   writeFileSync(receiptPath, JSON.stringify(currentReceipt))
   const python = String.raw`import os,pathlib,textwrap
 s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
@@ -406,7 +408,7 @@ for key in e['e66_dependency_keys']:
 # Framing normalization never erases an actual function/constraint/ACL body.
 assert e['blocks']('\n--\n-- Name: t; Type: TABLE; Schema: s; Owner: -\n--\nCREATE TABLE s.t(id uuid);\n--\n-- PostgreSQL database dump complete\n--\n\\unrestrict random\n')=={('s','TABLE','t'):'CREATE TABLE s.t(id uuid);'}
 `
-  expect(() => execFileSync('python3', ['-c', python], {cwd: root, env: {...process.env, CURRENT_ROOT: root,
+  expect(() => execFileSync('python3', ['-c', python], {cwd: root, env: {...process.env, CURRENT_ROOT: fixtureRoot,
     GRIDEX_DB01_NATIVE_RECEIPT: receiptPath}, stdio: ['pipe', 'pipe', 'pipe']})).not.toThrow()
 })
 

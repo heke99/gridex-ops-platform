@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { readPr1266SchemaCapture } from './helpers/db05PredecessorSchema'
+import { db01ContrlSchemaSha256, readDb01ContrlSchemaCapture } from './helpers/db01ContrlSchemaCapture'
 
 const currentSchema = 'e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c'
-const currentContrlSchema = '3838f1fd17e8a72a7086868747071106147bc37615626ebf1107c1640b07383c'
 const post949Schema = 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
 
 // Compile only the observer with synthetic source/catalog ports. This does not
@@ -331,14 +332,16 @@ type ContrlResult = {
   error: string | null; runs: number; executions: Array<{sqlSha256: string; timeout: number}>; queries: string[]; events: string[];
   receipt: {current_contrl_source_install?: {status: string; exit_code?: number; native_or_approval_credit: boolean}};
 }
-const contrlFixtureSchema = readFileSync('supabase/schema.sql', 'utf8')
+const contrlFixtureSchema = readDb01ContrlSchemaCapture()
 
-function contrlProbe(input: Record<string, unknown> = {}): ContrlResult {
-  return JSON.parse(execFileSync('python3', ['-c', contrlHarness, JSON.stringify(input), currentContrlSchema], {
-    input: contrlFixtureSchema, encoding: 'utf8', timeout: 10_000,
+function contrlProbe(
+  input: Record<string, unknown> = {}, schema = contrlFixtureSchema, schemaSha256 = db01ContrlSchemaSha256,
+): ContrlResult {
+  return JSON.parse(execFileSync('python3', ['-c', contrlHarness, JSON.stringify(input), schemaSha256], {
+    input: schema, encoding: 'utf8', timeout: 10_000,
   }))
 }
-describe('DB01 current CONTRL source installation on the qualified current capture', () => {
+describe('DB01 current CONTRL source installation on the historical qualified capture', () => {
   it('runs the preserved sixteen forwards and API/S01 sources before the exact current CONTRL installation', () => {
     const result = contrlProbe({phase: true})
     expect(result.error).toBeNull()
@@ -366,6 +369,18 @@ describe('DB01 current CONTRL source installation on the qualified current captu
     const result = contrlProbe({[change]: true})
     expect(result.error).toBe('db01_current_contrl_source_unqualified')
     expect(result.runs).toBe(0)
+  })
+  it('refuses the subsequent generated schema before querying the catalogue', () => {
+    const capture = readFileSync('supabase/schema.sql', 'utf8')
+    const manifest = JSON.parse(readFileSync('scripts/supabase-types-manifest.json', 'utf8')) as {
+      capture_artifact?: {schema_sha256?: string}
+    }
+    const schemaSha256 = createHash('sha256').update(capture).digest('hex')
+    expect(schemaSha256).toBe(manifest.capture_artifact?.schema_sha256)
+    expect(schemaSha256).not.toBe(db01ContrlSchemaSha256)
+    expect(contrlProbe({}, capture, schemaSha256)).toMatchObject({
+      error: 'db01_current_contrl_source_unqualified', runs: 0, queries: [],
+    })
   })
   it.each(['preimageDrift', 'metadataShape', 'missingCatalog'])('refuses catalog %s before any installation', change => {
     const result = contrlProbe({[change]: true})
@@ -424,14 +439,14 @@ it.each(['valid', 'missing', 'failed', 'wrong-exit', 'wrong-head', 'wrong-schema
   'requires an exact executed CONTRL receipt in final workflow qualification: %s', change => {
     const priorSchemas = change === 'previous-schema' ? [post949Schema, currentSchema] : [post949Schema]
     for (const previous of priorSchemas) {
-      const result = JSON.parse(execFileSync('python3', ['-c', contrlQualificationHarness, change, currentContrlSchema, previous], {
+      const result = JSON.parse(execFileSync('python3', ['-c', contrlQualificationHarness, change, db01ContrlSchemaSha256, previous], {
         encoding: 'utf8', timeout: 5000,
       }))
       expect(result.error).toBe(change === 'valid' ? null : 'db01_current_contrl_execution_required')
     }
   })
 
-it('preserves the historical 251-function writer and observes the exact current source delta without retuning it', () => {
+it('preserves the historical 251-function writer and observes the qualified successor without retuning it', () => {
   const python = String.raw`
 import ast, hashlib, json, pathlib, re, subprocess, sys, tempfile, textwrap
 repo=pathlib.Path.cwd();lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
@@ -447,8 +462,7 @@ exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-writer-source-closu
 spec=namespace['current_write_api_install_spec']();results=[]
 old=subprocess.check_output(['git','show','14007c0938af0e0d7de136fe76748b3589822ca6:supabase/schema.sql'],text=True)
 post949=subprocess.check_output(['git','show','9f20356c2deefeb1f264d5746798dd09ec85b663:supabase/schema.sql'],text=True)
-historical=sys.stdin.read()
-current=(repo/'supabase/schema.sql').read_text()
+historical,current=json.load(sys.stdin)
 with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder:
  path=pathlib.Path(folder)/'receipt.json'
  for source in [old,post949,historical,current]:
@@ -481,14 +495,14 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
    '949InWriter':any('gridex_ack_authority.read_outbound_originals_v1' in x['names'] for x in results),'beforeCatalogPin':spec['before_catalog_sha256']}))
 `
   const result = JSON.parse(execFileSync('python3', ['-c', python], {
-    input: readPr1266SchemaCapture(), encoding: 'utf8', timeout: 10_000,
+    input: JSON.stringify([readPr1266SchemaCapture(), contrlFixtureSchema]), encoding: 'utf8', timeout: 10_000,
   }))
   expect(result).toEqual({
     schemaPin: currentSchema,
     oldSchema: 'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b',
     post949Schema,
     historicalSchema: currentSchema,
-    currentSchema: currentContrlSchema,
+    currentSchema: db01ContrlSchemaSha256,
     changedObjects: [['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)']],
     writerCounts: [251, 251, 251, 252],
     writerDefinitionDigests: [
