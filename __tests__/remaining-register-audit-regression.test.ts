@@ -95,6 +95,24 @@ it('keeps technical pricing diagnostics out of the company underlay view', async
 it('selects the preferred run beyond the old 200-row history cap', async () => { billingRows(); io.platform = true; io.tables.pricing_runs = Array.from({ length: 201 }, (_, i) => ({ id: i === 200 ? 'preferred-locked-run' : `old-${i}`, company_id: 'A', billing_underlay_id: 'underlay', status: i === 200 ? 'locked' : 'success', created_at: '2026-10-01' })); const { default: Page } = await import('@/app/admin/billing/underlays/[id]/page'); const html = captureRender(await Page({ params: Promise.resolve({ id: 'underlay' }) })); expect(html).toContain('preferred-locked-run'); });
 it('filters price lines by the selected run before any global history cap', async () => { billingRows(); io.tables.pricing_preview_lines = [...Array.from({ length: 5000 }, (_, i) => ({ id: `old-line-${i}`, company_id: 'A', billing_underlay_id: 'underlay', pricing_run_id: 'old' })), { id: 'chosen', company_id: 'A', billing_underlay_id: 'underlay', pricing_run_id: 'run', description: 'Vald prisrad efter historiken' }]; const { default: Page } = await import('@/app/admin/billing/underlays/[id]/page'); expect(captureRender(await Page({ params: Promise.resolve({ id: 'underlay' }) }))).toContain('Vald prisrad efter historiken'); });
 it('shows invoice approval separately from a failed export', async () => { billingRows(); io.tables.invoice_export_items = [{ id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract', billing_underlay_id: 'underlay', pricing_run_id: 'run', status: 'failed', metadata: { approval: { status: 'approved' } }, error_payload: { message: 'raw_provider_diagnostic' } }]; io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }]; const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page'); const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) })); expect(html).toContain('Godkänd'); expect(html).toContain('Överföringen kräver åtgärd'); expect(html).not.toContain('raw_provider_diagnostic'); expect(html).not.toContain('Snapshot-hash'); });
+it.each([
+    ['file_export', 'Fakturafil', 'Väntar på fakturafil'],
+    ['nordfin', 'Fakturafil', 'Väntar på fakturafil'],
+    ['capway_aptic', 'Överföring till fakturapartner', 'Väntar på överföring'],
+])('shows the pending delivery step for an approved %s invoice', async (provider, heading, label) => {
+    billingRows();
+    io.tables.invoice_export_items = [{
+        id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract',
+        billing_underlay_id: 'underlay', pricing_run_id: 'run', provider, status: 'pending',
+        metadata: { approval: { status: 'approved' } },
+    }];
+    io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }];
+    const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page');
+    const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) }));
+    expect(html).toContain(heading);
+    expect(html).toContain(label);
+    expect(html).not.toContain('Fil skapad');
+});
 it('keeps the fourth billing blocker accessible', async () => { io.tables.customers = [{ id: 'customer', company_id: 'A', full_name: 'Syntetisk kund' }]; io.blockers = Array.from({ length: 4 }, (_, i) => ({ code: `blocker-${i}`, title: `Orsak ${i}` })); const { default: Page } = await import('@/app/admin/billing/quality/page'); expect(captureRender(await Page())).toContain('Orsak 3'); });
 it('keeps audit raw codes and IDs in the platform view only', async () => {
     io.tables.audit_logs = [{ id: 'audit', company_id: 'A', action: 'customer.updated', entity_type: 'customer', entity_id: 'raw-internal-identity', new_values: { provider: 'raw-technical-diagnostic' }, created_at: '2026-10-01' }];
