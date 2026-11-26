@@ -1,4 +1,4 @@
-import { isPlatformAdminRole, normalizeRoleKey } from '@/lib/rbac/roleKeys'
+import type { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const DEFAULT_STAFF_LANDING = '/dashboard'
 export const CUSTOMER_PORTAL_LANDING = '/portal'
@@ -13,29 +13,25 @@ export function decidePostLoginPath(input: { next: string; hasStaffAccess: boole
   return input.hasStaffAccess ? DEFAULT_STAFF_LANDING : CUSTOMER_PORTAL_LANDING
 }
 
-type RoleRow = string | { role_key?: string | null; key?: string | null; code?: string | null; name?: string | null }
+type StaffAccessContext = {
+  authorized?: unknown
+  user_id?: unknown
+  access_invariant_ok?: unknown
+}
 
-/** Fails open to staff access so a lookup error never strands staff in the portal. */
-export async function userHasStaffAccess(userId: string): Promise<boolean> {
+export async function userHasStaffAccess(
+  userId: string,
+  supabase: Pick<Awaited<ReturnType<typeof createSupabaseServerClient>>, 'rpc'>,
+): Promise<boolean> {
   try {
-    // Loaded lazily: the service client throws at import when its key is absent,
-    // which must not break rendering the public login page.
-    const { supabaseService } = await import('@/lib/supabase/service')
-    const memberships = await supabaseService
-      .from('company_memberships')
-      .select('company_id')
-      .eq('user_id', userId)
-      .limit(1)
-    if (memberships.error) return true
-    if ((memberships.data ?? []).length > 0) return true
-
-    const roles = await supabaseService.rpc('gridex_get_user_roles', { p_user_id: userId })
-    if (roles.error) return true
-    return (Array.isArray(roles.data) ? (roles.data as RoleRow[]) : []).some((row) => {
-      const raw = typeof row === 'string' ? row : row?.role_key ?? row?.key ?? row?.code ?? row?.name ?? null
-      return typeof raw === 'string' && isPlatformAdminRole(normalizeRoleKey(raw))
-    })
+    const { data, error } = await supabase.rpc('canonical_authenticated_tenant_context', { p_selected_company_id: null })
+    const context = data as StaffAccessContext | null
+    if (!error && context?.authorized === true && context.user_id === userId
+      && typeof context.access_invariant_ok === 'boolean') {
+      return context.access_invariant_ok
+    }
   } catch {
-    return true
+    // The dashboard performs its own authorization when context is unavailable.
   }
+  return true
 }

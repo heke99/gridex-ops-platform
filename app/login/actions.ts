@@ -30,7 +30,8 @@ export async function loginAction(formData: FormData) {
   const authResult = await (async () => {
     try {
       const supabase = await createSupabaseServerClient()
-      return await supabase.auth.signInWithPassword({ email, password })
+      const result = await supabase.auth.signInWithPassword({ email, password })
+      return { supabase, result }
     } catch {
       return null
     }
@@ -44,7 +45,7 @@ export async function loginAction(formData: FormData) {
     )
   }
 
-  const { data, error } = authResult
+  const { supabase, result: { data, error } } = authResult
 
   if (error) {
     redirect(
@@ -58,7 +59,7 @@ export async function loginAction(formData: FormData) {
   // of the staff dashboard; explicit deep links are kept as requested.
   const destination =
     next === '/dashboard' && data.user?.id
-      ? decidePostLoginPath({ next, hasStaffAccess: await userHasStaffAccess(data.user.id) })
+      ? decidePostLoginPath({ next, hasStaffAccess: await userHasStaffAccess(data.user.id, supabase) })
       : next
 
   const mustChangePassword = data.user?.user_metadata?.must_change_password === true
