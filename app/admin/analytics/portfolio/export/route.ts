@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getCustomerPortfolio, portfolioMonthsCsv } from '@/lib/analytics/customerPortfolio'
-import { addMonths, monthStart } from '@/lib/analytics/utils'
+import { addMonths, readAnalyticsExportMonth } from '@/lib/analytics/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Bolagsurvalet har ändrats. Ladda om Portföljöversikt och försök igen.' }, { status: 409 })
   }
 
-  const month = monthStart(params.get('month'))
+  const month = readAnalyticsExportMonth(params)
+  if (month === null) return NextResponse.json({ error: 'Månaden måste anges som ÅÅÅÅ-MM.' }, { status: 400 })
   const portfolio = await getCustomerPortfolio(companyId, addMonths(month, -11), month)
   return csvResponse(portfolioMonthsCsv(portfolio.months, portfolio.forecastMonths), `kundportfolj-${month.slice(0, 7)}.csv`)
 }

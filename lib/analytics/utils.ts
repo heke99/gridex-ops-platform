@@ -10,6 +10,18 @@ export function monthStart(input?: string | null): string {
   return date.toISOString().slice(0, 10)
 }
 
+export function readAnalyticsExportMonth(params: URLSearchParams): string | null {
+  const months = params.getAll('month')
+  if (months.length === 0) return monthStart()
+  if (months.length !== 1 || !/^\d{4}-\d{2}(?:-\d{2})?$/.test(months[0])) return null
+
+  const value = months[0]
+  const civilDate = value.length === 7 ? `${value}-01` : value
+  const date = new Date(`${civilDate}T00:00:00.000Z`)
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== civilDate) return null
+  return `${value.slice(0, 7)}-01`
+}
+
 export function addMonths(month: string, offset: number): string {
   const date = new Date(`${monthStart(month)}T00:00:00.000Z`)
   date.setUTCMonth(date.getUTCMonth() + offset)

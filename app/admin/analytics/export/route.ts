@@ -3,7 +3,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { ANALYTICS_REPORTS, getDeviationRows, getReportRows } from '@/lib/analytics/db'
 import { deviationPage, OPEN_DEVIATIONS_REPORT } from '@/lib/analytics/deviationPagination'
-import { buildCsv, monthStart } from '@/lib/analytics/utils'
+import { buildCsv, monthStart, readAnalyticsExportMonth } from '@/lib/analytics/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       return csvResponse(buildCsv(headers, rows), `analytics-open-deviations-page-${page}.csv`)
     }
 
-    const month = monthStart(params.get('month'))
+    const month = definition?.periodScope ? monthStart(params.get('month')) : readAnalyticsExportMonth(params)
+    if (month === null) return new NextResponse('Månaden måste anges som ÅÅÅÅ-MM.', { status: 400 })
     const rows = await getReportRows(companyId, report, month, { month, biddingZoneCode: params.get('biddingZoneCode'), gridOwnerId: params.get('gridOwnerId'), customerType: params.get('customerType'), meteringMethod: params.get('meteringMethod'), status: params.get('status') })
     const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))))
     const body = buildCsv(headers.length ? headers : ['status'], headers.length ? rows : [{ status: 'Inga rader' }])
