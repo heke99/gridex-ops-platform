@@ -126,9 +126,12 @@ assert(validator.includes('subtypeOrReasonCode: parsed.subtype') && canonicalPol
 assert(validator.includes('resolveCanonicalEdielPolicy({') && /const profile = getCanonicalProdatProfile\(code\)\s*if \(!profile\) throw/.test(canonicalPolicySource), 'validator must resolve the canonical PRODAT profile')
 
 const canonicalPack = read('lib/ediel/rulebook/canonicalRulePackRegistry.ts')
-assert(canonicalPack.includes('const source = resolveSourceCanonical(params)'), 'rule-pack resolver must resolve source semantics before DB evidence')
-assert(canonicalPack.indexOf('const source = resolveSourceCanonical(params)') < canonicalPack.indexOf("supabaseService.rpc('resolve_canonical_ediel_rule_pack'"), 'source resolution must happen before DB evidence lookup')
-assert(canonicalPack.includes('assertDbEvidenceMatchesSource'), 'DB rule-pack evidence must be checked against source decision')
+const packResolver = canonicalPack.match(/^export async function resolveCanonicalRulePack\([\s\S]*?^}$/m)?.[0] ?? ''
+const sourceResolution = packResolver.indexOf('const source = resolveSourceCanonical(params)')
+const evidenceLookup = packResolver.indexOf("supabaseService.rpc('resolve_canonical_ediel_rule_pack_with_witness_v1'")
+const evidenceCheck = packResolver.indexOf('assertDbEvidenceMatchesSource({ evidence, source,')
+assert(sourceResolution !== -1 && evidenceLookup > sourceResolution, 'source resolution must happen before the DB rule-pack witness lookup')
+assert(evidenceLookup !== -1 && evidenceCheck > evidenceLookup, 'DB rule-pack evidence must be checked against the resolved source decision')
 assert(canonicalPack.includes('DB profile JSON can never redefine'), 'DB profile JSON must be documented as non-authoritative')
 
 const codeRules = read('lib/ediel/rulebook/codeRules.ts')

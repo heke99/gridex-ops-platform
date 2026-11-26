@@ -21,7 +21,21 @@ const capwayClient = read('lib/integrations/billing/capway/client.ts')
 const payload = read('lib/integrations/billing/capway/payloadBuilder.ts')
 const exportCore = read('lib/integrations/billing/invoiceExportCore.ts')
 const migration = read('supabase/migrations/20260609100000_batch_1_2_5_3_capway_invoice_foundation.sql')
-const customerIntake = read('app/admin/customers/intake/page.tsx')
+const prepareRoute = read('app/api/internal/invoice-exports/create/route.ts')
+const prepareInvoices = read('lib/billing/invoiceReviewPrepare.ts')
+const sendRoute = read('app/api/internal/invoice-exports/[id]/send/route.ts')
+const approvedDispatch = read('lib/billing/invoiceApprovedDispatch.ts')
+const approvedItemDispatch = approvedDispatch.slice(
+  approvedDispatch.indexOf('async function sendApprovedItem('),
+  approvedDispatch.indexOf('export async function sendApprovedInvoiceExportRun('),
+)
+const fileSubmit = read('app/admin/billing/invoice-files/submit.ts')
+const purchaseRoute = read('app/api/internal/invoices/[id]/purchase/route.ts')
+
+function assertBefore(source, first, second, failure) {
+  const firstIndex = source.indexOf(first)
+  assert(firstIndex >= 0 && source.indexOf(second) > firstIndex, failure)
+}
 
 assert(unit.includes('Explicit unit from admin/customer price setup is source of truth'), 'Batch 1 must make explicit unit source of truth')
 assert(unit.includes("normalizeSingleUnit(input.unit)"), 'Batch 1 must evaluate unit before component type')
@@ -44,11 +58,55 @@ assert(exportCore.includes('sendInvoiceExportRun'), 'Batch 5 invoice export send
 assert(migration.includes('billing_provider_connections'), 'Batch 5 provider connection table missing')
 assert(migration.includes('invoice_export_runs'), 'Batch 5 invoice export runs table missing')
 assert(migration.includes('invoice_purchase_events'), 'Batch 5 purchase event table missing')
-assert(read('app/api/internal/invoice-exports/create/route.ts').includes('createInvoiceExportRun'), 'Batch 5 create API missing')
-assert(read('app/api/internal/invoices/[id]/purchase/route.ts').includes('requestCapwayInvoicePurchase'), 'Batch 5 purchase API missing')
+assertBefore(prepareRoute, "await requireAdminApiAccess(['billing_underlay.export']",
+  'await prepareInvoiceDraftsForReview(', 'Batch 5 preparation must require export permission first')
+assert(prepareRoute.includes('await assertUserCanOperateCompany(') && prepareRoute.includes('await requireAdminOperationalCompany(') &&
+  prepareRoute.includes('actorUserId: access.guard.userId') && prepareRoute.includes("mode: 'prepare_only'") &&
+  prepareRoute.includes('approval_required: true') && prepareRoute.includes('blocked_customers_are_not_reserved_or_sent: true'),
+  'Batch 5 preparation must remain tenant-scoped, prepare-only, and hold blocked customers')
+assert(!/\b(?:createInvoiceExportRun|sendInvoiceExportRun|sendApprovedInvoiceExportRun|approveAndSendReadyInvoicesForMonth|createInvoiceFile)\b/.test(prepareRoute),
+  'Batch 5 preparation must not invoke export or dispatch')
+assert(prepareInvoices.includes("status: 'pending_review'") &&
+  prepareInvoices.includes("'gridex_create_capway_invoice_review_draft_v1'") &&
+  prepareInvoices.includes("'gridex_create_invoice_review_draft_v1'"),
+  'Batch 5 preparation must reserve review drafts through their native owners')
 
-// The guidance copy moved into CustomerIntakeForm (verified grid owner picker).
-assert(read('components/admin/customers/CustomerIntakeForm.tsx').includes('Välj verifierad nätägare'), 'Batch 3 customer intake verified actor guidance missing')
+assertBefore(sendRoute, "await requireAdminApiAccess(['billing_underlay.export']", 'await sendApprovedInvoiceExportRun(',
+  'Batch 5 explicit send must require export permission first')
+assert(sendRoute.includes('await assertUserCanOperateCompany(') && sendRoute.includes('await requireAdminOperationalCompany(') &&
+  sendRoute.includes('actorUserId: access.guard.userId') && sendRoute.includes('approval_enforced: true'),
+  'Batch 5 explicit send must remain tenant-scoped and use the approved dispatch boundary')
+assertBefore(approvedItemDispatch, "if (itemApproval.status !== 'approved' || invoiceApproval.status !== 'approved') throw",
+  'await assertOutboundAllowed(', 'Batch 5 dispatch requires approval of the item and invoice before outbound access')
+assertBefore(approvedItemDispatch, 'await assertOutboundAllowed(', 'await assertItemStillReady(context)',
+  'Batch 5 dispatch must check outbound policy and current invoice readiness')
+assertBefore(fileSubmit, 'readSignedInvoiceFileIntent(token)', 'await createInvoiceFile(',
+  'Batch 5 file export must validate the signed export intent before new file creation')
+assertBefore(fileSubmit, "await requireAdminActionAccess(['billing_underlay.export'])", 'await createInvoiceFile(',
+  'Batch 5 file creation must require export authority')
+assertBefore(purchaseRoute, "await reserve('gridex_reserve_manual_capway_purchase_v1'", 'await requestCapwayInvoicePurchase(',
+  'Batch 5 purchase must reserve the exact invoice before calling Capway')
+assertBefore(purchaseRoute, 'if (claimed !== true) return purchaseNeedsReconciliation()', 'await requestCapwayInvoicePurchase(',
+  'Batch 5 purchase must hold an unconfirmed reservation')
+
+const customerIntake = read('app/admin/customers/intake/page.tsx')
+const intakeForm = read('components/admin/customers/CustomerIntakeForm.tsx')
+const intakeAction = read('app/admin/customers/actions.part-3.ts')
+const actorResolvers = read('app/admin/customers/actions.part-1.ts')
+const intakeGridOwner = actorResolvers.slice(
+  actorResolvers.indexOf('export async function resolveOrCreateGridOwnerForIntake('),
+  actorResolvers.indexOf('export async function resolveOrCreateCurrentSupplierForIntake('),
+)
+assert(customerIntake.includes('listGridOwners(supabase, { customerFlowOnly: true })') &&
+  customerIntake.includes('gridOwners={gridOwners.map(') &&
+  intakeForm.includes("name='gridOwnerId'") && intakeForm.includes('Välj nätägare (eller lämna tomt om du inte vet)'),
+  'Batch 3 customer intake must offer the verified list and a safe no-owner choice')
+assert(intakeAction.includes('await resolveOrCreateGridOwnerForIntake(') &&
+  intakeGridOwner.includes('row.is_active === true') && intakeGridOwner.includes("row.lifecycle_status !== 'blocked'") &&
+  intakeGridOwner.includes('row.verified_for_customer_flow === true') &&
+  intakeGridOwner.includes("row.actor_registry_status === 'verified'") && intakeGridOwner.includes('Boolean(row.ediel_id)') &&
+  /if \(!verified\) \{\s*return \{\s*gridOwnerId: null/.test(intakeGridOwner),
+  'Batch 3 intake must qualify the selected actor on the server before binding it')
 assert(migration.includes('verified_for_customer_flow'), 'Batch 3 actor registry verification fields missing')
 assert(read('app/admin/network-owners/page.tsx').includes('Endast platform/teknisk admin'), 'Batch 3 network owner UI guard copy missing')
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentDocumentationVersion, runtimeContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 let failed = false
@@ -65,16 +65,20 @@ const quote = read('lib/pricing/websiteQuotes.ts')
 for (const field of ['contract_product_id','contract_product_version_id','contract_publication_version_id','price_plan_id','price_plan_version_id','price_book_id','legal_bundle_version_id','energy_direction']) {
   check(quote.includes(field), `Quote binder ${field}`)
 }
-const application = read('lib/website/customerApplications.ts')
+const application = read('lib/website/customerApplicationProcess.ts')
+const onboarding = read('lib/website/customerApplicationOnboarding.ts')
+const quoteValidation = application.indexOf('websiteQuote = await validateWebsiteQuote({')
+const onboardingCall = application.match(/const canonicalGraph = await stage\("customer_create", \(\) =>\s+onboardCanonicalWebsiteCustomerGraph\(\{[\s\S]*?\n        websiteQuote,/)
+const graphCall = onboarding.match(/const result = await onboardCustomerGraph\(\{[\s\S]*?\n    quote: input\.websiteQuote/)
 check(
-  /validateWebsiteQuote\([\s\S]*onboardCanonicalWebsiteCustomerGraph/.test(application) &&
-    /onboardCustomerGraph\(\{[\s\S]*quote:\s*input\.websiteQuote/.test(application) &&
+  quoteValidation >= 0 && onboardingCall && quoteValidation < onboardingCall.index &&
+    graphCall &&
     /consumed_at\s*=\s*now\(\)/.test(
       read('supabase/migrations/20260727166000_atomic_quote_application_onboarding_commit.sql'),
     ),
   'Quote valideras före atomisk konsumering och ansökningscommit',
 )
-check(/energy_direction:\s*selected\.energyDirection/.test(application), 'Kundavtal skapas med publicerad energiriktning')
+check(/contract: \{\s+source_type:[^\n]+\s+status:[^\n]+\s+contract_name:[^\n]+\s+contract_type:[^\n]+\s+energy_direction: selected\.energyDirection/.test(onboarding), 'Kundavtal skapas med publicerad energiriktning')
 check(!/energy_direction:\s*["']consumption["']/.test(read('lib/customer-contracts/db.ts')), 'Kundavtalsrepository saknar hårdkodad consumption')
 check(!/energy_direction:\s*["']consumption["']/.test(read('lib/billing/underlayEngine.ts')), 'Billing underlay saknar hårdkodad consumption')
 
@@ -86,7 +90,18 @@ check(/selectedQuery[\s\S]*\.eq\("company_id", companyId\)[\s\S]*\.eq\("id", dia
 const publicApplication = read('lib/website/publicCustomerApplication.ts')
 check(publicApplication.includes("'energy_direction'"), 'Publikt ansökningssvar exponerar energiriktning')
 const publicContracts = read('lib/website/publicContracts.ts')
-check(/energy_direction/.test(publicContracts) && /production_pricing/.test(publicContracts) && /self_billing/.test(publicContracts), 'Public Contract DTO modellerar consumption/production och settlement')
+const publicContractResponse = read('lib/website/publicContracts.part-2.ts')
+const publicContractTerms = read('lib/website/publicContracts.part-1.ts')
+check(
+  /export \{ publicContractResponse,[^\n]+from '\.\/publicContracts\.part-2'/.test(publicContracts) &&
+    /const energyDirection = publicEnergyDirection\(offer\)/.test(publicContractResponse) &&
+    /const productionTerms = publicProductionTerms\(offer\)/.test(publicContractResponse) &&
+    /energy_direction: energyDirection/.test(publicContractResponse) &&
+    /production_pricing: productionTerms/.test(publicContractResponse) &&
+    /export function publicProductionTerms\(/.test(publicContractTerms) &&
+    /billing_direction:\s*clean\(production\.settlement_mode\) === "self_billing"\s*\? "self_billing"\s*:\s*"credit_invoice"/.test(publicContractTerms),
+  'Public Contract DTO modellerar consumption/production och settlement',
+)
 
 const openapi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 check(openapi.info.version === currentDocumentationVersion && openapi['x-contract-schema-version'] === runtimeContractVersion, 'Website OpenAPI har höjd kontraktsversion')

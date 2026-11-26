@@ -2,14 +2,25 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 
 const source = fs.readFileSync('lib/billing/underlayEngine.ts', 'utf8')
+const intervalSource = fs.readFileSync('lib/billing/underlayIntervals.ts', 'utf8')
 
-assert.match(source, /export function stockholmCivilDate/)
-assert.match(source, /timeZone:\s*["']Europe\/Stockholm["']/)
-assert.match(source, /const date = stockholmCivilDate\(segmentStart\)/)
-assert.doesNotMatch(source, /const date = segmentStart\.slice\(0, 10\)/)
-assert.match(source, /const segmentStartDate = stockholmCivilDate\(segmentStart\)/)
-assert.match(source, /const segmentEndExclusiveDate = stockholmCivilDate\(segmentEnd\)/)
-assert.match(source, /addDays\(stockholmCivilDate\(endsAt\), 1\)/)
+const civilDate = source.match(/^export function stockholmCivilDate\([\s\S]*?^}$/m)?.[0] ?? ''
+const snapshotTimeline = source.match(/^async function loadSnapshotTimeline\([\s\S]*?^}$/m)?.[0] ?? ''
+const contractCoverage = source.match(/^function contractCoversSegment\([\s\S]*?^}$/m)?.[0] ?? ''
+const lastIncludedDate = source.match(/^function lastIncludedBillingDate\([\s\S]*?^}$/m)?.[0] ?? ''
+const localBoundary = intervalSource.match(/^export function localDateBoundary\([\s\S]*?^}$/m)?.[0] ?? ''
+
+assert.match(civilDate, /timeZone:\s*["']Europe\/Stockholm["']/)
+assert.match(snapshotTimeline, /const date = stockholmCivilDate\(segmentStart\)/)
+assert.match(snapshotTimeline, /const lastDate = lastIncludedBillingDate\(segmentEnd\)/)
+assert.doesNotMatch(snapshotTimeline, /segment(?:Start|End)\.slice\(0, 10\)/)
+assert.match(contractCoverage, /const contractStartDate = startsAt \? stockholmCivilDate\(startsAt\)/)
+assert.match(contractCoverage, /contractStartDate > stockholmCivilDate\(segmentStart\)/)
+assert.match(contractCoverage, /const contractEndDate = endsAt \? stockholmCivilDate\(endsAt\)/)
+assert.match(contractCoverage, /contractEndDate < lastIncludedBillingDate\(segmentEnd\)/)
+assert.match(lastIncludedDate, /const date = stockholmCivilDate\(exclusiveEnd\)/)
+assert.match(lastIncludedDate, /instantMicros\(exclusiveEnd\) === instantMicros\(localDateBoundary\(date\)\)\s*\? addDays\(date, -1\)\s*:\s*date/)
+assert.match(localBoundary, /return stockholmLocalToUtc\(/)
 
 function stockholmDate(value) {
   const parts = new Intl.DateTimeFormat('en-CA', {
