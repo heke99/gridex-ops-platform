@@ -23,8 +23,17 @@ import { utiltsErrGatewayFixture } from '../__tests__/helpers/utiltsErrGatewayFi
 import { utiltsNativeSourceFixture, utiltsRecountUnt } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import {
   nativeEscoLiteral as lit, nativeEscoSql as sql,
-  resetNativeEscoFixture, seedNativeEscoFixture, qualifyNativeEscoFixture,
+  nativeEscoExternal, resetNativeEscoFixture, seedNativeEscoFixture, qualifyNativeEscoFixture,
 } from './fixtures/ediel-service-evidence-native'
+
+// Register the SMTP mock in this suite before its application imports load.
+vi.mock('nodemailer', () => ({
+  default: {
+    createTransport: () => ({
+      sendMail: (...args: unknown[]) => nativeEscoExternal.send(...args),
+    }),
+  },
+}))
 
 type Fixture = Awaited<ReturnType<typeof seedNativeEscoFixture>>
 type Quantity = { qualifier: string | null; value: string | null; quality?: string | null; readingAt?: string }
