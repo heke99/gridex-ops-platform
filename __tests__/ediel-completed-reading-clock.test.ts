@@ -106,6 +106,16 @@ describe('completed E66 native clock phase', () => {
     expect(runtime.facts.transactions[0].quantities.filter(quantity => quantity.qualifier === '136').map(quantity => quantity.value)).toEqual([1000])
   })
 
+  it('advances past the actual registration of the next-day Z06F reading', () => {
+    const original = readCompletedReadingRegistration(z06fNativeReadingWire(scope))
+    const nextDay = readCompletedReadingRegistration(z06fNativeReadingWire(scope, { date: 'next-day' }))
+    expect(Date.parse(nextDay) - Date.parse(original)).toBe(86_400_000)
+    const phase = plan([nextDay])
+    expect(phase.latestRegistrationMs).toBe(Date.parse(nextDay))
+    expect(phase.targetRealtimeMs).toBeGreaterThan(phase.latestRegistrationMs)
+    expect(phase.targetRealtimeMs - plan([original]).targetRealtimeMs).toBe(86_400_000)
+  })
+
   it('uses the latest registration for both exact Z10M reading wires while retaining both energy volumes', () => {
     const producer = actualZ10Wire()
     const change = '202612200000'
