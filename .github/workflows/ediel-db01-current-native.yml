@@ -1241,9 +1241,16 @@ jobs:
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
                   if process.returncode:sys.exit(process.returncode)
 
+          def mark_guard_preparation(stage):
+              # Only fixed stage names enter evidence. The driver log stays private.
+              receipt['current_guard_preparation_stage']=stage
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+
           mode=sys.argv[1]
           if mode=='before':
+              mark_guard_preparation('observe_catalog')
               before,db=observe()
+              mark_guard_preparation('verify_baseline_receipts')
               writer_baseline=json.loads((receipt_path.parent/'current-write-api-baseline-fingerprint.json').read_text())
               reader_baseline=json.loads((receipt_path.parent/'current-reader-catalog-before.json').read_text())
               reader_db=[reader_baseline['database'],reader_baseline['container']]
@@ -1262,8 +1269,16 @@ jobs:
               # forward changes. This is retained BASE evidence, not ROOT parity.
               surroundings={repr(key):value for key,value in before.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION '))}
-              (private/'current-guard-before.json').write_text(json.dumps({'owners':catalog_owners(),'roles':role_graph(),'auth_uid':auth_uid(),
+              mark_guard_preparation('observe_owners')
+              owners=catalog_owners()
+              mark_guard_preparation('observe_roles')
+              roles=role_graph()
+              mark_guard_preparation('observe_auth_uid')
+              auth_uid_snapshot=auth_uid()
+              mark_guard_preparation('write_private_snapshot')
+              (private/'current-guard-before.json').write_text(json.dumps({'owners':owners,'roles':roles,'auth_uid':auth_uid_snapshot,
                 'surroundings':surroundings,'database':db},indent=2)+'\n')
+              mark_guard_preparation('complete')
           elif mode=='forwards':
               executed=[]
               try:
