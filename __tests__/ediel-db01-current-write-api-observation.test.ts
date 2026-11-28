@@ -443,12 +443,16 @@ print(json.dumps({'error':error}))
 `
 it.each(['valid', 'missing', 'failed', 'wrong-exit', 'wrong-head', 'wrong-schema', 'previous-schema', 'wrong-donor', 'wrong-preimage', 'wrong-postimage', 'wrong-metadata', 'wrong-oid', 'fake-credit'])(
   'requires an exact executed CONTRL receipt in final workflow qualification: %s', change => {
+    const candidateHash = createHash('sha256').update(readFileSync('supabase/schema.sql')).digest('hex')
     const priorSchemas = change === 'previous-schema' ? [post949Schema, currentSchema] : [post949Schema]
-    for (const previous of priorSchemas) {
-      const result = JSON.parse(execFileSync('python3', ['-c', contrlQualificationHarness, change, db01ContrlSchemaSha256, previous], {
-        encoding: 'utf8', timeout: 5000,
-      }))
-      expect(result.error).toBe(change === 'valid' ? null : 'db01_current_contrl_execution_required')
+    const schemaHashes = change === 'valid' ? [db01ContrlSchemaSha256, candidateHash] : [db01ContrlSchemaSha256]
+    for (const schemaHash of schemaHashes) {
+      for (const previous of priorSchemas) {
+        const result = JSON.parse(execFileSync('python3', ['-c', contrlQualificationHarness, change, schemaHash, previous], {
+          encoding: 'utf8', timeout: 5000,
+        }))
+        expect(result.error).toBe(change === 'valid' ? null : 'db01_current_contrl_execution_required')
+      }
     }
   })
 
