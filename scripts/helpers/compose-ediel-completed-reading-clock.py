@@ -62,6 +62,20 @@ def compose(template, suite):
     source = source.replace('Z03C', 'COMPLETED_READING').replace('z03c', 'completed_reading')
     source = source.replace('completed_reading-supplier-boundary-native-evidence', 'completed_reading-native-evidence')
     source = source.replace('completed_reading-supplier-boundary-native-working', 'completed_reading-native-working')
+    # A stale Date cannot qualify the clock. Ask for a fresh sample within
+    # the donor's original attempt and monotonic limits before failing closed.
+    stale_sample = "        if abs(time.time()-stamp)>30:raise RuntimeError('completed_reading_trusted_normal_reference_skew')"
+    http_filter = '                if error.code not in {408,429,500,502,503,504} or attempt==3:raise'
+    if source.count(stale_sample) != 1 or source.count(http_filter) != 1:
+        raise ValueError('completed_reading_reference_preimage_unknown')
+    source = source.replace(stale_sample, """        if abs(time.time()-stamp)>30:
+            if attempt==3 or attempt>=deadline-time.monotonic():
+                raise RuntimeError('completed_reading_trusted_normal_reference_skew')
+            time.sleep(attempt)
+            continue""")
+    source = source.replace(http_filter, """                rate_limited=(error.code==403 and error.headers is not None
+                    and bool(error.headers.get('Retry-After')))
+                if (error.code not in {408,429,500,502,503,504} and not rate_limited) or attempt==3:raise""")
     admission = '''def require_reviewed_checkout(expected_head, environment):
     error='completed_reading_reviewed_owner_dispatch_required'
     repository='heke99/gridex-ops-platform'
