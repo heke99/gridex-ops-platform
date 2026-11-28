@@ -805,7 +805,7 @@ jobs:
                   # The real reader calls the actor-bearing three-argument overload.
                   if name=='public.ediel_read_bilateral_prodat_outbound_original_v1' and signature.count(',')==1:continue
                   pending.extend(re.findall(r'\b((?:public|gridex_[a-z0-9_]+|auth)\.[a-z0-9_]+)\s*\(',body))
-          if sha('\n'.join(sorted(reader_names)))!='56242105c4e3bba652fdac4a8ca9a6a716b1232be4ec8db1cd12deaf244d6adb':
+          if sha('\n'.join(sorted(reader_names)))!='2eedd18c05fa336433f439e51224942b0e0b2e8fae659a33b83e8043415bc076':
               fail('current reader call-closure identity changed')
           relation_keys=[('gridex_customer_masterdata', 'CONSTRAINT', 'preparations customer_masterdata_preparation_actor_operation_key'), ('gridex_customer_masterdata', 'FK CONSTRAINT', 'preparations preparations_cancellation_origin_id_fkey'), ('gridex_customer_masterdata', 'TABLE', 'preparations'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'guide_extensions guide_extensions_pkey'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_inbound_email_message_id_key'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_parse_result_id_key'), ('gridex_ediel_header_negative_birth', 'CONSTRAINT', 'receipts receipts_pkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_inbound_email_message_id_fkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_parse_result_id_fkey'), ('gridex_ediel_header_negative_birth', 'FK CONSTRAINT', 'receipts receipts_source_message_id_fkey'), ('gridex_ediel_header_negative_birth', 'ROW SECURITY', 'guide_extensions'), ('gridex_ediel_header_negative_birth', 'ROW SECURITY', 'receipts'), ('gridex_ediel_header_negative_birth', 'TABLE', 'guide_extensions'), ('gridex_ediel_header_negative_birth', 'TABLE', 'receipts'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'guide_extensions immutable_guide'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'receipts complete_birth'), ('gridex_ediel_header_negative_birth', 'TRIGGER', 'receipts immutable_receipt'), ('public', 'TRIGGER', 'ediel_messages assigned_prodat_negative_original_immutable')]
           if any(key not in expected for key in relation_keys):fail('delivered relation source object missing')
@@ -861,7 +861,7 @@ jobs:
 
           canonical_selection=[{'identity':list(key),'definition_sha256':sha(expected[key]) if key in expected else None}
             for key in sorted(selected)]
-          if sha(json.dumps(canonical_selection,sort_keys=True,separators=(',',':')))!='05a5944274e538d3b4ca2db630df2c720e5e6b078f1b1d7571d9475bc7a058cb':
+          if sha(json.dumps(canonical_selection,sort_keys=True,separators=(',',':')))!='0714eb147c780d42def94a9d2b9cea7de1d80e5009091e7a7c727f81e0c1c430':
               fail('current delivered guard identities, definitions or ACLs differ from the reviewed scope')
 
           e66_dependency_keys=[('-', 'ACL', 'SCHEMA gridex_e66_intake'),
@@ -903,7 +903,7 @@ jobs:
               objects=[{'identity':list(key),'definition_sha256':sha(catalog[key]) if key in catalog else None}
                 for key in e66_dependency_keys]
               return sha(json.dumps(objects,sort_keys=True,separators=(',',':')))
-          if dependency_catalog_fingerprint(expected)!='a56a7e63de431736817f8d6eeef761b1ef2b79088ae6a8f2cbf91e6d8c3e3609':
+          if dependency_catalog_fingerprint(expected)!='d361e2abad5336de57313ae7d082b48ace6501483598d10d9deccf0bef0378fc':
               fail('current E66 target relation definitions or ACLs changed')
           def logical_mismatches(actual):
               selected_with_actual=selected|{key for key in actual if selected_function_acl(key)}
