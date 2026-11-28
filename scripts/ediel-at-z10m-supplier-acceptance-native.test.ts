@@ -47,7 +47,8 @@ beforeEach(()=>{
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function fixture(requestedStartDate=futureNativeSupplyDate()){
+async function fixture(){
+  const requestedStartDate=futureNativeSupplyDate()
   const f=await createRequestedChangeSupplyFixture(email=>external.send.mockResolvedValue({
     accepted:[email],rejected:[],messageId:'synthetic-own-Z03',response:'250 explicitly synthetic acceptance',
   }),{requestedStartDate})
@@ -432,16 +433,23 @@ const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
   'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(f.companyId)}))`)
 
 it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
-  // Both reporting periods have completed before the actual mailbox receipt.
-  // The other Z10M scenarios still use the prospective supply fixture.
+  // Admit Z10 prospectively. Only the protected run has a disposable clock
+  // that can complete both reporting periods before actual mailbox reception.
   const hosted=completedReadingHostedSuite('z10m')
-  const f=await fixture(hosted?undefined:futureNativeSupplyDate(-15))
+  const f=await fixture()
   const change=changeWire(f),z10=await receive(f,change.wire)
   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:z10.sourceId,
     reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
   const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(z10.sourceId)}`)
   expect(cases).toHaveLength(1)
   expect(await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})).toMatchObject({status:'applied'})
+  const structureEffectiveAt=prodatMarketMinuteToUtc(change.minute)
+  if(!structureEffectiveAt)throw Error('z10m_native_exact_effective_minute_required')
+  const committed=effects(f,z10.sourceId)
+  expect(committed.receipts).toHaveLength(1)
+  const effect=committed.receipts[0].effect as {effectiveAt:string}
+  expect(Date.parse(effect.effectiveAt)).toBe(Date.parse(structureEffectiveAt))
+  if(!hosted)return
   // The Z10 is fully acknowledged; the fixture's disposable ACK profiles now
   // carries the received E66 application reference (as setOwnAckApplication in
   // the Z14 suite). No ACK authority/readiness is seeded.
@@ -455,11 +463,9 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   const old=readingWire(f,change.minute,'old','METER-1',['101'])
   const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
   const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
-  const structureEffectiveAt=prodatMarketMinuteToUtc(change.minute)
-  if(!structureEffectiveAt)throw Error('z10m_native_exact_effective_minute_required')
-  const finishPhase=hosted?await enterCompletedReadingHostedPhase('z10m',{
+  const finishPhase=await enterCompletedReadingHostedPhase('z10m',{
     supply:f,structuralSourceId:z10.sourceId,structureEffectiveAt,actor:f.reviewer,wires:[old.wire,fresh.wire,early.wire],
-  }):undefined
+  })
   const oldSource=await receiveUtilts(f,old.wire),oldState=readingState(f,oldSource)
   expect(bound(oldState)).toEqual([{status:'matched',codes:[],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
   expect(oldState.dispositions).toMatchObject([{source_transaction_id:old.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
@@ -534,5 +540,5 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // Earlier old-meter values and both bound readings are unchanged afterwards.
   expect(readingState(f,oldSource)).toEqual(oldState)
   expect(readingState(f,newSource)).toEqual(newState)
-  finishPhase?.([{id:oldSource,outcome:'persisted'},{id:newSource,outcome:'persisted'},{id:earlySource,outcome:'structural_err'}])
+  finishPhase([{id:oldSource,outcome:'persisted'},{id:newSource,outcome:'persisted'},{id:earlySource,outcome:'structural_err'}])
 })

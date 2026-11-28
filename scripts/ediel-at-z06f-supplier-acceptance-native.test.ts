@@ -8,7 +8,7 @@ import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {completedReadingHostedSuite,enterCompletedReadingHostedPhase} from './helpers/ediel-completed-reading-clock-native'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
-import {nativeSql as sql,literal,futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
+import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {approveEdielInboundCase,createOrUpdateInboundProdatCase,getEdielInboundCaseForMessage} from '@/lib/ediel/inboundCases'
 import {getEdielMessageById} from '@/lib/ediel/db'
@@ -46,10 +46,10 @@ beforeEach(()=>{
  external.send.mockReset()
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
-const fixture=(requestedStartDate?:string)=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({
+const fixture=()=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({
  accepted:[email],rejected:[],messageId:'synthetic-FG-acceptance-original',
  response:'250 explicitly synthetic accepted',
-}),{requestedStartDate})
+}))
 type Fixture=Awaited<ReturnType<typeof fixture>>
 type Change=Awaited<ReturnType<Fixture['change']>>
 type Evidence={
@@ -418,10 +418,10 @@ function expectCleanStagedCustomer(f:Fixture,change:Change,stored:Evidence['case
  expect(Object.fromEntries(Object.keys(clean).map(key=>[key,customer[key]]))).toEqual(clean)
 }
 it.each([false,true])('F first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
- // The reading branch needs a completed observed interval. Both native source
- // receipts still use the real clock and the other acceptance cases stay future.
+ // Both runs admit the original structure prospectively. The protected run
+ // also advances the disposable clock before admitting the completed reading.
  const hosted=!withUd&&completedReadingHostedSuite('fg')
- const f=await fixture(withUd||hosted?undefined:futureNativeSupplyDate(-15))
+ const f=await fixture()
  const change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
  const initial=evidence(f,change.message.id)
  expectNoFirstEffects(f,change.message)
@@ -471,12 +471,13 @@ it.each([false,true])('F first case approval versions only its original structur
    (SELECT count(*) FROM public.customer_invoices WHERE company_id=${literal(f.f.companyId)}),
    (SELECT count(*) FROM public.invoice_export_files WHERE company_id=${literal(f.f.companyId)}))`)
   expect(financialCounts()).toEqual([0,0,0,0])
+  if(!hosted)return
   const phase: {finish?:Awaited<ReturnType<typeof enterCompletedReadingHostedPhase>>}={}
-  const reading=await f.reading({},hosted?async wire=>{
+  const reading=await f.reading({},async wire=>{
    phase.finish=await enterCompletedReadingHostedPhase('fg',{
     supply:f.f,structuralSourceId:change.message.id,structureEffectiveAt:own.effect.effectiveAt,actor:f.operator,wires:[wire],
    })
-  }:undefined),outboundBefore=f.snapshots().outbound
+  }),outboundBefore=f.snapshots().outbound
   const facts=reading.qualified.runtime.facts,transaction=facts.transactions[0]
   const timezone=parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(facts))
   const registeredAt=localEdifactDateTimeToUtc(transaction.registrationTime,timezone)
@@ -503,7 +504,8 @@ it.each([false,true])('F first case approval versions only its original structur
   expect(f.snapshots().outbound).toBe(outboundBefore)
   await reading.persist();expect(sourceEffects(f,change.message.id)).toEqual(observed)
   expect(financialCounts()).toEqual([0,0,0,0])
-  phase.finish?.([{id:reading.message.id,outcome:'persisted'}])
+  if(!phase.finish)throw Error('fg_completed_reading_clock_phase_required')
+  phase.finish([{id:reading.message.id,outcome:'persisted'}])
  }
 })
 
