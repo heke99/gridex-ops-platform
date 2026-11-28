@@ -571,7 +571,8 @@ jobs:
                       fail('db01_writer_fingerprint_same_replay_required')
               current=observe_current_write_api(publish=False)
               canonical_sha=digest(current['canonical_function_definitions'])
-              if canonical_sha!='6880c7a0e51874f0138f333d8d6f0a46d6c354a68e045807a8ee4e47510d7929':
+              # The captured ROOT closure includes the planned move-out supply basis.
+              if canonical_sha!='b9a3e3ddf44f4bbf596928b5bd280ae6b483490d5933117c96e9c1017281577f':
                   fail('db01_writer_fingerprint_unqualified_source_scope')
               result={'status':'OBSERVED_ONLY','native_or_approval_credit':False,'stage':stage,
                   'checkout_sha':receipt['checkout_sha'],'checkout_tree':receipt['checkout_tree'],
