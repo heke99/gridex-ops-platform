@@ -25,12 +25,14 @@ jobs:
       github.triggering_actor == 'heke99' && github.run_attempt == 1 &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
-      github.ref == 'refs/pull/1269/merge' && github.event.pull_request.number == 1269 &&
       github.event.pull_request.draft && github.event.pull_request.state == 'open' && github.event.sender.login == 'heke99' &&
       github.event.pull_request.user.login == 'heke99' && github.event.pull_request.base.ref == 'main' &&
       github.event.pull_request.base.repo.full_name == 'heke99/gridex-ops-platform' &&
       github.event.pull_request.head.repo.full_name == 'heke99/gridex-ops-platform' &&
-      github.event.pull_request.head.ref == 'codex/gridex-ops-integrated-verification-20261124-0640' &&
+      ((github.ref == 'refs/pull/1269/merge' && github.event.pull_request.number == 1269 &&
+      github.event.pull_request.head.ref == 'codex/gridex-ops-integrated-verification-20261124-0640') ||
+      (github.ref == 'refs/pull/1270/merge' && github.event.pull_request.number == 1270 &&
+      github.event.pull_request.head.ref == 'codex/gridex-ops-qualification-21e392e7')) &&
       github.event.label.name == format('e66-clock-{0}', github.event.pull_request.head.sha)))
     name: Ediel completed reading / ${{ matrix.suite }}
     runs-on: ubuntu-latest

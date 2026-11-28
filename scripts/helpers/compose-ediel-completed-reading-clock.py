@@ -57,11 +57,17 @@ def compose(template, suite):
     if event_name=='workflow_dispatch':
         if ref!='refs/heads/main':raise RuntimeError(error)
         return
-    if event_name!='pull_request' or ref!='refs/pull/1269/merge':raise RuntimeError(error)
+    review_branches={
+        1269:'codex/gridex-ops-integrated-verification-20261124-0640',
+        1270:'codex/gridex-ops-qualification-21e392e7',
+    }
+    if event_name!='pull_request' or ref not in {f'refs/pull/{number}/merge' for number in review_branches}:raise RuntimeError(error)
     event=json.loads(pathlib.Path(environment['GITHUB_EVENT_PATH']).read_text())
     pr=event['pull_request']; base=pr['base']; head=pr['head']
-    if event['action']!='labeled' or pr['number']!=1269 or pr['draft'] is not True or pr['state']!='open' or event['sender']['login']!='heke99' or pr['user']['login']!='heke99':raise RuntimeError(error)
-    if base['ref']!='main' or base['repo']['full_name']!=repository or head['repo']['full_name']!=repository or head['ref']!='codex/gridex-ops-integrated-verification-20261124-0640':raise RuntimeError(error)
+    number=pr['number']
+    if number not in review_branches or ref!=f'refs/pull/{number}/merge':raise RuntimeError(error)
+    if event['action']!='labeled' or pr['draft'] is not True or pr['state']!='open' or event['sender']['login']!='heke99' or pr['user']['login']!='heke99':raise RuntimeError(error)
+    if base['ref']!='main' or base['repo']['full_name']!=repository or head['repo']['full_name']!=repository or head['ref']!=review_branches[number]:raise RuntimeError(error)
     if head['sha']!=expected_head or event['label']['name']!='e66-clock-'+expected_head:raise RuntimeError(error)
 require_reviewed_checkout(os.environ.get('GRIDEX_COMPLETED_READING_EXPECTED_HEAD'),os.environ)
 '''
