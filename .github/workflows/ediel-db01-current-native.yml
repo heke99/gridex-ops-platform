@@ -1138,7 +1138,8 @@ jobs:
                 'mixed_e73_draft_preconditions','mixed_e73_ide_completions','mixed_positive_create_context'},
             'gridex_e66_metering_stage':{'mixed_jobs','mixed_normalization_receipts'}}
           mixed_context_callbacks={'reject_mixed_e73_basis_mutation()','reject_mixed_e73_completion_mutation_v1()'}
-          rejection_check=('gridex_e66_intake','CONSTRAINT','registration_rejections e66_rejection_reason_supported')
+          # pg_dump emits the validated E50 CHECK inside the table definition.
+          e50_rejection_table=('gridex_e66_intake','TABLE','registration_rejections')
           def mixed_context_object(key):
               schema,kind,name=key
               tables=mixed_context_tables.get(schema,set())
@@ -1375,19 +1376,26 @@ jobs:
                   receipt['current_read_forward_executions']=executed
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
           elif mode=='after':
+              def mark_guard_qualification(stage):
+                  receipt['current_guard_qualification_stage']=stage
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              mark_guard_qualification('observe_current_catalog')
               earlier_schemas=set(schemas)
               try:
                   schemas.update({key[0] for key in e66_dependency_keys if key[0]!='-'})
                   actual,db=observe()
               finally:
                   schemas.clear();schemas.update(earlier_schemas)
-              if dependency_catalog_fingerprint(actual)!='a56a7e63de431736817f8d6eeef761b1ef2b79088ae6a8f2cbf91e6d8c3e3609':
+              mark_guard_qualification('verify_current_e66_catalog')
+              if dependency_catalog_fingerprint(actual)!=dependency_catalog_fingerprint(expected):
                   fail('current E66 dependency relations or ACLs mismatch')
+              mark_guard_qualification('verify_database_and_platform_authority')
               before=json.loads((private/'current-guard-before.json').read_text())
               if db!=before['database'] or role_graph()!=before['roles'] or auth_uid()!=before['auth_uid']:
                   fail('owned database/platform role/helper identity changed during forwards')
+              mark_guard_qualification('compare_selected_and_donor_objects')
               mismatches=logical_mismatches(actual)
-              supplemental_keys={key for key in set(expected)|set(actual) if mixed_context_object(key)}|{rejection_check}
+              supplemental_keys={key for key in set(expected)|set(actual) if mixed_context_object(key)}|{e50_rejection_table}
               supplemental_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]) if key in expected else None,
                 'actual_sha256':sha(actual[key]) if key in actual else None} for key in sorted(supplemental_keys)
                 if actual.get(key)!=expected.get(key)]
@@ -1399,7 +1407,9 @@ jobs:
               retained={repr(key):value for key,value in actual.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION ')) and repr(key) not in changes}
               original={key:value for key,value in before['surroundings'].items() if key not in changes}
+              mark_guard_qualification('verify_retained_surroundings')
               if retained!=original:fail('unreceipted private preparation surrounding metadata changed')
+              mark_guard_qualification('verify_owner_provenance')
               prior={(x['kind'],x['schema'],x['identity']):x for x in before['owners']};owners=catalog_owners();owner_results=[]
               for row in owners:
                   name=row['schema']+'.'+row['identity'].split('(')[0]
@@ -1422,11 +1432,13 @@ jobs:
                 'object_hashes':[{'identity':key,'sha256':sha(actual[key])} for key in sorted(selected) if key in actual],
                 'retained_surroundings':'exact_BASE_private_guard_objects_except_18_delivered_ROOT_relation_changes',
                 'scope':'bounded_current_reader_functions_and_delivered_guard_objects_NOT_whole_ROOT_database_parity'}
-              receipt['current_guard_result']=result;receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              receipt['current_guard_result']=result
+              mark_guard_qualification('catalog_comparison_recorded')
               (receipt_path.parent/'current-guard-qualification.json').write_text(json.dumps(result,indent=2)+'\n')
               if mismatches:fail('current reader guard object definitions differ: '+repr([x['identity'] for x in mismatches]))
               if supplemental_mismatches:fail('current reader guard donor catalog differs: '+repr([x['identity'] for x in supplemental_mismatches]))
               if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
+              mark_guard_qualification('complete')
           elif mode=='api':
               observe_current_write_api()
               install_current_write_api_projection()

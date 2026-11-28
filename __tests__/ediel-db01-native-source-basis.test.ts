@@ -402,6 +402,12 @@ for key in keys:
  actual=dict(expected);actual[key]+='\nchanged logical guard';assert compare(actual),('changed',key)
 dependency_fingerprint=e['dependency_catalog_fingerprint']
 baseline_dependency_hash=dependency_fingerprint(expected)
+assert baseline_dependency_hash=='d361e2abad5336de57313ae7d082b48ace6501483598d10d9deccf0bef0378fc'
+rejection_table=e['e50_rejection_table']
+assert rejection_table in e['e66_dependency_keys']
+old_table=expected[rejection_table].replace(", 'UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION'::text",'')
+assert old_table!=expected[rejection_table]
+assert dependency_fingerprint({**expected,rejection_table:old_table})=='a56a7e63de431736817f8d6eeef761b1ef2b79088ae6a8f2cbf91e6d8c3e3609'
 for key in e['e66_dependency_keys']:
  actual=dict(expected);actual[key]=(actual.get(key) or '')+'\nchanged exact E66 dependency'
  assert dependency_fingerprint(actual)!=baseline_dependency_hash,('changed E66 dependency',key)
