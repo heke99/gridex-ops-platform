@@ -49,7 +49,8 @@ async function nullZeroSource(f: Fixture, reference: string, extra: string[] = [
   const physical = utiltsErrGatewayFixture({ company: f.ids.company, receiver: f.sender, transactions: [{ reference, outcome: 'accepted' }] })
   const lines = physical.raw_payload!.replaceAll('91100', f.receiver).replaceAll('23-DDQ-E66-T', '23-DGI-E66-T').replace("NAD+DDQ'", "NAD+DGI'")
     .replace("STS+7++E88::260'", "STS+7++E23::260'").replaceAll('GRIDEX2607E66MSG001', `D${randomUUID().replaceAll('-', '').slice(0, 16)}`)
-    .replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+    .replace('202607010000202607010015:719', '202607010000202607010030:719')
+    .replace("DTM+597:202607010020:203'", "DTM+597:202607010040:203'").split('\n')
   const seq = lines.findIndex(line => line.startsWith('SEQ+')), unt = lines.findIndex(line => line.startsWith('UNT+'))
   expect(lines.slice(seq, unt)).toEqual(["SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'"])
   // A genuine max-demand transaction (U field521, SG11 QTY+42) is its own IDE
