@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
@@ -88,6 +90,92 @@ const before = clock(ordinary, 30_000)
 const plan = (registrations = chronology.registrationInstants) =>
   planCompletedReadingPhase({ ...chronology, registrationInstants: registrations }, admission, before)
 const controllerReceipt = (target: number) => ({ target_realtime_ms: target, actual_realtime_ms: target, shared_restore_lock: true })
+
+describe('authenticated GitHub clock reference', () => {
+  it('seals the credential away from children and keeps exact-origin, finite, fail-closed sampling', () => {
+    const root = resolve(process.env.GRIDEX_READING_PHASE_REPO ?? process.cwd())
+    const folder = mkdtempSync(resolve(tmpdir(), 'gridex-clock-reference-'))
+    const token = 'synthetic.token-for-controller'
+    try {
+      const template = resolve(root, '.github/workflows/ediel-z03c-supplier-boundary-native.yml')
+      const control = resolve(folder, 'control.py')
+      execFileSync('python3', [resolve(root, 'scripts/helpers/compose-ediel-completed-reading-clock.py'),
+        '--template', template, '--suite', 'fg', '--output', control])
+      execFileSync('python3', ['-c', String.raw`
+import ast, email.utils, io, os, re, subprocess, sys, urllib.error, urllib.request
+from types import SimpleNamespace
+from unittest.mock import patch
+
+source = ast.parse(open(sys.argv[1]).read())
+required = {'read_reference_token', 'trusted_reference', 'TrustedReferenceNoRedirect'}
+instructions = [node for node in source.body if getattr(node, 'name', None) in required]
+assert len(instructions) == len(required)
+exec(compile(ast.Module(body=instructions, type_ignores=[]), sys.argv[1], 'exec'))
+reference_token = read_reference_token()
+assert reference_token == 'synthetic.token-for-controller'
+assert subprocess.check_output([sys.executable, '-c',
+    "import os, sys; assert 'GRIDEX_CLOCK_REFERENCE_TOKEN' not in os.environ; assert not sys.stdin.read()"]) == b''
+try:
+    read_reference_token()
+except RuntimeError as error:
+    assert str(error) == 'completed_reading_reference_token_required'
+else:
+    raise AssertionError('a missing credential was accepted')
+
+class SimulatedTime:
+    current = 0
+    def monotonic(self): return self.current
+    def time(self): return 1780000000 + self.current
+    def sleep(self, seconds): self.current += seconds
+
+class Opener:
+    def __init__(self, responses):
+        self.responses = iter(responses)
+        self.samples = []
+    def open(self, request, timeout):
+        assert request.full_url.startswith('https://api.github.com/?gridex_completed_reading_clock_nonce=')
+        assert request.get_method() == 'HEAD'
+        assert request.get_header('Authorization') == 'Bearer ' + reference_token
+        assert 0 < timeout <= 15
+        self.samples.append((request.full_url, timeout))
+        status, headers = next(self.responses)
+        if status != 200:
+            raise urllib.error.HTTPError(request.full_url, status, 'synthetic', headers, io.BytesIO())
+        from contextlib import nullcontext
+        return nullcontext(SimpleNamespace(headers=headers))
+
+def sample(responses, expected_error=None, expected_attempts=1):
+    global time
+    time = SimulatedTime()
+    opener = Opener(responses)
+    def build(handler):
+        assert isinstance(handler, TrustedReferenceNoRedirect)
+        assert handler.redirect_request(None, None, 302, '', {}, 'https://example.invalid') is None
+        return opener
+    with patch.object(urllib.request, 'build_opener', build):
+        try:
+            accepted = trusted_reference()
+        except (RuntimeError, urllib.error.HTTPError) as error:
+            assert str(error) == expected_error
+        else:
+            assert expected_error is None
+            assert abs(accepted - time.time()) <= 30
+    assert len(opener.samples) == expected_attempts
+    assert len({url for url, _ in opener.samples}) == expected_attempts
+
+fresh = {'Date': email.utils.formatdate(1780000000, usegmt=True)}
+stale = {'Date': email.utils.formatdate(1779999900, usegmt=True)}
+sample([(200, fresh)])
+sample([(403, fresh)], 'HTTP Error 403: synthetic')
+sample([(403, {**fresh, 'Retry-After':'1'}), (200, stale), (200, fresh)], expected_attempts=3)
+sample([(429, {**fresh, 'Retry-After':'60'})], 'HTTP Error 429: synthetic')
+sample([(200, stale)] * 3, 'completed_reading_trusted_normal_reference_skew', 3)
+`, control], { input: token + '\n' })
+    } finally {
+      rmSync(folder, { recursive: true, force: true })
+    }
+  })
+})
 
 describe('completed E66 native clock phase', () => {
   it('uses the exact F wire with unchanged chronology and crosses the current real guide boundary in the model', () => {

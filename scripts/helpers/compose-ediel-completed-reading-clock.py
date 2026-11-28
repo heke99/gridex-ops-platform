@@ -66,8 +66,10 @@ def compose(template, suite):
     # the donor's original attempt and monotonic limits before failing closed.
     stale_sample = "        if abs(time.time()-stamp)>30:raise RuntimeError('completed_reading_trusted_normal_reference_skew')"
     http_filter = '                if error.code not in {408,429,500,502,503,504} or attempt==3:raise'
-    if source.count(stale_sample) != 1 or source.count(http_filter) != 1:
+    reference_request = "'Pragma':'no-cache'})"
+    if any(source.count(anchor) != 1 for anchor in (stale_sample, http_filter, reference_request)):
         raise ValueError('completed_reading_reference_preimage_unknown')
+    source = source.replace(reference_request, "'Pragma':'no-cache','Authorization':'Bearer '+reference_token})")
     source = source.replace(stale_sample, """        if abs(time.time()-stamp)>30:
             if attempt==3 or attempt>=deadline-time.monotonic():
                 raise RuntimeError('completed_reading_trusted_normal_reference_skew')
@@ -76,7 +78,17 @@ def compose(template, suite):
     source = source.replace(http_filter, """                rate_limited=(error.code==403 and error.headers is not None
                     and bool(error.headers.get('Retry-After')))
                 if (error.code not in {408,429,500,502,503,504} and not rate_limited) or attempt==3:raise""")
-    admission = '''def require_reviewed_checkout(expected_head, environment):
+    admission = r'''def read_reference_token():
+    # Only the ordinary controller reads the credential. Replace stdin before
+    # starting any privileged, watchdog, inventory or native child process.
+    line=sys.stdin.readline(4098)
+    with open(os.devnull,'rb') as empty:
+        os.dup2(empty.fileno(),sys.stdin.fileno())
+    if not re.fullmatch(r'[!-~]{1,4096}\n',line):
+        raise RuntimeError('completed_reading_reference_token_required')
+    return line[:-1]
+
+def require_reviewed_checkout(expected_head, environment):
     error='completed_reading_reviewed_owner_dispatch_required'
     repository='heke99/gridex-ops-platform'
     if not re.fullmatch('[0-9a-f]{40}',expected_head or ''):raise RuntimeError(error)
@@ -99,6 +111,7 @@ def compose(template, suite):
     if base['ref']!='main' or base['repo']['full_name']!=repository or head['repo']['full_name']!=repository or head['ref']!=review_branches[number]:raise RuntimeError(error)
     if head['sha']!=expected_head or event['label']['name']!='e66-clock-'+expected_head:raise RuntimeError(error)
 require_reviewed_checkout(os.environ.get('GRIDEX_COMPLETED_READING_EXPECTED_HEAD'),os.environ)
+reference_token=read_reference_token()
 '''
     anchor = "head=call(['git','rev-parse','HEAD']);tree=call(['git','rev-parse','HEAD^{tree}'])"
     if source.count(anchor) != 1:

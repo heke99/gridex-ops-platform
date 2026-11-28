@@ -13,10 +13,10 @@ const workflows = {
   z10m: '.github/workflows/ediel-z10m-supplier-native.yml',
 }
 const pins = {
-  [workflows.protected]: '5a59882d24431e143fe11bbee341e492ad7b778f03a0ecc35f15f4390f551883',
+  [workflows.protected]: '37ddf22f104560135f2d7b287a49f1afa5aa408a11a1571a5feebb8a1937810b',
   [workflows.fg]: '16534ee45bbbf538b9a2189bfcdcddba7f107927212c849bcceea02493cacbab',
   [workflows.z10m]: '47f1ae2eb69b24cc8daf75a7237020fcfd8c96af4a683616d8aa1725d0cad6e2',
-  'scripts/helpers/compose-ediel-completed-reading-clock.py': 'd7ae5d7c9bfe9d7a325cf0a910774a4a30c210ae606b15b8687139f9c9529e27',
+  'scripts/helpers/compose-ediel-completed-reading-clock.py': '388a793cc3330e6f755508948e5e9f16d9a5542813da9ddbb0e902bf55bcf6ab',
 }
 const acceptanceFile = kind => 'scripts/ediel-at-z06' + kind.toLowerCase() + '-supplier-acceptance-native.test.ts'
 const z10mFile = 'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts'
