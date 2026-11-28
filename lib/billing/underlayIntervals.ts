@@ -154,7 +154,7 @@ export function validateIntervalCoverage(
   const seen = new Set<string>();
   let cursor = instantMicros(segmentStart);
   const windowEnd = instantMicros(segmentEnd);
-  if (cursor === null || windowEnd === null) {
+  if (cursor === null || windowEnd === null || windowEnd <= cursor) {
     return { missing: 1, warnings: ["Fakturasegmentet har ogiltig start eller sluttid."] };
   }
   let cursorLabel = segmentStart;
@@ -188,6 +188,8 @@ export function validateIntervalCoverage(
     gapCount += 1;
     warnings.push(`Mätvärdeslucka finns fram till ${segmentEnd}.`);
   }
+  if (cursor > windowEnd)
+    warnings.push("Ett mätintervall sträcker sig utanför fakturasegmentets sluttid.");
   if (rows.length === 0)
     warnings.push("Mätvärden saknas i fakturasegmentet.");
   return { missing: gapCount, warnings: [...new Set(warnings)] };
