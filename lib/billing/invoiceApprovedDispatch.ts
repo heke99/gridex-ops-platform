@@ -1,5 +1,5 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
-import { InvoiceProviderConfigError, isFileProvider, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
+import { InvoiceProviderConfigError, isFileProvider, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider, type DispatchProvider, type InvoiceProviderEnvironment } from '@/lib/billing/providers/registry'
 import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -12,11 +12,18 @@ import { buildCapwayInvoicePayload } from '@/lib/integrations/billing/capway/pay
 import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase'
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import { classifyInvoiceExportError, computeNextRetryAt, INVOICE_EXPORT_MAX_ATTEMPTS } from '@/lib/integrations/billing/exportErrorClassification'
-import { lockBillingPeriodForInvoiceExport } from '@/lib/billing/invoiceReadiness'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/billing/capway/types'
 
 type Row = Record<string, unknown>
+const PURCHASE_RECONCILIATION_KEY = 'automatic_purchase_reconciliation'
+const OUTBOUND_FREEZE_ERROR = 'invoice_export_outbound_frozen'
+
+class CapwayEntryUnavailable extends Error {
+  constructor(readonly code: string) {
+    super(code)
+  }
+}
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -129,8 +136,6 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
   const context = await loadItemContext(companyId, itemId)
   if (context.item.status !== 'pending' || context.invoice.status !== 'draft') throw new Error('Endast oskickade draftfakturor kan godkännas.')
   await assertItemStillReady(context)
-  const existingApproval = approval(context.item.metadata)
-  if (existingApproval.status === 'approved' && approval(context.invoice.metadata).status === 'approved') return context
   const calculationHash = text(context.invoice.calculation_snapshot_sha256)
   const reviewHash = sha256({
     invoice_export_item_id: itemId,
@@ -141,38 +146,58 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
     total_inc_vat: num(context.invoice.amount_inc_vat),
     price_area: text(context.invoice.price_area_code) ?? text(context.underlay.price_area),
   })
-  const approvedAt = new Date().toISOString()
-  const approved = {
-    status: 'approved',
-    approved_at: approvedAt,
-    approved_by: actorUserId,
-    review_hash: reviewHash,
-    calculation_snapshot_sha256: calculationHash,
+  // The database re-reads this context under locks and commits both approval
+  // copies and their event together. A stale list or a competing caller cannot
+  // overwrite the original reviewer or count an existing approval as new.
+  const result = await supabaseService.rpc('gridex_approve_invoice_export_item_v1', {
+    p_company_id: companyId,
+    p_export_item_id: itemId,
+    p_actor_user_id: actorUserId,
+    p_expected_context: {
+      item: context.item,
+      invoice: context.invoice,
+      underlay: context.underlay,
+      pricing_run: context.pricingRun,
+    },
+    p_review_hash: reviewHash,
+  })
+  if (result.error?.code === '23514' && result.error.message === 'invoice_approval_provider_scope_changed') {
+    return 'provider-review' as const
   }
-  const itemUpdate = await supabaseService.from('invoice_export_items').update({
-    metadata: { ...objectValue(context.item.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('id', itemId).eq('status', 'pending').select('id').maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Fakturan kunde inte godkännas; status ändrades under granskningen.')
-  const invoiceUpdate = await supabaseService.from('customer_invoices').update({
-    metadata: { ...objectValue(context.invoice.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('invoice_export_item_id', itemId).eq('status', 'draft').select('id').maybeSingle()
-  if (invoiceUpdate.error) throw invoiceUpdate.error
-  if (!invoiceUpdate.data) throw new Error('Fakturaspegeln kunde inte godkännas.')
-  await emitDomainEvent({
-    companyId,
-    eventType: 'invoice.approved',
-    aggregateType: 'invoice_export_item',
-    aggregateId: itemId,
-    subjectCustomerId: text(context.item.customer_id),
-    actorUserId,
-    source: 'invoice_approved_dispatch_v1',
-    payload: { approved_at: approvedAt, review_hash: reviewHash },
-    idempotencyKey: `invoice-approved:${itemId}:${reviewHash}`,
-  }).catch(() => null)
-  return loadItemContext(companyId, itemId)
+  if (result.error?.code === '23514' && result.error.message === 'price_timeline_invoice_review_required') {
+    return 'price-timeline-review' as const
+  }
+  if (result.error?.code === '23514' && result.error.message === 'billing_source_correction_required') {
+    return 'metering-correction-review' as const
+  }
+  if (result.error?.code === '55P03' &&
+      (result.error.message === 'invoice_price_timeline_lock_busy' || result.error.message === 'invoice_correction_source_busy')) {
+    return 'retry-approval' as const
+  }
+  if (result.error?.code === '23514' && result.error.message === 'invoice_file_contract_case_hold') {
+    throw new Error('Ett aktivt kundärende blockerar fakturering för det valda avtalet.')
+  }
+  if (result.error?.code === '23514' && [
+    'billing_finalized_supply_basis_changed',
+    'billing_finalized_source_basis_required',
+    'ended_supply_pricing_basis_changed',
+  ].includes(result.error.message)) {
+    throw new Error('Fakturaunderlagets leveranskälla har ändrats. Kontrollera det aktuella underlaget innan du godkänner fakturan.')
+  }
+  if (result.error) throw result.error
+  const receipt = objectValue(result.data)
+  const storedApproval = objectValue(receipt.approval)
+  if (typeof receipt.approved_now !== 'boolean'
+    || storedApproval.status !== 'approved'
+    || storedApproval.review_hash !== reviewHash
+    || storedApproval.calculation_snapshot_sha256 !== calculationHash
+    || !text(storedApproval.approved_by)
+    || !Number.isFinite(Date.parse(text(storedApproval.approved_at) ?? ''))
+    || (receipt.approved_now && (storedApproval.approved_by !== actorUserId
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text(receipt.event_id) ?? '')))) {
+    throw new Error('Fakturans godkännandekvitto saknas eller är ogiltigt.')
+  }
+  return receipt.approved_now ? 'approved' as const : 'replayed' as const
 }
 
 export async function updateLegacyProjection(input: { companyId: string; runId: string; itemId: string; status: 'sent' | 'failed'; error?: string | null }) {
@@ -207,7 +232,7 @@ async function recordAttempt(input: {
   responseExcerpt?: string | null
   startedAt: string
 }) {
-  await supabaseService.from('invoice_export_attempts').insert({
+  const { error } = await supabaseService.from('invoice_export_attempts').insert({
     company_id: input.companyId,
     invoice_export_item_id: input.itemId,
     export_run_id: input.runId,
@@ -220,39 +245,8 @@ async function recordAttempt(input: {
     response_excerpt: input.responseExcerpt ?? null,
     started_at: input.startedAt,
     finished_at: new Date().toISOString(),
-  }).then(() => null)
-}
-
-export async function maybeLockCompleteMonth(input: { companyId: string; billingMonth: string; actorUserId: string; exportRunId: string }) {
-  const [year, month] = input.billingMonth.split('-').map(Number)
-  const underlays: Row[] = []
-  for (let from = 0; ; from += 1_000) {
-    const result = await supabaseService.from('billing_underlays').select('id,status,readiness_status').eq('company_id', input.companyId).eq('underlay_year', year).eq('underlay_month', month).order('id').range(from, from + 999)
-    if (result.error) throw result.error
-    const page = (result.data ?? []) as Row[]
-    underlays.push(...page)
-    if (page.length < 1_000) break
-  }
-  if (underlays.length === 0 || underlays.some((row) => row.status !== 'validated' || row.readiness_status !== 'ready')) return false
-  const ids = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
-  const sentUnderlays = new Set<string>()
-  for (let offset = 0; offset < ids.length; offset += 200) {
-    const result = await supabaseService.from('invoice_export_items').select('billing_underlay_id,status').eq('company_id', input.companyId).in('billing_underlay_id', ids.slice(offset, offset + 200)).in('status', ['sent', 'credited'])
-    if (result.error) throw result.error
-    for (const row of (result.data ?? []) as Row[]) {
-      const id = text(row.billing_underlay_id)
-      if (id) sentUnderlays.add(id)
-    }
-  }
-  if (ids.some((id) => !sentUnderlays.has(id))) return false
-  await lockBillingPeriodForInvoiceExport({
-    companyId: input.companyId,
-    billingMonth: input.billingMonth,
-    actorUserId: input.actorUserId,
-    exportRunId: input.exportRunId,
-    reason: 'Alla faktureringsunderlag är klara och samtliga fakturor är skickade eller krediterade.',
   })
-  return true
+  return !error
 }
 
 // A provider/selection mismatch is not transient: retrying cannot fix it, so the item leaves the
@@ -267,19 +261,74 @@ async function parkConfigurationError(companyId: string, itemId: string, error: 
   }).eq('id', itemId).eq('status', 'failed_retryable')
 }
 
+async function directDispatchSent(input: {
+  companyId: string; itemId: string; actorUserId: string; runId: string;
+  environment: CapwayEnvironment; billingMonth: string; invoiceGuid: string; attemptSaved: boolean;
+}) {
+  let monthReconciliation: 'locked' | 'not_locked' | 'failed' = 'not_locked'
+  try {
+    if (!input.attemptSaved) throw new Error('invoice_dispatch_attempt_not_recorded')
+    if (input.environment === 'production') {
+      const { reconcileVerifiedInvoiceDispatch } = await import('@/lib/billing/invoiceDispatchPeriodReconciliation')
+      monthReconciliation = await reconcileVerifiedInvoiceDispatch(input)
+    }
+  } catch {
+    monthReconciliation = 'failed'
+    try {
+      console.warn('[invoice-approved-dispatch] month reconciliation failed', {
+        companyId: input.companyId, billingMonth: input.billingMonth, exportRunId: input.runId,
+      })
+    } catch {
+      // Diagnostic failure cannot change a completed send.
+    }
+  }
+  return { itemId: input.itemId, runId: input.runId, status: 'sent' as const, invoiceGuid: input.invoiceGuid, monthReconciliation }
+}
+
+async function projectDirectCapwayAcknowledgement(input: {
+  companyId: string; itemId: string; actorUserId: string; runId: string; environment: CapwayEnvironment; billingMonth: string;
+}) {
+  const { data, error } = await supabaseService.rpc('gridex_project_direct_capway_ack_v1', {
+    p_company: input.companyId, p_item: input.itemId, p_actor: input.actorUserId,
+    p_run: input.runId, p_environment: input.environment,
+  })
+  if (error) throw new CapwayEntryUnavailable('capway_direct_invoice_projection_unconfirmed')
+  if (data === null) return null
+  const receipt = objectValue(data)
+  if (receipt.id !== input.itemId) throw new CapwayEntryUnavailable('capway_direct_invoice_projection_unconfirmed')
+  if (receipt.status === 'needs_review' && typeof receipt.reason === 'string') {
+    return { itemId: input.itemId, runId: input.runId, status: 'needs_review' as const,
+      errorCode: receipt.reason, error: 'Det sparade partnersvaret behöver stämmas av före publicering.' }
+  }
+  const invoiceGuid = text(receipt.invoiceGuid)
+  if (receipt.status !== 'sent' || !invoiceGuid) throw new CapwayEntryUnavailable('capway_direct_invoice_projection_unconfirmed')
+  return directDispatchSent({ ...input, invoiceGuid, attemptSaved: true })
+}
+
 async function sendApprovedItem(input: { companyId: string; itemId: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
-  await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
   return withAutomationLock({
     lockKey: `approved-invoice:${input.companyId}:${input.itemId}`,
     companyId: input.companyId,
     ttlSeconds: 7_200,
     metadata: { domain: 'invoice_approved_dispatch', itemId: input.itemId },
-    run: async () => {
+    run: async ({ lockToken }) => {
       const context = await loadItemContext(input.companyId, input.itemId)
       const itemApproval = approval(context.item.metadata)
       const invoiceApproval = approval(context.invoice.metadata)
       if (itemApproval.status !== 'approved' || invoiceApproval.status !== 'approved') throw new Error('Fakturaexport blockerad: explicit godkännande saknas.')
+      const previousResponse = objectValue(context.item.response_payload)
+      const direct = context.item.provider === 'capway_aptic' && !Object.hasOwn(previousResponse, PURCHASE_RECONCILIATION_KEY)
+        && !shouldRequestPurchaseAfterCreate(text(context.run.financing_mode))
+      const existingRunId = text(context.run.id)
+      const existingMonth = text(context.run.billing_month)
+      const existingEnvironment = text(context.run.environment)
+      if (direct && existingRunId && existingMonth && (existingEnvironment === 'test' || existingEnvironment === 'production')) {
+        const projected = await projectDirectCapwayAcknowledgement({ ...input, runId: existingRunId,
+          environment: existingEnvironment, billingMonth: existingMonth })
+        if (projected) return projected
+      }
+      await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
       if (!['pending', 'failed', 'failed_retryable'].includes(String(context.item.status))) throw new Error('Fakturan är inte i ett skick som får skickas.')
       await assertItemStillReady(context)
       // Send only through the provider and environment the tenant has selected and enabled; a run
@@ -294,6 +343,37 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const billingMonth = text(context.run.billing_month)
       const runId = text(context.run.id)
       if (!billingMonth || !runId) throw new Error('Exportkörningen saknar fakturamånad eller ID.')
+      const purchaseAfterCreate = shouldRequestPurchaseAfterCreate(financingMode)
+      if (purchaseAfterCreate && (context.item.provider !== selected.provider || context.item.environment !== environment)) {
+        throw new InvoiceProviderConfigError('invoice_purchase_scope_mismatch', 'Fakturaköpet har en annan leverantör eller miljö än exportkörningen.')
+      }
+      const purchaseReview = {
+        itemId: input.itemId,
+        runId,
+        status: 'needs_review' as const,
+        errorCode: 'provider_purchase_reconciliation_required',
+        error: 'Fakturaköpet behöver avstämmas innan körningen kan fortsätta.',
+      }
+      const reservePurchaseReview = (receipt: Row = {}) => supabaseService.from('invoice_export_items').update({
+        ...receipt,
+        status: purchaseReview.status,
+        next_retry_at: null,
+        error_code: purchaseReview.errorCode,
+        error_payload: { message: purchaseReview.error, error_code: purchaseReview.errorCode },
+        updated_at: new Date().toISOString(),
+      }).eq('company_id', input.companyId).eq('id', input.itemId).eq('export_run_id', runId)
+        .eq('provider', String(context.item.provider)).eq('environment', String(context.item.environment))
+        .eq('status', String(context.item.status))
+        .eq('updated_at', String(context.item.updated_at)).select('id,updated_at').maybeSingle()
+
+      // A reset can clear the queue status, but it cannot authorize a second purchase.
+      const existingProviderInvoice = text(context.item.provider_invoice_guid) ?? text(context.item.provider_invoice_id)
+      if (Object.hasOwn(previousResponse, PURCHASE_RECONCILIATION_KEY) || (purchaseAfterCreate && existingProviderInvoice)) {
+        const parked = await reservePurchaseReview()
+        if (parked.error) throw parked.error
+        if (!parked.data) throw new Error('Fakturapostens avstämningskrav kunde inte sparas.')
+        return purchaseReview
+      }
       const config = await resolveCapwayConnectionConfig({ companyId: input.companyId, environment })
       const client = new CapwayApticClient(config)
       const paymentDays = configuredPaymentDays(config, context.customer)
@@ -315,52 +395,173 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const providerKey = text(context.item.provider_idempotency_key) ?? text(context.item.idempotency_key) ?? `invoice:${input.companyId}:${input.itemId}`
       const attemptNo = (num(context.item.attempt_count) ?? 0) + 1
       const startedAt = new Date().toISOString()
+      const createReview = {
+        itemId: input.itemId,
+        runId,
+        status: 'needs_review' as const,
+        errorCode: 'provider_create_acceptance_unconfirmed',
+        error: 'Fakturans skickstatus behöver avstämmas hos leverantören innan ett nytt utskick kan göras.',
+      }
+      const getEntry = async (options: { phase: 'create' | 'purchase'; updatedAt: string | null; requestHash: string; targetGuid?: string; wireBody?: string }) => {
+        const required = {
+          p_company: input.companyId,
+          p_item: input.itemId,
+          p_invoice: text(context.invoice.id),
+          p_run: runId,
+          p_actor: input.actorUserId,
+          p_lease: lockToken,
+          p_environment: environment,
+          p_updated_at: options.updatedAt,
+          p_review_hash: text(itemApproval.review_hash),
+          p_external_reference: text(payload.externalReferenceCode),
+          p_provider_key: providerKey,
+          p_request_hash: options.requestHash,
+        }
+        const requiresWireBody = options.phase === 'create' && !purchaseAfterCreate
+        const wireBody = options.wireBody
+        if (requiresWireBody && !wireBody) throw new CapwayEntryUnavailable('capway_direct_invoice_request_unconfirmed')
+        const { data, error } = requiresWireBody && wireBody
+          ? await supabaseService.rpc('gridex_reserve_direct_capway_invoice_v1', { ...required, p_wire_body: wireBody })
+          : await supabaseService.rpc('gridex_reserve_capway_dispatch_entry_v1', {
+            ...required, p_phase: options.phase, p_target_guid: options.targetGuid ?? null,
+          })
+        if (error?.code === '23514' && error.message === 'invoice_file_contract_case_hold') {
+          throw new CapwayEntryUnavailable('invoice_contract_case_hold')
+        }
+        if (error?.code === '23514' && error.message === OUTBOUND_FREEZE_ERROR) {
+          throw new CapwayEntryUnavailable(OUTBOUND_FREEZE_ERROR)
+        }
+        if (error || !text(data)) throw new CapwayEntryUnavailable('capway_dispatch_entry_unconfirmed')
+        return String(data)
+      }
+      const recordAcknowledgement = async (entryId: string, acknowledgement: Record<string, unknown>, directHttpStatus?: number) => {
+        const receipt = {
+          p_company: input.companyId,
+          p_item: input.itemId,
+          p_entry: entryId,
+          p_lease: lockToken,
+          p_ack: acknowledgement,
+        }
+        const { data, error } = directHttpStatus === undefined
+          ? await supabaseService.rpc('gridex_record_capway_dispatch_ack_v1', receipt)
+          : await supabaseService.rpc('gridex_record_direct_capway_ack_v1', { ...receipt, p_http_status: directHttpStatus })
+        if (error || data !== entryId) throw new CapwayEntryUnavailable('capway_dispatch_ack_unconfirmed')
+      }
+
+      let invoiceGuid: string
+      let createEntry: string | undefined
+      let purchaseEntry: string | undefined
+      let purchaseReserved = false
       try {
-        const response = await client.createInvoices([payload], providerKey)
+        let directHttpStatus: number | undefined
+        const response = await client.createInvoices([payload], providerKey, async wireBody => {
+          const wireHash = wireBody ? createHash('sha256').update(wireBody, 'utf8').digest('hex') : null
+          createEntry = await getEntry({ phase: 'create', updatedAt: text(context.item.updated_at),
+            requestHash: !purchaseAfterCreate && wireHash ? wireHash : payloadHash, wireBody })
+        }, status => { directHttpStatus = status })
+        // Filtered GET is an observation, not a direct acknowledgement for
+        // this reserved operation. It must not begin an automatic purchase.
+        if (!createEntry || response.reconciled === true) return createReview
+        if (!purchaseAfterCreate && directHttpStatus === undefined) return createReview
+        await recordAcknowledgement(createEntry, response, purchaseAfterCreate ? undefined : directHttpStatus)
         const guids = Array.isArray(response.invoiceGuids) ? response.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
         if (guids.length !== 1) throw new Error('Fakturapartnern returnerade inte exakt ett faktura-ID.')
-        const invoiceGuid = guids[0]
+        invoiceGuid = guids[0]
+        if (!purchaseAfterCreate) {
+          return (await projectDirectCapwayAcknowledgement({ ...input, runId, environment, billingMonth })) ?? createReview
+        }
         let purchaseResponse: Record<string, unknown> | null = null
-        if (shouldRequestPurchaseAfterCreate(financingMode)) {
-          purchaseResponse = await client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode }))
+        if (purchaseAfterCreate) {
+          // Persist the create receipt and reserve review before contacting the purchase endpoint.
+          // Provider identity remains internal until the purchase path can complete as sent.
+          const reservation = await reservePurchaseReview({
+            response_payload: {
+              ...previousResponse,
+              create_invoice: response,
+              [PURCHASE_RECONCILIATION_KEY]: {
+                company_id: input.companyId,
+                export_run_id: runId,
+                invoice_export_item_id: input.itemId,
+                provider: selected.provider,
+                environment,
+                financing_mode: financingMode,
+                invoice_guid: invoiceGuid,
+                attempt_no: attemptNo,
+                provider_idempotency_key: providerKey,
+              },
+            },
+            attempt_count: attemptNo,
+            last_attempt_at: startedAt,
+          })
+          if (reservation.error) throw reservation.error
+          if (!reservation.data) throw new Error('Skapandekvittot kunde inte sparas före fakturaköpet.')
+          purchaseReserved = true
+          const purchasePayload = buildPurchasePayload({ financingMode })
+          purchaseResponse = await client.postPurchase(invoiceGuid, purchasePayload, async () => {
+            purchaseEntry = await getEntry({
+              phase: 'purchase',
+              updatedAt: text(reservation.data?.updated_at),
+              requestHash: sha256(purchasePayload),
+              targetGuid: invoiceGuid,
+            })
+          })
+          if (!purchaseEntry) return purchaseReview
+          await recordAcknowledgement(purchaseEntry, purchaseResponse)
         }
         const now = new Date().toISOString()
-        const itemUpdate = await supabaseService.from('invoice_export_items').update({
-          status: 'sent',
-          provider_invoice_guid: invoiceGuid,
-          provider_invoice_id: invoiceGuid,
-          provider_idempotency_key: providerKey,
-          provider_confirmed_at: now,
-          provider_request_id: providerKey,
-          request_payload: payload,
-          response_payload: { create_invoice: response, purchase: purchaseResponse },
-          attempt_count: attemptNo,
-          last_attempt_at: startedAt,
-          next_retry_at: null,
-          error_code: null,
-          error_payload: {},
-          sent_at: now,
-          updated_at: now,
-        }).eq('company_id', input.companyId).eq('id', input.itemId).select('id').maybeSingle()
-        if (itemUpdate.error) throw itemUpdate.error
-        if (!itemUpdate.data) throw new Error('Providerresultatet kunde inte sparas på canonical exportpost.')
-        const invoiceUpdate = await supabaseService.from('customer_invoices').update({
-          partner_invoice_reference: invoiceGuid,
-          issued_at: invoiceDate,
-          due_date: dueDate.slice(0, 10),
-          status: 'sent',
-          raw_payload: { create_invoice: response, purchase: purchaseResponse },
-          updated_at: now,
-        }).eq('company_id', input.companyId).eq('invoice_export_item_id', input.itemId).select('id').maybeSingle()
-        if (invoiceUpdate.error) throw invoiceUpdate.error
-        if (!invoiceUpdate.data) throw new Error('Providerresultatet saknar canonical fakturaspegel.')
+        if (purchaseReserved) {
+          const receipt = await supabaseService.rpc('gridex_finalize_automatic_invoice_purchase_ack_v1', {
+            p_company_id: input.companyId,
+            p_invoice_export_item_id: input.itemId,
+            p_export_run_id: runId,
+            p_environment: environment,
+            p_invoice_guid: invoiceGuid,
+            p_provider_key: providerKey,
+            p_attempt_no: attemptNo,
+            p_started_at: startedAt,
+            p_request_payload: payload,
+            p_purchase_ack: purchaseResponse,
+            p_customer_invoice_id: text(context.invoice.id),
+            p_issued_at: invoiceDate,
+            p_due_date: dueDate.slice(0, 10),
+          })
+          if (receipt.error) throw receipt.error
+          if (receipt.data?.id === input.itemId && receipt.data.status === 'needs_review') {
+            return { ...purchaseReview, errorCode: 'signed_cancellation_before_automatic_ack' }
+          }
+          if (receipt.data?.id !== input.itemId || receipt.data.status !== 'sent') {
+            throw new Error('Det automatiska fakturaköpet saknar verifierat slutkvitto.')
+          }
+        }
+        purchaseReserved = false
         await supabaseService.from('invoice_export_runs').update({ status: 'sent', sent_items: 1, failed_items: 0, total_ex_vat: num(context.item.amount_ex_vat) ?? 0, vat_amount: num(context.item.vat_amount) ?? 0, total_inc_vat: num(context.item.amount_inc_vat) ?? 0, started_at: startedAt, finished_at: now, updated_at: now }).eq('company_id', input.companyId).eq('id', runId)
         await updateLegacyProjection({ companyId: input.companyId, runId, itemId: input.itemId, status: 'sent' })
-        await recordAttempt({ companyId: input.companyId, itemId: input.itemId, runId, attemptNo, idempotencyKey: providerKey, requestHash: payloadHash, httpStatus: 200, outcome: 'sent', errorCode: null, startedAt })
         await emitDomainEvent({ companyId: input.companyId, eventType: 'invoice.sent', aggregateType: 'invoice_export_item', aggregateId: input.itemId, subjectCustomerId: text(context.customer.id), actorUserId: input.actorUserId, source: 'invoice_approved_dispatch_v1', payload: { invoice_guid: invoiceGuid, billing_month: billingMonth, amount_inc_vat: num(context.item.amount_inc_vat), due_date: dueDate.slice(0, 10) }, idempotencyKey: `invoice-sent:${input.itemId}:${invoiceGuid}` }).catch(() => null)
-        await maybeLockCompleteMonth({ companyId: input.companyId, billingMonth, actorUserId: input.actorUserId, exportRunId: runId })
-        return { itemId: input.itemId, runId, status: 'sent' as const, invoiceGuid }
       } catch (error) {
+        // A reserved partner effect can only be reconciled, never retried
+        // automatically after an ambiguous network or database response.
+        if (error instanceof CapwayEntryUnavailable && error.code === 'invoice_contract_case_hold') {
+          return {
+            ...(purchaseReserved ? purchaseReview : createReview),
+            errorCode: error.code,
+            error: 'Ett aktivt kundärende blockerar utskicket för det valda avtalet.',
+          }
+        }
+        if (error instanceof CapwayEntryUnavailable && error.code === OUTBOUND_FREEZE_ERROR) {
+          return purchaseReserved ? {
+            ...purchaseReview,
+            errorCode: OUTBOUND_FREEZE_ERROR,
+            error: 'Utskicksspärren stoppade fakturaköpet. Skapandekvittot är sparat och köpet behöver stämmas av.',
+          } : {
+            itemId: input.itemId,
+            runId,
+            status: 'outbound_frozen' as const,
+            errorCode: OUTBOUND_FREEZE_ERROR,
+            error: 'Utgående fakturor är spärrade för bolaget.',
+          }
+        }
+        if (purchaseReserved) return purchaseReview
+        if (createEntry || error instanceof CapwayEntryUnavailable) return createReview
         const classification = classifyInvoiceExportError(error)
         let status = classification.outcome
         let errorCode = classification.errorCode
@@ -398,6 +599,11 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
         }
         return { itemId: input.itemId, runId, status: finalStatus, error: classification.message, errorCode }
       }
+
+      // Period reconciliation runs after the provider receipt and invoice states have been saved.
+      const attemptSaved = await recordAttempt({ companyId: input.companyId, itemId: input.itemId, runId, attemptNo,
+        idempotencyKey: providerKey, requestHash: payloadHash, httpStatus: 200, outcome: 'sent', errorCode: null, startedAt }).catch(() => false)
+      return directDispatchSent({ ...input, runId, environment, billingMonth, invoiceGuid, attemptSaved })
     },
   })
 }
@@ -422,52 +628,114 @@ export async function sendApprovedInvoiceExportRun(input: { companyId: string; e
   return { exportRunId: input.exportRunId, results, sent: results.filter((row) => row.status === 'sent').length, failed: results.filter((row) => row.status !== 'sent').length }
 }
 
-export async function approveAndSendReadyInvoicesForMonth(input: { companyId: string; billingMonth: string; actorUserId: string }) {
+export async function approveAndSendReadyInvoicesForMonth(input: {
+  companyId: string
+  billingMonth: string
+  actorUserId: string
+  expectedPath?: { provider: DispatchProvider; environment: InvoiceProviderEnvironment }
+}) {
   await requireCompanyOperationalForWrites(input.companyId)
+  const { provider, environment } = requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {})
+  if (input.expectedPath && (input.expectedPath.provider !== provider || input.expectedPath.environment !== environment)) {
+    throw new InvoiceProviderConfigError('invoice_batch_provider_scope_changed', 'Fakturavägen har ändrats under beredningen.')
+  }
   // A file provider receives approved invoices through an invoice file, not per-invoice sends.
-  const approveOnly = isFileProvider(requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider)
-  const runs = await supabaseService.from('invoice_export_runs').select('id').eq('company_id', input.companyId).eq('billing_month', input.billingMonth).order('created_at', { ascending: true })
+  const approveOnly = isFileProvider(provider)
+  const runs = await supabaseService.from('invoice_export_runs').select('id')
+    .eq('company_id', input.companyId).eq('billing_month', input.billingMonth)
+    .eq('provider', provider).eq('environment', environment)
+    .order('created_at', { ascending: true })
   if (runs.error) throw runs.error
   const runIds = (runs.data ?? []).map((row) => String(row.id))
   const items: Row[] = []
   for (let offset = 0; offset < runIds.length; offset += 200) {
     const chunk = runIds.slice(offset, offset + 200)
     if (chunk.length === 0) continue
-    const result = await supabaseService.from('invoice_export_items').select('id,status,metadata').eq('company_id', input.companyId).in('export_run_id', chunk).eq('status', 'pending').order('created_at', { ascending: true })
+    const result = await supabaseService.from('invoice_export_items').select('id,status,metadata')
+      .eq('company_id', input.companyId).in('export_run_id', chunk).eq('status', 'pending')
+      .eq('provider', provider).eq('environment', environment)
+      .order('created_at', { ascending: true })
     if (result.error) throw result.error
     items.push(...((result.data ?? []) as Row[]))
   }
   let approved = 0
   let sent = 0
   let failed = 0
+  let approvalBusy = 0
+  let approvalPriceReview = 0
+  let approvalCorrectionReview = 0
+  let approvalProviderReview = 0
+  let dispatchFrozen = 0
   const errors: Array<{ invoiceExportItemId: string; error: string }> = []
   for (const item of items) {
     const itemId = text(item.id) ?? 'unknown'
     try {
       if (approval(item.metadata).status !== 'approved') {
-        await approveItem(input.companyId, itemId, input.actorUserId)
-        approved += 1
+        const outcome = await approveItem(input.companyId, itemId, input.actorUserId)
+        if (outcome === 'provider-review') {
+          approvalProviderReview += 1
+          continue
+        }
+        if (outcome === 'price-timeline-review') {
+          approvalPriceReview += 1
+          continue
+        }
+        if (outcome === 'metering-correction-review') {
+          approvalCorrectionReview += 1
+          continue
+        }
+        if (outcome === 'retry-approval') {
+          approvalBusy += 1
+          continue
+        }
+        if (outcome === 'approved') approved += 1
       }
       if (approveOnly) continue
       const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId })
       if (result.status === 'sent') sent += 1
       else {
         failed += 1
-        errors.push({ invoiceExportItemId: itemId, error: 'Fakturaexporten returnerade ett icke-skickat resultat.' })
+        const frozen = 'errorCode' in result && result.errorCode === OUTBOUND_FREEZE_ERROR
+        if (frozen) dispatchFrozen += 1
+        errors.push({
+          invoiceExportItemId: itemId,
+          error: frozen && 'error' in result ? result.error : 'Fakturaexporten returnerade ett icke-skickat resultat.',
+        })
       }
     } catch (error) {
+      // A lock error in file mode leaves the approval uncommitted and retryable.
+      if (approveOnly && objectValue(error).code === '55P03') {
+        approvalBusy += 1
+        continue
+      }
       failed += 1
       errors.push({ invoiceExportItemId: itemId, error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.' })
     }
   }
-  return { approved, sent, failed, errors, approveOnly }
+  return { approved, sent, failed, approvalBusy, approvalPriceReview, approvalCorrectionReview, approvalProviderReview,
+    ...(dispatchFrozen > 0 ? { dispatchFrozen } : {}), errors, approveOnly }
 }
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
-  let query = supabaseService.from('invoice_export_items').select('id,company_id,metadata').eq('status', 'failed_retryable').lte('next_retry_at', new Date().toISOString()).order('next_retry_at', { ascending: true }).limit(limit)
-  if (input.companyId) query = query.eq('company_id', input.companyId)
-  const result = await query
+  const cutoff = new Date().toISOString()
+  const approvalStatus = 'metadata->approval->>status'
+  const approvedBy = 'metadata->approval->>approved_by'
+  // Auth user IDs are UUIDs. Allow the surrounding whitespace accepted by the dispatch read.
+  const actorPattern = '^[[:space:]]*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[[:space:]]*$'
+  function dueQuery(diagnostic = false) {
+    const query = supabaseService.from('invoice_export_items')
+      .select('id,company_id,metadata', diagnostic ? { count: 'exact', head: true } : undefined)
+      .eq('status', 'failed_retryable')
+      .lte('next_retry_at', cutoff)
+    return input.companyId ? query.eq('company_id', input.companyId) : query
+  }
+  const result = await dueQuery()
+    .eq(approvalStatus, 'approved')
+    .regexMatch(approvedBy, actorPattern)
+    .order('next_retry_at', { ascending: true })
+    .order('id', { ascending: true })
+    .limit(limit)
   if (result.error) throw result.error
   let sent = 0
   let failed = 0
@@ -486,5 +754,17 @@ export async function processDueApprovedInvoiceRetries(input: { companyId?: stri
       if (error instanceof InvoiceProviderConfigError) await parkConfigurationError(companyId, itemId, error)
     }
   }
-  return { processed: sent + failed, sent, failed }
+
+  // A timed-out diagnostic count must not discard dispatch results or delay the next cron step indefinitely.
+  let needsApproval: number | null = null
+  try {
+    const { count, error } = await dueQuery(true)
+      .or([`${approvalStatus}.neq.approved`, `${approvalStatus}.is.null`, `${approvedBy}.is.null`, `${approvedBy}.not.match.${actorPattern}`].join(','))
+      .abortSignal(AbortSignal.timeout(2_000))
+    if (error || count === null) throw new Error('invoice_retry_approval_count_unavailable')
+    needsApproval = count
+  } catch {
+    console.warn('[invoice-approved-retries] approval diagnostics unavailable')
+  }
+  return { processed: sent + failed, sent, failed, needsApproval }
 }

@@ -9,7 +9,16 @@ export const financeRetentionSelector=z.object({retentionClass:z.enum(FINANCE_CO
  const valid=FINANCE_COPY_CATALOG.find(row=>row.retentionClass===value.retentionClass)?.idKind==='integer'?/^[1-9][0-9]{0,18}$/.test(value.targetId):uuid.safeParse(value.targetId).success
  if(!valid)ctx.addIssue({code:'custom',path:['targetId'],message:'Actual class target selector required'})
 })
-export const financeRetentionBasis=z.object({retentionClass:z.enum(FINANCE_COPY_CLASSES),targetId:z.string(),sourceTable:z.string(),bodyColumns:z.array(z.string()),periodStart:z.string(),periodEnd:z.string(),originalProducerHash:hash.nullable(),sourceBound:z.boolean(),sourceHash:hash,targetHash:hash,scopeHash:hash,byteLength:z.number().int().positive(),includedCustomers:z.array(uuid),allIncludedScopesClosed:z.boolean(),complete:z.literal(false),authority:z.literal('none')})
+const priceSeriesRetentionMember = z.object({
+  underlayId: uuid,
+  pricingRunId: uuid,
+  supplyPeriodId: uuid,
+  sourceHash: hash,
+  pricingEvidenceHash: hash,
+  periodStart: z.string(),
+  periodEnd: z.string(),
+})
+export const financeRetentionBasis=z.object({retentionClass:z.enum(FINANCE_COPY_CLASSES),targetId:z.string(),sourceTable:z.string(),bodyColumns:z.array(z.string()),periodStart:z.string(),periodEnd:z.string(),originalProducerHash:hash.nullable(),sourceBound:z.boolean(),sourceHash:hash,targetHash:hash,scopeHash:hash,byteLength:z.number().int().positive(),includedCustomers:z.array(uuid),sourceMembers:z.array(priceSeriesRetentionMember).min(2).max(32).optional(),allIncludedScopesClosed:z.boolean(),complete:z.literal(false),authority:z.literal('none')})
 const receipt=z.union([
  z.object({status:z.literal('submitted'),decisionId:uuid,retentionClass:z.enum(FINANCE_COPY_CLASSES),targetId:z.string(),sourceHash:hash,targetHash:hash,scopeHash:hash,documentHash:hash,issuerQualified:z.boolean()}),
  z.object({status:z.enum(['approved','held','rejected']),decisionId:uuid.optional(),reviewId:uuid.optional(),missing:z.array(z.string()).optional()}),

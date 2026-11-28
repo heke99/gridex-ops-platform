@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useMemo, useState } from 'react'
+import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
 import {
  archiveCustomerAction,
  closeCustomerLifecycleAction,
@@ -353,7 +354,7 @@ export default function CustomerProfileCard({
  <input
  name="move_out_date"
  type="date"
- defaultValue={new Date().toISOString().slice(0, 10)}
+ defaultValue={currentStockholmCalendarDate()}
  disabled={isArchived}
  className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />

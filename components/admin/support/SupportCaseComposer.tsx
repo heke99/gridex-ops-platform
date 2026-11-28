@@ -8,6 +8,7 @@ type Mode = 'reply' | 'internal' | 'phone'
 type Props = {
   caseId: string
   companyId: string
+  actorUserId: string
   replyAction: (formData: FormData) => Promise<void>
   internalNoteAction: (formData: FormData) => Promise<void>
   phoneAction: (formData: FormData) => Promise<void>
@@ -77,6 +78,7 @@ export default function SupportCaseComposer(props: Props) {
       <form key={mode} action={action} className="mt-4 grid gap-3">
         <input type="hidden" name="case_id" value={props.caseId} />
         <input type="hidden" name="expected_company_id" value={props.companyId} />
+        <input type="hidden" name="expected_actor_user_id" value={props.actorUserId} />
 
         {mode === 'phone' ? (
           <>

@@ -1,15 +1,47 @@
 import { tenantSelect } from '@/lib/supabase/tenantQuery'
+import { resolveCustomerCardLookup } from '@/app/admin/customers/[id]/customer-lookup-outcome'
 import { formatAdminDate, formatAdminDateTime } from '@/lib/ui/format'
+import { isUuid } from '@/lib/validation/uuid'
 import type { GridOwnerDataRequestRow, MeteringValueRow } from '@/lib/cis/types'
+
+export const METERING_REQUEST_ROW_LIMIT = 20
 
 type Customer = { id: string; full_name: string | null; first_name: string | null; last_name: string | null; company_name: string | null; customer_number: string | null }
 type Site = { id: string; customer_id: string; site_name: string | null; facility_id: string | null; street: string | null }
 type Meter = { id: string; site_id: string; meter_point_id: string | null }
-export type MeteringBusinessData = { customers: Customer[]; sites: Site[]; meters: Meter[] }
+export type MeteringBusinessData = {
+  customers: Customer[]
+  sites: Site[]
+  meters: Meter[]
+  customerCardIds?: ReadonlySet<string>
+}
 type Identity = { customer_id: string; site_id: string | null; metering_point_id: string | null }
 const ids = (values: Array<string | null | undefined>) => [...new Set(values.filter((value): value is string => Boolean(value)))]
 
-export async function loadMeteringBusinessData(companyId: string, requests: GridOwnerDataRequestRow[], values: MeteringValueRow[]): Promise<MeteringBusinessData> {
+export async function readMeteringCustomerCardIds(companyId: string, customerIds: string[]): Promise<Set<string>> {
+  const distinct = ids(customerIds).filter(isUuid)
+  if (distinct.length === 0) return new Set()
+  const { data, error } = await tenantSelect(companyId, 'customers', 'id,company_id,source').in('id', distinct)
+  if (error) return new Set()
+  const scope = { companyId, isPlatformAdmin: false }
+  const requested = new Set(distinct)
+  const qualified = new Set<string>()
+  for (const row of data ?? []) {
+    if (!row || typeof row !== 'object') continue
+    const { id, company_id, source } = row as Record<string, unknown>
+    if (typeof id !== 'string' || !requested.has(id) || typeof company_id !== 'string') continue
+    if ((typeof source === 'string' || source === null)
+      && resolveCustomerCardLookup(scope, { company_id, source }).kind === 'ok') qualified.add(id)
+  }
+  return qualified
+}
+
+export async function loadMeteringBusinessData(
+  companyId: string,
+  requests: GridOwnerDataRequestRow[],
+  values: MeteringValueRow[],
+  options: { includeCustomerCardTargets?: boolean } = {},
+): Promise<MeteringBusinessData> {
   if (!companyId) throw new Error('company_required_for_metering_labels')
   async function read<T>(table: string, columns: string, requestedIds: string[]): Promise<T[]> {
     if (requestedIds.length === 0) return []
@@ -18,12 +50,15 @@ export async function loadMeteringBusinessData(companyId: string, requests: Grid
     return (data ?? []) as unknown as T[]
   }
   const records = [...requests, ...values]
-  const [customers, meters] = await Promise.all([
+  const [customers, meters, customerCardIds] = await Promise.all([
     read<Customer>('customers', 'id,full_name,first_name,last_name,company_name,customer_number', ids(records.map(row => row.customer_id))),
     read<Meter>('metering_points', 'id,site_id,meter_point_id', ids(records.map(row => row.metering_point_id))),
+    options.includeCustomerCardTargets
+      ? readMeteringCustomerCardIds(companyId, values.map(row => row.customer_id))
+      : undefined,
   ])
   const sites = await read<Site>('customer_sites', 'id,customer_id,site_name,facility_id,street', ids([...records.map(row => row.site_id), ...meters.map(row => row.site_id)]))
-  return { customers, sites, meters }
+  return { customers, sites, meters, customerCardIds }
 }
 
 export function meteringBusinessIdentity(row: Identity, data: MeteringBusinessData) {
@@ -36,6 +71,7 @@ export function meteringBusinessIdentity(row: Identity, data: MeteringBusinessDa
     customer: customer?.customer_number && name !== customer.customer_number ? `${name} (${customer.customer_number})` : name,
     site: site ? [site.site_name, site.street, site.facility_id].filter(Boolean).join(' · ') || 'Anläggningsuppgifter saknas' : 'Anläggningsuppgifter saknas',
     meter: meterNumber,
+    customerSiteId: site && data.customerCardIds?.has(row.customer_id) ? site.id : null,
   }
 }
 

@@ -1,8 +1,16 @@
+import {
+  ACTIVE_SUPPLY_END_TASK_STATUSES, SUPPLY_END_REVIEW_READ, SUPPLY_END_TASK_CONFIRMATION_COPY,
+  SUPPLY_END_TASK_REVIEW_COPY, SUPPLY_END_TASK_TYPE, SUPPLY_END_TASK_UNVERIFIED_COPY,
+  WORK_QUEUE_TASK_STATUSES, readSupplyEndTaskReviewIds,
+} from '@/lib/admin/supplyEndTaskReview'
+import { formatE66ImportProgress, readE66ImportProgress } from '@/lib/ediel/operations/e66ImportProgress'
+import { readFacilityRequestDiagnostics } from '@/lib/customers/facilityRequestDiagnostics'
 import { workQueueCustomerHref } from './customerHref'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { canOpenCustomerDetail, getAdminPageRequirement, hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import { InvalidReadModelResponseError, readResult, type ReadResult } from '@/lib/read-models/readResult'
@@ -65,6 +73,9 @@ function operationRows<T>(data: unknown, requestedCustomerIds?: readonly string[
 type QueueItem = {
   id: string
   operationId?: string | null
+  taskCompanyId?: string
+  isSupplyEndTask?: boolean
+  supplyEndReviewRequired?: boolean
   actionRequired?: boolean | null
   source: string
   customerId: string
@@ -224,6 +235,23 @@ function taskTypeLabel(value: unknown): string {
   return operationTypeLabel(value)
 }
 
+function requestQueueDescription(status: string, fallback: string): string {
+  switch (status) {
+    case 'missing_authorization':
+    case 'route_missing':
+    case 'negative_aperak':
+    case 'missing_binding_info':
+    case 'missing_termination_info':
+    case 'blocked_missing_poa':
+    case 'blocked_missing_grid_owner_contact':
+    case 'blocked_missing_manual_mailbox':
+    case 'delivery_uncertain':
+      return `${operationActionStatusLabel(status)}.`
+    default:
+      return fallback
+  }
+}
+
 async function loadActiveCustomers(supabase: SupabaseClient, companyId: string | null, isPlatformAdmin: boolean): Promise<ActiveCustomer[]> {
   let query = supabase
     .from('customers')
@@ -281,6 +309,8 @@ export default async function AdminWorkQueuePage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await resolveAdminTenantReadScope(context)
   const { companyId, isPlatformAdmin } = companyScope
+  const canReadCustomer = isPlatformAdmin || canOpenCustomerDetail(context.permissions)
+  const canReadSupport = isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('support.cases'))
   const supabase = await createSupabaseServerClient()
   const readFailures: Array<Extract<ReadResult<unknown>, { kind: 'unavailable' }>> = []
   async function readRows<T>(load: () => Promise<T[]>, errorCode: string): Promise<T[]> {
@@ -297,10 +327,15 @@ export default async function AdminWorkQueuePage() {
     }
     return result.data
   }
-  const [dbQueueRows, operationEventRows, operationJobRows] = await Promise.all([
+  const canListE66Import = ['metering.read', 'switching.read', 'billing_underlay.read']
+    .some(permission => context.permissions.includes(permission))
+  const [dbQueueRows, operationEventRows, operationJobRows, pendingE66Imports] = await Promise.all([
     readRows(() => listCompanyWorkQueue(supabase, companyId, { limit: 250 }), 'WORK_QUEUE_SUMMARY_UNAVAILABLE'),
     readRows(() => loadOperationEventActions(supabase, companyId), 'WORK_QUEUE_EVENTS_UNAVAILABLE'),
     readRows(() => loadOperationJobActions(supabase, companyId), 'WORK_QUEUE_JOBS_UNAVAILABLE'),
+    companyId && canListE66Import
+      ? readRows(() => readE66ImportProgress(supabase, companyId), 'WORK_QUEUE_E66_IMPORT_UNAVAILABLE')
+      : Promise.resolve([]),
   ])
   const operationEventCustomers = await readRows(() => loadCustomersByIds(supabase, companyId, [...new Set([
     ...operationEventRows.map((row) => row.customer_id),
@@ -310,11 +345,15 @@ export default async function AdminWorkQueuePage() {
   let activeCustomers: ActiveCustomer[] = []
   const items: QueueItem[] = dbQueueRows.map((row) => ({
     id: row.id,
+    taskCompanyId: row.source === 'Ärende' ? row.companyId : undefined,
     source: row.source,
     customerId: row.customerId,
     customerLabel: row.customerLabel,
     title: row.title,
-    description: row.description,
+    description: isPlatformAdmin ? row.description
+      : row.source === 'Uppgiftsbegäran' ? requestQueueDescription(row.status, 'Uppgiftsbegäran behöver granskas.')
+      : row.source === 'Nätägare' ? 'Kontrollera nätägarbegäran innan du går vidare.'
+      : row.description,
     status: row.status,
     priority: row.priority,
     createdAt: row.createdAt,
@@ -354,7 +393,9 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: taskTypeLabel(job.job_type),
-      description: isPlatformAdmin ? job.last_error ?? 'Automationssteget behöver granskas innan kedjan kan fortsätta.' : job.status === 'failed' ? 'Åtgärden kunde inte slutföras. Öppna kundkortet för att kontrollera nästa steg.' : 'Ärendet behöver granskas innan nästa steg kan fortsätta.',
+      description: isPlatformAdmin ? job.last_error ?? 'Automationssteget behöver granskas innan kedjan kan fortsätta.' : job.status === 'failed'
+        ? 'Åtgärden kunde inte slutföras. Kontrollera nästa steg innan du går vidare.'
+        : 'Ärendet behöver granskas innan nästa steg kan fortsätta.',
       status: job.status,
       priority: job.status === 'failed' ? 'high' : 'normal',
       createdAt: job.created_at,
@@ -381,7 +422,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_info_requests',
       companyId,
-      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, ediel_message_id, created_at',
+      `id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, ediel_message_id, created_at${isPlatformAdmin ? ', blocker_reason, notes' : ''}`,
       [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
@@ -390,7 +431,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'grid_owner_data_requests',
       companyId,
-      'id, customer_id, operation_id, request_scope, status, failure_reason, notes, created_at',
+      `id, customer_id, operation_id, request_scope, status, created_at${isPlatformAdmin ? ', failure_reason, notes' : ''}`,
       [{ column: 'status', op: 'in', value: ['pending', 'sent', 'failed'] }],
       customerIds,
       50,
@@ -399,7 +440,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'grid_owner_information_requests',
       companyId,
-      'id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, dispatch_error_message, channel, outbound_request_id, ediel_message_id, created_at, updated_at',
+      `id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, channel, outbound_request_id, ediel_message_id, created_at, updated_at`,
       [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
@@ -408,8 +449,8 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_operation_tasks',
       companyId,
-      'id, customer_id, task_type, status, priority, title, description, created_at',
-      [{ column: 'status', op: 'in', value: ['open', 'new', 'pending', 'action_required'] }],
+      'id, company_id, customer_id, task_type, status, priority, title, description, created_at',
+      [{ column: 'status', op: 'or', value: `status.in.(${WORK_QUEUE_TASK_STATUSES.join(',')}),and(task_type.eq.${SUPPLY_END_TASK_TYPE},status.in.(${ACTIVE_SUPPLY_END_TASK_STATUSES.join(',')}))` }],
       customerIds,
       80,
     ),
@@ -467,6 +508,7 @@ export default async function AdminWorkQueuePage() {
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
     const processState = infoRequestProcessQueueState({ status: textValue(row.status), edielMessageId: textValue(row.ediel_message_id), processDecisions })
     const status = processState?.status ?? String(row.status ?? '')
+    const diagnostic = isPlatformAdmin ? textValue(row.blocker_reason) ?? textValue(row.notes) : null
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -474,7 +516,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: processState?.title ?? (isOperationActionRequired({ status }) ? 'Uppgiftsbegäran behöver åtgärd' : `Väntar på ${target}`),
-      description: processState?.description ?? textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
+      description: processState?.description ?? diagnostic ?? requestQueueDescription(status, 'Uppgiftsbegäran behöver granskas.'),
       status,
       priority: processState?.priority ?? (['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal'),
       createdAt: dateValue(row.created_at),
@@ -486,6 +528,7 @@ export default async function AdminWorkQueuePage() {
   for (const row of gridOwnerRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
     if (!customer) continue
+    const diagnostic = isPlatformAdmin ? textValue(row.failure_reason) ?? textValue(row.notes) : null
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -493,7 +536,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: 'Begäran till nätägare',
-      description: textValue(row.failure_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_scope),
+      description: diagnostic ?? 'Kontrollera nätägarbegäran innan du går vidare.',
       status: String(row.status ?? 'pending'),
       priority: row.status === 'failed' ? 'high' : 'normal',
       createdAt: dateValue(row.created_at),
@@ -501,6 +544,10 @@ export default async function AdminWorkQueuePage() {
       actionLabel: 'Öppna kundkort',
     })
   }
+
+  const facilityDiagnostics = isPlatformAdmin
+    ? await readFacilityRequestDiagnostics(supabase, facilityRequests.map(row => String(row.id)))
+    : new Map()
 
   for (const row of facilityRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
@@ -510,6 +557,14 @@ export default async function AdminWorkQueuePage() {
     const failed = status === 'failed' || dispatchStatus === 'failed'
     const reviewRequired = isOperationActionRequired({ status }) && !['draft', 'ready_to_send'].includes(status)
     const waiting = status === 'waiting_response' || dispatchStatus === 'queued' || dispatchStatus === 'sent' || Boolean(row.outbound_request_id || row.ediel_message_id)
+    const diagnostic = facilityDiagnostics.get(String(row.id))?.dispatch_error_message ?? null
+    const description = failed || reviewRequired
+      ? row.dispatch_error_code === 'grid_owner_verification_required'
+        ? 'Verifiera nätägaren innan begäran skickas.'
+        : requestQueueDescription(status, 'Begäran behöver granskas.')
+      : waiting
+        ? 'Begäran är skickad eller köad via Ediel och svar inväntas.'
+        : 'Kontrollera uppgifterna innan begäran skickas.'
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
@@ -517,7 +572,7 @@ export default async function AdminWorkQueuePage() {
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: failed || reviewRequired ? 'Nätägarbegäran behöver granskning' : waiting ? 'Väntar på anläggningssvar' : 'Nätägarbegäran redo att skickas',
-      description: textValue(row.dispatch_error_message) ?? (waiting ? 'Begäran är skickad eller köad via Ediel och svar inväntas.' : 'Begäran kan skickas via godkänd Ediel-route eller behöver manuell granskning.'),
+      description: diagnostic ?? description,
       status: failed ? 'failed' : reviewRequired ? status : waiting ? 'waiting_response' : status,
       priority: failed || reviewRequired ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
       createdAt: dateValue(row.updated_at) ?? dateValue(row.created_at),
@@ -532,6 +587,8 @@ export default async function AdminWorkQueuePage() {
     items.push({
       id: String(row.id),
       source: 'Ärende',
+      taskCompanyId: row.company_id === customer.company_id ? customer.company_id ?? undefined : undefined,
+      isSupplyEndTask: row.task_type === SUPPLY_END_TASK_TYPE,
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: textValue(row.title) ?? taskTypeLabel(row.task_type),
@@ -563,7 +620,87 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
-  const actionItems = consolidateActionItems(items)
+  const candidateTasks = items.filter((item) => item.source === 'Ärende')
+  const qualifiedTasks = new Map<string, { customer_id: string; request_id: string; answered: boolean }>()
+  if (companyId && candidateTasks.length > 0) {
+    const ids = [...new Set(candidateTasks.map((item) => item.id))]
+    await readRows(async () => {
+      const { data, error } = await supabase.from('gridex_ediel_ack_deadline_task_context_v1')
+        .select('id, customer_id, request_id, answered')
+        .eq('company_id', companyId)
+        .in('id', ids)
+      if (error) throw error
+      for (const row of operationRows<{ id: string; customer_id: string; request_id: string; answered: boolean }>(data)) {
+        if (!ids.includes(row.id) || typeof row.request_id !== 'string' || typeof row.answered !== 'boolean') {
+          throw new InvalidReadModelResponseError()
+        }
+        qualifiedTasks.set(row.id, row)
+      }
+      return data
+    }, 'WORK_QUEUE_ACK_CONTEXT_UNAVAILABLE')
+  }
+  const canOpenOutbound = isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('outbound.queue'))
+  const currentItems = items.filter((item) => {
+    if (item.source !== 'Ärende') return true
+    const scope = qualifiedTasks.get(item.id)
+    if (!scope || scope.customer_id !== item.customerId) return true
+    if (scope.answered) return false
+    if (canOpenOutbound) {
+      item.href = `/admin/outbound?requestId=${encodeURIComponent(scope.request_id)}`
+      item.actionLabel = 'Öppna utskick'
+    }
+    return true
+  })
+  const taskIds = [...new Set(currentItems.filter((item) => item.source === 'Ärende').map((item) => item.id))]
+  const canOpenMeterRequest = isPlatformAdmin || hasPermissionRequirement(
+    context.permissions, getAdminPageRequirement('operations.grid_owner_request_detail'))
+  if (companyId && canOpenMeterRequest && taskIds.length > 0) {
+    const links = await readRows(async () => {
+      const { data, error } = await supabase.from('gridex_operator_meter_request_links_v1')
+        .select('id, customer_id, request_id').eq('source', 'operation_task')
+        .eq('company_id', companyId).in('id', taskIds)
+      if (error) throw error
+      return operationRows<{ id: string; customer_id: string; request_id: string }>(data)
+    }, 'WORK_QUEUE_METER_REQUEST_LINKS_UNAVAILABLE')
+    const byTaskId = new Map(links.map((row) => [row.id, row]))
+    for (const item of currentItems) {
+      const link = item.source === 'Ärende' ? byTaskId.get(item.id) : undefined
+      if (link?.customer_id === item.customerId && typeof link.request_id === 'string') {
+        item.href = `/admin/operations/grid-owner-requests/${encodeURIComponent(link.request_id)}`
+        item.actionLabel = 'Öppna nätägarbegäran'
+      }
+    }
+  }
+  const exactSupplyEndTasks = new Map(currentItems.filter(item => item.taskCompanyId && item.isSupplyEndTask)
+    .map(item => [item.id, item]))
+  const visibleTaskItems = currentItems.filter(item => {
+    const exact = item.source === 'Ärende' ? exactSupplyEndTasks.get(item.id) : undefined
+    return !exact || (item.taskCompanyId === exact.taskCompanyId && item.customerId === exact.customerId)
+  })
+  const reviewCandidates = visibleTaskItems.flatMap(item =>
+    item.taskCompanyId && ACTIVE_SUPPLY_END_TASK_STATUSES.includes(item.status)
+      ? [{ id: item.id, companyId: item.taskCompanyId, customerId: item.customerId, isSupplyEndTask: item.isSupplyEndTask }]
+      : [])
+  const supplyEndReview = await readResult(
+    () => readSupplyEndTaskReviewIds(supabase, companyId, reviewCandidates, ACTIVE_SUPPLY_END_TASK_STATUSES),
+    SUPPLY_END_REVIEW_READ,
+  )
+  const review = supplyEndReview.kind === 'unavailable' ? null : supplyEndReview.data
+  readFailures.push(...(supplyEndReview.kind === 'unavailable' ? [supplyEndReview] : supplyEndReview.data.failures))
+
+  const reviewedItems = visibleTaskItems.map(item => {
+    if (!item.taskCompanyId || !ACTIVE_SUPPLY_END_TASK_STATUSES.includes(item.status)) return item
+    const known = item.source === 'Ärende' && exactSupplyEndTasks.has(item.id)
+    if (review?.taskIds.has(item.id)) {
+      return { ...item, ...SUPPLY_END_TASK_REVIEW_COPY, actionRequired: true, supplyEndReviewRequired: true }
+    }
+    if (review?.unverifiedTaskIds.has(item.id) || (!review && known)) {
+      return { ...item, ...SUPPLY_END_TASK_UNVERIFIED_COPY }
+    }
+    if (known || review?.qualifiedTaskIds.has(item.id)) return { ...item, ...SUPPLY_END_TASK_CONFIRMATION_COPY }
+    return item
+  })
+  const actionItems = consolidateActionItems(reviewedItems)
   const sortedItems = actionItems.sort((a, b) => {
     const byPriority = rankPriority(b.priority) - rankPriority(a.priority)
     if (byPriority !== 0) return byPriority
@@ -605,6 +742,11 @@ export default async function AdminWorkQueuePage() {
       />
 
       <main className="space-y-4 p-4 lg:p-6">
+        {canReadSupport ? (
+          <Link href="/admin/customer-cases" className="inline-flex min-h-11 items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+            Öppna supportärenden
+          </Link>
+        ) : null}
         {countsKnown ? (
           <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-sm">
             {staleHint}
@@ -621,6 +763,22 @@ export default async function AdminWorkQueuePage() {
             </form>
           </section>
         )}
+
+        {pendingE66Imports.length ? (
+          <section aria-labelledby="pending-e66-title" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <h2 id="pending-e66-title" className="font-bold">Pågående mätvärdesimport från nätägare</h2>
+            <ul className="mt-2 space-y-2">
+              {pendingE66Imports.map(row => (
+                <li key={row.request_id + ':' + row.environment}>
+                  <Link href={`/admin/operations/grid-owner-requests/${row.request_id}`} className="font-semibold underline">
+                    {row.customer_label}
+                  </Link>
+                  <span> · {formatE66ImportProgress(row)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
           <StatCard label="Synliga kunder" value={countsKnown ? visibleCustomerCount : null} />
@@ -675,12 +833,17 @@ export default async function AdminWorkQueuePage() {
                       </td>
                       <td className="px-4 py-3 text-slate-700">
                         <p>{operationActionStatusLabel(item.status)}</p>
+                        {item.supplyEndReviewRequired ? (
+                          <p className="mt-1 text-xs font-semibold text-amber-900">Blockerad för granskning</p>
+                        ) : null}
                         <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={workQueueCustomerHref(item.href, isPlatformAdmin, context.permissions.includes('contracts.read'))} className="inline-flex max-w-full items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
-                          {item.actionLabel}
-                        </Link>
+                        {canReadCustomer || !item.href.startsWith('/admin/customers/') ? (
+                          <Link href={workQueueCustomerHref(item.href, isPlatformAdmin, context.permissions.includes('contracts.read'))} className="inline-flex max-w-full items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+                            {item.actionLabel}
+                          </Link>
+                        ) : <span className="text-xs text-slate-600">Kundkortet kräver läsbehörighet.</span>}
                       </td>
                     </tr>
                   ))}

@@ -257,17 +257,14 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/ediel/settings/actions.ts",
   "app/admin/contracts/actions.ts",
   "app/admin/customers/[id]/actions.ts",
-  "app/admin/customers/[id]/email-actions.ts",
   "app/admin/customers/[id]/document-actions.ts",
   "app/admin/customers/[id]/grid-owner-import-actions.ts",
   "app/admin/customers/[id]/profile-actions.ts",
-  "app/admin/customers/[id]/switch-actions.ts",
   "app/admin/customers/[id]/switch-create-actions.ts",
   "app/admin/customers/actions.ts",
   "app/admin/customers/page.tsx",
   "app/admin/controltower/page.tsx",
   "app/admin/ediel/control-tower/page.tsx",
-  "app/admin/customers/segments/page.tsx",
   "app/admin/data-quality/page.tsx",
   "app/admin/ediel/actors/actions.ts",
   "app/admin/ediel/actors/page.tsx",
@@ -308,6 +305,9 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/ediel/ai-purpose-sources/page.tsx",
   "app/admin/ediel/customer-source-agreements/page.tsx",
   "app/admin/ediel/network-registry-sources/page.tsx",
+  // Read-only supply-end disposition. The page requires cases access, binds
+  // the projected case and source to one company, and verifies the RPC receipt.
+  "app/admin/ediel/operational-cases/page.tsx",
   "app/admin/ediel/regulated-supply/page.tsx",
   "app/admin/ediel/requested-customer-changes/page.tsx",
 ]);

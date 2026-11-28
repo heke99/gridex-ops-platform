@@ -7,16 +7,23 @@ const db=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  let op:'select'|'update'|'insert'='select',patch:Record<string,unknown>={};const filters:((r:Record<string,unknown>)=>boolean)[]=[]
  const q:Record<string,unknown>={}
- Object.assign(q,{select:()=>q,limit:()=>q,order:()=>q,maybeSingle:()=>q,single:()=>q,is:()=>q,
+ const execute=()=>{
+  const rows=db.rows[table]??=[]
+  if(op==='insert'){
+   const inserted={id:'inserted-'+rows.length,...patch}; rows.push(inserted); return [inserted]
+  }
+  const matched=rows.filter(r=>filters.every(f=>f(r)))
+  if(op==='update') for(const row of matched) Object.assign(row,patch)
+  return matched
+ }
+ Object.assign(q,{select:()=>q,limit:()=>q,order:()=>q,single:()=>q,is:()=>q,
+  maybeSingle:async()=>{const matched=execute(); return {data:matched[0]??null,error:null}},
   eq:(c:string,v:unknown)=>{filters.push(r=>r[c]===v);return q},
   in:(c:string,v:unknown[])=>{filters.push(r=>v.includes(r[c]));return q},
   not:(c:string,o:string,v:string)=>{const list=v.replace(/[()"]/g,'').split(',');filters.push(r=>o!=='in'||!list.includes(String(r[c])));return q},
   update:(p:Record<string,unknown>)=>{op='update';patch=p;return q},
   insert:(p:Record<string,unknown>)=>{op='insert';patch=p;return q},upsert:(p:Record<string,unknown>)=>{op='insert';patch=p;return q},
-  then:(resolve:(v:unknown)=>unknown)=>{const rows=db.rows[table]??=[]
-   if(op==='update')for(const r of rows)if(filters.every(f=>f(r)))Object.assign(r,patch)
-   if(op==='insert')rows.push({id:'inserted-'+rows.length,...patch})
-   return Promise.resolve({data:op==='insert'?{id:'inbound-ack'}:null,error:null}).then(resolve)}})
+  then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:execute(),error:null}).then(resolve)})
  return q}}}))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory',()=>({createInboundMailTask:async()=>'task'}))
 import {applyCanonicalInboundAckStatusUpdate} from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'

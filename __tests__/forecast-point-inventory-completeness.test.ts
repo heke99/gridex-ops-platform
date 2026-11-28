@@ -6,6 +6,7 @@ type Point = {
   site_id: string | null
   grid_owner_id: string | null
   bidding_zone_code: string | null
+  lifecycle_supply_fraction: number | null
   source_customer: { company_id: string; source: string | null } | null
 }
 const company = '11111111-1111-4111-8111-111111111111'
@@ -24,7 +25,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   async rpc(name: string, args: Record<string, string>) {
     io.calls.push({ name, args })
     if (name === 'gridex_forecast_metering_period_totals_v1') return { data: [{ total_kwh: 0, value_count: 0 }], error: null }
-    if (name !== 'gridex_forecast_point_inventory_v1') throw new Error('unexpected_rpc:' + name)
+    if (name !== 'gridex_forecast_point_inventory_v2') throw new Error('unexpected_rpc:' + name)
     if (io.inventoryError) return { data: null, error: io.inventoryError }
     return { data: io.override === undefined ? [{ points: [...io.points].sort((a, b) => a.id.localeCompare(b.id)), total_count: io.points.length }] : io.override, error: null }
   },
@@ -52,7 +53,7 @@ import { generateForecastRunItems } from '@/lib/forecasting/forecastRuns'
 const input = { companyId: company, forecastRunId: 'synthetic-run', periodStart: '2026-10-18' }
 function point(index: number): Point {
   return { id: `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`,
-    customer_id: null, site_id: null, grid_owner_id: null, bidding_zone_code: 'SE3', source_customer: null }
+    customer_id: null, site_id: null, grid_owner_id: null, bidding_zone_code: 'SE3', lifecycle_supply_fraction: null, source_customer: null }
 }
 beforeEach(() => {
   io.points = []; io.cap = 1000; io.override = undefined; io.inventoryError = null
@@ -67,8 +68,8 @@ describe('complete company point inventory at the actual forecast producer', () 
     expect(await generateForecastRunItems(input)).toEqual({ items: count, missing: 0 })
     expect(io.inserts.map(item => item.metering_point_id)).toEqual([...io.points].reverse().map(row => row.id))
     expect(io.forecast).toHaveBeenCalledTimes(count)
-    expect(io.calls.filter(call => call.name === 'gridex_forecast_point_inventory_v1')).toEqual([
-      { name: 'gridex_forecast_point_inventory_v1', args: { p_company_id: company } },
+    expect(io.calls.filter(call => call.name === 'gridex_forecast_point_inventory_v2')).toEqual([
+      { name: 'gridex_forecast_point_inventory_v2', args: { p_company_id: company, p_period_start: '2026-10-01', p_period_end: '2026-11-01' } },
     ])
     expect(io.rawLists).toBe(0)
     expect(io.updates).toEqual([expect.objectContaining({ status: 'completed' })])
@@ -114,6 +115,9 @@ describe('complete company point inventory at the actual forecast producer', () 
     { label: 'invalid field', rows: [{ points: [{ ...point(1), customer_id: 42 }], total_count: 1 }] },
     { label: 'missing field', rows: [{ points: [{ id: point(1).id }], total_count: 1 }] },
     { label: 'foreign parent', rows: [{ points: [{ ...point(1), source_customer: { company_id: 'foreign', source: 'manual' } }], total_count: 1 }] },
+    { label: 'missing lifecycle fraction', rows: [{ points: [{ ...point(1), lifecycle_supply_fraction: undefined }], total_count: 1 }] },
+    { label: 'zero lifecycle fraction', rows: [{ points: [{ ...point(1), lifecycle_supply_fraction: 0 }], total_count: 1 }] },
+    { label: 'out of range lifecycle fraction', rows: [{ points: [{ ...point(1), lifecycle_supply_fraction: 1.01 }], total_count: 1 }] },
     { label: 'invalid parent source', rows: [{ points: [{ ...point(1), source_customer: { company_id: company, source: 42 } }], total_count: 1 }] },
   ])('rejects $label evidence before producing partial results', async ({ rows }) => {
     io.points = [point(1)]; io.override = rows

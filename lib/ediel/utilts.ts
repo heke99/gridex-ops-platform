@@ -103,6 +103,9 @@ export type UtiltsOutboundDraftInput = {
   externalReference?: string | null
   correlationReference?: string | null
   transactionReference?: string | null
+  interchangeReference?: string
+  messageReference?: string
+  createdAt?: Date
   routeDefaultMessageVersion?: string | null
   // Environment is resolved from the route/runtime, never hardcoded to test.
   environment?: EdielEnvironment | null
@@ -568,6 +571,9 @@ export async function buildUtiltsOutboundDraft(
 
   const envelope = buildEdifactEnvelope({
     acknowledgementRequest: ack.requiresContrl,
+    interchangeReference: input.interchangeReference,
+    messageReference: input.messageReference,
+    createdAt: input.createdAt,
     senderEdielId,
     senderSubAddress,
     receiverEdielId,

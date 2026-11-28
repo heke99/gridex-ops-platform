@@ -6,12 +6,13 @@ vi.mock('@/lib/supabase/tenantQuery', () => ({ tenantSelect: (company: string, t
   return { in: async (_key: string, ids: string[]) => ({ data: (io.tables[table] ?? []).filter(row => row.company_id === company && ids.includes(String(row.id))), error: null }) }
 } }))
 import { loadMeteringBusinessData, meteringBusinessIdentity, filterMeteringBusinessRows } from '@/lib/admin/meteringBusinessData'
-const value = { id: 'value', customer_id: 'customer', site_id: 'home', metering_point_id: 'meter', period_start: '2026-10-01', period_end: '2026-11-01', read_at: '2026-11-01' } as unknown as MeteringValueRow
+const customerId = '58495422-0000-4000-8000-000000000001'
+const value = { id: 'value', customer_id: customerId, site_id: 'home', metering_point_id: 'meter', period_start: '2026-10-01', period_end: '2026-11-01', read_at: '2026-11-01' } as unknown as MeteringValueRow
 beforeEach(() => {
   io.calls = []
   io.tables = {
-    customers: [{ id: 'customer', company_id: 'A', full_name: 'Anna Berg', customer_number: 'K-100' }],
-    customer_sites: [{ id: 'home', company_id: 'A', customer_id: 'customer', site_name: 'Sommarstugan', street: 'Strandvägen 2', facility_id: '735999111111111111' }, { id: 'foreign-home', company_id: 'B', customer_id: 'customer', site_name: 'FOREIGN-SITE' }],
+    customers: [{ id: customerId, company_id: 'A', source: 'manual', full_name: 'Anna Berg', customer_number: 'K-100' }],
+    customer_sites: [{ id: 'home', company_id: 'A', customer_id: customerId, site_name: 'Sommarstugan', street: 'Strandvägen 2', facility_id: '735999111111111111' }, { id: 'foreign-home', company_id: 'B', customer_id: customerId, site_name: 'FOREIGN-SITE' }],
     metering_points: [{ id: 'meter', company_id: 'A', site_id: 'home', meter_point_id: '735999222222222222' }],
   }
 })
@@ -45,4 +46,20 @@ it('never assigns a foreign-company site or another customer installation to a r
 it('refuses a missing company instead of reading labels globally', async () => {
   await expect(loadMeteringBusinessData('',[],[value])).rejects.toThrow('company_required')
   expect(io.calls).toEqual([])
+})
+
+it('qualifies the exact customer-owned installation only when the caller requests navigable targets', async () => {
+  const displayOnly = await loadMeteringBusinessData('A', [], [value])
+  expect(meteringBusinessIdentity(value, displayOnly).customerSiteId).toBeNull()
+  expect(io.calls.filter(call => call.table === 'customers')).toHaveLength(1)
+
+  const withLinks = await loadMeteringBusinessData('A', [], [value], { includeCustomerCardTargets: true })
+  expect(meteringBusinessIdentity(value, withLinks).customerSiteId).toBe('home')
+  expect(meteringBusinessIdentity({ ...value, site_id: 'foreign-home' }, withLinks).customerSiteId).toBeNull()
+
+  io.tables.customers[0].source = 'ediel_portal_test'
+  const controlCustomer = await loadMeteringBusinessData('A', [], [value], { includeCustomerCardTargets: true })
+  expect(meteringBusinessIdentity(value, controlCustomer)).toMatchObject({
+    site: 'Sommarstugan · Strandvägen 2 · 735999111111111111', customerSiteId: null,
+  })
 })

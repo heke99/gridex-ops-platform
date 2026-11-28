@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { resolveInvoiceDeliveryFor } from '@/lib/billing/effectiveInvoiceDelivery';
+import { loadLockedUnderlayPricingWithCore } from '@/lib/pricing/underlayPricingAdapter';
+import type { DispatchProvider } from '@/lib/billing/providers/registry';
 type DeliveryArguments = Parameters<typeof resolveInvoiceDeliveryFor>;
 type InvoiceAddress = {
     recipient: string | null;
@@ -27,6 +29,7 @@ type DraftRpcArgs = {
 };
 const state = vi.hoisted(() => ({
     tables: {} as FixtureTables,
+    draftError: null as { code: string; message: string } | null,
     calls: [] as Array<{
         name: string;
         args: DraftRpcArgs;
@@ -105,6 +108,7 @@ const fixtureSchema: Record<string, string[]> = {
         "site_id",
         "snapshot_hash",
         "status",
+        "updated_at",
         "vat_rate"
     ],
     "customers": [
@@ -284,15 +288,15 @@ vi.mock('@/lib/supabase/service', () => ({
     supabaseService: {
         from: (table: string) => new ProjectionQuery(table),
         async rpc(name: string, args: DraftRpcArgs) {
-            if (name !== 'gridex_create_invoice_review_draft_v1')
+            if (name !== 'gridex_create_invoice_review_draft_v1' && name !== 'gridex_create_capway_invoice_review_draft_v1')
                 throw new Error('Unexpected RPC');
             state.calls.push({
                 name,
                 args: structuredClone(args)
             });
             return {
-                data: {},
-                error: null
+                data: state.draftError ? null : {},
+                error: state.draftError
             };
         }
     }
@@ -339,11 +343,11 @@ vi.mock('@/lib/billing/effectiveInvoiceDelivery', async (importOriginal) => {
     };
 });
 import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare';
-const run = () => prepareInvoiceDraftsForReview({
+const run = (provider: DispatchProvider = 'file_export') => prepareInvoiceDraftsForReview({
     companyId: 'company-A',
     billingMonth: '2026-11',
     environment: 'test',
-    provider: 'file_export',
+    provider,
     actorUserId: 'actor-A',
     customerId: 'customer-A',
     billingUnderlayId: 'underlay-A'
@@ -358,6 +362,7 @@ afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
     vi.stubEnv('GRIDEX_INVOICE_DELIVERY_RESOLVER', 'shared');
     state.calls = [];
+    state.draftError = null;
     state.queries = [];
     state.resolverInputs = [];
     state.tables = {
@@ -384,7 +389,8 @@ beforeEach(() => {
                 customer_site_id: 'site-A',
                 site_id: 'site-A',
                 metering_point_id: 'meter-A',
-                billing_address_same_as_site: true
+                billing_address_same_as_site: true,
+                updated_at: '2026-11-01T12:00:00Z'
             }],
         customers: [{
                 id: 'customer-A',
@@ -421,6 +427,80 @@ beforeEach(() => {
             }]
     };
 });
+describe('invoice review for a held price timeline', () => {
+    const reason = 'price_timeline_invoice_review_required';
+    const runMonth = () => prepareInvoiceDraftsForReview({
+        companyId: 'company-A', billingMonth: '2026-11', environment: 'test',
+        provider: 'file_export', actorUserId: 'actor-A'
+    });
+
+    it('keeps the two price intervals out of invoice preparation and lets the standard customer continue', async () => {
+        const ordinary = state.tables.billing_underlays[0];
+        state.tables.customers.push({ ...state.tables.customers[0], id: 'customer-held' });
+        state.tables.customer_sites.push({ ...state.tables.customer_sites[1], id: 'site-held', customer_id: 'customer-held' });
+        state.tables.metering_points.push({ ...state.tables.metering_points[0], id: 'meter-held',
+            customer_id: 'customer-held', customer_site_id: 'site-held', site_id: 'site-held' });
+        state.tables.customer_contracts.push({ ...state.tables.customer_contracts[0], id: 'contract-held',
+            customer_id: 'customer-held', customer_site_id: 'site-held', site_id: 'site-held', metering_point_id: 'meter-held' });
+        state.tables.contract_price_snapshots.push({ ...state.tables.contract_price_snapshots[0],
+            id: 'price-held', contract_id: 'contract-held', customer_id: 'customer-held' });
+        const held = { ...ordinary, customer_id: 'customer-held', billing_block_reason: reason,
+            customer_contract_id: 'contract-held', customer_site_id: 'site-held', metering_point_id: 'meter-held',
+            contract_price_snapshot_id: 'price-held' };
+        state.tables.billing_underlays.push(
+            { ...held, id: 'split-first' },
+            { ...held, id: 'split-second' }
+        );
+
+        await expect(runMonth()).resolves.toMatchObject({ underlays: 3, candidates: 1, blocked: 2, created: 1, failed: 0 });
+        expect(state.calls).toHaveLength(1);
+        expect(state.calls[0].args.p_items[0].billing_underlay_id).toBe('underlay-A');
+
+        state.calls = [];
+        await expect(prepareInvoiceDraftsForReview({
+            companyId: 'company-A', billingMonth: '2026-11', environment: 'test', provider: 'file_export',
+            actorUserId: 'actor-A', customerId: 'customer-held', billingUnderlayId: 'split-first'
+        })).resolves.toMatchObject({ underlays: 1, candidates: 0, blocked: 1, created: 0, failed: 0 });
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it('holds a previously ready row after contract review and reports missing underlays separately', async () => {
+        await expect(prepareInvoiceDraftsForReview({
+            companyId: 'company-A', billingMonth: '2026-11', environment: 'test',
+            provider: 'file_export', actorUserId: 'actor-A',
+            priceTimelineReviewContractIds: ['contract-A', 'contract-without-row', 'contract-without-row']
+        })).resolves.toMatchObject({
+            underlays: 1, candidates: 0, blocked: 1, timelineReviewsWithoutUnderlays: 1, created: 0, failed: 0
+        });
+        expect(state.calls).toHaveLength(0);
+        expect(state.tables.billing_underlays[0]).toMatchObject({ status: 'validated', readiness_status: 'ready' });
+    });
+
+    it('reports the native stale timeline refusal from manual preparation as a blocker', async () => {
+        state.draftError = { code: '23514', message: reason };
+        await expect(runMonth()).resolves.toMatchObject({ underlays: 1, blocked: 1, created: 0, failed: 0 });
+        expect(state.calls).toHaveLength(1);
+    });
+
+    it('keeps all members of an explicit group when one member is held for review', async () => {
+        const ordinary = state.tables.billing_underlays[0];
+        state.tables.customer_contracts.push({
+            ...state.tables.customer_contracts[0], id: 'contract-held', customer_id: 'customer-held',
+            consolidated_invoice: true
+        });
+        state.tables.billing_underlays.push(
+            { ...ordinary, id: 'held-member', customer_id: 'customer-held', customer_contract_id: 'contract-held',
+                billing_block_reason: reason },
+            { ...ordinary, id: 'other-site', customer_id: 'customer-held', customer_contract_id: 'contract-held',
+                customer_site_id: 'site-B' }
+        );
+
+        await expect(runMonth()).resolves.toMatchObject({ underlays: 3, candidates: 1, blocked: 2, created: 1, failed: 0 });
+        expect(state.calls).toHaveLength(1);
+        expect(state.calls[0].args.p_items[0].billing_underlay_id).toBe('underlay-A');
+    });
+});
+
 describe('DELIVERY01.04 public prepare with projection-correct reads and real shared resolver', () => {
     it('loads same-as-site intent into draft contract snapshot independently of site availability', async () => {
         await run();
@@ -478,9 +558,68 @@ describe('DELIVERY01.04 public prepare with projection-correct reads and real sh
         expect(snapshot().email).toBe('billing@example.invalid');
         expect(state.queries.some(q => ['customer_sites', 'metering_points'].includes(q.table))).toBe(false);
     });
-    it('preserves customer billing country for a complete inherited postal address', async () => {
+    it.each([
+        [undefined, 'paper'],
+        ['shared', 'paper'],
+        [undefined, 'email'],
+        ['shared', 'email']
+    ])('freezes %s resolver choice %s when both delivery channels are configured', async (mode, method) => {
+        vi.stubEnv('GRIDEX_INVOICE_DELIVERY_RESOLVER', mode);
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = method;
+        Object.assign(state.tables.customer_contracts[0], {
+            invoice_recipient: 'Avtalad fakturamottagare',
+            invoice_email: 'faktura@example.invalid',
+            billing_street: 'Fakturagatan 1',
+            billing_postal_code: '11111',
+            billing_city: 'Stockholm',
+            billing_country: 'SE'
+        });
+        const result = await run();
+        expect(result.created).toBe(1);
+        expect(state.calls[0].args.p_enrichment).toMatchObject({
+            calculation_snapshot: { invoice_delivery_method: method }
+        });
+        expect(snapshot()).toMatchObject({
+            email: 'faktura@example.invalid',
+            street: 'Fakturagatan 1',
+            country: 'SE'
+        });
+    });
+    it.each([
+        ['file_export', 'e_invoice'],
+        ['file_export', 'direct_debit'],
+        ['nordfin', 'e_invoice'],
+        ['nordfin', 'direct_debit']
+    ] as const)('reports unsupported %s choice %s before draft preparation', async (provider, method) => {
+        vi.mocked(loadLockedUnderlayPricingWithCore).mockClear();
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = method;
+        state.tables.customers[0].invoice_email = 'confirmed@example.invalid';
+        const result = await run(provider);
+        expect(result).toMatchObject({ created: 0, failed: 1, errors: [{
+            billingUnderlayId: 'underlay-A',
+            error: 'Filexporten stöder inte fakturans valda leveranssätt.'
+        }] });
+        expect(loadLockedUnderlayPricingWithCore).not.toHaveBeenCalled();
+        expect(state.calls).toEqual([]);
+    });
+    it('keeps delivery handling with the configured non-file provider', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'e_invoice';
+        const result = await run('capway_aptic');
+        expect(result).toMatchObject({ created: 1, failed: 0 });
+        expect(state.calls[0].name).toBe('gridex_create_capway_invoice_review_draft_v1');
+    });
+    it('allows legacy file drafts without an explicit channel', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = null;
+        const result = await run();
+        expect(result).toMatchObject({ created: 1, failed: 0 });
+        expect(state.calls[0].args.p_enrichment).toHaveProperty('calculation_snapshot');
+        expect(state.calls[0].args.p_enrichment).not.toHaveProperty('calculation_snapshot.invoice_delivery_method');
+    });
+    it('freezes explicit paper and the foreign address while retaining billing contact data', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'paper';
         state.tables.customer_contracts[0].billing_address_same_as_site = false;
         Object.assign(state.tables.customers[0], {
+            invoice_email: 'retained-invoice@example.invalid',
             billing_street: 'Norwegian street',
             billing_postal_code: '0123',
             billing_city: 'Oslo',
@@ -488,12 +627,37 @@ describe('DELIVERY01.04 public prepare with projection-correct reads and real sh
         });
         const result = await run();
         expect(result.created).toBe(1);
+        expect(state.calls[0].args.p_enrichment).toMatchObject({
+            calculation_snapshot: { invoice_delivery_method: 'paper' },
+            calculation_snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/)
+        });
         expect(snapshot()).toMatchObject({
+            email: 'retained-invoice@example.invalid',
             street: 'Norwegian street',
             postal_code: '0123',
             city: 'Oslo',
             country: 'NO'
         });
+    });
+    it('refuses explicit paper with only a confirmed email before draft RPC', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'paper';
+        state.tables.customer_contracts[0].billing_address_same_as_site = false;
+        state.tables.customers[0].invoice_email = 'billing@example.invalid';
+        const result = await run();
+        expect(result.errors).toContainEqual({
+            billingUnderlayId: 'underlay-A',
+            error: 'Pappersfaktura har valts men en komplett fakturaadress saknas.'
+        });
+        expect(state.calls).toEqual([]);
+    });
+    it('refuses explicit email with only a complete postal address before draft RPC', async () => {
+        state.tables.contract_price_snapshots[0].invoice_delivery_method = 'email';
+        const result = await run();
+        expect(result.errors).toContainEqual({
+            billingUnderlayId: 'underlay-A',
+            error: 'Faktura via e-post har valts men en bekräftad faktura-e-post saknas.'
+        });
+        expect(state.calls).toEqual([]);
     });
     it('refuses shared missing recipient despite complete postal channel before draft RPC', async () => {
         delete state.tables.customers[0].full_name;

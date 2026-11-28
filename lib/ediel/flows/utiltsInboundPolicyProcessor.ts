@@ -12,7 +12,7 @@ import {
   persistUtiltsTransactionResults,
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
-import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -21,6 +21,7 @@ import {
   resolveUtiltsRuntimeTestCaseCode,
   stringOrNull,
 } from './utiltsDataRequest.part-1'
+import type { PolledE66RequestScope } from '@/lib/inbound-mail/e66RequestRetry'
 import { processInboundUtiltsMessage as processActualMeteringUtiltsMessage } from './utiltsDataRequest.part-2'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
@@ -66,7 +67,7 @@ async function persistNonBillingTransactions(params: {
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
-      rawSegments: utiltsRuntimeSegments(params.runtime.facts),
+      rawPayload: params.message.raw_payload,
       dispositions: params.runtime.transactionDispositions,
       // Non-billing outcomes deliberately persist only protocol/business
       // identity. They never acquire tenant customer/metering-point links here.
@@ -235,6 +236,7 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
   canonicalDecision?: CanonicalRuntimeDecision | null
+  polledE66RequestScope?: PolledE66RequestScope
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -261,6 +263,7 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
       testCaseCode: params.testCaseCode ?? null,
       canonicalPolicy: policy,
       canonicalDecision: initialDecision,
+      polledE66RequestScope: params.polledE66RequestScope,
     })
   }
 

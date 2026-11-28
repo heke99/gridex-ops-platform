@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 // The duplicate customer/site FKs and absent grid-owner FK were independently
 // reproduced against the actual PostgREST endpoint with limit=0. This adapter
 // returns those observed schema errors and synthetic rows, never live data.
-const state = vi.hoisted(() => ({ calls: [] as Array<{ table: string; select?: string; filters: Array<[string, unknown]> }>, failOwners: false }))
+const state = vi.hoisted(() => ({ calls: [] as Array<{ table: string; select?: string; filters: Array<[string, unknown]> }>, failOwners: false, requestStatus: 'waiting_response' }))
 vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'actor-a', email: 'admin@example.test', permissions: ['customers.write', 'metering.read'] }), isPlatformAdminContext: () => false }))
 // Positive manual-form fixtures have the actual command permission.
 vi.mock('@/lib/admin/actionPresentation', () => ({ canPresentAdminAction: async (required: string[]) => required.every(permission => permission === 'customers.write'), canPresentOperationalAction: async (required: string[]) => required.every(permission => permission === 'customers.write'), canPresentAdminLink: () => false }))
@@ -16,7 +16,7 @@ vi.mock('@/app/admin/facility-requests/actions', () => ({ markFacilityLookupSent
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({ from: (table: string) => {
   const call: { table: string; select?: string; filters: Array<[string, unknown]> } = { table, filters: [] }
   state.calls.push(call)
-  const row = { id: 'request-a', company_id: 'company-a', customer_id: 'customer-a', customer_site_id: 'site-a', grid_owner_id: 'owner-a', status: 'waiting_response', channel: 'manual_phone', requested_fields: ['facility_id'], created_at: '2026-10-01T12:00:00Z', customer: { full_name: 'Syntetisk Kund Alfa' }, site: { street: 'Syntetisk adress Alfa', city: 'Teststad' } }
+  const row = { id: 'request-a', company_id: 'company-a', customer_id: 'customer-a', customer_site_id: 'site-a', grid_owner_id: 'owner-a', status: state.requestStatus, channel: 'manual_phone', requested_fields: ['facility_id'], created_at: '2026-10-01T12:00:00Z', customer: { full_name: 'Syntetisk Kund Alfa' }, site: { street: 'Syntetisk adress Alfa', city: 'Teststad' } }
   const query: Record<string, unknown> = {
     select: (select: string) => { call.select = select; return query },
     eq: (key: string, value: unknown) => { call.filters.push([key, value]); return query },
@@ -27,9 +27,13 @@ vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () =
       if (table === 'grid_owner_information_requests') {
         const ambiguous = call.select?.includes('customer:customers(') || call.select?.includes('site:customer_sites(')
         const absent = call.select?.includes('grid_owner:grid_owners(')
+        const allowedStatuses = call.filters.find(([key]) => key === 'status')?.[1]
+        const matchesStatus = !Array.isArray(allowedStatuses) || allowedStatuses.includes(row.status)
         result = ambiguous || absent
           ? { data: null, error: { code: ambiguous ? 'PGRST201' : 'PGRST200' } }
-          : { data: [call.select?.includes('customer:') ? row : { ...row, customer: null, site: null }], error: null }
+          : { data: matchesStatus ? [call.select?.includes('customer:') ? row : { ...row, customer: null, site: null }] : [], error: null }
+      } else if (table === 'companies') {
+        result = { data: [{ id: 'company-a', status: 'active' }], error: null }
       } else {
         result = state.failOwners
           ? { data: null, error: { code: 'unavailable' } }
@@ -42,7 +46,7 @@ vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () =
 } }) }))
 import FacilityRequestsPage from '@/app/admin/facility-requests/page'
 
-beforeEach(() => { state.calls = []; state.failOwners = false; vi.stubGlobal('React', React) })
+beforeEach(() => { state.calls = []; state.failOwners = false; state.requestStatus = 'waiting_response'; vi.stubGlobal('React', React) })
 
 it('keeps customer, site and grid-owner names with the actual relationship catalog', async () => {
   const html = renderToStaticMarkup(await FacilityRequestsPage())
@@ -52,6 +56,8 @@ it('keeps customer, site and grid-owner names with the actual relationship catal
   const requestCalls = state.calls.filter(call => call.table === 'grid_owner_information_requests')
   expect(requestCalls).toHaveLength(1)
   expect(requestCalls[0].filters).toContainEqual(['company_id', 'company-a'])
+  const companyCall = state.calls.find(call => call.table === 'companies')
+  expect(companyCall?.filters).toContainEqual(['id', ['company-a']])
   const ownerCall = state.calls.find(call => call.table === 'grid_owners')
   expect(ownerCall?.filters).toContainEqual(['id', ['owner-a']])
 })
@@ -62,4 +68,24 @@ it('retains the named request and manual forms if shared grid-owner names are un
   expect(html).toContain('Syntetisk Kund Alfa')
   expect(html).toContain('Markera skickad manuellt')
   expect(html).toContain('Registrera svar från nätägare')
+})
+
+
+it.each(['ready_to_send_manual_email', 'manual_email_queued', 'blocked_missing_poa', 'blocked_missing_grid_owner_contact'])(
+  'keeps %s visible without offering a response the database would reject',
+  async status => {
+    state.requestStatus = status
+    const html = renderToStaticMarkup(await FacilityRequestsPage())
+    expect(html).toContain('Syntetisk Kund Alfa')
+    expect(html).toContain('Markera skickad manuellt')
+    expect(html).not.toContain('Registrera svar från nätägare')
+  },
+)
+
+it('offers response registration for a received request that the database accepts', async () => {
+  state.requestStatus = 'received'
+  const html = renderToStaticMarkup(await FacilityRequestsPage())
+  expect(html).toContain('Syntetisk Kund Alfa')
+  expect(html).toContain('Registrera svar från nätägare')
+  expect(html).not.toContain('Markera skickad manuellt')
 })

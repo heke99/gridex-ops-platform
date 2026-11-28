@@ -36,6 +36,8 @@ type UserRoleRpcRow = string | {
   name?: string | null
 }
 
+class AdminIdentityInactiveError extends Error {}
+
 type CanonicalTenantContext = {
   authorized?: boolean
   reason_code?: string | null
@@ -152,7 +154,12 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
 
   const context = (contextData ?? {}) as CanonicalTenantContext
   if (!context.authorized || context.user_id !== user.id) {
-    throw new Error(`Behörighetskontrollen nekades (${context.reason_code ?? 'access_context_invalid'}).`)
+    const message = `Behörighetskontrollen nekades (${context.reason_code ?? 'access_context_invalid'}).`
+    if (context.authorized === false && context.reason_code === 'identity_not_active'
+      && (context.user_id == null || context.user_id === user.id)) {
+      throw new AdminIdentityInactiveError(message)
+    }
+    throw new Error(message)
   }
 
   const permissions = (Array.isArray(context.permissions) ? context.permissions : [])
@@ -186,7 +193,10 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
 })
 
 export async function requireAdminAccess(): Promise<GuardResult> {
-  const base = await loadBaseAdminContext()
+  const base = await loadBaseAdminContext().catch((error: unknown) => {
+    if (error instanceof AdminIdentityInactiveError) redirect('/login')
+    throw error
+  })
 
   if (!base.isAdmin) {
     redirect('/login')

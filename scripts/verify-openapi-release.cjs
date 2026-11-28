@@ -2,6 +2,7 @@
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { isDeepStrictEqual } = require('node:util')
 
 const { currentDocumentationVersion: version, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const specifications = [
@@ -70,6 +71,74 @@ function assertImmutableArtifacts(specification, currentBytes) {
   }
 }
 
+const manifestPath = '/api/v1/openapi/release-manifest.json'
+const compatibilityPath = '/api/v1/openapi/legacy-compatibility.json'
+const compatibilityLink = `<${compatibilityPath}>; rel="related"; type="application/json"`
+
+function hasHeaderToken(response, header, token) {
+  return response.headers.get(header)?.split(',').some(value => value.trim().toLowerCase() === token)
+}
+
+function assertCompatibilityDiscovery(response) {
+  if (response.headers.get('link') !== compatibilityLink ||
+      !hasHeaderToken(response, 'access-control-expose-headers', 'link')) {
+    throw new Error('deployed release compatibility discovery mismatch')
+  }
+}
+
+async function verifyDeployedCompatibility(baseUrl, registry, manifestResponse, manifest) {
+  const declared = registry.includes(`path: '${compatibilityPath}'`)
+  if (!declared) {
+    if (manifestResponse.headers.get('link')?.includes(compatibilityPath)) {
+      throw new Error('deployed release compatibility not registered')
+    }
+    return
+  }
+
+  assertCompatibilityDiscovery(manifestResponse)
+  const companionResponse = await fetch(`${baseUrl}${compatibilityPath}`, { redirect: 'manual' })
+  if (companionResponse.status !== 200 ||
+      !companionResponse.headers.get('content-type')?.includes('application/json') ||
+      !hasHeaderToken(companionResponse, 'cache-control', 'no-store')) {
+    throw new Error('deployed release compatibility unavailable')
+  }
+
+  const body = await companionResponse.text()
+  const current = JSON.parse(body)
+  if (!/^[a-f0-9]{40}$/.test(manifest.build_commit) ||
+      current?.build_commit !== manifest.build_commit ||
+      current.release_version !== version ||
+      current.runtime_contract_version !== runtimeContractVersion) {
+    throw new Error('deployed release compatibility release identity mismatch')
+  }
+  const catalog = JSON.parse(fs.readFileSync('lib/integrations/legacyApiCompatibility.json', 'utf8'))
+  const expected = {
+    build_commit: manifest.build_commit,
+    release_version: version,
+    runtime_contract_version: runtimeContractVersion,
+    legacy_compatibility: Object.values(catalog),
+  }
+  if (!isDeepStrictEqual(current, expected)) {
+    throw new Error('deployed release compatibility catalog mismatch')
+  }
+
+  const manifestEtag = manifestResponse.headers.get('etag')
+  const companionEtag = companionResponse.headers.get('etag')
+  const bodyEtag = `"${crypto.createHash('sha256').update(body).digest('base64url')}"`
+  if (!manifestEtag || companionEtag !== bodyEtag || manifestEtag === companionEtag) {
+    throw new Error('deployed release compatibility ETag mismatch')
+  }
+  const [conditionalManifest, conditionalCompanion] = await Promise.all([
+    fetch(`${baseUrl}${manifestPath}`, { headers: { 'If-None-Match': manifestEtag }, redirect: 'manual' }),
+    fetch(`${baseUrl}${compatibilityPath}`, { headers: { 'If-None-Match': companionEtag }, redirect: 'manual' }),
+  ])
+  if (conditionalManifest.status !== 304 || conditionalManifest.headers.get('etag') !== manifestEtag ||
+      conditionalCompanion.status !== 304 || conditionalCompanion.headers.get('etag') !== companionEtag) {
+    throw new Error('deployed release compatibility conditional read mismatch')
+  }
+  assertCompatibilityDiscovery(conditionalManifest)
+}
+
 async function verify() {
   for (const specification of specifications) {
     const body = exactBytes(specification.path)
@@ -106,7 +175,7 @@ async function verify() {
   }
 
   const manifestResponse = await fetch(
-    `${baseUrl}/api/v1/openapi/release-manifest.json`,
+    `${baseUrl}${manifestPath}`,
   )
   if (!manifestResponse.ok) throw new Error('deployed manifest is unavailable')
   if (!manifestResponse.headers.get('content-type')?.includes('application/json')) {
@@ -134,6 +203,7 @@ async function verify() {
       throw new Error(`${specification.key}: deployed sha256 mismatch`)
     }
   }
+  await verifyDeployedCompatibility(baseUrl, registry, manifestResponse, manifest)
   console.log(`Deployed OpenAPI release ${version} verified.`)
 }
 

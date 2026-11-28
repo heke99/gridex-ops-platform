@@ -137,7 +137,7 @@ function externalAck(original: EdielMessageRow, family: 'CONTRL' | 'APERAK', out
 
 async function acknowledge(f: Fixture, sent: Sent, family: 'CONTRL' | 'APERAK', outcome: 'positive' | 'negative' = 'positive') {
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: externalAck(sent.original, family, outcome), smtpFrom: 'synthetic@example.invalid' })
-  const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, parsed: mail.parsed, inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
+  const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, environment: mail.environment, parsed: mail.parsed, inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
   const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test', inboundEmailMessageId: mail.inboundEmailMessageId,
     parseResultId: mail.parseResultId, parsed: mail.parsed, outboundMatch })
   expect(id).toBeTruthy()

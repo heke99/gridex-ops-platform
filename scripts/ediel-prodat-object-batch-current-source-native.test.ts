@@ -41,7 +41,7 @@ async function fixture(){
  `)
  const receivedAt=new Date().toISOString()
  const mail=await seedOriginalMailboxNative(capturedSourceSql,literal,{companyId:base.companyId,environment:'test',raw:wire,receivedAt,smtpFrom:'synthetic-batch@example.invalid'})
- const outboundMatch=await matchOutboundRequestForInbound({companyId:base.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:base.companyId,environment:mail.environment,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:base.companyId,parsed:mail.parsed})
  const source=await createInboundEdielMessage({companyId:base.companyId,actorUserId:base.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
  expect(source,'public_creator_must_return_actual_source').toMatch(/^[a-f0-9-]{36}$/)

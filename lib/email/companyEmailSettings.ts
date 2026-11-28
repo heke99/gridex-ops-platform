@@ -188,35 +188,51 @@ export async function seedDefaultCompanyEmailSettings(companyId: string) {
   })
 }
 
-export async function getEffectiveSender(companyId: string, options: { legalOrCritical?: boolean; requireSendReady?: boolean } = {}): Promise<EffectiveSender> {
+export type CompanyEmailSenderConfiguration = Pick<CompanyEmailSettings,
+  'is_active' | 'sender_mode' | 'fallback_allowed' | 'verification_status' | 'sender_email' | 'sender_name'>
+
+type CompanyEmailSenderRequirement = { legalOrCritical?: boolean; requireSendReady?: boolean }
+
+function hasVerifiedSenderIdentity<T extends CompanyEmailSenderConfiguration>(settings: T | null):
+  settings is T & { sender_email: string; sender_name: string } {
+  return Boolean(settings?.verification_status === 'verified' && settings.is_active &&
+    settings.sender_mode !== 'disabled' && settings.sender_email && settings.sender_name)
+}
+
+function companyEmailSenderBlocker(settings: CompanyEmailSenderConfiguration | null, options: CompanyEmailSenderRequirement) {
+  if (settings && (!settings.is_active || settings.sender_mode === 'disabled')) {
+    return 'E-postavsändaren är avstängd för bolaget. Aktivera avsändaren på bolagskortet innan utskick.'
+  }
+
+  if (settings?.sender_mode === 'fallback_platform_sender' && settings.fallback_allowed === false) {
+    return 'Fallback-avsändare är avstängd för bolaget. Verifiera domänen innan utskick.'
+  }
+
+  if (options.legalOrCritical && settings?.verification_status !== 'verified') {
+    return 'Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.'
+  }
+
+  if (options.requireSendReady && !hasVerifiedSenderIdentity(settings) && !DEFAULT_FROM_EMAIL) {
+    return missingFallbackSenderMessage()
+  }
+
+  return null
+}
+
+export function canQueueLegalCompanyEmail(settings: CompanyEmailSenderConfiguration) {
+  return companyEmailSenderBlocker(settings, { legalOrCritical: true, requireSendReady: true }) === null
+}
+
+export async function getEffectiveSender(companyId: string, options: CompanyEmailSenderRequirement = {}): Promise<EffectiveSender> {
   const [company, settings] = await Promise.all([
     getCompany(companyId),
     getCompanyEmailSettings(companyId),
   ])
 
-  if (settings && (!settings.is_active || settings.sender_mode === 'disabled')) {
-    throw new Error('E-postavsändaren är avstängd för bolaget. Aktivera avsändaren på bolagskortet innan utskick.')
-  }
+  const blocker = companyEmailSenderBlocker(settings, options)
+  if (blocker) throw new Error(blocker)
 
-  if (settings?.sender_mode === 'fallback_platform_sender' && settings.fallback_allowed === false) {
-    throw new Error('Fallback-avsändare är avstängd för bolaget. Verifiera domänen innan utskick.')
-  }
-
-  if (options.legalOrCritical && settings?.block_legal_mail_when_unverified && settings.verification_status !== 'verified') {
-    throw new Error('Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.')
-  }
-
-  if (options.legalOrCritical && (!settings || settings.verification_status !== 'verified')) {
-    throw new Error('Bolagets domän måste vara verifierad innan juridiska eller kritiska kundmail skickas.')
-  }
-
-  if (
-    settings?.verification_status === 'verified' &&
-    settings.is_active &&
-    settings.sender_mode !== 'disabled' &&
-    settings.sender_email &&
-    settings.sender_name
-  ) {
+  if (hasVerifiedSenderIdentity(settings)) {
     return {
       from: formatAddress(settings.sender_name, settings.sender_email),
       replyTo: settings.reply_to_email ?? settings.support_email ?? undefined,
@@ -230,9 +246,6 @@ export async function getEffectiveSender(companyId: string, options: { legalOrCr
   }
 
   const fallbackEmail = DEFAULT_FROM_EMAIL || 'missing-platform-fallback@example.invalid'
-  if (!DEFAULT_FROM_EMAIL && options.requireSendReady) {
-    throw new Error(missingFallbackSenderMessage())
-  }
   const fallbackName = `${company.name} via ${DEFAULT_FROM_NAME}`
   const replyTo =
     settings?.support_email ??

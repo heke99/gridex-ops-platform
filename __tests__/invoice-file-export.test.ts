@@ -7,7 +7,6 @@ vi.mock('@/lib/billing/invoiceApprovedDispatch', () => ({
   approval: (metadata: unknown) => ((metadata as { approval?: { status?: string } } | null)?.approval ?? {}),
   assertItemStillReady: vi.fn(),
   loadItemContext: vi.fn(),
-  maybeLockCompleteMonth: vi.fn(),
   updateLegacyProjection: vi.fn(),
 }))
 
@@ -58,6 +57,37 @@ describe('invoice file export', () => {
     expect(business.customer_name).toBe('AB Test')
   })
 
+  it.each([
+    { type: 'variable', months: 0, expectedEnd: null, expectedRemaining: null },
+    { type: 'spot_hourly', months: null, expectedEnd: null, expectedRemaining: null },
+    { type: 'variable', months: 6, expectedEnd: '2027-01-31', expectedRemaining: 3 },
+    { type: 'fixed', months: null, expectedEnd: '2027-02-28', expectedRemaining: 4 },
+  ])('keeps delivery end separate from binding for $type with $months binding months', ({
+    type, months, expectedEnd, expectedRemaining,
+  }) => {
+    const exported = buildInvoiceFileRow({
+      item: { id: '11111111-2222-3333-4444-555555555555', amount_inc_vat: 1 },
+      invoice: {},
+      customer: {},
+      underlay: {},
+      lines: [],
+      legacyItem: null,
+      billingMonth: '2026-09',
+      now,
+      contract: {
+        contract_type: type,
+        actual_start_date: '2026-07-31',
+        binding_months: months,
+        ends_at: '2027-02-28',
+        notice_months: 1,
+      },
+    })
+    expect(exported.electricity?.contract).toMatchObject({
+      type, binding_months: months, binding_end_date: expectedEnd,
+      binding_months_remaining: expectedRemaining, notice_months: 1,
+    })
+  })
+
   it('renders identical CSV for the same rows (re-download gives the same file)', () => {
     const file = { id: 'aaaaaaaa-0000-0000-0000-000000000000', billing_month: '2026-09', rows: [row()], rows_sha256: rowsSha256([row()]), created_at: '2026-10-02T10:00:00Z' }
     const a = renderInvoiceFile(file, 'csv')
@@ -86,6 +116,13 @@ describe('invoice file export', () => {
 
   it('gives a fixed 20-day payment term', () => {
     expect(invoiceDates(new Date('2026-12-20T12:00:00Z'))).toEqual({ invoiceDate: '2026-12-20', dueDate: '2027-01-09' })
+  })
+
+  it.each([
+    ['2026-03-15T22:30:00Z', '2026-03-15', '2026-04-04'],
+    ['2026-10-15T22:30:00Z', '2026-10-16', '2026-11-05'],
+  ])('keeps a 20-day Stockholm payment term across a clock change from %s', (instant, invoiceDate, dueDate) => {
+    expect(invoiceDates(new Date(instant))).toEqual({ invoiceDate, dueDate })
   })
 })
 

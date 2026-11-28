@@ -59,6 +59,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
 vi.mock('@/lib/inbound-mail/edielInboundProcessor', () => ({ processInboundEmailMessage: io.process }))
 vi.mock('imapflow', () => ({ ImapFlow: class {
   async connect() { if (io.imap.connectError) throw io.imap.connectError; io.imap.onConnect?.() }
+  mailbox = { uidValidity: BigInt(1), path: "INBOX" }
   async getMailboxLock() { return { release: () => undefined } }
   async *fetch() { /* empty mailbox */ }
   async messageFlagsAdd() { return true }

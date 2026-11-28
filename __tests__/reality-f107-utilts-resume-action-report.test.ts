@@ -108,6 +108,21 @@ beforeEach(() => {
   io.listAcks.mockResolvedValue([])
 })
 
+it('reports only observed reply status before rechecking a held source', async () => {
+  io.listAcks.mockResolvedValue([db.state.messages[1]])
+  io.process.mockImplementation(async () => {
+    expect(io.event).toHaveBeenCalledWith(expect.objectContaining({
+      edielMessageId: SOURCE,
+      eventType: 'manual_note',
+      message: 'CONTRL finns redan och applikationssvar saknas. Motorn bedömer källan på nytt enligt ordinarie regler.',
+    }))
+    return source()
+  })
+
+  await expect(runEdielOperationalMessageAction(form())).resolves.toEqual({ status: 'processed' })
+  expect(io.process).toHaveBeenCalledTimes(1)
+})
+
 describe('F107 "Kör UTILTS engine" after values are stored', () => {
   it('reports "stored, reply missing" instead of an opaque failure, durably on the source', async () => {
     storeThenRefuseReply()

@@ -17,7 +17,6 @@ const path = require('path')
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
-const exists = (file) => fs.existsSync(path.join(root, file))
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -83,12 +82,18 @@ assert(
   'lib/billing/underlayEngine.ts: prevents duplicate billing underlay for same period/site'
 )
 
-// ---- 8. Invoice partner customer: no duplicate mapping via DB unique index ----
-// partnerAdapter.ts is a transformation layer; deduplication is via DB unique index on mapping table
-// tenant_portal_customer_links and customer_portal_identities have partial unique index
+// ---- 8. Invoice partner customer: guard each exact owning index definition ----
+// Matching the entire joined migration archive can backtrack across unrelated
+// statements. Each accepted declaration belongs to one known migration.
+const portalLinks = read('supabase/migrations/20260608170000_batch_1_9_operations_integration_foundation.sql')
+const portalIdentities = read('supabase/migrations/20260609143000_batch_6_api_clients_customer_portal.sql')
 assert(
-  /tenant_portal_customer_links.*company_id.*provider.*external_customer_id|customer_portal_identities.*company_id.*provider.*external_customer_id/s.test(allMigrations),
-  'supabase/migrations: partner/portal customer mapping has unique index on (company_id, provider, external_customer_id)'
+  /^create unique index if not exists tenant_portal_customer_links_company_provider_external_uidx\s+on public\.tenant_portal_customer_links\(company_id,\s*provider,\s*external_customer_id\)\s+where external_customer_id is not null;/im.test(portalLinks),
+  'tenant_portal_customer_links: unique company/provider/external customer mapping'
+)
+assert(
+  /^create unique index if not exists customer_portal_identities_external_uidx\s+on public\.customer_portal_identities\(company_id,\s*provider,\s*external_customer_id\);/im.test(portalIdentities),
+  'customer_portal_identities: unique company/provider/external customer mapping'
 )
 
 // ---- 9. Customer operation events use idempotency_key ----
@@ -99,12 +104,16 @@ assert(
 )
 
 // ---- 10. Customer automation enqueue is idempotent ----
-const automationFile = exists('lib/customer-operations/automation.ts')
-  ? read('lib/customer-operations/automation.ts')
-  : ''
+const automationFacade = read('lib/customer-operations/automation.ts')
+const automationOwner = read('lib/customer-operations/automation.part-1.ts')
 assert(
-  /idempotency_key|idempotencyKey|conflict|upsert/.test(automationFile) || automationFile.length === 0,
-  'lib/customer-operations/automation.ts: automation jobs use idempotency_key'
+  /export \{[^}]*\benqueueCustomerDataRequestAutomation\b[^}]*\benqueueSupplierSwitchAutomation\b[^}]*\} from ['"]\.\/automation\.part-1['"]/.test(automationFacade),
+  'automation.ts: exposes the customer and switch enqueue owner'
+)
+assert(
+  /idempotency_key:\s*input\.idempotencyKey[\s\S]*?\.from\(['"]customer_operation_jobs['"]\)\s*\.insert\(row\)/.test(automationOwner) &&
+  /\.eq\(['"]company_id['"],\s*companyId\)\s*\.eq\(['"]job_type['"],\s*input\.jobType\)\s*\.eq\(['"]idempotency_key['"],\s*input\.idempotencyKey\)/.test(automationOwner),
+  'automation enqueue saves the supplied idempotency key and looks up duplicates in the same company/job type'
 )
 
 console.log('\n✓ Automation idempotency multisite regression passed.')

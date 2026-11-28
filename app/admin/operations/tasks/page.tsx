@@ -1,13 +1,21 @@
-import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
+import {
+ ACTIVE_SUPPLY_END_TASK_STATUSES, SUPPLY_END_REVIEW_READ, SUPPLY_END_TASK_CONFIRMATION_COPY,
+ SUPPLY_END_TASK_REVIEW_COPY, SUPPLY_END_TASK_TYPE, SUPPLY_END_TASK_UNVERIFIED_COPY,
+ readSupplyEndTaskReviewIds,
+} from '@/lib/admin/supplyEndTaskReview'
+import { InvalidReadModelResponseError, readResult } from '@/lib/read-models/readResult'
+import { canPresentAdminAction } from '@/lib/admin/actionPresentation'
+import { canOpenCustomerDetail } from '@/lib/admin/accessModel'
 import CustomerName from '@/components/admin/CustomerName'
 //app/admin/operations/tasks/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { resolveAdminSelectedCompanyReadScope, resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { readWritableSwitchCompanyIds as readWritableCompanyIds } from '@/lib/operations/switchCompanyWriteScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
-import { listAllOperationTasks } from '@/lib/operations/db'
+import { canWriteOperationTaskCompany, listAllOperationTasks } from '@/lib/operations/db'
 import {
  runOperationsTaskAutoResolutionSweepAction,
  updateOperationTaskStatusFromAdminAction,
@@ -144,8 +152,7 @@ export default async function AdminOperationsTasksPage({
  const context = await requireAdminPageKeyAccess('operations.tasks')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
- const canWrite = await canPresentAdminAction(['masterdata.write'])
- const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
+ const canReadCustomer = tenantScope.isPlatformAdmin || canOpenCustomerDetail(context.permissions)
 
  const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
@@ -163,6 +170,36 @@ export default async function AdminOperationsTasksPage({
  query,
  companyId,
  })
+
+ if (companyId && tasks.some(task => task.company_id !== companyId)) throw new InvalidReadModelResponseError()
+
+ const reviewCandidates = tasks.flatMap(task =>
+   task.company_id && task.customer_id && task.task_type === SUPPLY_END_TASK_TYPE && ACTIVE_SUPPLY_END_TASK_STATUSES.includes(task.status)
+     ? [{ id: task.id, companyId: task.company_id, customerId: task.customer_id, isSupplyEndTask: true }]
+     : [])
+ const reviewRead = await readResult(
+   () => readSupplyEndTaskReviewIds(supabase, companyId, reviewCandidates, ACTIVE_SUPPLY_END_TASK_STATUSES),
+   SUPPLY_END_REVIEW_READ,
+ )
+ const review = reviewRead.kind === 'unavailable' ? null : reviewRead.data
+ const knownSupplyEndTaskIds = new Set(reviewCandidates.map(task => task.id))
+ const taskReviewCopy = (id: string) => {
+   if (!knownSupplyEndTaskIds.has(id)) return null
+   if (review?.taskIds.has(id)) return SUPPLY_END_TASK_REVIEW_COPY
+   if (!review || review.unverifiedTaskIds.has(id)) return SUPPLY_END_TASK_UNVERIFIED_COPY
+   return SUPPLY_END_TASK_CONFIRMATION_COPY
+ }
+
+ const selectedCompany = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true })
+ const canEditTasks = await canPresentAdminAction(['masterdata.write'])
+ let writableCompanyIds = new Set<string>()
+ if (canEditTasks && tenantScope.isPlatformAdmin) {
+   writableCompanyIds = await readWritableCompanyIds(supabase, [selectedCompany.companyId, ...tasks.map(task => task.company_id)])
+ } else if (canEditTasks && companyId && await canWriteOperationTaskCompany(supabase, companyId)) {
+   writableCompanyIds.add(companyId)
+ }
+ const canWriteTask = (task: CustomerOperationTaskRow) => Boolean(task.company_id && writableCompanyIds.has(task.company_id))
+ const canSweep = Boolean(selectedCompany.companyId && writableCompanyIds.has(selectedCompany.companyId))
 
  let sitesQueryBuilder = supabase
  .from('customer_sites')
@@ -291,7 +328,8 @@ export default async function AdminOperationsTasksPage({
  </p>
  </div>
 
- {canWrite ? <form action={runOperationsTaskAutoResolutionSweepAction}>
+ {canEditTasks && !selectedCompany.companyId ? <p className="text-sm text-slate-600">Välj ett bolag innan du kör automatisk uppföljning.</p> : null}
+ {canSweep ? <form action={runOperationsTaskAutoResolutionSweepAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
  Kör automatisk uppföljning
  </button>
@@ -357,7 +395,9 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="space-y-3 p-6">
- {blockerFirst.slice(0, 10).map((task) => (
+ {blockerFirst.slice(0, 10).map((task) => {
+ const reviewCopy = taskReviewCopy(task.id)
+ return (
  <div
  key={task.id}
  className="rounded-2xl border border-slate-200 p-4 "
@@ -366,6 +406,7 @@ export default async function AdminOperationsTasksPage({
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(task.status)}`}>
  {formatStatusLabel(task.status)}
  </span>
+ {review?.taskIds.has(task.id) ? <span className="text-xs font-semibold text-amber-900">Blockerad för granskning</span> : null}
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyle(task.priority)}`}>
  {formatStatusLabel(task.priority)}
  </span>
@@ -375,10 +416,10 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="mt-3 text-sm font-semibold text-slate-900 ">
- {task.title}
+ {reviewCopy?.title ?? task.title}
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
- {task.description ?? '—'}
+ {reviewCopy?.description ?? task.description ?? '—'}
  </div>
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
@@ -389,28 +430,29 @@ export default async function AdminOperationsTasksPage({
 
  <div className="mt-4 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton canWrite={canWrite} taskId={task.id} status="open" label="Öppen" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="open" label="Öppen" />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="blocked"
  label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Klar" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="done" label={reviewCopy ? "Markera uppgiften som klar" : "Klar"} />
  ) : null}
  </div>
  </div>
- ))}
+ )
+ })}
 
  {blockerFirst.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-700 ">
@@ -467,9 +509,9 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="mt-4 flex flex-wrap gap-2">
- <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Markera klar" />
+ <ActionButton canWrite={canWriteTask(task)} taskId={task.id} status="done" label="Markera klar" />
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
@@ -533,6 +575,7 @@ export default async function AdminOperationsTasksPage({
  </tr>
  ) : (
  tasks.map((task) => {
+ const reviewCopy = taskReviewCopy(task.id)
  const likelyResolved = isTaskLikelyResolved({
  task,
  sites,
@@ -547,7 +590,7 @@ export default async function AdminOperationsTasksPage({
  >
  <td className="px-6 py-4">
  <div className="font-medium text-slate-900 ">
- {task.title}
+ {reviewCopy?.title ?? task.title}
  </div>
  <div className="mt-1 flex flex-wrap items-center gap-2">
  <span className="text-xs text-slate-700 ">
@@ -560,7 +603,7 @@ export default async function AdminOperationsTasksPage({
  ) : null}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- {task.description ?? '—'}
+ {reviewCopy?.description ?? task.description ?? '—'}
  </div>
  {tenantScope.isPlatformAdmin ? <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-1 break-all">Uppgift: {task.id} · Typ: {task.task_type} · Anläggning: {task.site_id} · Mätpunkt: {task.metering_point_id}</p></details> : null}
  </td>
@@ -573,6 +616,7 @@ export default async function AdminOperationsTasksPage({
  >
  {formatStatusLabel(task.status)}
  </span>
+ {review?.taskIds.has(task.id) ? <p className="mt-2 text-xs font-semibold text-amber-900">Blockerad för granskning</p> : null}
  </td>
 
  <td className="px-6 py-4">
@@ -591,7 +635,7 @@ export default async function AdminOperationsTasksPage({
  className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
  >
  Öppna kundkort
- </Link> : <span className="text-xs text-slate-600">Kundkortet kräver kundläsbehörighet.</span>}
+ </Link> : <span className="text-xs text-slate-600">Kundkortet kräver läsbehörighet.</span>}
  </td>
 
  <td className="px-6 py-4 text-xs text-slate-700 ">
@@ -606,33 +650,33 @@ export default async function AdminOperationsTasksPage({
  </td>
 
  <td className="px-6 py-4">
- {canWrite ? <details><summary className="cursor-pointer text-sm font-semibold text-slate-700">Hantera uppgift</summary><div className="mt-2 flex flex-wrap gap-2">
+ {canWriteTask(task) ? <details><summary className="cursor-pointer text-sm font-semibold text-slate-700">Hantera uppgift</summary><div className="mt-2 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="open"
  label="Öppen"
  />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="in_progress"
  label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="blocked"
  label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton canWrite={canWrite}
+ <ActionButton canWrite={canWriteTask(task)}
  taskId={task.id}
  status="done"
- label={likelyResolved ? 'Stäng som löst' : 'Klar'}
+ label={reviewCopy ? 'Markera uppgiften som klar' : likelyResolved ? 'Stäng som löst' : 'Klar'}
  />
  ) : null}
  </div></details> : <span className="text-xs text-slate-600">Läsbehörighet</span>}

@@ -49,19 +49,26 @@ export const MONTHLY_CONSUMPTION_SHARE = [
 
 export type TimeWindow = { start: number; end: number };
 
+export function estimateHistoryReferenceWindows(start: number, end: number) {
+  return {
+    lastYear: { start: start - YEAR_SHIFT_MS, end: end - YEAR_SHIFT_MS },
+    recent: { start: start - RECENT_WINDOW_MS, end: start },
+  };
+}
+
 function toSource(rows: Array<Record<string, unknown>>): SourceRow[] {
   return rows
     .map((row) => ({
       start: Date.parse(String(row.period_start)),
       end: Date.parse(String(row.period_end)),
-      kwh: Math.abs(Number(row.quantity_kwh)),
+      kwh: Number(row.quantity_kwh),
     }))
     .filter(
       (row) =>
         Number.isFinite(row.start) &&
         Number.isFinite(row.end) &&
         row.end > row.start &&
-        Number.isFinite(row.kwh),
+        Number.isFinite(row.kwh) && row.kwh >= 0,
     )
     .sort((a, b) => a.start - b.start);
 }
@@ -162,7 +169,7 @@ export function estimateFromHistory(input: {
   const last = input.windows[input.windows.length - 1].end;
 
   // 1. Same period last year (52 weeks back keeps weekday and hour).
-  const lastYear = { start: first - YEAR_SHIFT_MS, end: last - YEAR_SHIFT_MS };
+  const { lastYear, recent } = estimateHistoryReferenceWindows(first, last);
   const lastYearCoverage = input.windows.every(
     (window) =>
       coverage(history, { start: window.start - YEAR_SHIFT_MS, end: window.end - YEAR_SHIFT_MS }) >=
@@ -178,7 +185,6 @@ export function estimateFromHistory(input: {
   }
 
   // 2. Most recent complete four weeks before the gap, repeated weekly.
-  const recent = { start: first - RECENT_WINDOW_MS, end: first };
   if (coverage(history, recent) >= MIN_REFERENCE_COVERAGE) {
     return finish(
       "recent_four_weeks",
@@ -215,6 +221,64 @@ export function estimateFromHistory(input: {
   return null;
 }
 
+type EstimateHistoryRow = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  quantity_kwh: number | string;
+  quality_status: string | null;
+};
+
+const ESTIMATE_HISTORY_PAGE_SIZE = 1000;
+const ESTIMATE_HISTORY_MAX_ROWS = 100_000;
+
+function estimateHistoryCursorTime(timestamp: string) {
+  const milliseconds = Date.parse(timestamp);
+  // PostgreSQL timestamptz keeps microseconds that Date.parse truncates.
+  const fraction = /\.(\d{4,6})(?:Z|[+-])/.exec(timestamp)?.[1];
+  return milliseconds * 1_000 + Number(fraction?.padEnd(6, "0").slice(3) ?? 0);
+}
+
+async function loadEstimateHistoryWindow(companyId: string, pointId: string, window: TimeWindow) {
+  const start = new Date(window.start).toISOString();
+  const end = new Date(window.end).toISOString();
+  const rows: EstimateHistoryRow[] = [];
+  let cursor: { periodStart: string; id: string; time: number } | undefined;
+  while (rows.length <= ESTIMATE_HISTORY_MAX_ROWS) {
+    const query = supabaseService
+      .from("normalized_metering_values")
+      .select("id,period_start,period_end,quantity_kwh,quality_status")
+      .eq("company_id", companyId)
+      .eq("metering_point_id", pointId)
+      .eq("revision_status", "current")
+      .in("direction", ["consumption", "net_consumption"])
+      .gte("quantity_kwh", 0)
+      .lt("period_start", end)
+      .gt("period_end", start)
+      .order("period_start", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(Math.min(ESTIMATE_HISTORY_PAGE_SIZE, ESTIMATE_HISTORY_MAX_ROWS + 1 - rows.length));
+    if (cursor) {
+      query.or(`period_start.gt.${cursor.periodStart},and(period_start.eq.${cursor.periodStart},id.gt.${cursor.id})`);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = (data ?? []) as EstimateHistoryRow[];
+    const last = page.at(-1);
+    if (!last) return rows;
+    const time = estimateHistoryCursorTime(last.period_start);
+    if (!Number.isFinite(time) || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(last.id)) {
+      throw new Error("billing_estimate_history_cursor_invalid");
+    }
+    if (cursor && (time < cursor.time || (time === cursor.time && last.id <= cursor.id))) {
+      throw new Error("billing_estimate_history_cursor_not_advanced");
+    }
+    rows.push(...page);
+    cursor = { periodStart: last.period_start, id: last.id, time };
+  }
+  throw new Error("billing_estimate_history_limit_exceeded");
+}
+
 /** Loads the meter's history and annual consumption, then estimates the missing windows. */
 export async function estimateMissingConsumption(input: {
   companyId: string;
@@ -225,20 +289,11 @@ export async function estimateMissingConsumption(input: {
   if (input.windows.length === 0) return null;
   const first = input.windows[0].start;
   const last = input.windows[input.windows.length - 1].end;
-  const historyStart = new Date(first - YEAR_SHIFT_MS - DAY_MS).toISOString();
-  const historyEnd = new Date(last).toISOString();
+  const { lastYear, recent } = estimateHistoryReferenceWindows(first, last);
 
-  const [historyResult, pointResult] = await Promise.all([
-    supabaseService
-      .from("normalized_metering_values")
-      .select("period_start,period_end,quantity_kwh,quality_status")
-      .eq("company_id", input.companyId)
-      .eq("metering_point_id", input.meteringPointId)
-      .eq("revision_status", "current")
-      .lt("period_start", historyEnd)
-      .gt("period_end", historyStart)
-      .order("period_start", { ascending: true })
-      .limit(100_000),
+  const [lastYearHistory, recentHistory, pointResult] = await Promise.all([
+    loadEstimateHistoryWindow(input.companyId, input.meteringPointId, lastYear),
+    loadEstimateHistoryWindow(input.companyId, input.meteringPointId, recent),
     supabaseService
       .from("metering_points")
       .select("estimated_annual_consumption_kwh, customer_site_id, site_id")
@@ -246,11 +301,12 @@ export async function estimateMissingConsumption(input: {
       .eq("id", input.meteringPointId)
       .maybeSingle(),
   ]);
-  if (historyResult.error) throw historyResult.error;
   if (pointResult.error) throw pointResult.error;
 
+  // A source interval may intersect both windows. It still contributes once.
+  const historyById = new Map([...lastYearHistory, ...recentHistory].map(row => [row.id, row]));
   // Only final values form a reference; earlier estimates must not feed new ones.
-  const history = ((historyResult.data ?? []) as Array<Record<string, unknown>>).filter(
+  const history = [...historyById.values()].filter(
     (row) => !["estimated", "preliminary", "temp", "temporary", "calculated"].includes(String(row.quality_status ?? "").toLowerCase()),
   );
 

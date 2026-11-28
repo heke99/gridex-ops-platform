@@ -46,8 +46,18 @@ function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function readBaseComponentPriceArea(value: unknown): PriceArea | null {
+  if (value == null || (typeof value === "string" && !value.trim())) return null;
+  const priceArea = canonicalSwedishPriceArea(value);
+  if (!priceArea) {
+    throw new Error("Prissnapshotets baskomponent har ett ogiltigt elområde.");
+  }
+  return priceArea;
+}
+
 function normalizeBaseComponent(
   row: Record<string, unknown>,
+  underlay: BillingUnderlayInput,
 ): BasePriceComponent | null {
   const metadata = isObject(row.metadata) ? row.metadata : {};
   const sourceType =
@@ -61,6 +71,11 @@ function normalizeBaseComponent(
     return null;
   const weight =
     numberValue(row.weight_percent) ?? numberValue(row.weightPercent);
+  const validFrom = stringValue(row.valid_from) ?? stringValue(row.validFrom);
+  const validTo = stringValue(row.valid_to) ?? stringValue(row.validTo);
+  const priceArea = periodOverlaps(validFrom, validTo, underlay.periodStart, underlay.periodEnd)
+    ? readBaseComponentPriceArea(row.price_area) ?? readBaseComponentPriceArea(row.priceArea)
+    : null;
   return {
     sourceType,
     weightPercent: weight ?? 100,
@@ -68,11 +83,9 @@ function normalizeBaseComponent(
       numberValue(row.fixed_price_sek_per_kwh) ??
       numberValue(row.fixedPriceSekPerKwh),
     label: stringValue(row.label),
-    priceArea: canonicalSwedishPriceArea(
-      stringValue(row.price_area) ?? stringValue(row.priceArea),
-    ),
-    validFrom: stringValue(row.valid_from) ?? stringValue(row.validFrom),
-    validTo: stringValue(row.valid_to) ?? stringValue(row.validTo),
+    priceArea,
+    validFrom,
+    validTo,
     metadata,
   };
 }
@@ -368,16 +381,18 @@ export function filterBaseComponentsForUnderlay(
       underlay.periodEnd,
     ),
   );
-  const hasAreaRows = periodRows.some((component) => component.priceArea);
-  if (!hasAreaRows) return dedupeBaseComponents(periodRows);
+  const areaRows = periodRows.map((component) => ({
+    component,
+    priceArea: readBaseComponentPriceArea(component.priceArea),
+  }));
+  if (!areaRows.some((row) => row.priceArea)) return dedupeBaseComponents(periodRows);
   if (!underlay.priceArea) return [];
   const underlayPriceArea = canonicalSwedishPriceArea(underlay.priceArea);
   if (!underlayPriceArea) return [];
   return dedupeBaseComponents(
-    periodRows.filter((component) => {
-      const componentPriceArea = canonicalSwedishPriceArea(component.priceArea);
-      return !componentPriceArea || componentPriceArea === underlayPriceArea;
-    }),
+    areaRows
+      .filter(({ priceArea }) => !priceArea || priceArea === underlayPriceArea)
+      .map(({ component }) => component),
   );
 }
 
@@ -796,7 +811,7 @@ export async function resolvePricingConfiguration(input: {
       : [];
 
   const normalizedSnapshotBase = snapshotBase
-    .map((row) => (isObject(row) ? normalizeBaseComponent(row) : null))
+    .map((row) => (isObject(row) ? normalizeBaseComponent(row, input.underlay) : null))
     .filter((row): row is BasePriceComponent => Boolean(row));
   assertNoMidPeriodBoundaries(
     normalizedSnapshotBase,

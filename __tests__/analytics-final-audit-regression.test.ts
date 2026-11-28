@@ -79,3 +79,108 @@ it('can complete a six-owner top list through a lower backend row cap without ex
 it('fails closed when a short backend-capped complete read omits the requested exact count',async()=>{io.omitCount=true;io.pageCap=100;io.tables.gridex_actionable_data_quality_issues_v=Array.from({length:1001},(_,i)=>({id:String(i),company_id:'A',status:'open'}));await expect(getDeviationRows('A')).rejects.toThrow('omfattning')})
 it('keeps the missing-basis count unknown for area-only fallback without inspected basis rows',async()=>{io.tables.bidding_zone_monthly_metrics=[{id:'zone',company_id:'A',month:'2026-10-01',bidding_zone_code:'SE3',forecast_kwh:null,actual_kwh:null}];const {default:Page}=await import('@/app/admin/analytics/forecast/page');const html=renderToStaticMarkup(await Page({searchParams:Promise.resolve({month:'2026-10'})}));expect(html).toContain('Antal saknade prognosbaser kan inte bedömas');expect(html).not.toContain('Ingen saknad prognosbas i urvalet')})
 it('does not infer an exact missing-basis count from a null forecast alone',async()=>{io.tables.forecast_runs=[{id:'run',company_id:'A',forecast_type:'consumption',status:'completed'}];io.tables.forecast_run_items=[{company_id:'A',forecast_run_id:'run',bidding_zone_code:'SE3',forecast_kwh:null,method:null}];expect((await getLatestForecastByBiddingZone('A',{month:'2026-10-01'}))[0]).toHaveProperty('missingDataAvailable',false)})
+
+it('exports all data-quality history from the reports page and legacy monthly links', async () => {
+    io.tables.data_quality_issues = [
+        { id: 'september-retained', company_id: 'A', status: 'resolved', created_at: '2026-09-12T10:00:00Z' },
+        { id: 'october-open', company_id: 'A', status: 'open', created_at: '2026-10-11T10:00:00Z' },
+        { id: 'foreign-issue', company_id: 'B', status: 'open', created_at: '2026-10-11T10:00:00Z' },
+    ];
+    const { default: Reports } = await import('@/app/admin/analytics/reports/page');
+    const markup = renderToStaticMarkup(await Reports({ searchParams: Promise.resolve({ month: '2026-10' }) }));
+    const archiveHref = markup.match(/href="([^"]*\?report=data_quality_issues[^"]*)"/)?.[1]?.replaceAll('&amp;', '&');
+    expect.soft(archiveHref).toBe('/admin/analytics/export?report=data_quality_issues&expected_company_id=A');
+    expect(markup).toContain('report=company_monthly_metrics&amp;month=2026-10&amp;expected_company_id=A');
+
+    const { NextRequest } = await import('next/server');
+    const { GET } = await import('@/app/admin/analytics/export/route');
+    const base = 'http://localhost/admin/analytics/export?report=data_quality_issues';
+    const responses = await Promise.all([
+        GET(new NextRequest(new URL(archiveHref ?? '', 'http://localhost'))),
+        GET(new NextRequest(base + '&month=2026-10')),
+    ]);
+    const contents = await Promise.all(responses.map(response => response.text()));
+    for (const response of responses) {
+        expect(response.status).toBe(200);
+        expect.soft(response.headers.get('content-disposition')).toBe('attachment; filename="analytics-data_quality_issues-all-history.csv"');
+    }
+    expect(contents[0]).toBe(contents[1]);
+    expect(contents[0]).toContain('september-retained');
+    expect(contents[0]).toContain('october-open');
+    expect(contents[0]).not.toContain('foreign-issue');
+    const archiveQueries = () => io.calls.filter(call => call.table === 'data_quality_issues').map(call => call.filters);
+    expect(archiveQueries()).toEqual([[['company_id', 'A']], [['company_id', 'A']]]);
+
+    const changedCompany = await GET(new NextRequest(base + '&expected_company_id=B'));
+    expect(changedCompany.status).toBe(409);
+    expect(archiveQueries()).toHaveLength(2);
+});
+
+it('exports the current actionable metering issue view independently of the selected or legacy month', async () => {
+    io.tables.gridex_actionable_data_quality_issues_v = [
+        { id: 'current-missing', company_id: 'A', issue_type: 'missing_metering_values', status: 'open', period_month: '2026-11-01' },
+        { id: 'without-period', company_id: 'A', issue_type: 'missing_metering_values', status: 'open', period_month: null },
+        { id: 'other-type', company_id: 'A', issue_type: 'missing_grid_owner', status: 'open', period_month: null },
+        { id: 'foreign-missing', company_id: 'B', issue_type: 'missing_metering_values', status: 'open', period_month: '2026-11-01' },
+    ];
+    const { default: Reports } = await import('@/app/admin/analytics/reports/page');
+    const markup = renderToStaticMarkup(await Reports({ searchParams: Promise.resolve({ month: '2026-10' }) }));
+    const reportHref = markup.match(/href="([^"]*\?report=missing_metering_values[^"]*)"/)?.[1]?.replaceAll('&amp;', '&');
+    expect.soft(reportHref).toBe('/admin/analytics/export?report=missing_metering_values&expected_company_id=A');
+    expect.soft(markup).toContain('Aktuella öppna datakvalitetsärenden för saknade mätvärden.');
+
+    const { NextRequest } = await import('next/server');
+    const { GET } = await import('@/app/admin/analytics/export/route');
+    const route = 'http://localhost/admin/analytics/export?report=missing_metering_values';
+    const responses = await Promise.all([
+        GET(new NextRequest(new URL(reportHref ?? '', 'http://localhost'))),
+        GET(new NextRequest(route + '&month=2026-10')),
+        GET(new NextRequest(route + '&month=2025-01&expected_company_id=A')),
+    ]);
+    const contents = await Promise.all(responses.map(response => response.text()));
+    for (const response of responses) {
+        expect(response.status).toBe(200);
+        expect.soft(response.headers.get('content-disposition')).toBe('attachment; filename="analytics-missing_metering_values-current.csv"');
+    }
+    expect(new Set(contents).size).toBe(1);
+    expect(contents[0]).toContain('current-missing');
+    expect(contents[0]).toContain('without-period');
+    expect(contents[0]).not.toContain('other-type');
+    expect(contents[0]).not.toContain('foreign-missing');
+    const issueQueries = io.calls.filter(call => call.table === 'gridex_actionable_data_quality_issues_v');
+    expect(issueQueries.map(call => call.filters)).toEqual(Array.from({ length: 3 }, () =>
+        [['company_id', 'A'], ['issue_type', 'missing_metering_values']],
+    ));
+
+    const changedCompany = await GET(new NextRequest(route + '&month=2025-01&expected_company_id=B'));
+    expect(changedCompany.status).toBe(409);
+    expect(io.calls.filter(call => call.table === 'gridex_actionable_data_quality_issues_v')).toHaveLength(3);
+});
+
+it('returns the complete archive below its application ceiling even when the backend caps each page', async () => {
+    io.pageCap = 333;
+    io.tables.data_quality_issues = Array.from({ length: 5001 }, (_, index) => ({
+        id: `history-${index}`, company_id: 'A', status: 'resolved',
+    }));
+    const { NextRequest } = await import('next/server');
+    const { GET } = await import('@/app/admin/analytics/export/route');
+    const archive = () => GET(new NextRequest('http://localhost/admin/analytics/export?report=data_quality_issues&expected_company_id=A'));
+    const response = await archive();
+    expect(response.status).toBe(200);
+    const csv = await response.text();
+    expect(csv).toContain('history-5000');
+    expect(csv.trimEnd().split('\n')).toHaveLength(5002);
+    expect(io.calls.filter(call => call.table === 'data_quality_issues')).toHaveLength(16);
+
+    io.tables.data_quality_issues = Array.from({ length: 10001 }, (_, index) => ({
+        id: `history-${index}`, company_id: 'A', status: 'resolved',
+    }));
+    const tooLarge = await archive();
+    expect(tooLarge.status).toBe(503);
+    expect(tooLarge.headers.get('content-disposition')).toBeNull();
+
+    io.omitCount = true;
+    const unknownCount = await archive();
+    expect(unknownCount.status).toBe(503);
+    expect(unknownCount.headers.get('content-disposition')).toBeNull();
+});

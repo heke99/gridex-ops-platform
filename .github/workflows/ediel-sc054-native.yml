@@ -100,7 +100,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-sc-054-storage-failure-native.test.ts': '36f09b56f4ee75684b318c48f8e347fb3c20f5cf14378726c99b38ae5a3ab545',
+                  'scripts/ediel-sc-054-storage-failure-native.test.ts': '45d441a4af66ba970ff310e2a09e491582f80bff609b5e1125009cb81dffa3e7',
                   'scripts/ediel-sc-054-storage-failure-native.config.ts': 'a76d34ee512b57e79cd6bbf978c4b0d8fd2207c67f5135bb1321c7d97947bd10',
               }
               for path, digest in frozen_native.items():
@@ -132,7 +132,8 @@ jobs:
                   raise SystemExit('native_runtime_version_mismatch')
               frozen = {'checkout_sha': head, 'checkout_tree': tree, 'tracked_inputs': inputs,
                         'runtime_versions': runtime,
-                        'original_native_source_sha256': frozen_native,
+                        'original_native_source_sha256': {**frozen_native,
+                            'scripts/ediel-sc-054-storage-failure-native.test.ts': '36f09b56f4ee75684b318c48f8e347fb3c20f5cf14378726c99b38ae5a3ab545'},
                         'native_source_sha256': frozen_native,
                         'native_source_version': 'sc054_storage_failure_native_v1',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],

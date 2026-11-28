@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assessWithdrawal, applyCustomerCaseOperationalStops, createCancellationDraftForCase } from './engine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { TENANT_SUPPORT_CASE_FILTER } from './supportPolicy'
 import type { CustomerCaseEventRow, CustomerCaseListRow, CustomerCaseRow, CustomerCaseType } from './types'
 import { queueTenantTemplateEmail, type TenantEmailTemplateKey } from '@/lib/tenant/emailTemplates'
 
@@ -80,6 +81,8 @@ export async function listCustomerCases(options: {
   statuses?: readonly string[]
   type?: string | null
   source?: string | null
+  sources?: readonly string[]
+  supportOnly?: boolean
   query?: string | null
   limit?: number
   offset?: number
@@ -100,6 +103,8 @@ export async function listCustomerCases(options: {
   if (options.statuses) query = query.in('status', [...options.statuses])
   if (options.type && options.type !== 'all') query = query.eq('case_type', options.type)
   if (options.source) query = query.eq('source', options.source)
+  if (options.sources?.length) query = query.in('source', [...options.sources])
+  if (options.supportOnly) query = query.or(TENANT_SUPPORT_CASE_FILTER)
   if (options.query?.trim()) {
     query = query.or(`title.ilike.%${options.query.trim()}%,description.ilike.%${options.query.trim()}%,reason_category.ilike.%${options.query.trim()}%`)
   }
@@ -386,6 +391,45 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
   })
 
   return (await getCustomerCaseById(row.id, row.company_id)) ?? row
+}
+
+export async function updateObservedSupportCaseStatus(input: {
+  caseId: string
+  companyId: string
+  customerId: string
+  actorUserId: string
+  status: string
+  expectedStatus: string
+  expectedSource: string | null
+  message: string | null
+}) {
+  type ObservedStatusRpc = (
+    name: 'gridex_update_ops_support_case_status_if_current_v1',
+    args: {
+      p_case_id: string
+      p_company_id: string
+      p_customer_id: string
+      p_status: string
+      p_actor_user_id: string
+      p_expected_source: string | null
+      p_expected_status: string
+      p_message: string | null
+    },
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as ObservedStatusRpc
+  const { data, error } = await rpc('gridex_update_ops_support_case_status_if_current_v1', {
+    p_case_id: input.caseId,
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_status: input.status,
+    p_actor_user_id: input.actorUserId,
+    p_expected_source: input.expectedSource,
+    p_expected_status: input.expectedStatus,
+    p_message: input.message,
+  })
+  if (error) throw error
+  return data as CustomerCaseRow
 }
 
 export async function updateCustomerCaseStatus(input: {

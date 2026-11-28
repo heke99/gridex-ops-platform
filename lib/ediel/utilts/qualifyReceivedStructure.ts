@@ -11,6 +11,7 @@ import {parseSourceReceiptInstant} from './receivedSourceInventory'
 import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure,type StructuralComparison} from './structuralComparison'
+import {ignoredUtiltsEnergyTimestampIndices} from './e66ObservationTimestampDiagnostic'
 import {rebuildUtiltsRuntimeResult,takeUtiltsRuntimeOwner,utiltsRuntimeOwnerFingerprint,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
 import {resolveUtiltsProcessabilityPolicy} from '@/lib/ediel/rulebook/utilts25A4'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -156,9 +157,12 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
   }).map(({disposition,index})=>[index,{transactionId:disposition.transactionId,status:'unavailable' as const,
     reason:'utilts_consumption_identity_unsupported',codes:[],selected:[]}]))
   const comparisonEnabled=resolveUtiltsProcessabilityPolicy(canonicalPolicy.referenceDate).validateMeterAndRegisterAgainstStructuralInformation
+  const ignoredEnergyTimestamps = comparisonEnabled
+    ? ignoredUtiltsEnergyTimestampIndices(raw ?? '', canonicalPolicy)
+    : undefined
   const compareEligible=eligible.filter(({index})=>!identityFailures.has(index))
   const needsReadset=comparisonEnabled&&compareEligible.some(({index})=>compareUtiltsStructure({raw:raw??'',transactionIndex:index,
-    cutoffAt:'',ledgerStartedAt:'',readComplete:false,unresolvedSources:true,versions:[]}).status!=='not_applicable')
+    cutoffAt:'',ledgerStartedAt:'',readComplete:false,unresolvedSources:true,versions:[],ignoredEnergyTimestamps}).status!=='not_applicable')
   // The original wire, not a cached diagnostic, decides that an energy-only
   // high-resolution transaction has no meter/register comparison to perform.
   // Do not obtain an authority readset when every accepted transaction is exempt.
@@ -186,7 +190,7 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
     if(!comparisonEnabled)return {transactionId:disposition.transactionId,status:'not_applicable' as const,reason:null,codes:[],selected:[]}
     // Even a failed snapshot may be irrelevant to a quarter-energy transaction
     // with no meter/register observations. The pure input decides applicability.
-    const compared=compareUtiltsStructure({raw:raw??'',transactionIndex:index,cutoffAt:cutoffAt??'',
+    const compared=compareUtiltsStructure({raw:raw??'',transactionIndex:index,cutoffAt:cutoffAt??'',ignoredEnergyTimestamps,
       ledgerStartedAt:readset?.timeline.ledgerStartedAt??'',readComplete:readset?.timeline.boundedReadComplete===true,
       unresolvedSources:readset?.unresolvedSources??true,versions:readset?.versions??[],closures:readset?.closures??[],closureBlockers:readset?.closureBlockers??[],
       correctionContextBlockers:readset?.correctionContextBlockers??[],companyId:companyId??undefined,

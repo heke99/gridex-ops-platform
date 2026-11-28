@@ -89,7 +89,21 @@ it('retains genuine child failures and the existing failure classifier', () => {
   expect(artifact.report.results.every(row => row.failure_class === 'database_or_migration_drift')).toBe(true)
 })
 
-const yaml = createRequire(import.meta.url)('js-yaml') as { load(value: string): { jobs: Record<string, { steps: { name?: string; run?: string; uses?: string; 'continue-on-error'?: boolean; with?: { name?: string; path?: string; ref?: string; 'run-id'?: string } }[] }> } }
+const yaml = createRequire(import.meta.url)('js-yaml') as {
+  load(value: string): {
+    jobs: Record<string, {
+      environment?: string
+      env?: { GRIDEX_E2E_STAGING_PROJECT_REF?: string; GRIDEX_E2E_ALLOW_OUTBOUND?: string }
+      steps: {
+        name?: string
+        run?: string
+        uses?: string
+        'continue-on-error'?: boolean
+        with?: { name?: string; path?: string; ref?: string; 'run-id'?: string }
+      }[]
+    }>
+  }
+}
 function workflow() { return yaml.load(readFileSync(resolve('.github/workflows/full-e2e.yml'), 'utf8')) }
 // The actual certificate shell is copied byte-for-byte to a private temp root.
 // The provider download boundary is finite: copy actual VM-producer artifact
@@ -233,4 +247,13 @@ it('the nightly certificate holds a missing runtime artifact while retaining bot
   expect(result.value.edielReleaseEvidence.blockers).toContain('runner_artifact_missing_or_unqualified:runtime')
   expect(result.value.edielReleaseEvidence).toMatchObject({ codeEvidence: 'incomplete', fullCardVerification: 'NOT_VERIFIED', formalEdielApproval: false, liveCounterpartyVerified: false,
     scopeMatrix: { tenantIds: [], DDQ: false, DGI: false, crossTenantAssignments: false } })
+})
+
+it('protects both official staging fixture producers and binds the approved project', () => {
+  const { jobs } = workflow()
+  for (const name of ['runtime-staging', 'real-customer-staging']) {
+    expect(jobs[name].environment).toBe('staging-e2e')
+    expect(jobs[name].env?.GRIDEX_E2E_STAGING_PROJECT_REF).toBe('${{ vars.GRIDEX_E2E_STAGING_PROJECT_REF }}')
+    expect(jobs[name].env?.GRIDEX_E2E_ALLOW_OUTBOUND).toBe('NO')
+  }
 })

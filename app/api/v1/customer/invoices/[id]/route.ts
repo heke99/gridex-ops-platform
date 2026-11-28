@@ -16,6 +16,7 @@ import {
   publicPortalDocument,
   publicPortalInvoice,
 } from '@/lib/customer-portal/publicDto'
+import { PRICE_SERIES_TEST_INVOICE_SOURCE } from '@/lib/customer-portal/types'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { readRetiredInvoiceDocuments } from '@/lib/customer-portal/invoiceFileAvailability'
 
@@ -65,9 +66,12 @@ export const dynamic = 'force-dynamic'
     if (lineError && !isMissingSchemaError(lineError)) throw lineError
     if (documentError && !isMissingSchemaError(documentError)) throw documentError
     const scopedDocuments = documentError ? [] : documents ?? []
-    const matchingDocuments = documentReference
-      ? scopedDocuments.filter(document => publicReference('document', context.client.company_id, document.id) === documentReference)
+    const visibleDocuments = invoice.source_system === PRICE_SERIES_TEST_INVOICE_SOURCE
+      ? scopedDocuments.filter(document => document.document_type !== 'invoice_pdf')
       : scopedDocuments
+    const matchingDocuments = documentReference
+      ? visibleDocuments.filter(document => publicReference('document', context.client.company_id, document.id) === documentReference)
+      : visibleDocuments
     if (documentReference && matchingDocuments.length !== 1) {
       return customerPortalJson({ error: 'Bilagan hittades inte.', code: 'invoice_document_not_found' }, { status: 404 })
     }

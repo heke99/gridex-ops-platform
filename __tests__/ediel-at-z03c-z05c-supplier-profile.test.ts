@@ -145,7 +145,8 @@ describe('Z05C and Z15C distinct actual inbound consumer paths', () => {
     expect(decideProdatLifecycle(message(z05))).toMatchObject({ process: 'cancellation', state: 'supply_continues',
       outcome: 'supply_continuation_confirmed', createSupplyPeriod: false, endSupplyPeriod: false })
     expect(await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(z05) })).toMatchObject({
-      outcome: 'supply_continuation_confirmed', reviewRequired: false, updated: ['customer_supply_periods'] })
+      outcome: 'supply_continuation_confirmed', reviewRequired: false, updated: ['customer_supply_periods'],
+      tenantMessage: 'Nätägaren har återtagit det tidigare leveransslutet. Kontrollera att avtalet gäller innan faktureringen fortsätter.' })
     expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', {
       p_company_id: own.company, p_source_message_id: own.supply, p_actor_user_id: own.actor })
     expect(io.from).not.toHaveBeenCalled(); expect(io.notification).not.toHaveBeenCalled(); expect(io.workflow).not.toHaveBeenCalled()

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { canPresentOperationalAction } from '@/lib/admin/actionPresentation'
+import { BATCH2B_AUTOMATION_ACCESS, BATCH2C_AUTOMATION_ACCESS, BILLING_BLOCKER_ACCESS } from '@/lib/operations/automationPermissions'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { listBatch2BControlTower } from '@/lib/operations/batch2bAutomation'
 import { listBatch2CControlTowerSummary } from '@/lib/operations/batch2cAutomation'
@@ -36,6 +38,11 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
   const [batch2BRows, batch2CRows] = scope.companyId
     ? await Promise.all([listBatch2BControlTower(scope.companyId), listBatch2CControlTowerSummary(scope.companyId)])
     : [[], []]
+  const [canRunBatch2B, canRunBatch2C, canCreateBillingBlockers] = await Promise.all([
+    canPresentOperationalAction(BATCH2B_AUTOMATION_ACCESS, scope.companyId),
+    canPresentOperationalAction(BATCH2C_AUTOMATION_ACCESS, scope.companyId),
+    canPresentOperationalAction(BILLING_BLOCKER_ACCESS, scope.companyId),
+  ])
   const row = batch2BRows[0] ?? null
   const summary = batch2CRows[0] ?? null
   const notice = searchParams ? await searchParams : {}
@@ -84,18 +91,18 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
-          <form action={runBatch2BAutomationAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          {canRunBatch2B ? <form action={runBatch2BAutomationAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Batch 2B</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Kör grundautomation</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               Skannar avtal/kunder, skapar uppgiftsbegäran, köar saknade mätvärden för standardperioden och skapar driftuppgifter för blockerade faktureringsrader.
             </p>
-            <button className="mt-5 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
+            <button className="mt-5 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
               Kör grundautomation
             </button>
-          </form>
+          </form> : null}
 
-          <form action={runBatch2CPeriodMotorAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          {canRunBatch2C ? <form action={runBatch2CPeriodMotorAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Automatisk periodkontroll</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Kör full periodmotor</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -111,32 +118,32 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
                 <input name="end_month" type="month" defaultValue={currentMonth()} className="mt-2 h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" />
               </label>
             </div>
-            <button className="mt-5 rounded-2xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
+            <button className="mt-5 rounded-2xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">
               Kör periodmotor
             </button>
-          </form>
+          </form> : null}
 
-          <form action={createBillingBlockerCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          {canCreateBillingBlockers ? <form action={createBillingBlockerCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Blockerare till driftuppgifter</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Skapa driftuppgifter för blockerade exportrader</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               Läser blockerade export-/underlagsrader och skapar driftuppgifter som ekonomi och driftansvariga kan följa upp utan att övriga kunder blockeras.
             </p>
-            <button className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
+            <button className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50">
               Skapa driftuppgifter
             </button>
-          </form>
+          </form> : null}
 
-          <form action={createBatch2CQueueCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          {canRunBatch2C ? <form action={createBatch2CQueueCasesAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-800">Driftköer</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Koppla alla driftköer till driftuppgifter</h2>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">Skapa uppföljningar från driftköerna</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Skapar eller återanvänder driftuppgifter för mätvärdesluckor, partnerexportfel, externa avtalsintag och övriga blockerare i Batch 2C Control Tower.
+              Följer upp mätvärdesluckor och blockerade faktura- eller partnerexportrader.
             </p>
-            <button className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50" disabled={!scope.companyId}>
+            <button className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50">
               Koppla driftköer
             </button>
-          </form>
+          </form> : null}
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -2,13 +2,18 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { canOpenCustomerDetail } from '@/lib/admin/accessModel'
 import { supabaseService } from '@/lib/supabase/service'
+import { readOutboundAckOriginals } from '@/lib/ediel/core/outboundAckOriginals'
 import { reprocessInboundEmailAction } from '@/app/admin/inbound-mail/actions'
+import { IMAP_ORIGINAL_CUSTODY_UNVERIFIED, MULTIPLE_EDIFACT_ORIGINALS, readRetainedImapMime } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
+import { inspectRetainedEdifactPart, readRetainedEdifactReviewTarget } from '@/lib/inbound-mail/retainedEdifactReview'
+import { INBOUND_ORIGINAL_ENVIRONMENT_UNVERIFIED } from '@/lib/inbound-mail/retainedInboundEnvironment'
 import InboundManualReviewForm from './InboundManualReviewForm'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ id: string }>; searchParams?: Promise<{ part?: string | string[] }> }
 
 function codeBlock(value: unknown) {
   if (typeof value === 'string') return value || '—'
@@ -39,7 +44,33 @@ function reviewDate(value: unknown) {
   }).format(date)
 }
 
-export default async function InboundMailDetailPage({ params }: Props) {
+async function hasNegativeTechnicalReceipt(mail: Record<string, unknown>, actorUserId: string) {
+  const { id, company_id: companyId, environment } = mail
+  if (typeof id !== 'string' || typeof companyId !== 'string' ||
+      (environment !== 'test' && environment !== 'production')) return false
+
+  try {
+    const { data, error } = await supabaseService.from('ediel_messages')
+      .select('id,inbound_email_message_id,company_id,environment,direction,raw_payload,message_family')
+      .eq('inbound_email_message_id', id).eq('company_id', companyId)
+      .eq('environment', environment).eq('direction', 'inbound').limit(2)
+    if (error || data?.length !== 1) return false
+    const [source] = data
+    if (source.inbound_email_message_id !== id || source.company_id !== companyId ||
+        source.environment !== environment || source.direction !== 'inbound') return false
+
+    const originals = await readOutboundAckOriginals(source.id, 'CONTRL', source, undefined, {
+      actorUserId, phase: 'read',
+    })
+    return originals.length === 1 && originals[0].status === 'qualified' &&
+      originals[0].correlation.classification.outcome === 'negative'
+  } catch {
+    // A missing or refused read cannot establish a receipt.
+    return false
+  }
+}
+
+export default async function InboundMailDetailPage({ params, searchParams }: Props) {
   const admin = await requirePlatformAdminAccess()
   const { id } = await params
 
@@ -78,6 +109,24 @@ export default async function InboundMailDetailPage({ params }: Props) {
     )
   }
 
+  const negativeTechnicalReceipt = await hasNegativeTechnicalReceipt(message, admin.userId)
+  const heldMime = message.match_status === MULTIPLE_EDIFACT_ORIGINALS ? readRetainedImapMime(message, true) : null
+  const physicalMimeParts = heldMime?.kind === 'verified' && heldMime.mime.physicalEdifactCandidateCount > 1
+    ? heldMime.mime.physicalEdifactParts : []
+  const selectedPart = (await searchParams)?.part
+  const canReviewCustomer = physicalMimeParts.length > 0 && canOpenCustomerDetail(admin.permissions)
+  const reviewed = physicalMimeParts.map(part => ({ ...part, inspection: inspectRetainedEdifactPart(part.edifactPayload) }))
+  const selection = reviewed.find(part => part.position === selectedPart)
+  let reviewTarget: Awaited<ReturnType<typeof readRetainedEdifactReviewTarget>> = null
+  if (canReviewCustomer && selection?.inspection.reference) {
+    try {
+      reviewTarget = await readRetainedEdifactReviewTarget({ actorUserId: admin.userId, selectedCompanyId: admin.companyId,
+        mail: message, reference: selection.inspection.reference })
+    } catch {
+      // All unavailable or unapproved context follows the same manual hold.
+    }
+  }
+
   return (
     <div>
       <AdminHeader
@@ -98,12 +147,18 @@ export default async function InboundMailDetailPage({ params }: Props) {
           </form>
         </div>
 
+        {negativeTechnicalReceipt ? (
+          <p className="text-sm font-semibold text-slate-800">Negativ teknisk kvittens sparad</p>
+        ) : null}
+
         {openReviews.length > 0 ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm shadow-amber-950/5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">Manuell granskning</p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-950">Åtgärd krävs innan jobbet kan fortsätta</h2>
+                <h2 className="mt-1 text-lg font-semibold text-slate-950">
+                  {negativeTechnicalReceipt ? 'Följ upp det inkommande meddelandet' : 'Åtgärd krävs innan jobbet kan fortsätta'}
+                </h2>
                 <p className="mt-1 text-sm text-slate-700">Beslutet sparas i samma inbound-jobb och loggas i audit trail.</p>
               </div>
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{openReviews.length} öppna</span>
@@ -136,6 +191,15 @@ export default async function InboundMailDetailPage({ params }: Props) {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Processing</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{String(message.processing_status ?? 'received')}</p>
             <p className="mt-1 text-sm text-slate-700">Match: {String(message.match_status ?? 'not_checked')}</p>
+            {message.match_status === MULTIPLE_EDIFACT_ORIGINALS ? (
+              <p className="mt-2 text-sm text-amber-800">Mejlet innehåller flera EDIFACT-original. Granska de sparade bilagorna och be avsändaren skicka varje utbyte separat.</p>
+            ) : null}
+            {message.match_status === INBOUND_ORIGINAL_ENVIRONMENT_UNVERIFIED ? (
+              <p className="mt-2 text-sm text-amber-800">Verifiera originalets Ediel-miljö mot brevlådan före fortsatt behandling.</p>
+            ) : null}
+            {message.match_status === IMAP_ORIGINAL_CUSTODY_UNVERIFIED ? (
+              <p className="mt-2 text-sm text-amber-800">Det sparade mejlet kunde inte verifieras mot det mottagna IMAP-originalet.</p>
+            ) : null}
           </div>
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Rader</p>
@@ -143,6 +207,29 @@ export default async function InboundMailDetailPage({ params }: Props) {
             <p className="mt-1 text-sm text-slate-700">Parserresultat</p>
           </div>
         </section>
+
+        {physicalMimeParts.length > 0 ? (
+          <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
+            <h2 className="text-lg font-semibold text-slate-950">Verifierade EDIFACT-delar i originalmejlet</h2>
+            <dl className="mt-4 space-y-4 text-sm text-slate-700">
+              {reviewed.map((part) => (
+                <div key={part.position} id={`ediel-part-${part.position}`}>
+                  <dt className="font-semibold">MIME-position {part.position} · {part.filename ?? 'Del utan filnamn'}</dt>
+                  <dd className="break-all">MIME-delens SHA-256 {part.sourceSha256}</dd>
+                  <dd className="break-all">Avkodad SHA-256 {part.decodedSha256} · {part.decodedBytes} byte</dd>
+                  <dd>{part.inspection.valid ? 'Kuvertets syntax är giltig' : part.inspection.issues.join(' ')}</dd>
+                  <dd>
+                    {selection === part && reviewTarget ? (
+                      <Link className="underline" href={`/admin/customers/${encodeURIComponent(reviewTarget.customerId)}?tab=sites&site=${encodeURIComponent(reviewTarget.siteId)}#vald-anlaggning`}>Visa kund och anläggning för referensen</Link>
+                    ) : selection !== part && canReviewCustomer && part.inspection.reference ? (
+                      <Link className="underline" href={`?part=${part.position}#ediel-part-${part.position}`}>Granska kund och anläggning</Link>
+                    ) : 'Kund och anläggning behöver verifieras manuellt.'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
 
         <section className="grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">

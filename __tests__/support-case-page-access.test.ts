@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
+const ownCaseId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const foreignCaseId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+
 const io = vi.hoisted(() => ({
   permissions: ['cases.read'] as string[],
   roles: ['customer_service_agent'] as string[],
@@ -8,11 +13,11 @@ const io = vi.hoisted(() => ({
   membership: true,
   authorized: true,
   isPlatformAdmin: false,
-  reads: [] as Array<{ kind: string; companyId: string | null }>,
+  reads: [] as Array<{ kind: string; companyId: string | null; statuses?: readonly string[] }>,
   mutations: 0,
   cases: [
-    { id: 'case-a', company_id: 'company-a', customer_id: 'customer-a', customer_name: 'Own customer', title: 'Own support case', status: 'open', priority: 'normal', source: 'tenant_support_web', created_at: '2026-10-05T09:00:00Z' },
-    { id: 'case-b', company_id: 'company-b', customer_id: 'customer-b', customer_name: 'Foreign customer', title: 'Foreign support case', status: 'open', priority: 'normal', source: 'tenant_support_web', created_at: '2026-10-05T09:00:00Z' },
+    { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', company_id: 'company-a', customer_id: 'customer-a', customer_name: 'Own customer', title: 'Own support case', status: 'open', priority: 'normal', source: 'tenant_support_web', created_at: '2026-10-05T09:00:00Z' },
+    { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', company_id: 'company-b', customer_id: 'customer-b', customer_name: 'Foreign customer', title: 'Foreign support case', status: 'open', priority: 'normal', source: 'tenant_support_web', created_at: '2026-10-05T09:00:00Z' },
   ],
 }))
 
@@ -41,9 +46,9 @@ vi.mock('@/lib/tenant/scope', () => ({
   getOperationalCompanyScope: async () => ({ companyId: io.companyId, companyName: 'Own company' }),
 }))
 vi.mock('@/lib/customer-cases/db', () => ({
-  listCustomerCases: async ({ companyId }: { companyId: string | null }) => {
-    io.reads.push({ kind: 'cases', companyId })
-    return io.cases.filter((row) => !companyId || row.company_id === companyId)
+  listCustomerCases: async ({ companyId, statuses }: { companyId: string | null; statuses: readonly string[] }) => {
+    io.reads.push({ kind: 'cases', companyId, statuses })
+    return io.cases.filter(row => (!companyId || row.company_id === companyId) && statuses.includes(row.status))
   },
   getCustomerCaseById: async (id: string, companyId: string) => {
     io.reads.push({ kind: 'case', companyId })
@@ -66,9 +71,13 @@ vi.mock('@/lib/customer-service/supportAttachments', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/customer-service/supportAttachments')>()
   return {
     ...actual,
-    listSupportAttachments: async ({ companyId }: { companyId: string }) => {
+    listSupportAttachmentsPage: async ({ companyId, audience }: { companyId: string; audience: string }) => {
+      if (audience !== 'staff') throw new Error('Incorrect attachment audience')
       io.reads.push({ kind: 'attachments', companyId })
-      return [{ public_reference: 'attachment-a', file_name: 'Own attachment.pdf', byte_size: 5, scan_status: 'released', visibility: 'internal', uploaded_by_kind: 'staff' }]
+      return {
+        items: [{ public_reference: 'attachment-a', file_name: 'Own attachment.pdf', byte_size: 5, scan_status: 'released', visibility: 'internal', uploaded_by_kind: 'staff' }],
+        page: { next_cursor: null, has_more: false },
+      }
     },
     downloadSupportAttachment: async ({ companyId, audience }: { companyId: string; audience: string }) => {
       if (audience !== 'staff') throw new Error('Incorrect attachment audience')
@@ -86,9 +95,14 @@ import { getAdminNavigationGroups } from '@/lib/admin/navigation'
 import { requireAdminAccess, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { ROLE_PERMISSION_PROFILES } from '@/lib/admin/accessModel'
 
+const expectedQueueReads = (companyId: string | null) => [
+  { kind: 'cases', companyId, statuses: ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'] },
+  { kind: 'cases', companyId, statuses: ['resolved', 'closed', 'cancelled'] },
+]
+
 const list = () => CasesPage({ searchParams: Promise.resolve({}) })
-const detail = (caseId = 'case-a') => DetailPage({ params: Promise.resolve({ caseId }) })
-const file = (caseId = 'case-a') => download(new Request('https://ops.example.invalid'), { params: Promise.resolve({ caseId, reference: 'attachment-a' }) })
+const detail = (caseId = ownCaseId) => DetailPage({ params: Promise.resolve({ caseId }) })
+const file = (caseId = ownCaseId) => download(new Request('https://ops.example.invalid'), { params: Promise.resolve({ caseId, reference: 'attachment-a' }) })
 const navigation = () => getAdminNavigationGroups({ permissions: io.permissions, roles: io.roles, isPlatformAdmin: io.isPlatformAdmin })
 
 describe('support case pages enforce effective case permissions through the real admin guard', () => {
@@ -111,7 +125,7 @@ describe('support case pages enforce effective case permissions through the real
     expect(html).not.toContain('<form')
     expect(html).not.toContain('Skapa supportärende')
     expect(html).not.toContain('name="status"')
-    expect(io.reads).toEqual([{ kind: 'cases', companyId: 'company-a' }])
+    expect(io.reads).toEqual(expectedQueueReads('company-a'))
     expect(navigation().flatMap((group) => group.items).map((item) => item.href)).toContain('/admin/customer-cases')
   })
 
@@ -145,7 +159,7 @@ describe('support case pages enforce effective case permissions through the real
     const html = renderToStaticMarkup(await detail())
     expect(html).toContain('Own internal history')
     expect(html).toContain('Endast internt')
-    expect(html).toContain('/admin/customer-cases/case-a/attachments/attachment-a')
+    expect(html).toContain(`/admin/customer-cases/${ownCaseId}/attachments/attachment-a`)
     expect(html).not.toContain('<form')
     expect(html).not.toContain('Hantera ärendet')
     expect(io.reads.map((read) => read.companyId)).toEqual(['company-a', 'company-a', 'company-a'])
@@ -162,8 +176,8 @@ describe('support case pages enforce effective case permissions through the real
   })
 
   it('refuses foreign-case history and attachment bytes within the selected company', async () => {
-    await expect(detail('case-b')).rejects.toThrow('NOT_FOUND')
-    expect((await file('case-b')).status).toBe(404)
+    await expect(detail(foreignCaseId)).rejects.toThrow('NOT_FOUND')
+    expect((await file(foreignCaseId)).status).toBe(404)
     expect(io.reads).toEqual([{ kind: 'case', companyId: 'company-a' }, { kind: 'case', companyId: 'company-a' }])
   })
 
@@ -198,7 +212,7 @@ describe('support case pages enforce effective case permissions through the real
   it('retains the existing cases.write action guard for direct read-only submissions', async () => {
     const form = new FormData()
     form.set('customer_id', 'customer-a')
-    form.set('case_id', 'case-a')
+    form.set('case_id', ownCaseId)
     form.set('title', 'Unauthorized mutation')
     form.set('status', 'closed')
     form.set('expected_company_id', 'company-a')
@@ -218,6 +232,6 @@ describe('support case pages enforce effective case permissions through the real
     expect(html).not.toContain('<form')
     await expect(detail()).rejects.toThrow('NOT_FOUND')
     expect((await file()).status).toBe(404)
-    expect(io.reads).toEqual([{ kind: 'cases', companyId: null }])
+    expect(io.reads).toEqual(expectedQueueReads(null))
   })
 })

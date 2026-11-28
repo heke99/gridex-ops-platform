@@ -1,6 +1,6 @@
 // simulation: T1/010, MAIN03.04
-// Calls the normal underlay entrypoint and the real source reader. Finite DB
-// ports stop at the following supply-period read: no store or native DB runs.
+// Calls the normal underlay entrypoint and the real source reader. No supply
+// period matches these values, so qualification runs but no underlay is stored.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
@@ -8,8 +8,8 @@ const io = vi.hoisted(() => ({
   rows: [] as Row[],
   calls: [] as Array<{ company: string; ids: string[] }>,
   pages: [] as Array<[number, number]>,
+  normalizedProjections: [] as string[],
   queryError: null as unknown,
-  stop: new Error('finite supply-period port reached after source qualification'),
 }))
 
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: async () => undefined }))
@@ -21,7 +21,10 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     const predicates: Array<(row: Row) => boolean> = []
     const ordering: string[] = []
     const query = {
-      select: () => query,
+      select: (columns: string) => {
+        if (table === 'normalized_metering_values') io.normalizedProjections.push(columns)
+        return query
+      },
       eq: (key: string, value: unknown) => { predicates.push(row => row[key] === value); return query },
       in: (key: string, values: unknown[]) => { predicates.push(row => values.includes(row[key])); return query },
       not: (key: string, operator: string, value: unknown) => {
@@ -33,8 +36,13 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       lte: () => query,
       or: () => query,
       order: (key: string) => { ordering.push(key); return query },
+      limit: async () => {
+        expect(table).toBe('billing_underlays')
+        // This source-discovery fixture contains no previous estimates.
+        return { data: [], error: null }
+      },
       range: async (from: number, to: number) => {
-        if (table === 'customer_supply_periods') throw io.stop
+        if (table === 'customer_supply_periods') return { data: [], error: null }
         expect(table).toBe('normalized_metering_values')
         io.pages.push([from, to])
         const rows = io.rows.filter(row => predicates.every(predicate => predicate(row)))
@@ -48,7 +56,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     return query
   },
   rpc: async (name: string, args: { p_company_id: string; p_value_ids: string[] }) => {
-    expect(name).toBe('gridex_read_billing_source_values_v1')
+    expect(name).toBe('gridex_read_billing_source_values_compact_v1')
     io.calls.push({ company: args.p_company_id, ids: [...args.p_value_ids] })
     return { data: [...args.p_value_ids].reverse().map(id => {
       const value = io.rows.find(row => row.id === id && row.company_id === args.p_company_id)!
@@ -62,7 +70,7 @@ import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
 function values(n: number): Row[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `value-${String(i).padStart(5, '0')}`, company_id: 'tenant-a',
-    source_message_id: `source-${i % 4}`, quantity_kwh: '1.25', supply_period_id: 'period-a',
+    source_message_id: `source-${i % 4}`, metering_point_id: 'meter-a', quantity_kwh: '1.25', supply_period_id: 'period-a',
     revision_status: 'current', billing_status: 'billable', billing_gate_status: 'eligible',
     period_start: new Date(Date.parse('2027-02-01T00:00:00Z') + i * 900_000).toISOString(),
     period_end: new Date(Date.parse('2027-02-01T00:15:00Z') + i * 900_000).toISOString(),
@@ -70,15 +78,18 @@ function values(n: number): Row[] {
 }
 
 async function readThroughEntrypoint() {
-  await expect(generateBillingUnderlaysForMonth({ companyId: 'tenant-a', billingMonth: '2027-02' })).rejects.toBe(io.stop)
+  const result = await generateBillingUnderlaysForMonth({ companyId: 'tenant-a', billingMonth: '2027-02' })
+  expect(result.readyForPricing).toBe(0)
+  expect(result.results.every(row => row.underlayId === null)).toBe(true)
 }
 
-beforeEach(() => { io.rows = values(1001); io.calls = []; io.pages = []; io.queryError = null })
+beforeEach(() => { io.rows = values(1001); io.calls = []; io.pages = []; io.normalizedProjections = []; io.queryError = null })
 
 describe('T1/010 the normal underlay path groups qualified source reads', () => {
   it('qualifies a multi-page workload using bounded calls', async () => {
     await readThroughEntrypoint()
     expect(io.pages).toEqual([[0, 999], [1000, 1999]])
+    expect(io.normalizedProjections).toEqual(['id,source_message_id', 'id,source_message_id'])
     expect(io.calls.map(call => call.ids.length)).toEqual([250, 250, 250, 250, 1])
     expect(io.calls.every(call => call.company === 'tenant-a')).toBe(true)
   })

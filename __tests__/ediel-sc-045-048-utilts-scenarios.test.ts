@@ -28,7 +28,11 @@ describe('SC-048 wrong period, correct object',()=>{
   const source=observationHandoffMessage('2026-10-01')
   const r=run(source.raw_payload!.replace('DTM+597:202608010000:203','DTM+597:202607150000:203'),source)
   expect(r.ackPlan.utiltsErrCodes).toEqual(['E50'])
-  expect(r.validation.issues.filter(i=>i.severity==='error').map(i=>[i.utiltsErrCode,i.kind])).toEqual([['E50','functional']])
+  // One outgoing E50 represents both independently violated timing rules.
+  expect(r.validation.issues.filter(i=>i.severity==='error').map(i=>[i.code,i.utiltsErrCode,i.kind])).toEqual([
+   ['UTILTS_E66_REGISTRATION_BEFORE_LATEST_METER_READING','E50','functional'],
+   ['UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION','E50','functional'],
+  ])
   expect(run(source.raw_payload!,source).ackPlan.utiltsErrCodes).toEqual([])
  })
 })

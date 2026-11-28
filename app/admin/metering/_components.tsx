@@ -9,6 +9,7 @@ import {
 } from '@/app/admin/cis/actions'
 import { prepareUtiltsE73Action } from '@/app/admin/ediel/actions'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { METERING_REQUEST_ROW_LIMIT } from '@/lib/admin/meteringBusinessData'
 
 function formatDateTime(value: string | null | undefined): string {
  if (!value) return '—'
@@ -148,8 +149,10 @@ export function MeteringOperationalSummary({
 
 export function MeteringRequestsSection({
  requests,
+ customerCardIds,
 }: {
  requests: GridOwnerDataRequestRow[]
+ customerCardIds: ReadonlySet<string>
 }) {
  return (
  <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -171,7 +174,7 @@ export function MeteringRequestsSection({
  Inga mätvärdesrequests hittades.
  </div>
  ) : (
- requests.slice(0, 20).map((request) => (
+ requests.slice(0, METERING_REQUEST_ROW_LIMIT).map((request) => (
  <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div className="flex flex-wrap items-center gap-2">
@@ -195,12 +198,16 @@ export function MeteringRequestsSection({
  >
  Detailvy
  </Link>
- <AdminActionsMenu ariaLabel={`Fler länkar för mätvärdesbegäran ${request.id}`}> <Link
- href={`/admin/customers/${request.customer_id}`}
+ {customerCardIds.has(request.customer_id) ? (
+ <AdminActionsMenu ariaLabel={`Fler länkar för mätvärdesbegäran ${request.id}`}>
+ <Link
+ href={`/admin/customers/${encodeURIComponent(request.customer_id)}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
  Kundkort
- </Link></AdminActionsMenu>
+ </Link>
+ </AdminActionsMenu>
+ ) : null}
  </div>
  </div>
 
@@ -234,6 +241,9 @@ export function MeteringRequestsSection({
  >
  <input type="hidden" name="request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={request.status} />
+ <input type="hidden" name="original_external_reference" value={request.external_reference ?? ''} />
+ <input type="hidden" name="original_response_payload_note" value="" />
  <select
  name="status" aria-label="Status"
  defaultValue={request.status}
@@ -374,9 +384,9 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  </div>
  </td>
  <td className="px-6 py-4 text-right">
- {value.source_request_id ? (
+ {value.grid_owner_request_link_id ? (
  <Link
- href={`/admin/operations/grid-owner-requests/${value.source_request_id}`}
+ href={`/admin/operations/grid-owner-requests/${value.grid_owner_request_link_id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
  Ursprunglig begäran

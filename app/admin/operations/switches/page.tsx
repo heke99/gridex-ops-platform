@@ -1,8 +1,10 @@
 import { InvalidReadModelResponseError, readResult } from '@/lib/read-models/readResult'
-import { supplierSwitchBusinessProgress } from '@/components/admin/customers/SupplierSwitchBusinessView'
+import { formatSupplierSwitchDate, getSupplierSwitchBusinessState, supplierSwitchRequestTypeLabel } from '@/components/admin/customers/SupplierSwitchBusinessView'
+import { readConfirmedMarketStarts } from '@/lib/operations/readyBulkCandidates'
+import { getVerifiedSupplierSwitchActivationReadiness, type SupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
-import CustomerName from '@/components/admin/CustomerName'
+import { formatCustomerName } from '@/components/admin/CustomerName'
 //app/admin/operations/switches/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -30,6 +32,9 @@ import {
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { readWritableSwitchCompanyIds } from '@/lib/operations/switchCompanyWriteScope'
+import { readSwitchActivationCompanyIds } from '@/lib/operations/switchActivationAuthority'
+import { canEditManualSwitchStatus, manualSwitchStatusOptions } from '@/lib/operations/manualSwitchStatus'
 
 type SwitchesPageProps = {
  searchParams: Promise<{
@@ -46,6 +51,7 @@ type SwitchRow = {
  readiness: ReturnType<typeof evaluateSiteSwitchReadiness> | null
  outbound: OutboundRequestRow | null
  lifecycle: ReturnType<typeof getSwitchLifecycle>
+ activation: SupplierSwitchActivationReadiness | null
 }
 
 export const dynamic = 'force-dynamic'
@@ -80,7 +86,7 @@ function latestEventText(
  }>
 ): string {
  const latest = events.find((event) => event.switch_request_id === requestId)
- if (!latest) return 'Inga events ännu'
+ if (!latest) return 'Ingen registrerad händelse ännu'
  return latest.message ?? `${latest.event_type} — ${latest.event_status}`
 }
 
@@ -165,6 +171,7 @@ export default async function AdminOperationsSwitchesPage({
  const companyId = tenantScope.companyId
  const [canManage, canQueue] = await Promise.all([canPresentAdminAction(['masterdata.write']), canPresentAdminAction(['switching.write'])])
  const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
+   && canPresentAdminLink(context, { anyOf: ['customers.read', 'contracts.read', 'contracts.write'] })
  const isPlatform = tenantScope.isPlatformAdmin
  const supabase = await createSupabaseServerClient()
 
@@ -178,6 +185,9 @@ export default async function AdminOperationsSwitchesPage({
  }), { definitionVersion: 'supplier_switch_business_list_v1', errorCode: 'SWITCH_LIST_UNAVAILABLE' })
  if (selection.kind === 'unavailable') return <main className="p-6" role="alert"><h1>Leveransärendena kunde inte läsas</h1><p>Inga uppgifter om urvalets storlek kan visas just nu.</p><Link href="/admin/operations/switches">Läs listan igen</Link></main>
  const { items: requests, page } = selection.data
+ const writableCompanies = canManage || canQueue
+   ? await readWritableSwitchCompanyIds(supabase, requests.map(request => request.company_id))
+   : new Set<string>()
 
  const requestIds = requests.map((request) => request.id)
  const siteIds = Array.from(new Set(requests.map((request) => request.site_id)))
@@ -201,9 +211,10 @@ export default async function AdminOperationsSwitchesPage({
  })()
  : Promise.resolve([] as CustomerSiteRow[])
 
- const [sites, events, outboundRequests, meteringPoints] = await Promise.all([
+ const now = new Date()
+ const [sites, events, outboundRequests, meteringPoints, marketStarts] = await Promise.all([
  sitesPromise,
- listSupplierSwitchEventsByRequestIds(supabase, requestIds),
+ isPlatform ? listSupplierSwitchEventsByRequestIds(supabase, requestIds) : Promise.resolve([]),
  (async (): Promise<OutboundRequestRow[]> => {
  if (!requestIds.length) return []
  let outboundQuery = supabase.from('outbound_requests').select('*', { count: 'exact' })
@@ -218,6 +229,10 @@ export default async function AdminOperationsSwitchesPage({
  return result.data as OutboundRequestRow[]
  })(),
  listMeteringPointsBySiteIds(supabase, siteIds, { companyId }),
+ readResult(
+ () => readConfirmedMarketStarts(supabase, requests.filter(request => request.status === 'accepted')),
+ { definitionVersion: 'supplier_switch_confirmed_market_start_v1', errorCode: 'SWITCH_MARKET_START_UNAVAILABLE' },
+ ),
  ])
 
  const readinessMap = new Map<
@@ -248,17 +263,23 @@ export default async function AdminOperationsSwitchesPage({
  }
 
  const allRows: SwitchRow[] = requests.map((request) => {
- const readiness = readinessMap.get(request.site_id) ?? null
+ const site = sites.find(site => site.id === request.site_id && site.company_id === request.company_id && site.customer_id === request.customer_id)
+ const readiness = site ? readinessMap.get(site.id) ?? null : null
  const outbound =
  outboundRequests.find(
  (row) =>
  row.source_type === 'supplier_switch_request' &&
- row.source_id === request.id
+ row.source_id === request.id && row.company_id === request.company_id &&
+ row.customer_id === request.customer_id && row.site_id === request.site_id
  ) ?? null
 
+ const activation = request.status === 'accepted' ? getVerifiedSupplierSwitchActivationReadiness(
+ request, marketStarts.kind === 'unavailable' ? undefined : marketStarts.data.get(request.id.toLowerCase()) ?? null, now,
+ ) : null
  const lifecycle = getSwitchLifecycle({
  request,
  readiness,
+ activation,
  outboundRequest: outbound,
  })
 
@@ -267,6 +288,7 @@ export default async function AdminOperationsSwitchesPage({
  readiness,
  outbound,
  lifecycle,
+ activation,
  }
  })
 
@@ -294,18 +316,45 @@ export default async function AdminOperationsSwitchesPage({
 
  const filteredRows = allRows.filter((row) => matchesStageFilter(row, stage))
 
+ const activationCompanies = canManage
+   ? await readSwitchActivationCompanyIds(supabase, context.userId, filteredRows
+       .filter(row => row.lifecycle.stage === 'ready_to_execute').map(row => row.request.company_id))
+   : new Set<string>()
+
+ const visibleCustomerIds = [...new Set(filteredRows.map(({ request }) => request.customer_id))]
+ const visibleCustomers = new Set(filteredRows.map(({ request }) => `${request.company_id}/${request.customer_id}`))
+ const customerNames = await readResult(async () => {
+   const labels = new Map<string, string>()
+   if (visibleCustomerIds.length === 0) return labels
+   let customersQuery = supabase.from('customers')
+     .select('id,company_id,full_name,first_name,last_name,company_name,customer_number', { count: 'exact' })
+     .in('id', visibleCustomerIds).limit(visibleCustomerIds.length)
+   if (companyId) customersQuery = customersQuery.eq('company_id', companyId)
+   const result = await customersQuery
+   if (result.error) throw result.error
+   if (!Array.isArray(result.data) || result.count !== result.data.length) throw new InvalidReadModelResponseError()
+   for (const customer of result.data) {
+     if (!customer) throw new InvalidReadModelResponseError()
+     const key = `${customer.company_id}/${customer.id}`
+     if (!visibleCustomers.has(key) || labels.has(key)) throw new InvalidReadModelResponseError()
+     labels.set(key, formatCustomerName(customer))
+   }
+   return labels
+ }, { definitionVersion: 'supplier_switch_list_customer_names_v1', errorCode: 'SWITCH_CUSTOMER_NAMES_UNAVAILABLE' })
+ const siteById = new Map(sites.map(site => [site.id, site]))
+
  return (
  <div className="min-h-screen">
  <AdminHeader
  title="Leverantörsbyten och flyttar"
- subtitle="Hantera leverantörsbyten, validering, outboundkoppling och intern slutföring av switchar."
+ subtitle="Sök leveransärenden och följ bekräftelse, startdatum och nästa steg."
  userEmail={context.email}
  />
 
  <div className="space-y-4 p-4 lg:p-6">
  <section className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-7">
  <KpiCard
- label="Blockerade"
+ label="Stoppade eller ofullständiga"
  value={blockedCount}
  href={buildSwitchesHref({
  status,
@@ -316,7 +365,7 @@ export default async function AdminOperationsSwitchesPage({
  active={stage === 'blocked'}
  />
  <KpiCard
- label="Saknar utskick"
+ label="Utskick behöver förberedas"
  value={queuedForOutboundCount}
  href={buildSwitchesHref({
  status,
@@ -338,7 +387,7 @@ export default async function AdminOperationsSwitchesPage({
  active={stage === 'awaiting_dispatch'}
  />
  <KpiCard
- label="Väntar kvittens"
+ label="Väntar på svar"
  value={awaitingResponseCount}
  href={buildSwitchesHref({
  status,
@@ -349,13 +398,13 @@ export default async function AdminOperationsSwitchesPage({
  active={stage === 'awaiting_response'}
  />
  <KpiCard
- label="Redo att slutföra"
+ label="Redo för leveransstart"
  value={readyToExecuteCount}
  href="/admin/operations/ready-to-execute"
  active={stage === 'ready_to_execute'}
  />
  <KpiCard
- label="Kräver åtgärd"
+ label="Behöver granskas"
  value={failedCount}
  href={buildSwitchesHref({
  status,
@@ -366,7 +415,7 @@ export default async function AdminOperationsSwitchesPage({
  active={stage === 'failed'}
  />
  <KpiCard
- label="Slutförda"
+ label="Klart"
  value={completedCount}
  href={buildSwitchesHref({
  status,
@@ -382,10 +431,10 @@ export default async function AdminOperationsSwitchesPage({
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <h2 className="text-lg font-semibold text-slate-950 ">
- Filter och arbetsläge
+ Sök och filtrera
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Filtrera på status, ärendetyp och handläggningsläge. Ärenden som är redo att slutföras visas i den dedikerade slutföringskön.
+ Välj ett handläggningsläge för att se vad som återstår inför leveransstart.
  </p>
  </div>
 
@@ -394,7 +443,7 @@ export default async function AdminOperationsSwitchesPage({
  href="/admin/operations/ready-to-execute"
  className="rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 "
  >
- Öppna slutföringskö
+ Öppna aktiveringskön
  </Link>
 
  <Link
@@ -411,17 +460,17 @@ export default async function AdminOperationsSwitchesPage({
  name="q"
  aria-label="Sök leverantörsbyten"
  defaultValue={query}
- placeholder="Sök på kund, site, mätpunkt, leverantör eller referens"
+ placeholder="Kundnamn, kundnummer, anläggning, mätpunkt eller referens"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-700 "
  />
 
  <select
  name="status"
- aria-label="Status"
+ aria-label="Registrerad status"
  defaultValue={status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
- <option value="all">Alla statusar</option>
+ <option value="all">Alla registrerade statusar</option>
  <option value="draft">Utkast</option>
  <option value="queued">Köad</option>
  <option value="submitted">Skickad</option>
@@ -483,7 +532,7 @@ export default async function AdminOperationsSwitchesPage({
  Leveranser
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- {filteredRows.length} träffar.
+ {filteredRows.length} ärenden på sidan.
  </p>
  </div>
 
@@ -492,7 +541,7 @@ export default async function AdminOperationsSwitchesPage({
  href="/admin/operations/ready-to-execute"
  className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
  >
- Gå till slutföringskön
+ Gå till aktiveringskön
  </Link>
  ) : null}
  </div>
@@ -507,71 +556,103 @@ export default async function AdminOperationsSwitchesPage({
  </div>
  ) : (
  filteredRows.map((row) => {
- const { request, readiness, outbound, lifecycle } = row
- const closed = ['completed', 'cancelled', 'cancelled_before_start', 'rejected'].includes(request.status)
- const paused = Boolean(request.paused_at || request.lifecycle_blocked)
+ const { request, readiness, outbound, lifecycle, activation } = row
+ const { closed, cancellation, paused, progress, showMissingReadiness } = getSupplierSwitchBusinessState(request, readiness, lifecycle.stage, activation)
+ const companyWritable = writableCompanies.has(request.company_id ?? '')
+ const site = siteById.get(request.site_id)
+ const ownSite = site && site.company_id === request.company_id && site.customer_id === request.customer_id ? site : undefined
+ const canValidate = canManage && companyWritable && !closed && !cancellation
+ const canPrepare = canQueue && companyWritable && !closed && !cancellation && !paused && ownSite && readiness?.isReady
+   && lifecycle.stage === 'queued_for_outbound' && ['queued', 'submitted', 'accepted'].includes(request.status) && !outbound
+ // The market confirmation and date decide activation. Pre-send checks can no longer be relevant.
+ const queueLink = !closed && !cancellation && !paused && ownSite && lifecycle.stage === 'ready_to_execute'
+ const facility = [ownSite?.site_name, ownSite?.facility_id].filter(Boolean).join(' · ') || 'Saknas'
+ const requestTypeLabel = supplierSwitchRequestTypeLabel(request.request_type)
+ const customerName = customerNames.kind === 'unavailable'
+   ? 'Kunduppgift kunde inte läsas'
+   : customerNames.data.get(`${request.company_id}/${request.customer_id}`) ?? 'Okänd kund'
+ const progressTitle = showMissingReadiness ? 'Uppgifterna behöver kontrolleras' : progress.label
+ const progressDescription = showMissingReadiness
+   ? 'Anläggningen saknas eller kunde inte läsas. Komplettera uppgifterna innan bytet går vidare.'
+   : progress.description
 
  return (
  <article key={request.id} className="min-w-0 rounded-2xl border border-slate-200 p-4">
    <div className="flex flex-wrap items-start justify-between gap-3">
      <div className="min-w-0 flex-1 break-words">
-       <h3 className="font-semibold text-slate-950"><Link href={`/admin/operations/switches/${request.id}`} className="hover:underline"><CustomerName id={request.customer_id} /></Link></h3>
-       <p className="mt-1 text-sm text-slate-700">{({ switch: 'Leverantörsbyte', move_in: 'Inflytt', move_out_takeover: 'Övertagande vid utflytt' } as Record<string, string>)[request.request_type] ?? 'Leveransärende'} · Önskad leveransstart {request.requested_start_date ?? '—'} · {request.incoming_supplier_name}</p>
+       <h3 className="font-semibold text-slate-950">{customerName}</h3>
+       <p className="mt-1 text-sm text-slate-700">{requestTypeLabel}</p>
      </div>
      <div className="flex flex-wrap items-center gap-2">
-       <Link href={`/admin/operations/switches/${request.id}`} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ärende</Link>
-       <AdminActionsMenu ariaLabel={`Fler åtgärder för switchärende ${request.id}`}>
-         {canReadCustomer ? <Link href={`/admin/customers/${request.customer_id}`}>Öppna kundkort</Link> : null}
-         {canManage && !closed ? <form action={validateSupplierSwitchBeforeProcessingAction}>
+       <Link href={`/admin/operations/switches/${request.id}`} className="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ärende</Link>
+       {(canReadCustomer && ownSite) || canValidate || canPrepare || queueLink ? <AdminActionsMenu ariaLabel={`Fler åtgärder för ${requestTypeLabel.toLocaleLowerCase('sv-SE')} · ${customerName}`}>
+         {canReadCustomer && ownSite ? <Link href={`/admin/customers/${request.customer_id}`}>Öppna kundkort</Link> : null}
+         {canValidate ? <form action={validateSupplierSwitchBeforeProcessingAction}>
            <input type="hidden" name="request_id" value={request.id} />
-           <button>{request.status === 'draft' ? 'Kontrollera uppgifter' : 'Kontrollera uppgifter'}</button>
+           <button>Kontrollera uppgifter</button>
          </form> : null}
-         {canQueue && !closed && !paused && ['queued', 'submitted', 'accepted'].includes(request.status) && !outbound ? (
-           <form action={queueSupplierSwitchOutboundAction}><input type="hidden" name="request_id" value={request.id} /><button>Förbered utskick</button></form>
-         ) : null}
-         {lifecycle.stage === 'ready_to_execute' ? <Link href="/admin/operations/ready-to-execute">Öppna slutföringskö</Link> : null}
-       </AdminActionsMenu>
+         {canPrepare ? <form action={queueSupplierSwitchOutboundAction}>
+           <input type="hidden" name="request_id" value={request.id} />
+           <button>Förbered utskick</button>
+         </form> : null}
+         {queueLink ? <Link href="/admin/operations/ready-to-execute">Öppna aktiveringskön</Link> : null}
+       </AdminActionsMenu> : null}
      </div>
    </div>
-   <div className="mt-3 flex flex-wrap items-center gap-2">
-     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(request.status)}`}>{formatStatusLabel(request.status, 'Status saknas', 'Behöver granskning')}</span>
-     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(lifecycle.stage)}`}>{isPlatform ? lifecycle.label : supplierSwitchBusinessProgress[lifecycle.stage].label}</span>
-     {outbound ? <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(outbound.status)}`}>Utskick: {formatStatusLabel(outbound.status)}</span> : <span className="text-xs font-medium text-slate-600">Inget utskick ännu</span>}
-     {['queued', 'submitted', 'accepted'].includes(request.status) && outbound ? <span className="text-xs font-medium text-emerald-700">Utskick finns redan</span> : null}
+   <dl className="mt-4 grid grid-cols-1 gap-3 break-words text-sm sm:grid-cols-2 xl:grid-cols-4 [&_dt]:text-slate-600 [&_dd]:font-medium [&_dd]:text-slate-950">
+     <div><dt>Anläggning</dt><dd>{facility}</dd></div>
+     <div><dt>Önskad leveransstart</dt><dd>{formatSupplierSwitchDate(request.requested_start_date)}</dd></div>
+     <div><dt>Bekräftad leveransstart</dt><dd>{formatSupplierSwitchDate(request.confirmed_start_date)}</dd></div>
+     <div><dt>Ny elleverantör</dt><dd>{request.incoming_supplier_name ?? 'Saknas'}</dd></div>
+   </dl>
+   <div className="mt-4 break-words text-sm text-slate-700">
+     <h4 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(lifecycle.stage)}`}>{progressTitle}</h4>
+     {closed ? null : <p className="mt-2 font-medium">Nästa steg</p>}
+     <p className={closed ? 'mt-2' : undefined}>{progressDescription}</p>
    </div>
-   <div className="mt-2 space-y-1 break-words text-sm text-slate-700">
-     <p>{isPlatform ? lifecycle.reason : supplierSwitchBusinessProgress[lifecycle.stage].description}</p>
-     {isPlatform && request.failure_reason ? <p className="font-medium text-red-700">Felorsak: {request.failure_reason}</p> : null}
-     {isPlatform && readiness && !readiness.isReady ? <p className="font-medium text-red-700">Blockeringar: {summarizeReadinessIssues(readiness)}</p> : null}
-   </div>
-   {canManage && lifecycle.stage === 'ready_to_execute' ? (
+   {!companyWritable && (canManage || canQueue) ? <p className="mt-2 text-sm text-slate-700">Ändringar är blockerade för bolaget.</p> : null}
+   {queueLink && activationCompanies.has(request.company_id ?? '') ? (
      <form action={finalizeSupplierSwitchExecutionAction} className="mt-3"><input type="hidden" name="request_id" value={request.id} /><button className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Aktivera leverans</button></form>
    ) : null}
    <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2">
-     <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-       <summary className="cursor-pointer font-semibold">Ärendedetaljer</summary>
+     {request.current_supplier_name || request.external_reference ? <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+       <summary className="cursor-pointer font-semibold">Leveransuppgifter</summary>
        <dl className="mt-3 space-y-2 break-words [&_dt]:text-xs [&_dt]:font-medium [&_dt]:text-slate-600">
-         {isPlatform ? <div><dt>Ärendereferens</dt><dd>{request.id}</dd></div> : null}
-         <div><dt>Anläggning</dt><dd>{sites.find(site => site.id === request.site_id)?.site_name ?? 'Namn saknas'}</dd></div>
-         {isPlatform ? <div><dt>Mätpunkt</dt><dd>{request.metering_point_id}</dd></div> : null}
-         <div><dt>Nuvarande leverantör</dt><dd>{request.current_supplier_name ?? '—'}</dd></div>
-         <div><dt>Extern referens</dt><dd>{request.external_reference ?? '—'}</dd></div>
-         {isPlatform ? <div><dt>Senaste händelse</dt><dd>{latestEventText(request.id, events)}</dd></div> : null}
+         {request.current_supplier_name ? <div><dt>Nuvarande elleverantör</dt><dd>{request.current_supplier_name}</dd></div> : null}
+         {request.external_reference ? <div><dt>Extern referens</dt><dd>{request.external_reference}</dd></div> : null}
        </dl>
-     </details>
-     {isPlatform && canManage && !closed && ['draft', 'queued', 'submitted', 'failed'].includes(request.status) ? <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-       <summary className="cursor-pointer font-semibold">Uppdatera ärendestatus</summary>
-       <form action={updateSupplierSwitchStatusFromAdminAction} className="mt-3 grid min-w-0 grid-cols-1 gap-3">
+     </details> : null}
+     {isPlatform ? <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+       <summary className="cursor-pointer font-semibold">Teknisk diagnostik</summary>
+       <dl className="mt-3 space-y-2 break-words [&_dt]:text-xs [&_dt]:font-medium [&_dt]:text-slate-600">
+         <div><dt>Ärendereferens</dt><dd>{request.id}</dd></div>
+         <div><dt>Mätpunkt</dt><dd>{request.metering_point_id}</dd></div>
+         <div><dt>Registrerad status</dt><dd>{formatStatusLabel(request.status, 'Status saknas', 'Behöver granskning')}</dd></div>
+         <div><dt>Utskick</dt><dd>{outbound ? formatStatusLabel(outbound.status) : 'Inget utskick ännu'}</dd></div>
+         <div><dt>Tekniskt läge</dt><dd>{lifecycle.label}</dd></div>
+         <div><dt>Teknisk förklaring</dt><dd>{lifecycle.reason}</dd></div>
+         <div><dt>Senaste händelse</dt><dd>{latestEventText(request.id, events)}</dd></div>
+         {request.failure_reason ? <div><dt>Felorsak</dt><dd>{request.failure_reason}</dd></div> : null}
+         {readiness && !readiness.isReady ? <div><dt>Blockeringar</dt><dd>{summarizeReadinessIssues(readiness)}</dd></div> : null}
+       </dl>
+       {canManage && companyWritable && canEditManualSwitchStatus(request.status) ? (
+       <form action={updateSupplierSwitchStatusFromAdminAction} className="mt-4 border-t border-slate-200 pt-3">
+         <fieldset className="grid min-w-0 grid-cols-1 gap-3">
+         <legend className="mb-3 font-semibold">Uppdatera ärendestatus</legend>
          <input type="hidden" name="request_id" value={request.id} />
+         <input type="hidden" name="expected_status" value={request.status} />
+         <input type="hidden" name="expected_updated_at" value={request.updated_at} />
          <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Status
-           <select name="status" aria-label={`Status för switchärende ${request.id}`} defaultValue={request.status} className="min-h-10 min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal">
-             <option value="draft">Utkast</option><option value="queued">Köad</option><option value="submitted">Skickad</option><option value="rejected">Avvisad</option><option value="failed">Kräver åtgärd</option>
+           <select name="status" aria-label={`Status för ${requestTypeLabel.toLocaleLowerCase('sv-SE')} · ${customerName}`} defaultValue={request.status} className="min-h-10 min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal">
+             {manualSwitchStatusOptions.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
            </select>
          </label>
          <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Extern referens<input name="external_reference" defaultValue={request.external_reference ?? ''} className="min-h-10 min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal" /></label>
          <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Felorsak<textarea name="failure_reason" defaultValue={request.failure_reason ?? ''} rows={3} className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal" /></label>
          <button className="justify-self-start rounded-xl bg-emerald-700 px-4 py-2.5 font-semibold text-white hover:bg-emerald-800">Spara status</button>
+         </fieldset>
        </form>
+       ) : null}
      </details> : null}
    </div>
  </article>

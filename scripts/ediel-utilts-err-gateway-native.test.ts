@@ -23,7 +23,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
-import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedSentE73ForUtiltsConsumption, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 // Real local DB, source ownership, matching, canonical dispatcher, reservations,
@@ -53,7 +53,7 @@ beforeEach(() => {
   sinks.complete.mockResolvedValue(null)
 })
 
-async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTransaction[]) {
+async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTransaction[], linkPendingRequest = false) {
   // A retained native database keeps earlier fixture identities: take the
   // requested id when free, otherwise the next free one in the same range.
   const actorEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_err_gateway_identity',0));
@@ -91,9 +91,8 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id)
       VALUES(${literal(ids.site)},${literal(ids.company)},${literal(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${literal(ids.grid)});
     INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id)
-      VALUES(${literal(ids.point)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},'735999260731000007','735999260731000007',${literal(ids.grid)});
-    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope)
-      VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
+      VALUES(${literal(ids.point)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},'735999260731000007','735999260731000007',${literal(ids.grid)});`)
+  if (linkPendingRequest) seedBillingRequest(ids)
   registerUtiltsIssuer(sql, literal, issuer, ids.actor)
   // Transport reception has its own canonical SEND actor; the original
   // business consumer retains its WRITE-only permission boundary.
@@ -108,7 +107,7 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     // Let the real trigger capture the unique family/date-qualified source
     // evidence; prefilled rule-pack columns would bypass that boundary.
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
-      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-15T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${linkPendingRequest ? literal(ids.request) : 'NULL'},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-15T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
@@ -124,6 +123,11 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
   }
   const source = await insertSource(transactions)
   return { ids, source, insertSource, consume: (ownSource = source) => processInboundUtiltsMessage({ actorUserId: ids.actor, edielMessageId: ownSource.id }) }
+}
+
+function seedBillingRequest(ids: { request: string; company: string; customer: string; site: string; point: string; grid: string }) {
+  sql(`INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope)
+    VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
 }
 
 type Snapshot = {
@@ -476,7 +480,8 @@ it('committed first ERR and reservation survive an interruption before second AC
 
 it('actual canonical functional owner and native reservations qualify same/different IDE races atomically without business storage', async () => {
   const references = ['DIRECT-NATIVE-SHARED-IDE-A', 'DIRECT-NATIVE-SHARED-IDE-B']
-  const f = await seed('54343', references.map(reference => ({ reference, outcome: 'processability_rejected' })))
+  // The linked business object makes the real atomic owner write its reference.
+  const f = await seed('54343', references.map(reference => ({ reference, outcome: 'processability_rejected' })), true)
   // Preserve the real initial owner object and its current registered witness.
   // Final native facets and reservation are produced by the actual pipeline
   // services below; no private receipt or accepted/approved row is seeded.
@@ -561,14 +566,33 @@ async function sc046RealSinks() {
 async function seedSc046(shape: Sc046Shape) {
   const f = await seed(shape === 'E66-512' ? '54352' : '54353', [{ reference: `SC046-${shape}-SEED`, outcome: 'accepted' }])
   const code = shape === 'E66-512' ? 'E66' : 'S01', receiver = f.source.receiver_ediel_id!, issuer = f.source.sender_ediel_id!
-  if (shape === 'S01-532') {
+  const receptionActor = await decisionUser(f.ids.company,
+    shape === 'E66-512' ? ['communication.send', 'communication.write'] : ['communication.send'], randomUUID() + 'Aa1!')
+  let requestReference: string | undefined
+  if (shape === 'E66-512') {
+    // Only this case expects billing. Its inbound originals must refer to
+    // the same accepted E73 and cover the exact independently sent period.
+    seedBillingRequest(f.ids)
+    sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active)
+      SELECT ${literal(f.ids.actor)},${literal(f.ids.company)},id,key,'allow','active',true
+      FROM public.permissions WHERE key='communication.send' AND is_active;`)
+    requestReference = await seedSentE73ForUtiltsConsumption(sql, literal, {
+      ...f.ids, actor: receptionActor.id, ediel: receiver, issuer,
+      requestedPeriod: { from: '202606302300', until: '202606302315' },
+    })
+    const sentPeriod = sql<{ requestedFrom: string; requestedUntil: string }>(`SET ROLE service_role;
+      SELECT coalesce(public.gridex_read_sent_e73_period_v1(${literal(f.ids.company)},${literal(f.ids.request)},'test',${literal(f.ids.actor)}),'null'::jsonb);
+      RESET ROLE;`)
+    expect(sentPeriod).not.toBeNull()
+    expect(new Date(sentPeriod.requestedFrom).toISOString()).toBe('2026-06-30T22:00:00.000Z')
+    expect(new Date(sentPeriod.requestedUntil).toISOString()).toBe('2026-06-30T22:15:00.000Z')
+  } else {
     // Synthetic eSett -> BRP receiver, qualified through ordinary fixture admission.
     sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.ids.company)} AND actor_id=${literal(f.ids.actor)} AND valid_to IS NULL;
      INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
      SELECT ${literal(f.ids.company)},e,${literal(f.ids.actor)},'balance_responsible',clock_timestamp() FROM unnest(ARRAY['test','production']) e;`)
     sql(`UPDATE public.ediel_route_profiles SET application_reference='23-DDK-S01-S' WHERE id=${literal(f.ids.profile)} AND company_id=${literal(f.ids.company)}`)
   }
-  const receptionActor = await decisionUser(f.ids.company, ['communication.send'], randomUUID() + 'Aa1!')
   const insert = async (label: 'NEWER' | 'OLDER' | 'NEWEST' | 'EQUAL', versionTime: string, quantity: string) => {
     const reference = `SC046-${shape}-${label}`
     const receivedAt = `2026-10-15T20:${label === 'NEWER' ? '00' : label === 'OLDER' ? '01' : label === 'NEWEST' ? '02' : '03'}:00Z`
@@ -580,12 +604,13 @@ async function seedSc046(shape: Sc046Shape) {
     if (shape === 'S01-532') {
       raw = s01L359AggregateWire(raw, [{ transactionId: reference, latestUpdateDate: versionTime, quantity }])
     }
+    if (requestReference) raw = raw.replace('\nIDE+', `\nRFF+ACW:${requestReference}'\nIDE+`)
     const physical = utiltsNativeSourceFixture(utiltsRecountUnt(raw), randomUUID())
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.ids.company, environment: 'test', raw: physical.raw,
       parsed: physical.parsed, receivedAt, smtpFrom: 'native-err@example.invalid', senderEmail: 'counterparty@example.invalid' })
     const individual = (value: string) => shape === 'E66-512' ? literal(value) : 'NULL'
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
-      VALUES(${literal(physical.id)},${literal(f.ids.company)},${individual(f.ids.customer)},${individual(f.ids.site)},${individual(f.ids.point)},${individual(f.ids.grid)},${individual(f.ids.request)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(physical.raw)},'{}','{}',${literal(receivedAt)},'{}',${literal(physical.parsed.applicationReference)},${literal(issuer)},${literal(receiver)},${literal(physical.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
+      VALUES(${literal(physical.id)},${literal(f.ids.company)},${individual(f.ids.customer)},${individual(f.ids.site)},${individual(f.ids.point)},${individual(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(physical.raw)},'{}','{}',${literal(receivedAt)},'{}',${literal(physical.parsed.applicationReference)},${literal(issuer)},${literal(receiver)},${literal(physical.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', physical.id).single()
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
@@ -633,6 +658,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   const businessBefore = sc046BusinessRows(f.ids.company, f.ids.request)
   if (shape === 'E66-512') {
     expect(businessBefore.meter).toHaveLength(1); expect(businessBefore.billing).toHaveLength(1)
+    expect(first.matchedDataRequest?.id).toBe(f.ids.request)
     expect(first.ingestedMeterValueIds).toHaveLength(1)
     expect(businessBefore.meter[0]).toMatchObject({ id: first.ingestedMeterValueIds?.[0], value_kwh: 500,
       company_id: f.ids.company, customer_id: f.ids.customer, site_id: f.ids.site, metering_point_id: f.ids.point, grid_owner_id: f.ids.grid })
@@ -743,14 +769,22 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
     expect(concurrentRetries.map(result => (result.data as { id: string }).id)).toEqual([current[0].id, current[0].id])
     expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
     expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
-    // Direct late history and stale source consumption cannot add lineage or
-    // undo11. Flipping the late row's mutable flag cannot mint current birth.
-    for (const candidate of [older, newer]) {
-      const refused = await sc046DirectMeter(f.ids.company, f.ids.actor, candidate.source, candidate.reference)
-      expect(refused.error?.message).toMatch(/utilts_consumption_(late_history|stale_version)/)
-      expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
-      expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
-    }
+    // Late history was never applied. An already applied source can replay
+    // its immutable receipt as replaced history without adding lineage.
+    const late = await sc046DirectMeter(f.ids.company, f.ids.actor, older.source, older.reference)
+    expect(late.error?.message).toContain('utilts_consumption_late_history')
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    const applied = await sc046DirectMeter(f.ids.company, f.ids.actor, newer.source, newer.reference)
+    expect(applied.error).toBeNull()
+    expect(applied.data).toMatchObject({
+      id: businessBefore.meter[0].id, value_kwh: 500, source_ediel_message_id: newer.source.id,
+      source_transaction_reference: newer.reference, is_current: false,
+      revision_status: 'replaced', replaced_by_value_id: current[0].id,
+    })
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    // Flipping the late row's mutable flag cannot mint current birth.
     sql(`UPDATE public.meter_reading_series SET is_current=true WHERE source_ediel_message_id=${literal(older.source.id)} AND company_id=${literal(f.ids.company)}`)
     try {
       expect((await sc046DirectMeter(f.ids.company, f.ids.actor, older.source, older.reference)).error?.message).toContain('utilts_consumption_late_history')

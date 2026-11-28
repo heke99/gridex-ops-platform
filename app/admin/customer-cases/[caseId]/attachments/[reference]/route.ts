@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { getCustomerCaseById } from '@/lib/customer-cases/db'
+import { readTenantSupportCase } from '@/lib/customer-cases/supportScope'
 import { SupportAttachmentError, downloadSupportAttachment } from '@/lib/customer-service/supportAttachments'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
   const scope = await resolveAdminTenantReadScope(context)
   if (!scope.companyId) return new NextResponse('Not found', { status: 404 })
   const { caseId, reference } = await params
-  const supportCase = await getCustomerCaseById(caseId, scope.companyId)
+  const supportCase = await readTenantSupportCase(caseId, scope.companyId)
   if (!supportCase) return new NextResponse('Not found', { status: 404 })
   try {
     const { row, bytes } = await downloadSupportAttachment({

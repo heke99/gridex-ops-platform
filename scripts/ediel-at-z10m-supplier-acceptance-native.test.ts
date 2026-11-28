@@ -4,6 +4,11 @@
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {getEdielMessageById} from '@/lib/ediel/db'
+import {canonicalAdmissionDate} from '@/lib/ediel/core/messagePolicy'
+import {resolveAuthoritativeEdielGuide} from '@/lib/ediel/rulebook/guideRegistry'
+import {localEdifactDateTimeToUtc,parseEdifactTimezoneOffsetFromComponents} from '@/lib/ediel/utilts/timezone'
+import {parseUtilts} from '@/lib/ediel/utilts/parseUtilts'
 import {supabaseService} from '@/lib/supabase/service'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -22,6 +27,8 @@ import {bindReceivedProdatApplicationObjects} from '@/lib/ediel/prodat/prodatApp
 import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {approveEdielInboundCase} from '@/lib/ediel/inboundCases'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
+import {completedReadingHostedSuite,enterCompletedReadingHostedPhase} from './helpers/ediel-completed-reading-clock-native'
 import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-change-native-fixture'
 import {createBilateralSourceOperator,bilateralSourceOperatorPermissions} from './helpers/ediel-bilateral-customer-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
@@ -41,9 +48,10 @@ beforeEach(()=>{
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
 async function fixture(){
+  const requestedStartDate=futureNativeSupplyDate()
   const f=await createRequestedChangeSupplyFixture(email=>external.send.mockResolvedValue({
     accepted:[email],rejected:[],messageId:'synthetic-own-Z03',response:'250 explicitly synthetic acceptance',
-  }),{requestedStartDate:futureNativeSupplyDate()})
+  }),{requestedStartDate})
   // Public disposable route/profile inputs only, as in existing raw-scope
   // acceptance. Canonical ACK readiness/authority are actual owner outputs.
   const routeId=randomUUID(),profileId=randomUUID(),smtp=edielSmtpConfig()
@@ -356,10 +364,11 @@ function readingWire(f:Fixture,changeMinute:string,side:'old'|'new',meter:string
   const readings=registers.flatMap((register,index)=>[
     `SEQ++${index*2+1}'`,`RFF+AES:${register}'`,`RFF+MG:${meter}'`,`QTY+220:${side==='old'?10000+index:20+index}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
     `SEQ++${index*2+2}'`,`RFF+AES:${register}'`,`QTY+220:${side==='old'?10500+index:520+index}'`,`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'"])
-  const lines=["UNA:+.? '",`UNB+UNOC:3+${f.receiver}:ZZ+${f.sender}:ZZ+260831:1811+${interchange}++23-DDQ-E66-T++1++1'`,"UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
-    "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
+  const interchangeTime=`${end.slice(2,8)}:${end.slice(8)}`
+  const lines=["UNA:+.? '",`UNB+UNOC:3+${f.receiver}:ZZ+${f.sender}:ZZ+${interchangeTime}+${interchange}++23-DDQ-E66-T++1++1'`,"UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
+    `DTM+137:${end}:203'`,"DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
     `LOC+172+${f.external}::9'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:804'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
-    ...readings,`SEQ++${registers.length*2+1}'`,"QTY+136:500'"]
+    ...readings,`SEQ++${registers.length*2+1}'`,`QTY+136:${500*registers.length}'`]
   return {wire:[...lines,`UNT+${lines.length-1}+1'`,`UNZ+1+${interchange}'`].join('\n'),transaction,document,start,end}
 }
 
@@ -372,6 +381,23 @@ async function receiveUtilts(f:Fixture,wire:string){
   const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
   expect(sourceId).toMatch(/^[a-f0-9-]{36}$/)
+  const source=await getEdielMessageById(sourceId!)
+  if(!source)throw Error('native_e66_source_missing')
+  const physical=tokenizeEdifact(source.raw_payload!)
+  const header=physical.segments.slice(0,physical.segments.findIndex(segment=>segment.tag==='SEQ'))
+  const dtm=(qualifier:string)=>segmentComposite(header.find(segment=>segment.tag==='DTM'
+    &&segmentComposite(segment,1,physical.una)[0]===qualifier),1,physical.una)
+  const timezone=parseEdifactTimezoneOffsetFromComponents(dtm('735'))
+  const registration=dtm('597')
+  const [transaction]=parseUtilts(source.raw_payload!).transactions
+  const registeredAt=localEdifactDateTimeToUtc(transaction?.registrationTime,timezone)
+  expect(registration[2]).toBe('203')
+  expect(timezone?.offsetMinutes).toBe(60)
+  expect(Date.parse(registeredAt??'')).toBeLessThanOrEqual(Date.parse(source.message_received_at!))
+  expect(source.execution_context_snapshot).toMatchObject({receivedUtiltsContext:{
+    contextOrigin:'database_insert',sourceMessageId:sourceId,payloadHash:mail.sourcePayloadHash,
+  }})
+  expect(resolveAuthoritativeEdielGuide({family:'UTILTS',referenceDate:canonicalAdmissionDate(source)}).guideRevision).toBe('25-A-5')
   seedUtiltsIssuerHistoryGround(sql,literal,sourceId!,f.reviewer.id)
   await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
   return sourceId!
@@ -407,6 +433,9 @@ const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
   'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(f.companyId)}))`)
 
 it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
+  // Admit Z10 prospectively. Only the protected run has a disposable clock
+  // that can complete both reporting periods before actual mailbox reception.
+  const hosted=completedReadingHostedSuite('z10m')
   const f=await fixture()
   const change=changeWire(f),z10=await receive(f,change.wire)
   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:z10.sourceId,
@@ -414,6 +443,13 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(z10.sourceId)}`)
   expect(cases).toHaveLength(1)
   expect(await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})).toMatchObject({status:'applied'})
+  const structureEffectiveAt=prodatMarketMinuteToUtc(change.minute)
+  if(!structureEffectiveAt)throw Error('z10m_native_exact_effective_minute_required')
+  const committed=effects(f,z10.sourceId)
+  expect(committed.receipts).toHaveLength(1)
+  const effect=committed.receipts[0].effect as {effectiveAt:string}
+  expect(Date.parse(effect.effectiveAt)).toBe(Date.parse(structureEffectiveAt))
+  if(!hosted)return
   // The Z10 is fully acknowledged; the fixture's disposable ACK profiles now
   // carries the received E66 application reference (as setOwnAckApplication in
   // the Z14 suite). No ACK authority/readiness is seeded.
@@ -425,6 +461,11 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // (1) Old meter: interval ending exactly at the Z10 change minute; its final
   // reading is the old meter's last stand and binds to the Z04 baseline version.
   const old=readingWire(f,change.minute,'old','METER-1',['101'])
+  const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
+  const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
+  const finishPhase=await enterCompletedReadingHostedPhase('z10m',{
+    supply:f,structuralSourceId:z10.sourceId,structureEffectiveAt,actor:f.reviewer,wires:[old.wire,fresh.wire,early.wire],
+  })
   const oldSource=await receiveUtilts(f,old.wire),oldState=readingState(f,oldSource)
   expect(bound(oldState)).toEqual([{status:'matched',codes:[],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
   expect(oldState.dispositions).toMatchObject([{source_transaction_id:old.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
@@ -434,7 +475,6 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   expect(positive(oldState)[0].wire).toContain(`RFF+ACW:${old.transaction}'`);expect(positive(oldState)[0].wire).toContain(`+${old.document}'`)
   // (2) New meter: interval starting at the change minute, both new registers;
   // its start readings bind to the Z10 version, never to the baseline.
-  const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
   const newSource=await receiveUtilts(f,fresh.wire),newState=readingState(f,newSource)
   expect(bound(newState)).toEqual([{status:'matched',codes:[],selected:[{source:z10.sourceId,meter:'NEW-METER',registers:['101','102']}]}])
   expect(newState.dispositions).toMatchObject([{source_transaction_id:fresh.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
@@ -447,7 +487,6 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // ERR/TN response after #789. No post-failure repair or second receive may
   // qualify the first receive; legitimate diagnostic binding receipts remain.
   const beforeNegative=readingSinks(f)
-  const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
   const earlySource=await receiveUtilts(f,early.wire),earlyState=readingState(f,earlySource)
   expect(bound(earlyState)).toEqual([{status:'mismatch',codes:['E61','E62'],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
   expect(earlyState.message).toMatchObject({company:f.companyId,environment:'test',code:'E66'})
@@ -501,4 +540,5 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   // Earlier old-meter values and both bound readings are unchanged afterwards.
   expect(readingState(f,oldSource)).toEqual(oldState)
   expect(readingState(f,newSource)).toEqual(newState)
+  finishPhase([{id:oldSource,outcome:'persisted'},{id:newSource,outcome:'persisted'},{id:earlySource,outcome:'structural_err'}])
 })

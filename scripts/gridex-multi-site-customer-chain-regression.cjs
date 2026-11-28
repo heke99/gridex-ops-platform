@@ -66,15 +66,17 @@ assert(
   'supabase/migrations: customer_number is on the customers table'
 )
 
-// ---- 5. saveCustomerSiteAction uses customer_id from existing customer ----
+// ---- 5. saveCustomerSiteAction delegates to the owner that binds the customer ----
 const actions = read('app/admin/customers/[id]/actions.ts')
+const siteActions = read('app/admin/customers/[id]/actions.part-1.ts')
 assert(
-  /saveCustomerSiteAction/.test(actions),
-  'actions.ts: exports saveCustomerSiteAction'
+  /import \* as implementation1 from ['"]\.\/actions\.part-1['"]/.test(actions) &&
+  actions.includes('return implementation1.saveCustomerSiteAction(...args)'),
+  'actions.ts: delegates saveCustomerSiteAction to its owner'
 )
 assert(
-  /customer_id.*customerId|customerId.*customer_id/.test(actions),
-  'actions.ts: saveCustomerSiteAction links site to existing customer_id'
+  /export async function saveCustomerSiteAction\([\s\S]*?customer_id:\s*customerId,[\s\S]*?await saveCustomerSite\(supabase, parsed\)/.test(siteActions),
+  'saveCustomerSiteAction links the saved site to the existing customer_id'
 )
 
 // ---- 6. Portal /sites API returns all sites ----
@@ -95,17 +97,23 @@ assert(
   'portal-bundle/route.ts: includes sites in bundle'
 )
 
-// ---- 8. Site-level operations reference site_id ----
+// ---- 8. Site-level operations reference the chosen site_id ----
 assert(
-  /site_id/.test(actions),
-  'actions.ts: site-level operations include site_id'
+  actions.includes('return implementation1.saveMeteringPointAction(...args)') &&
+  /export async function saveMeteringPointAction\([\s\S]*?formValue\(formData, ['"]site_id['"]\)[\s\S]*?site_id:\s*siteId,[\s\S]*?await saveMeteringPoint\(supabase, parsed\)/.test(siteActions),
+  'saveMeteringPointAction saves the chosen site_id'
 )
 
-// ---- 9. Customer card supports displaying multiple sites ----
+// ---- 9. Customer card renders the complete list through its table ----
 const customerPage = read('app/admin/customers/[id]/page.tsx')
+const customerPageOwner = read('app/admin/customers/[id]/page.part-4.tsx')
+const customerSitesTable = read('components/admin/masterdata/CustomerSitesTable.tsx')
 assert(
-  /sites\.map|\.map.*sites|sites.*forEach/s.test(customerPage),
-  'customers/[id]/page.tsx: iterates over sites (supports multiple)'
+  /export \{ CustomerAdminDetailPage as default \} from ['"]\.\/page\.part-4['"]/.test(customerPage) &&
+  /import CustomerSitesTable from ['"]@\/components\/admin\/masterdata\/CustomerSitesTable['"]/.test(customerPageOwner) &&
+  /<CustomerSitesTable\s+[^>]*sites=\{sites\}/.test(customerPageOwner) &&
+  /\{sites\.map\(/.test(customerSitesTable),
+  'customers/[id]/page.tsx: passes all sites to the table that iterates over them'
 )
 
 // ---- 10. Website duplicate protection includes site identity ----
@@ -135,12 +143,8 @@ assert(
   'customerApplicationProcess.ts: forwards the resolved existing customer into canonical onboarding'
 )
 assert(
-  /existingCustomerId[\s\S]{0,1200}matching_policy:\s*"link_selected"/.test(applicationOnboarding),
-  'customerApplicationOnboarding.ts: known customer uses link_selected rather than creating a duplicate customer'
-)
-assert(
-  /matching_policy:\s*"link_unique"/.test(applicationOnboarding),
-  'customerApplicationOnboarding.ts: unknown customer may resolve one canonical legal identity with link_unique'
+  /matching_policy:\s*input\.existingCustomerId\s*\?\s*['"]link_selected['"]\s*:\s*['"]link_unique['"]\s*,\s*existing_customer_id:\s*input\.existingCustomerId\s*\?\?\s*null/.test(applicationOnboarding),
+  'customerApplicationOnboarding.ts: preserves selected identity and only falls back to link_unique for an unknown customer'
 )
 
 // ---- 12. A successful website application keeps child-object identities separate ----

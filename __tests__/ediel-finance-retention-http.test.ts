@@ -34,3 +34,44 @@ it('source hashes/false completeness and target selector are validated on the ac
  f.rpc.mockImplementation(async(name:string)=>name==='ediel_current_retention_session_v1'?{data:{companyId:f.company,actorUserId:f.user,permissions:f.permissions},error:null}:{data:{...basis,complete:true},error:null})
  expect((await POST(request({action:'basis',retentionClass:'settlement_calculation_body',targetId:target}))).status).toBe(400)
 })
+
+it('preserves both frozen invoice calculation members without granting retirement authority', async () => {
+  f.permissions = ['ediel.retention.read', 'ediel.retention.invoice_copy_evidence']
+  const sourceMembers = [
+    {
+      underlayId: target,
+      pricingRunId: decision,
+      supplyPeriodId: f.company,
+      sourceHash: hash,
+      pricingEvidenceHash: 'b'.repeat(64),
+      periodStart: '2020-01-01T00:00:00+00:00',
+      periodEnd: '2020-01-15T00:00:00+00:00',
+    },
+    {
+      underlayId: '00000000-0000-4000-8000-000000000020',
+      pricingRunId: '00000000-0000-4000-8000-000000000021',
+      supplyPeriodId: f.company,
+      sourceHash: 'c'.repeat(64),
+      pricingEvidenceHash: 'd'.repeat(64),
+      periodStart: '2020-01-15T00:00:00+00:00',
+      periodEnd: '2020-02-01T00:00:00+00:00',
+    },
+  ]
+  const invoiceBasis = {
+    ...basis,
+    retentionClass: 'invoice_calculation_body',
+    sourceTable: 'public.customer_invoices',
+    sourceMembers,
+  }
+  f.rpc.mockImplementation(async (name: string) =>
+    name === 'ediel_current_retention_session_v1'
+      ? { data: { companyId: f.company, actorUserId: f.user, permissions: f.permissions }, error: null }
+      : { data: invoiceBasis, error: null },
+  )
+
+  const response = await POST(request({ action: 'basis', retentionClass: 'invoice_calculation_body', targetId: target }))
+
+  expect(response.status).toBe(200)
+  expect(await response.json()).toEqual(invoiceBasis)
+  expect(f.rpc.mock.calls.some(([name]) => name === 'ediel_purge_finance_copy_retention_v1')).toBe(false)
+})

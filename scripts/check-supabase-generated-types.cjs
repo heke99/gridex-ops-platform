@@ -2,6 +2,7 @@
 const { createHash } = require('node:crypto')
 const { readdirSync, readFileSync } = require('node:fs')
 const { basename, join, resolve } = require('node:path')
+const { collectMigrationSource, matchesMigrationSource } = require('./lib/supabase-migration-provenance.cjs')
 
 const root = resolve(__dirname, '..')
 const manifest = JSON.parse(
@@ -16,6 +17,30 @@ const migrationFiles = readdirSync(join(root, 'supabase/migrations'))
 const latestMigration = basename(migrationFiles.at(-1) ?? '')
 
 const failures = []
+const origin = manifest.active_generated_outputs_origin
+const migrationSource = collectMigrationSource(root)
+const hash = /^[0-9a-f]{64}$/
+const gitHash = /^[0-9a-f]{40}$/
+if (
+  origin?.kind !== 'genuine_successful_ordinary_capture_RAW3_ONLY' ||
+  origin.workflow_path !== '.github/workflows/staff-api-schema-capture.yml' ||
+  !gitHash.test(origin.source_head) ||
+  !gitHash.test(origin.source_tree) ||
+  !Number.isSafeInteger(origin.workflow_run_id) || origin.workflow_run_id < 1 ||
+  !Number.isSafeInteger(origin.workflow_job_id) || origin.workflow_job_id < 1 ||
+  !Number.isSafeInteger(origin.attempt) || origin.attempt < 1 ||
+  !hash.test(origin.capture_receipt_sha256) ||
+  !origin.migration_source
+) {
+  failures.push('missing full migration-source provenance from the canonical schema capture')
+} else {
+  if (!matchesMigrationSource(migrationSource, origin.migration_source)) {
+    failures.push('full migration source changed; capture types from the current canonical replay and adopt its receipt')
+  }
+  if (origin.raw_output_sha256?.['database.types.ts'] !== actualHash) {
+    failures.push('generated types do not match the selected canonical capture artifact')
+  }
+}
 if (actualHash !== manifest.sha256) {
   failures.push(
     `generated type hash differs: expected ${manifest.sha256}, got ${actualHash}`,

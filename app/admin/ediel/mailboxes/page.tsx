@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { isMailboxPollPartialNotice, MAILBOX_POLL_PARTIAL } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +24,7 @@ type MailboxRow = {
   security_status?: string | null
   last_successful_poll_at?: string | null
   last_poll_at?: string | null
+  last_polled_at?: string | null
   last_poll_status?: string | null
   last_error?: string | null
   is_active?: boolean | null
@@ -90,7 +92,7 @@ export default async function EdielMailboxesPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-black text-slate-950">Mailbox status</h2>
             <div className="flex gap-2">
-              <Link href="/admin/inbound-mail" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700">Inbound mail engine</Link>
+              <Link href="/admin/inbound-mail#poll-runs" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700">Inbound mail engine</Link>
               <Link href="/admin/inbound-mail/diagnostics" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white">Diagnostik</Link>
             </div>
           </div>
@@ -126,12 +128,12 @@ export default async function EdielMailboxesPage() {
                       <div className="font-mono text-xs text-slate-500">{mailbox.certificate_id ?? 'certifikat saknas'}</div>
                     </td>
                     <td className="p-3 text-slate-700">
-                      <div>Senaste poll: {formatDate(mailbox.last_poll_at ?? mailbox.last_successful_poll_at)}</div>
-                      <div className="text-xs">Senaste lyckad: {formatDate(mailbox.last_successful_poll_at)}</div>
+                      <div>Senaste poll: {formatDate(mailbox.last_polled_at ?? mailbox.last_poll_at ?? mailbox.last_successful_poll_at)}</div>
+                      <div className="text-xs">Senaste fullständiga pollning: {formatDate(mailbox.last_successful_poll_at)}</div>
                     </td>
                     <td className="p-3">
                       <div className={`rounded-xl border px-3 py-2 ${statusTone(mailbox.is_active !== false && !mailbox.last_error)}`}>
-                        {mailbox.last_error ?? mailbox.security_status ?? mailbox.last_poll_status ?? 'okänd'}
+                        {isMailboxPollPartialNotice(mailbox.last_error) ? MAILBOX_POLL_PARTIAL : mailbox.last_error ?? mailbox.security_status ?? mailbox.last_poll_status ?? 'okänd'}
                       </div>
                     </td>
                   </tr>

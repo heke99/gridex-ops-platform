@@ -1,0 +1,30 @@
+{
+  "publicContractOfferAliases": {
+    "feature": "public contract id and contract_offer_id compatibility aliases",
+    "replacement": "offer_reference",
+    "status": "deprecated_supported",
+    "sunset_at": null,
+    "previously_announced_sunset_at": "2026-10-31T23:59:59.000Z"
+  },
+  "legalEvidenceVersions": {
+    "feature": "legal evidence UUID compatibility fields",
+    "replacement": "legal_bundle_reference and document_reference",
+    "status": "deprecated_supported",
+    "sunset_at": null,
+    "previously_announced_sunset_at": "2026-10-31T23:59:59.000Z"
+  },
+  "publicContractDiagnostics": {
+    "feature": "diagnostics=true on public-contracts",
+    "replacement": "/api/v1/website/public-contracts/diagnostics",
+    "status": "deprecated_supported",
+    "sunset_at": null,
+    "previously_announced_sunset_at": "2026-10-31T23:59:59.000Z"
+  },
+  "legacyApiKeyHeader": {
+    "feature": "x-api-key request header",
+    "replacement": "Authorization: Bearer <GRIDEX_API_KEY>",
+    "status": "deprecated_supported",
+    "sunset_at": null,
+    "previously_announced_sunset_at": "2026-10-31T23:59:59.000Z"
+  }
+}

@@ -103,6 +103,25 @@ export async function listAllGridOwnerDataRequests(options: {
   )
 }
 
+async function withGridOwnerRequestLinks(values: MeteringValueRow[]): Promise<MeteringValueRow[]> {
+  const rows = values.map((value) => ({ ...value, grid_owner_request_link_id: null as string | null }))
+  const ids = rows.filter((row) => row.source_request_id !== null).map((row) => row.id)
+  if (ids.length === 0) return rows
+
+  const { data, error } = await supabaseService.from('gridex_operator_meter_request_links_v1')
+    .select('id, company_id, customer_id, request_id').eq('source', 'meter_value').in('id', ids)
+  if (error) {
+    console.warn('[metering-values] Kunde inte verifiera ursprungsbegärans länk', error.code)
+    return rows
+  }
+  const links = new Map((data ?? []).map((row) => [row.id, row]))
+  return rows.map((row) => {
+    const link = links.get(row.id)
+    if (!link || link.company_id !== row.company_id || link.customer_id !== row.customer_id) return row
+    return { ...row, grid_owner_request_link_id: link.request_id }
+  })
+}
+
 export async function listMeteringValuesByCustomerId(
   customerId: string,
   options: { companyId?: string | null; limit?: number } = {}
@@ -121,7 +140,7 @@ export async function listMeteringValuesByCustomerId(
     .limit(options.limit ?? 100)
 
   if (error) throw error
-  return (data ?? []) as MeteringValueRow[]
+  return withGridOwnerRequestLinks((data ?? []) as MeteringValueRow[])
 }
 
 export async function listAllMeteringValues(options: {
@@ -146,7 +165,7 @@ export async function listAllMeteringValues(options: {
   const rows = (data ?? []) as MeteringValueRow[]
   const query = normalizeQuery(options.query)
 
-  return rows.filter((row) =>
+  return withGridOwnerRequestLinks(rows.filter((row) =>
     matchesQuery(
       [
         row.id,
@@ -160,7 +179,7 @@ export async function listAllMeteringValues(options: {
       ],
       query
     )
-  )
+  ))
 }
 
 export async function listBillingUnderlaysByCustomerId(
@@ -459,6 +478,27 @@ export async function listAllPartnerExports(options: {
   )
 }
 
+export async function updateGridOwnerDataRequestBusiness(input: {
+  actorUserId: string
+  companyId: string
+  customerId: string
+  requestId: string
+  originalStatus: string
+  changes: Partial<Record<'status' | 'external_reference' | 'failure_reason' | 'notes' | 'admin_note', string | null>>
+}): Promise<GridOwnerDataRequestRow> {
+  const { data, error } = await supabaseService.rpc('gridex_update_grid_owner_request_business_v1', {
+    p_request_id: input.requestId,
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_actor_id: input.actorUserId,
+    p_original_status: input.originalStatus,
+    p_changes: input.changes,
+  })
+  if (error) throw error
+  if (!data) throw new Error('Begäran kunde inte sparas.')
+  return data as GridOwnerDataRequestRow
+}
+
 export async function updateGridOwnerDataRequestStatus(input: {
   actorUserId: string
   requestId: string
@@ -501,179 +541,88 @@ export async function updateGridOwnerDataRequestStatus(input: {
   return data as GridOwnerDataRequestRow
 }
 
+export async function applyGridOwnerProviderStatus(input: {
+  actorUserId: string
+  companyId: string
+  requestId: string
+  sourceId: string
+  kind: 'outbound' | 'ediel_received' | 'ediel_ack_positive' | 'ediel_ack_negative'
+  failureReason?: string | null
+  responsePatch?: Record<string, unknown>
+}): Promise<GridOwnerDataRequestRow> {
+  const { data, error } = await supabaseService.rpc('gridex_apply_grid_owner_provider_status_v1', {
+    p_request_id: input.requestId,
+    p_company_id: input.companyId,
+    p_actor_id: input.actorUserId,
+    p_source_id: input.sourceId,
+    p_kind: input.kind,
+    p_failure_reason: input.failureReason ?? null,
+    p_response_patch: input.responsePatch ?? {},
+  })
+  if (error) throw error
+  return data as GridOwnerDataRequestRow
+}
+
 export async function syncGridOwnerDataRequestFromOutbound(input: {
   actorUserId: string
   outboundRequest: OutboundRequestRow
-  notes?: string | null
   extraResponsePayload?: Record<string, unknown>
 }): Promise<GridOwnerDataRequestRow | null> {
   const { outboundRequest } = input
+  if (outboundRequest.source_type !== 'grid_owner_data_request' || !outboundRequest.source_id) return null
+  if (!outboundRequest.company_id) throw new Error('Utskickets bolag saknas för nätägarbegäran.')
 
-  if (
-    outboundRequest.source_type !== 'grid_owner_data_request' ||
-    !outboundRequest.source_id
-  ) {
-    return null
-  }
-
-  const { data: current, error: currentError } = await supabaseService
-    .from('grid_owner_data_requests')
-    .select('*')
-    .eq('id', outboundRequest.source_id)
-    .maybeSingle()
-
-  if (currentError) throw currentError
-  if (!current) return null
-
-  const currentRow = current as GridOwnerDataRequestRow
-
-  const mergedResponsePayload = mergeJsonObjects(currentRow.response_payload, {
-    outboundRequestId: outboundRequest.id,
-    outboundStatus: outboundRequest.status,
-    outboundChannelType: outboundRequest.channel_type,
-    communicationRouteId: outboundRequest.communication_route_id,
-    externalReference: outboundRequest.external_reference,
-    failureReason: outboundRequest.failure_reason,
-    ...(input.extraResponsePayload ?? {}),
+  return applyGridOwnerProviderStatus({
+    actorUserId: input.actorUserId,
+    companyId: outboundRequest.company_id,
+    requestId: outboundRequest.source_id,
+    sourceId: outboundRequest.id,
+    kind: 'outbound',
+    responsePatch: input.extraResponsePayload,
   })
-
-  if (outboundRequest.status === 'queued' || outboundRequest.status === 'prepared') {
-    return updateGridOwnerDataRequestStatus({
-      actorUserId: input.actorUserId,
-      requestId: currentRow.id,
-      status: 'pending',
-      externalReference:
-        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
-      responsePayload: mergedResponsePayload,
-      notes: input.notes ?? currentRow.notes ?? null,
-    })
-  }
-
-  if (outboundRequest.status === 'sent') {
-    return updateGridOwnerDataRequestStatus({
-      actorUserId: input.actorUserId,
-      requestId: currentRow.id,
-      status: 'sent',
-      externalReference:
-        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
-      responsePayload: mergedResponsePayload,
-      notes: input.notes ?? currentRow.notes ?? null,
-    })
-  }
-
-  if (outboundRequest.status === 'acknowledged') {
-    return updateGridOwnerDataRequestStatus({
-      actorUserId: input.actorUserId,
-      requestId: currentRow.id,
-      status: 'received',
-      externalReference:
-        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
-      responsePayload: mergedResponsePayload,
-      notes: input.notes ?? currentRow.notes ?? null,
-    })
-  }
-
-  if (
-    outboundRequest.status === 'failed' ||
-    outboundRequest.status === 'cancelled'
-  ) {
-    return updateGridOwnerDataRequestStatus({
-      actorUserId: input.actorUserId,
-      requestId: currentRow.id,
-      status: 'failed',
-      externalReference:
-        outboundRequest.external_reference ?? currentRow.external_reference ?? null,
-      failureReason:
-        outboundRequest.failure_reason ??
-        (outboundRequest.status === 'cancelled'
-          ? 'Outbound dispatch avbröts manuellt.'
-          : 'Outbound dispatch misslyckades.'),
-      responsePayload: mergedResponsePayload,
-      notes: input.notes ?? currentRow.notes ?? null,
-    })
-  }
-
-  return currentRow
 }
 
 export async function syncGridOwnerDataRequestReceivedFromEdiel(input: {
   actorUserId: string
+  companyId: string
   requestId: string
   edielMessageId: string
-  externalReference?: string | null
   parsedPayload?: Record<string, unknown>
-  notes?: string | null
   ingestedMeterValueId?: string | null
   extraResponsePayload?: Record<string, unknown>
-}): Promise<GridOwnerDataRequestRow | null> {
-  const { data: current, error: currentError } = await supabaseService
-    .from('grid_owner_data_requests')
-    .select('*')
-    .eq('id', input.requestId)
-    .maybeSingle()
-
-  if (currentError) throw currentError
-  if (!current) return null
-
-  const currentRow = current as GridOwnerDataRequestRow
-
-  const mergedResponsePayload = mergeJsonObjects(currentRow.response_payload, {
-    edielMessageId: input.edielMessageId,
-    externalReference: input.externalReference ?? currentRow.external_reference ?? null,
-    parsedPayload: input.parsedPayload ?? {},
-    ingestedMeterValueId: input.ingestedMeterValueId ?? null,
-    receivedVia: 'inbound_ediel',
-    ...(input.extraResponsePayload ?? {}),
-  })
-
-  return updateGridOwnerDataRequestStatus({
+}): Promise<GridOwnerDataRequestRow> {
+  return applyGridOwnerProviderStatus({
     actorUserId: input.actorUserId,
-    requestId: currentRow.id,
-    status: 'received',
-    externalReference:
-      input.externalReference ?? currentRow.external_reference ?? null,
-    responsePayload: mergedResponsePayload,
-    notes: input.notes ?? currentRow.notes ?? null,
+    companyId: input.companyId,
+    requestId: input.requestId,
+    sourceId: input.edielMessageId,
+    kind: 'ediel_received',
+    responsePatch: {
+      edielMessageId: input.edielMessageId,
+      parsedPayload: input.parsedPayload ?? {},
+      ingestedMeterValueId: input.ingestedMeterValueId ?? null,
+      receivedVia: 'inbound_ediel',
+      ...(input.extraResponsePayload ?? {}),
+    },
   })
 }
 
 export async function updatePartnerExportStatus(input: {
   actorUserId: string
+  companyId: string
+  customerId: string
   exportId: string
-  status: 'queued' | 'sent' | 'acknowledged' | 'failed' | 'cancelled'
-  externalReference?: string | null
-  failureReason?: string | null
-  preserveFailureReason?: boolean
-  responsePayload?: Record<string, unknown>
+  originalStatus: string
+  changes: Partial<Record<'status' | 'external_reference' | 'failure_reason' | 'admin_note', string | null>>
 }): Promise<PartnerExportRow> {
-  const now = new Date().toISOString()
-
-  const payload: Record<string, unknown> = {
-    status: input.status,
-    external_reference: input.externalReference ?? null,
-    updated_by: input.actorUserId,
-    last_partner_response_at: now,
-  }
-
-  if (!input.preserveFailureReason) {
-    payload.failure_reason = input.failureReason ?? null
-  }
-
-  if (input.responsePayload !== undefined) {
-    payload.response_payload = input.responsePayload
-  }
-
-  if (input.status === 'sent') payload.sent_at = now
-  if (input.status === 'acknowledged') payload.acknowledged_at = now
-  if (input.status === 'failed') payload.failed_at = now
-
-  const { data, error } = await supabaseService
-    .from('partner_exports')
-    .update(payload)
-    .eq('id', input.exportId)
-    .select('*')
-    .single()
-
+  const { data, error } = await supabaseService.rpc('gridex_update_partner_export_business_v1', {
+    p_export_id: input.exportId,
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+    p_actor_id: input.actorUserId,
+    p_original_status: input.originalStatus,
+    p_changes: input.changes,
+  })
   if (error) throw error
   return data as PartnerExportRow
 }

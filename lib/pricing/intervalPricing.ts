@@ -171,6 +171,7 @@ export function spotPriceResolutionMatches(
 }
 
 const QUARTER_MS = 15 * 60 * 1_000;
+const HOUR_MS = 4 * QUARTER_MS;
 
 /**
  * Since 2025-10-01 the market publishes quarter-hour prices only. An hourly
@@ -235,6 +236,19 @@ export async function resolveIntervalSpotPricing(input: {
     };
   }
   const sourcePriority = new Map(policies.map((policy) => [String(policy.source_key), Number(policy.priority)]));
+  const directMarketPrices = prices.filter((price) =>
+    spotPriceResolutionMatches(input.requiredResolution, price.resolution));
+  const quartersByMarketHour = new Map<number, Row[]>();
+  if (input.requiredResolution === "hourly") {
+    for (const price of prices) {
+      if (text(price.resolution) !== "quarter_hour") continue;
+      const marketHour = Math.floor(Date.parse(String(price.time_start)) / HOUR_MS) * HOUR_MS;
+      const quarters = quartersByMarketHour.get(marketHour);
+      if (quarters) quarters.push(price);
+      else quartersByMarketHour.set(marketHour, [price]);
+    }
+  }
+  const derivedHourlyPrices = new Map<number, ReturnType<typeof hourlyPriceFromQuarters>>();
   const errors: string[] = [];
   const evidence: IntervalPriceEvidence[] = [];
   let totalQuantity = 0;
@@ -280,11 +294,9 @@ export async function resolveIntervalSpotPricing(input: {
       continue;
     }
 
-    const candidates = prices.filter((price) => {
+    const candidates = directMarketPrices.filter((price) => {
       const priceStart = Date.parse(String(price.time_start));
       const priceEnd = Date.parse(String(price.time_end));
-      if (!spotPriceResolutionMatches(input.requiredResolution, price.resolution))
-        return false;
       return priceStart <= startMs && priceEnd >= endMs;
     }).sort((a, b) =>
       (sourcePriority.get(String(a.source)) ?? Number.MAX_SAFE_INTEGER) -
@@ -296,12 +308,21 @@ export async function resolveIntervalSpotPricing(input: {
     if (candidates.length > 0) {
       priceValue = numeric(candidates[0].sek_per_kwh);
       priceId = text(candidates[0].id);
-    } else if (input.requiredResolution === "hourly" && resolution === "hour") {
-      const derived = hourlyPriceFromQuarters(prices, startMs, endMs, sourcePriority);
-      if (derived) {
-        priceValue = derived.value;
-        priceId = derived.ids[0];
-        priceIds = derived.ids;
+    } else if (input.requiredResolution === "hourly") {
+      // Market hours are keyed by UTC instant, including both local hours when DST ends.
+      const hourStart = resolution === "hour" ? startMs : Math.floor(startMs / HOUR_MS) * HOUR_MS;
+      const hourEnd = hourStart + HOUR_MS;
+      if (resolution === "hour" || (startMs % QUARTER_MS === 0 && endMs <= hourEnd)) {
+        if (!derivedHourlyPrices.has(hourStart)) {
+          const marketQuarters = hourStart % HOUR_MS === 0 ? quartersByMarketHour.get(hourStart) ?? [] : prices;
+          derivedHourlyPrices.set(hourStart, hourlyPriceFromQuarters(marketQuarters, hourStart, hourEnd, sourcePriority));
+        }
+        const derived = derivedHourlyPrices.get(hourStart);
+        if (derived) {
+          priceValue = derived.value;
+          priceId = derived.ids[0];
+          priceIds = derived.ids;
+        }
       }
     }
     if (candidates.length === 0 && priceIds === undefined) {

@@ -15,7 +15,7 @@ const port = vi.hoisted(() => ({
 
 // Declared HTTP/permission/parent-page ports. The real SDK applies select,
 // count and scope predicates; the actual page, reducer and lifecycle run.
-function sdk() {
+function sdk(scope: 'service' | 'request') {
   return createClient('http://127.0.0.1:54321', 'synthetic-summary-key', {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { fetch: async (input, init) => {
@@ -26,10 +26,19 @@ function sdk() {
         return new Response(JSON.stringify({ customer_ids: port.parents.map(row => row.id), total: port.parents.length }), { headers: { 'content-type': 'application/json' } })
       }
       port.queries.push({ table, params: [...url.searchParams] })
+      if (scope === 'request') expect(table).toBe('customer_supply_periods')
+      if (table === 'customer_supply_periods') expect(scope).toBe('request')
       if (port.failures[table]) return new Response(JSON.stringify(port.failures[table]), { status: 500 })
       let rows = [...(port.tables[table] ?? [])]
       for (const [field, filter] of url.searchParams) {
         if (filter.startsWith('eq.')) rows = rows.filter(row => String(row[field]) === filter.slice(3))
+        if (filter.startsWith('gt.')) rows = rows.filter(row => String(row[field]) > filter.slice(3))
+        if (table === 'customer_supply_periods' && field === 'or') {
+          const tuples = [...filter.matchAll(/and\(company_id\.eq\.([^,]+),source_switch_request_id\.eq\.([^,]+),source_message_id\.eq\.([^,)]+)\)/g)]
+          expect(tuples.length).toBeGreaterThan(0)
+          rows = rows.filter(row => tuples.some(([, company, request, source]) =>
+            row.company_id === company && row.source_switch_request_id === request && row.source_message_id === source))
+        }
         if (filter.startsWith('in.(')) {
           const values = filter.slice(4, -1).split(',').map(value => value.replaceAll('"', ''))
           rows = rows.filter(row => values.includes(String(row[field])))
@@ -59,7 +68,9 @@ function sdk() {
     } },
   })
 }
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: sdk() }))
+vi.mock('server-only', () => ({}))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: sdk('service') }))
+vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => sdk('request') }))
 vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => {
   if (port.guardError) throw port.guardError
   return { userId: 'operator', email: 'operator@example.test', companyId: port.company, permissions: [], roles: [], isPlatformAdmin: port.platform }
@@ -93,6 +104,19 @@ function site(siteId = SITE_A, customerId = A, companyId = COMPANY): Row {
 }
 function request(extra: Row = {}): Row {
   return { id: REQUEST_A, company_id: COMPANY, customer_id: A, site_id: SITE_A, metering_point_id: null, request_type: 'switch', status: 'submitted', external_reference: null, failure_reason: null, submitted_at: null, completed_at: null, failed_at: null, lifecycle_blocked: false, lifecycle_block_source: null, lifecycle_block_id: null, inbound_z04_message_id: id(7), confirmed_start_date: '2026-10-01', requested_start_date: '2026-10-01', created_at: '2026-10-01T10:00:00Z', updated_at: '2026-10-01T10:00:00Z', ...extra }
+}
+function confirmedMarketStart(date: string, extra: Row = {}): Row {
+  return {
+    id: id(9),
+    company_id: COMPANY,
+    source_switch_request_id: REQUEST_A,
+    source_message_id: id(7),
+    source: 'ediel_qualified_source',
+    source_process: 'supplier_switch_confirmation',
+    status: 'confirmed_by_grid_owner',
+    market_start_at: `${date}T00:00:00+02:00`,
+    ...extra,
+  }
 }
 function outbound(extra: Row = {}): Row {
   return { id: id(8), company_id: COMPANY, customer_id: A, site_id: SITE_A, metering_point_id: null, request_type: 'supplier_switch', source_type: 'supplier_switch_request', source_id: REQUEST_A, status: 'sent', channel_type: 'ediel', external_reference: null, failure_reason: null, queued_at: null, prepared_at: null, sent_at: null, acknowledged_at: null, failed_at: null, created_at: '2026-10-01T10:00:00Z', updated_at: '2026-10-01T10:00:00Z', ...extra }
@@ -229,16 +253,30 @@ describe('actual selected-customer summary coverage and canonical lifecycle', ()
     port.tables.customer_sites = [site()]
     port.tables.supplier_switch_requests = [request({ status, inbound_z04_message_id: status === 'accepted' && date === null ? null : id(7), confirmed_start_date: date ?? '2026-10-01' })]
     port.tables.outbound_requests = outboundStatus ? [outbound({ status: outboundStatus })] : []
+    if (status === 'accepted' && date) port.tables.customer_supply_periods = [confirmedMarketStart(date)]
     expect(row(await html())).toContain(label)
   })
   it.each(['awaiting_market_confirmation', 'awaiting_effective_date'] as const)('actual %s has one open chain, is included in active_open and excluded from no_signal', async stage => {
     port.tables.customer_sites = [site()]
     port.tables.supplier_switch_requests = [request({ status: stage === 'awaiting_effective_date' ? 'accepted' : 'submitted', confirmed_start_date: stage === 'awaiting_effective_date' ? '2099-01-01' : '2026-10-01' })]
     port.tables.outbound_requests = stage === 'awaiting_market_confirmation' ? [outbound({ status: 'acknowledged' })] : []
+    if (stage === 'awaiting_effective_date') port.tables.customer_supply_periods = [confirmedMarketStart('2099-01-01')]
     const active = await html('active_open')
     expect(row(active)).toContain('1 öppna')
     expect(active).toMatch(/<option value="no_signal">[^<]*\(0\)<\/option>/)
     expect(await html('no_signal')).not.toContain(`href="/admin/customers/${A}"`)
+  })
+  it('does not present an accepted switch as ready from a foreign confirmation', async () => {
+    port.tables.customer_sites = [site()]
+    port.tables.supplier_switch_requests = [request({ status: 'accepted' })]
+    port.tables.customer_supply_periods = [confirmedMarketStart('2026-10-01', { company_id: OTHER })]
+    const rendered = row(await html())
+    expect(rendered).not.toContain('Redo att slutföra')
+    expect(rendered).not.toContain('Ingen aktiv')
+    const proofQuery = port.queries.find(query => query.table === 'customer_supply_periods')
+    expect(new URLSearchParams(proofQuery!.params).get('or')).toBe(
+      `(and(company_id.eq.${COMPANY},source_switch_request_id.eq.${REQUEST_A},source_message_id.eq.${id(7)}))`,
+    )
   })
   it('retains canonical permission refusal before any child query', async () => {
     port.guardError = new Error('permission refused')

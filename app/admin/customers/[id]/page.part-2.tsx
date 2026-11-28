@@ -1,4 +1,5 @@
 // Extracted from page.tsx; keep public imports on the facade module.
+import { randomUUID } from "node:crypto"
 import Link from "next/link"
 
 
@@ -11,7 +12,9 @@ import Link from "next/link"
 
 
 
-import { createCustomerInternalNoteAction, registerCustomerLifecycleDecisionAction, savePowerOfAttorneyScopeAction } from "./actions"
+import { createCustomerInternalNoteAction, previewCustomerContractWithdrawalAction, registerCustomerLifecycleDecisionAction, savePowerOfAttorneyScopeAction, saveReviewedCustomerWithdrawalAction } from "./actions"
+import { stockholmDateTimeInputValue } from "@/lib/time/stockholm"
+import { WithdrawalDecisionForm } from './withdrawal-decision-form'
 import type { AuditLogRow, CustomerInternalNoteRow, CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
 
 import type { PowerOfAttorneyRow, CustomerBlockerRow } from "@/lib/operations/types"
@@ -152,8 +155,70 @@ export function LifecycleDecisionSection({
     </>
   );
 
+  const fields = (reasonPlaceholder: string) => (
+    <>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-1 text-sm">
+        <label className="grid gap-1">
+          <span className="font-medium text-slate-700">Mottaget datum och tid (svensk tid)</span>
+          <input
+            type="datetime-local"
+            name="received_at_stockholm"
+            defaultValue={stockholmDateTimeInputValue(new Date())}
+            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+          />
+        </label>
+        <details>
+          <summary>Om klockslaget upprepas vid bytet till vintertid</summary>
+          <label className="mt-1 grid gap-1">
+            <span>Sommartid eller vintertid</span>
+            <select name="received_at_offset" defaultValue="" className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
+              <option value="">Välj bara vid upprepad tid</option>
+              <option value="120">Sommartid (UTC+2)</option>
+              <option value="60">Vintertid (UTC+1)</option>
+            </select>
+          </label>
+        </details>
+      </div>
+      <label className="grid gap-1 text-sm">
+        <span className="font-medium text-slate-700">Kanal</span>
+        <select
+          name="received_channel"
+          defaultValue="phone"
+          className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+        >
+          <option value="phone">Telefon</option>
+          <option value="email">E-post</option>
+          <option value="web_form">Formulär</option>
+          <option value="letter">Brev</option>
+          <option value="other">Annat</option>
+        </select>
+      </label>
+    </div>
+    <label className="grid gap-1 text-sm">
+      <span className="font-medium text-slate-700">Orsak</span>
+      <textarea
+        name="reason"
+        rows={3}
+        required
+        placeholder={reasonPlaceholder}
+        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+      />
+    </label>
+    <label className="grid gap-1 text-sm">
+      <span className="font-medium text-slate-700">Intern anteckning</span>
+      <textarea
+        name="notes"
+        rows={2}
+        placeholder="Valfri intern information. Visas inte för kunden."
+        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+      />
+    </label>
+    </>
+  );
+
   const form = (input: {
-    decisionType: "withdrawal" | "cancelled" | "rejected";
+    decisionType: "cancelled" | "rejected";
     title: string;
     description: string;
     reasonPlaceholder: string;
@@ -183,50 +248,7 @@ export function LifecycleDecisionSection({
             {targetOptions()}
           </select>
         </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-slate-700">Mottaget datum</span>
-            <input
-              type="datetime-local"
-              name="received_at"
-              defaultValue={new Date().toISOString().slice(0, 16)}
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
-            />
-          </label>
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-slate-700">Kanal</span>
-            <select
-              name="received_channel"
-              defaultValue="phone"
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
-            >
-              <option value="phone">Telefon</option>
-              <option value="email">E-post</option>
-              <option value="web_form">Formulär</option>
-              <option value="letter">Brev</option>
-              <option value="other">Annat</option>
-            </select>
-          </label>
-        </div>
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium text-slate-700">Orsak</span>
-          <textarea
-            name="reason"
-            rows={3}
-            required
-            placeholder={input.reasonPlaceholder}
-            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium text-slate-700">Intern anteckning</span>
-          <textarea
-            name="notes"
-            rows={2}
-            placeholder="Valfri intern information. Visas inte för kunden."
-            className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
-          />
-        </label>
+        {fields(input.reasonPlaceholder)}
         <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-700">
           <input type="checkbox" name="confirmed" value="true" required className="mt-1" />
           <span>{input.confirmationLabel}</span>
@@ -249,16 +271,16 @@ export function LifecycleDecisionSection({
         </p>
       </div>
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        {form({
-          decisionType: "withdrawal",
-          title: "Registrera ånger",
-          description: "Använd när kunden uttryckligen använder sin ångerrätt.",
-          reasonPlaceholder: "Exempel: Kunden ångrade avtalet via telefon inom ångerfristen.",
-          buttonLabel: "Registrera ånger",
-          confirmationLabel: "Jag bekräftar att kunden uttryckligen har ångrat avtalet och att relevanta flöden ska stoppas.",
-          defaultTarget: activeContract ? `contract:${activeContract.id}` : "customer:",
-          tone: "border-amber-200 bg-amber-50/70",
-        })}
+        <WithdrawalDecisionForm
+          customerId={customerId}
+          intentId={randomUUID()}
+          defaultTarget={activeContract ? `contract:${activeContract.id}` : "customer:"}
+          options={targetOptions()}
+          fields={fields("Exempel: Kunden ångrade avtalet via telefon inom ångerfristen.")}
+          previewAction={previewCustomerContractWithdrawalAction}
+          saveAction={saveReviewedCustomerWithdrawalAction}
+          fallbackAction={registerCustomerLifecycleDecisionAction}
+        />
         {form({
           decisionType: "cancelled",
           title: "Avbryt process",

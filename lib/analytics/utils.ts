@@ -10,6 +10,30 @@ export function monthStart(input?: string | null): string {
   return date.toISOString().slice(0, 10)
 }
 
+export function readAnalyticsExportMonth(
+  params: URLSearchParams,
+  { monthsBefore = 0, monthsAfter = 0 }: { monthsBefore?: number; monthsAfter?: number } = {},
+): string | null {
+  const months = params.getAll('month')
+  if (months.length === 0) return monthStart()
+  if (months.length !== 1 || !/^\d{4}-\d{2}(?:-\d{2})?$/.test(months[0])) return null
+
+  const value = months[0]
+  const civilDate = value.length === 7 ? `${value}-01` : value
+  const date = new Date(`${civilDate}T00:00:00.000Z`)
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== civilDate) return null
+  // PostgreSQL date inputs have no year zero, and the report helpers use four-digit years.
+  const monthIndex = (date.getUTCFullYear() - 1) * 12 + date.getUTCMonth()
+  if (monthIndex < monthsBefore || monthIndex + monthsAfter >= 9999 * 12) return null
+  return `${civilDate.slice(0, 7)}-01`
+}
+
+export function readPortfolioExportRange(params: URLSearchParams) {
+  const monthsBefore = 11
+  const month = readAnalyticsExportMonth(params, { monthsBefore })
+  return month === null ? null : { from: addMonths(month, -monthsBefore), month }
+}
+
 export function addMonths(month: string, offset: number): string {
   const date = new Date(`${monthStart(month)}T00:00:00.000Z`)
   date.setUTCMonth(date.getUTCMonth() + offset)
@@ -47,13 +71,16 @@ export function asNumber(value: unknown): number {
 export function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return ''
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value)
-  if (/[",\n;]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`
-  return raw
+  const cell = typeof value === 'string' && (/^[\t\r\n]|^\s*[=+\-@]/u).test(raw)
+    ? `'${raw}`
+    : raw
+  if (/[",\r\n;]/.test(cell)) return `"${cell.replace(/"/g, '""')}"`
+  return cell
 }
 
 export function buildCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
   return [
-    headers.join(';'),
+    headers.map(csvEscape).join(';'),
     ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(';')),
   ].join('\n')
 }

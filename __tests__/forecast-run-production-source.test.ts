@@ -6,6 +6,7 @@ type Point = {
   site_id: string | null
   grid_owner_id: string | null
   bidding_zone_code: string | null
+  lifecycle_supply_fraction: number | null
   source_customer: { company_id: string; source: string | null } | Array<{ company_id: string; source: string | null }> | null
 }
 const io = vi.hoisted(() => ({
@@ -28,7 +29,7 @@ vi.mock('@/lib/audit/actionLogger', () => ({ logAdminActionAndUsage: io.audit })
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   async rpc(name: string, args: Record<string, string>) {
-    if (name === 'gridex_forecast_point_inventory_v1') {
+    if (name === 'gridex_forecast_point_inventory_v2') {
       io.inventoryCalls.push({ name, args })
       return { data: [{ points: [...io.points].sort((a, b) => a.id.localeCompare(b.id)), total_count: io.points.length }], error: null }
     }
@@ -55,7 +56,7 @@ import { runCompanyForecastAction, runPlatformForecastAction } from '@/app/admin
 
 const input = { companyId: 'real', periodStart: '2026-10-18' }
 function point(id: string, source: string | null = null, customerCompany = 'real'): Point {
-  return { id, customer_id: 'customer-' + id, site_id: null, grid_owner_id: null, bidding_zone_code: 'SE1',
+  return { id, customer_id: 'customer-' + id, site_id: null, grid_owner_id: null, bidding_zone_code: 'SE1', lifecycle_supply_fraction: null,
     source_customer: { company_id: customerCompany, source } }
 }
 beforeEach(() => {
@@ -89,7 +90,7 @@ it('forecasts real and orphan sources in a mixed company while excluding its por
   expect(io.inserts.filter(value => value.table === 'forecast_run_items').map(value => value.payload.metering_point_id)).toEqual(['normal', 'orphan'])
   // The actual forward's composite-parent join is exercised by the SQL test;
   // the producer now requests the complete company snapshot through its RPC.
-  expect(io.inventoryCalls).toEqual([{ name: 'gridex_forecast_point_inventory_v1', args: { p_company_id: 'real' } }])
+  expect(io.inventoryCalls).toEqual([{ name: 'gridex_forecast_point_inventory_v2', args: { p_company_id: 'real', p_period_start: '2026-10-01', p_period_end: '2026-11-01' } }])
   expect(io.reads).not.toContainEqual({ table: 'metering_points', fields: expect.any(String) })
 })
 

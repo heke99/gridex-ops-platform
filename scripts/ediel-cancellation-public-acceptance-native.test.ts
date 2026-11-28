@@ -125,7 +125,7 @@ async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05' | 'Z1
     const receivedAt = new Date().toISOString(), config = assertEdielSmtpReadiness()
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
       receivedAt, smtpFrom: config.from })
-    const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, parsed: mail.parsed,
+    const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, environment: mail.environment, parsed: mail.parsed,
       inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
     const meteringPointMatch = await matchMeteringPointForInbound({ companyId: f.companyId, parsed: mail.parsed })
     const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test',
@@ -177,7 +177,7 @@ async function refuseMissingReasonAtPublicIntake(f: Fixture, wire: string) {
     'mail',(SELECT to_jsonb(m) FROM public.inbound_email_messages m WHERE company_id=${literal(f.companyId)} AND id=${literal(mail.inboundEmailMessageId)}),
     'parse',(SELECT to_jsonb(p) FROM public.inbound_ediel_parse_results p WHERE company_id=${literal(f.companyId)} AND id=${literal(mail.parseResultId)}));`)
   const before = custody()
-  const outboundMatch = await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,
+  const outboundMatch = await matchOutboundRequestForInbound({companyId:f.companyId,environment:mail.environment,parsed:mail.parsed,
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const meteringPointMatch = await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
   // Call-through observation only: the public creator and its database error

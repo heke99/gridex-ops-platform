@@ -120,10 +120,10 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
  expect(Date.parse(happenedAt)).toBeLessThanOrEqual(Date.parse(finishedAt))
  expect(event).toMatchObject({company_id:f.companyId,customer_id:f.customerId,customer_contract_id:f.contractId,
   event_type:'terminated',actor_user_id:null})
- // The delivered trigger records the retained period basis here. The received
- // end's exact source link is separately asserted on the period and receipts.
+ // An immediate qualified Z05 end records its own source on the
+ // termination event. The supply period retains its original start source.
  expect(event.metadata).toEqual({ends_at:endDate,termination_notice_date:happenedAt,
-  termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.startSourceId,idempotency_key:eventKey})
+  termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.sourceId,idempotency_key:eventKey})
  const expectedContract={...contract,status:'terminated',ended_at:`${endDate}T00:00:00+00:00`,
   termination_notice_date:happenedAt.slice(0,10),termination_reason:'supply_end',status_reason_code:'supply_end',
   metadata:{...(contract.metadata as Record<string,unknown>),status_reason_code:'supply_end'},updated_at:happenedAt,updated_by:null}
@@ -138,7 +138,11 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
  expect(tasks).toHaveLength(1)
  expect(tasks[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,
   task_type:'final_invoice_pending',status:'open',priority:'high',resolved_at:null})
- expect(tasks[0].metadata).toEqual({supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
+ expect(tasks[0].metadata).toEqual({
+  supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId,
+  source_end_message_id:f.sourceId,market_state_version:Number(period.market_state_version)+1,
+  market_end_at:f.endPlan.effectiveAt.replace(/(?:\.000)?Z$/,'+00:00'),
+ })
  // Preserve every other contract field, old event/task row, tenant and billing
  // row. Only these exact, independently scoped committed effects may differ.
  return{...before,contracts:before.contracts.map(row=>row.id===contractId?expectedContract:row),

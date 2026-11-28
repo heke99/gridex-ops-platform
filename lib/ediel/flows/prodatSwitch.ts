@@ -326,6 +326,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
       edielMessageId: message.id,
       outboundRequestId: outbound.id,
       routeId: routeContext.route.id,
+      externalReference: message.external_reference,
       edielCode: 'Z03',
       transactionSubtype: subtype,
       reasonForTransaction,

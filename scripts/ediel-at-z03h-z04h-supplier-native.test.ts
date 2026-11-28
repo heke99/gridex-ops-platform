@@ -362,7 +362,7 @@ async function intake(f: Fixture, raw: string, environment: 'test' | 'production
   if (missingAssociation) expect(parsed).toMatchObject({ messageFamily: 'PRODAT', messageCode: 'Z04',
     messageTypeVersion: { directoryVersion: 'D', release: '97A', controllingAgency: 'UN', associationAssignedCode: null } })
   const [outboundMatch, meteringPointMatch] = await Promise.all([
-    matchOutboundRequestForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
+    matchOutboundRequestForInbound({ companyId: f.companyId, environment: mailbox.environment, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
     matchMeteringPointForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }) ])
   const tenant = await resolveInboundTenantFromIdentifiers({ mailboxCompanyId: f.companyId, mailboxId: mailbox.mailboxId, environment,
     senderEdielId: parsed.senderEdielId, senderSubaddress: parsed.senderSubAddress, receiverEdielId: parsed.receiverEdielId,

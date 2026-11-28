@@ -529,6 +529,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     requestedEnvironment ??
     (params.communicationRouteId
       ? await resolveOutboundRuntimeEnvironment({
+          companyId,
           preferredRouteId: params.communicationRouteId,
           explicitEnvironment: params.environment ?? null,
         })
@@ -674,6 +675,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   }
 
   const environment = await resolveOutboundRuntimeEnvironment({
+    companyId,
     preferredRouteId: outbound.communication_route_id,
     explicitEnvironment: effectiveEnvironment ?? params.environment ?? null,
   });

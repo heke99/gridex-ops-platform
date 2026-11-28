@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache'
+import { canMarkFacilityLookupSentManually } from '@/lib/facility/facilityLookupStatus'
 import { supabaseService } from '@/lib/supabase/service'
 import { emitCustomerProcessEvent, emitFacilityLookupCompletedEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateAndRunNextCustomerStep } from '@/lib/customer-operations/customerProcessNextStepEngine'
@@ -13,6 +14,7 @@ type FacilityLookupRequestRow = JsonRecord & {
   grid_owner_id?: string | null
   request_type?: string | null
   status?: string | null
+  updated_at?: string | null
   facility_id?: string | null
   metering_point_id?: string | null
   grid_area_code?: string | null
@@ -175,28 +177,49 @@ async function updateWebsiteApplication(input: {
 
 export async function markFacilityLookupSentManually(input: MarkFacilityLookupSentManuallyInput) {
   const request = await loadFacilityRequest(input.companyId, input.requestId)
-  const now = new Date().toISOString()
-  const metadata = {
-    ...asRecord(request.metadata),
-    manual_sent_by: input.actorUserId,
-    manual_sent_at: now,
-    manual_channel: input.manualChannel,
-    manual_note: text(input.note),
-    auto_send_allowed: false,
+  if (!canMarkFacilityLookupSentManually(request.status)) {
+    throw new Error('Anläggningsbegäran kan inte längre markeras som skickad.')
   }
 
-  const { error } = await supabaseService
-    .from('grid_owner_information_requests')
-    .update({
-      status: 'waiting_response',
-      sent_at: now,
-      metadata,
-      updated_at: now,
-      updated_by: input.actorUserId,
-    })
-    .eq('id', request.id)
-    .eq('company_id', input.companyId)
-  if (error) throw error
+  const previousMetadata = asRecord(request.metadata)
+  const previousSentAt = request.status === 'waiting_response' ? text(previousMetadata.manual_sent_at) : null
+  const previousActorId = text(previousMetadata.manual_sent_by)
+  const recordedManually = previousSentAt && previousActorId
+    ? { sentAt: previousSentAt, actorId: previousActorId, channel: text(previousMetadata.manual_channel), note: text(previousMetadata.manual_note) }
+    : null
+  const mark = recordedManually ?? {
+    sentAt: new Date().toISOString(), actorId: input.actorUserId,
+    channel: input.manualChannel, note: text(input.note),
+  }
+
+  if (!recordedManually) {
+    let update = supabaseService
+      .from('grid_owner_information_requests')
+      .update({
+        status: 'waiting_response',
+        sent_at: mark.sentAt,
+        metadata: {
+          ...previousMetadata,
+          manual_sent_by: mark.actorId,
+          manual_sent_at: mark.sentAt,
+          manual_channel: mark.channel,
+          manual_note: mark.note,
+          auto_send_allowed: false,
+        },
+        updated_at: mark.sentAt,
+        updated_by: mark.actorId,
+      })
+      .eq('id', request.id)
+      .eq('company_id', input.companyId)
+      .eq('status', request.status)
+    update = request.updated_at
+      ? update.eq('updated_at', request.updated_at)
+      : update.is('updated_at', null)
+
+    const { data, error } = await update.select('id').maybeSingle()
+    if (error) throw error
+    if (!data) throw new Error('Anläggningsbegäran har ändrats. Ladda om innan du markerar den som skickad.')
+  }
 
   if (request.customer_id) {
     await emitCustomerProcessEvent({
@@ -206,16 +229,16 @@ export async function markFacilityLookupSentManually(input: MarkFacilityLookupSe
       eventType: 'facility_lookup.manual_sent',
       title: 'Anläggningsbegäran skickad manuellt',
       message: 'Begäran har markerats som skickad till nätägaren.',
-      actorUserId: input.actorUserId,
+      actorUserId: mark.actorId,
       status: 'waiting_response',
       severity: 'info',
       source: 'facility_lookup_workflow',
       payload: {
         request_id: request.id,
-        manual_channel: input.manualChannel,
-        manual_note: text(input.note),
+        manual_channel: mark.channel,
+        manual_note: mark.note,
       },
-      idempotencyKey: `facility_lookup.manual_sent:${request.id}:${now.slice(0, 16)}`,
+      idempotencyKey: `facility_lookup.manual_sent:${request.id}:${mark.sentAt.slice(0, 16)}`,
     })
   }
 

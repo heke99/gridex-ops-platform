@@ -47,6 +47,7 @@
 import { type CommunicationLog } from "@/lib/email/communicationLogs"
 
 import { resendCustomerEmailAction } from "./email-actions"
+import CustomerEmailResendSubmitButton from "@/components/admin/customers/CustomerEmailResendSubmitButton"
 
 
 
@@ -55,14 +56,55 @@ import { formatAdminDateTime } from "@/lib/ui/format"
 import { customerEmailStatus } from "@/lib/admin/customerCommunicationLabels"
 import { formatStatusLabel } from '@/lib/ui/format'
 
+const resendNotices = {
+  queued: {
+    warning: false,
+    message: 'Omtaget har lagts i utskickskön.',
+  },
+  duplicate: {
+    warning: false,
+    message: 'Omtaget finns redan registrerat. Inget nytt utskick skapades.',
+  },
+  requires_reconciliation: {
+    warning: true,
+    message: 'Omtaget kräver granskning. Tidigare leverans eller meddelandets innehåll kunde inte verifieras. Granska tidigare försök i kommunikationshistoriken.',
+  },
+  failed: {
+    warning: true,
+    message: 'Omtaget kunde inte köas. Kontrollera kommunikationshistoriken eller kontakta support.',
+  },
+  already_pending: {
+    warning: false,
+    message: 'Ett omtag pågår redan. Följ dess status i kommunikationshistoriken.',
+  },
+} as const
+
+function CustomerEmailResendNotice({ resend }: { resend?: string | string[] }) {
+  if (typeof resend !== 'string' || !Object.hasOwn(resendNotices, resend)) return null
+  const notice = resendNotices[resend as keyof typeof resendNotices]
+
+  return (
+    <p
+      role={notice.warning ? 'alert' : 'status'}
+      className={notice.warning
+        ? 'mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950'
+        : 'mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800'}
+    >
+      {notice.message}
+    </p>
+  )
+}
+
 export function CustomerCommunicationSection({
   logs,
   isPlatformAdmin = false,
   canResend = false,
+  resend,
 }: {
   logs: CommunicationLog[];
   isPlatformAdmin?: boolean;
   canResend?: boolean;
+  resend?: string | string[];
 }) {
   if (!isPlatformAdmin) {
     const renderLog = (log: CommunicationLog) => <article key={log.id} className="min-w-0 break-words rounded-xl border border-slate-200 p-3">
@@ -77,12 +119,13 @@ export function CustomerCommunicationSection({
       {canResend && log.customer_id && log.template_key && log.recipient_email ? <details className="mt-3 text-xs text-slate-700"><summary className="cursor-pointer font-semibold">Fler åtgärder</summary><form action={resendCustomerEmailAction} className="mt-2">
         <input type="hidden" name="customer_id" value={log.customer_id} />
         <input type="hidden" name="log_id" value={log.id} />
-        <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka igen</button>
+        <CustomerEmailResendSubmitButton label="Skicka igen" />
       </form></details> : null}
     </article>;
     return <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-950">Kommunikation</h2>
       <p className="mt-1 text-sm text-slate-700">Kundens senaste meddelanden och leveransstatus.</p>
+      <CustomerEmailResendNotice resend={resend} />
       <div className="mt-4 space-y-3">{logs.length === 0 ? <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">Ingen kommunikation loggad ännu.</p> : logs.slice(0, 10).map(renderLog)}</div>
       {logs.length > 10 ? <details id="earlier-customer-messages" className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Tidigare meddelanden ({logs.length - 10})</summary><div role="region" aria-label="Tidigare kundmeddelanden" tabIndex={0} className="mt-3 max-h-96 space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{logs.slice(10).map(renderLog)}</div></details> : null}
     </section>;
@@ -102,6 +145,7 @@ export function CustomerCommunicationSection({
           bolagskortet.
         </p>
       </div>
+      <CustomerEmailResendNotice resend={resend} />
       <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 ">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600 ">
@@ -171,9 +215,7 @@ export function CustomerCommunicationSection({
                         value={log.customer_id ?? ""}
                       />
                       <input type="hidden" name="log_id" value={log.id} />
-                      <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                        Skicka om
-                      </button>
+                      <CustomerEmailResendSubmitButton label="Skicka om" />
                     </form> : null}
                     <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
                       <summary className="cursor-pointer">

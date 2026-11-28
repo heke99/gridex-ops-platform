@@ -452,6 +452,13 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
     risk: 'medium',
   },
   {
+    key: 'billing_underlay.write',
+    label: 'Ändra faktureringsunderlag',
+    description: 'Kan skapa, ändra och ompröva faktureringsunderlag.',
+    area: 'Billing',
+    risk: 'high',
+  },
+  {
     key: 'billing_underlay.export',
     label: 'Exportera billing underlag',
     description: 'Kan exportera billing-underlag.',

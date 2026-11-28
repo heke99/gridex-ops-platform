@@ -11,6 +11,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { reconcileTenantWebsiteCapabilities, type TenantWebsiteReadinessBlocker } from '@/lib/integrations/tenantWebsiteReadiness'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { isPublicCompanySlug, resolvePublicCompanySlug } from '@/lib/legal/publicLegalDocuments'
 
 export type TenantWebsiteEnvironment = 'development' | 'staging' | 'production'
 
@@ -159,10 +160,16 @@ async function storeTenantPortalUrl(input: {
   const now = new Date().toISOString()
   const { data: company, error: loadError } = await supabaseService
     .from('companies')
-    .select('branding')
+    .select('branding,slug,company_slug')
     .eq('id', input.companyId)
     .maybeSingle()
   if (loadError) throw loadError
+  if (!company || !isPublicCompanySlug(resolvePublicCompanySlug(company))) {
+    throw new TenantWebsiteProvisioningError(
+      'TENANT_PUBLIC_LEGAL_SLUG_REQUIRED',
+      'Kontrollera bolagets publika adress (slug) före webbprovisionering. Använd 1–100 tecken med små bokstäver a–z, siffror eller bindestreck.',
+    )
+  }
   const branding = company?.branding && typeof company.branding === 'object' && !Array.isArray(company.branding)
     ? company.branding as Record<string, unknown>
     : {}
@@ -347,9 +354,8 @@ export async function provisionTenantWebsiteIntegration(
     )
   }
 
-  // Fail before creating a credential when the canonical tenant portal schema
-  // is missing. Persisting the URL first is harmless if the later RPC fails,
-  // while creating a one-time token before this check could orphan the secret.
+  // Check the public legal address and portal schema before generating a
+  // one-time credential or opening a new provisioning receipt.
   await storeTenantPortalUrl({
     companyId: input.companyId,
     portalUrl,

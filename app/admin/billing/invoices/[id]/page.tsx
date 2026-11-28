@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { getInvoiceReviewDetail } from '@/lib/billing/invoiceReviewData'
+import { hasInvoiceFileDownloadPermission } from '@/lib/billing/invoiceFileAccess'
+import { isFileProvider } from '@/lib/billing/providers/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +44,26 @@ function customerName(row: Row) {
   return [text(row.first_name), text(row.last_name)].filter(Boolean).join(' ') || text(row.customer_number) || 'Kund'
 }
 
+function reservationRunStatusLabel(status: string | null) {
+  switch (status) {
+    case 'draft': return 'Utkast'
+    case 'processing': return 'Bearbetas'
+    case 'sent': return 'Skickad'
+    case 'partial_failed': return 'Delvis misslyckad'
+    case 'failed': return 'Misslyckad'
+    case 'cancelled': return 'Avbruten'
+    default: return 'Okänd'
+  }
+}
+
+function invoicePathLabel(path: { provider: string | null; environment: string | null } | null) {
+  if (!path) return 'Saknas för bolaget'
+  const provider = path.provider === 'capway_aptic' ? 'Capway' : path.provider === 'nordfin' ? 'Nordfin'
+    : path.provider === 'file_export' ? 'Filexport' : 'Okänd leverantör'
+  const environment = path.environment === 'production' ? 'Produktion' : path.environment === 'test' ? 'Test' : 'Okänd miljö'
+  return `${provider} · ${environment}`
+}
+
 export default async function InvoiceReviewDetailPage({ params }: Props) {
   const admin = await requirePermissionServer('billing_underlay.read')
   const isPlatformAdmin = isPlatformAdminContext(admin)
@@ -60,6 +82,15 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
   const billingMonth = text(calculation.billing_month) ?? text(detail.item.period_start)?.slice(0, 7) ?? ''
   const priceArea = text(invoice.price_area_code) ?? text(detail.underlay.price_area) ?? text(detail.contract.price_area_used)
   const awaitingProjection = detail.lifecycleStage === 'awaiting_invoice_projection'
+  const reservation = detail.reservation
+  const fileExport = detail.fileExport
+  const pendingFilePath = !fileExport && !reservation && invoice.status === 'draft' &&
+    detail.lifecycleStage === 'approved' && detail.item.status === 'pending' && isFileProvider(detail.item.provider)
+  const pendingFileLabel = detail.reservationReadFailed ? 'Fakturavägen behöver kontrolleras' : 'Väntar på fakturafil'
+  const fileReceipt = detail.lifecycleStage === 'file_created' && fileExport?.id &&
+    hasInvoiceFileDownloadPermission(admin.permissions)
+    ? new URLSearchParams({ ...(billingMonth ? { month: billingMonth } : {}), file: fileExport.id })
+    : null
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -74,9 +105,40 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             ← Till fakturor
           </Link>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {awaitingProjection ? 'Faktura förbereds' : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
+            {reservation ? 'Tidigare reservation' : awaitingProjection ? 'Faktura förbereds' : fileExport ? fileExport.label : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
           </span>
         </div>
+
+        {detail.reservationReadFailed ? (
+          <p id="reservation" role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            Avstämningen kunde inte läsas. Läs om sidan för att kontrollera fakturavägen.
+          </p>
+        ) : null}
+
+        {reservation ? (
+          <section id="reservation" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950 shadow-sm">
+            <h2 className="font-semibold">Stäm av tidigare reservation</h2>
+            <p className="mt-2">Underlaget är reserverat på en annan leveransväg. Kontrollera den tidigare körningen och jämför eventuellt filarkiv och partnerkvitto innan underlaget bereds på nytt.</p>
+            <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+              {[
+                ['Reserverad exportpost', invoicePathLabel(reservation.itemPath)],
+                ['Sparad körning', invoicePathLabel(reservation.runPath)],
+                ['Körningsstatus', reservationRunStatusLabel(reservation.runStatus)],
+                ['Körnings-ID', reservation.runId ?? 'Saknas för bolaget'],
+                ['Aktuell leveransväg', invoicePathLabel(reservation.activePath)],
+                ['Registrerade försök', reservation.attemptCount ?? 'Okänt'],
+                ['Partnerkvitto', reservation.providerConfirmedAt ? 'Bekräftelsetid finns' : reservation.hasPartnerReference ? 'Referens finns' : 'Inget kvitto på exportposten'],
+                ['Fakturanummer', reservation.hasInvoiceNumber ? 'Sparat på fakturan' : 'Saknas på fakturan'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="font-medium">{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {reservation.deliveryUncertain ? <p className="mt-3 font-medium">Leveransen är osäker. Stäm av med den tidigare mottagaren.</p> : null}
+          </section>
+        ) : null}
 
         {awaitingProjection ? (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950 shadow-sm">
@@ -88,9 +150,19 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
         ) : null}
 
         <section className={`rounded-2xl border p-5 text-sm ${detail.exportStatus.needsAction ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'}`}>
-          <h2 className="font-semibold">Överföring till fakturapartner</h2>
-          <p className="mt-1">{detail.exportStatus.label}</p>
-          {detail.exportStatus.needsAction ? <p className="mt-1">Kontrollera överföringen innan fakturan skickas vidare. Ett registrerat godkännande gäller fortfarande själva fakturaunderlaget.</p> : null}
+          <h2 className="font-semibold">{fileExport || pendingFilePath ? 'Fakturafil' : 'Överföring till fakturapartner'}</h2>
+          <p className="mt-1">{pendingFilePath ? pendingFileLabel : detail.exportStatus.label}</p>
+          {fileExport?.id ? <p className="mt-1">Följ upp överlämningen till mottagaren separat.</p> : null}
+          {fileReceipt ? (
+            <Link href={`/admin/billing?${fileReceipt}`} prefetch={false} className="mt-2 inline-block font-semibold underline">
+              Visa fakturafilens kvitto
+            </Link>
+          ) : null}
+          {detail.exportStatus.needsAction ? (
+            <p className="mt-1">{fileExport
+              ? 'Kontrollera den sparade fakturafilen.'
+              : 'Kontrollera överföringen innan fakturan skickas vidare. Ett registrerat godkännande gäller fortfarande själva fakturaunderlaget.'}</p>
+          ) : null}
           {isPlatformAdmin ? <details className="mt-3"><summary>Tekniska uppgifter</summary><pre className="overflow-auto whitespace-pre-wrap">{JSON.stringify({ status: detail.item.status, error: detail.item.error_payload }, null, 2)}</pre></details> : null}
         </section>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -183,7 +255,9 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               {[
                 ['Fakturareferens', text(invoice.invoice_reference) ?? (awaitingProjection ? 'Inväntar faktura' : '—')],
-                ...(isPlatformAdmin ? [['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(invoice.partner_invoice_reference) ?? 'Ej skickad']] : []),
+                ...(isPlatformAdmin ? [fileExport
+                  ? ['Fil-ID', fileExport.id ?? '—']
+                  : ['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(invoice.partner_invoice_reference) ?? 'Ej skickad']] : []),
                 ['Förfallodatum', text(invoice.due_date) ?? 'Skapas vid utskick'],
                 ['Godkänd av', isPlatformAdmin ? text(detail.approval.approved_by) ?? 'Ej godkänd' : approvalStatus === 'approved' ? 'Registrerad handläggare' : 'Ej godkänd'],
                 ['Godkänd', text(detail.approval.approved_at) ?? '—'],

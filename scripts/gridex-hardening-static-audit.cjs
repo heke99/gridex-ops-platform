@@ -21,13 +21,40 @@ function walk(dir) {
 }
 
 const vercel = JSON.parse(read('vercel.json'))
-const cronPaths = new Set((vercel.crons ?? []).map((entry) => entry.path))
-assert(cronPaths.has('/api/cron/billing/monthly?send_to_partner=true'), 'Monthly billing cron must explicitly send to the provider.')
+const scheduledPaths = (vercel.crons ?? []).map((entry) => entry.path)
+const cronPaths = new Set(scheduledPaths)
+const monthlyPath = '/api/cron/billing/monthly'
+const monthlySchedules = scheduledPaths.filter((value) =>
+  value.split(/[?#]/, 1)[0].replace(/\/$/, '') === monthlyPath,
+)
+assert(monthlySchedules.length === 1 && monthlySchedules[0] === monthlyPath,
+  'Monthly billing must have one prepare-only schedule without dispatch options.')
 assert(cronPaths.has('/api/cron/reconciliation/end-to-end'), 'End-to-end reconciliation cron is missing.')
 
 const monthlyRoute = read('app/api/cron/billing/monthly/route.ts')
 assert(monthlyRoute.includes("dedicatedSecretEnv: 'BILLING_AUTOMATION_CRON_SECRET'"), 'Billing cron lacks dedicated manual secret support.')
 assert(monthlyRoute.includes('authorizeScheduledRequest'), 'Billing cron must accept the scheduler authorization contract.')
+assert(monthlyRoute.includes('await runMonthlyBillingAutomation({') &&
+  monthlyRoute.includes("mode: 'prepare_only', approval_required: true"),
+  'Monthly billing route must run preparation and require separate approval.')
+
+const monthlyAutomation = read('lib/billing/monthlyAutomation.ts')
+assert(monthlyAutomation.includes('await generateBillingUnderlaysForMonth({') &&
+  monthlyAutomation.includes('await prepareInvoiceDraftsForReview({') &&
+  monthlyAutomation.includes('export_requested: false') &&
+  monthlyAutomation.includes('export_confirmed: false'),
+  'Monthly automation must prepare drafts and record neither requested nor confirmed export.')
+const monthlyDispatchOptions = [
+  'send_to_partner',
+  'sendInvoiceExportRun',
+  'sendApprovedInvoiceExportRun',
+  'approveAndSendReadyInvoicesForMonth',
+  'createInvoiceExportRun',
+  'createInvoiceFile',
+  'requestCapwayInvoicePurchase',
+]
+assert(monthlyDispatchOptions.every((token) => !monthlyRoute.includes(token) && !monthlyAutomation.includes(token)),
+  'Monthly preparation must not use invoice dispatch options or export entry points.')
 
 const manualWebhook = read('app/api/webhooks/manual-inbound/route.ts')
 assert(!manualWebhook.includes('CRON_SECRET'), 'Manual inbound webhook must not accept the shared cron secret.')

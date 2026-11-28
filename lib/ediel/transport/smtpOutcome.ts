@@ -1,7 +1,31 @@
+const verifiedCertificateErrorCodes = new Set([
+  'CERT_HAS_EXPIRED', 'CERT_NOT_YET_VALID', 'CERT_REVOKED', 'CERT_SIGNATURE_FAILURE',
+  'DEPTH_ZERO_SELF_SIGNED_CERT', 'ERR_TLS_CERT_ALTNAME_INVALID', 'INVALID_CA', 'INVALID_PURPOSE',
+  'SELF_SIGNED_CERT_IN_CHAIN', 'UNABLE_TO_GET_ISSUER_CERT', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+])
+
+export class SmtpCertificateRejectedBeforeSmtpError extends Error {
+  readonly code = 'ediel_smtp_certificate_rejected'
+
+  private constructor(readonly tlsCode: string, cause: Error) {
+    super('Meddelandet är osänt. Driftansvarig behöver åtgärda SMTP-certifikatet.', {cause})
+    this.name = 'SmtpCertificateRejectedBeforeSmtpError'
+  }
+
+  static fromTlsHandshake(error: Error): Error {
+    const tlsCode = (error as NodeJS.ErrnoException).code
+    return tlsCode && verifiedCertificateErrorCodes.has(tlsCode)
+      ? new SmtpCertificateRejectedBeforeSmtpError(tlsCode, error)
+      : error
+  }
+}
+
 // Plain database messages can contain row values. Keep a closed code category
 // and the original cause; observation must not undo SMTP uncertainty.
 function smtpUncertainCauseMessage(cause: unknown): string {
   try {
+    if (cause instanceof SmtpCertificateRejectedBeforeSmtpError) return 'ediel_smtp_certificate_observation_unconfirmed'
     if (cause instanceof Error) {
       const message: unknown = cause.message
       return typeof message === 'string' ? message : 'ediel_smtp_uncertain_cause:unknown'

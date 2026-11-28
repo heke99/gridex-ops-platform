@@ -9,7 +9,8 @@ const poller = readModuleFamily('lib/inbound-mail/edielMailboxPoller.ts')
 
 describe('post-#139 inbound manual review residuals', () => {
   it('uses canonical inbound job terminal status done, not completed', () => {
-    expect(poller).toContain('status: outcome.status === "processed" ? "done" : "manual_review"')
+    expect(poller).toMatch(/let status: ClassifiedJobStatus = outcome\.status === "processed" \? "done" : "manual_review"/)
+    expect(poller).toContain('input.outcomeStatus === "processed" ? "done" : "manual_review"')
     expect(form).toContain('value="done"')
     expect(form).not.toMatch(/value=["']completed["']/)
     expect(actions).toContain('["queued", "done", "failed"]')

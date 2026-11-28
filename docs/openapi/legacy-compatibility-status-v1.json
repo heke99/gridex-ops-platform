@@ -1,0 +1,144 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gridex Public API Compatibility Status",
+    "version": "1.0.0",
+    "description": "Current deprecation status for Website, Customer Portal and Staff integrations. The public release manifest links to this build-current status feed."
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "paths": {
+    "/api/v1/openapi/legacy-compatibility.json": {
+      "get": {
+        "operationId": "getApiV1OpenapiLegacyCompatibilityJson",
+        "description": "Read the current build and status of older public API features. A previously announced sunset date is historical, and a null sunset_at means there is no current date.",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current compatibility status.",
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyCompatibilityStatus"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied If-None-Match matches the current status representation.",
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "headers": {
+      "ETag": {
+        "description": "Validator for this exact status representation.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "CacheControl": {
+        "schema": {
+          "const": "no-store, max-age=0, must-revalidate"
+        }
+      }
+    },
+    "schemas": {
+      "LegacyCompatibilityStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "build_commit",
+          "release_version",
+          "runtime_contract_version",
+          "legacy_compatibility"
+        ],
+        "properties": {
+          "build_commit": {
+            "type": "string",
+            "description": "Build identifier shared with the release manifest. An unidentified local build can report unknown."
+          },
+          "release_version": {
+            "type": "string"
+          },
+          "runtime_contract_version": {
+            "type": "string"
+          },
+          "legacy_compatibility": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegacyFeatureStatus"
+            }
+          }
+        }
+      },
+      "LegacyFeatureStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature",
+          "replacement",
+          "status",
+          "sunset_at",
+          "previously_announced_sunset_at"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string"
+          },
+          "replacement": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "examples": ["deprecated_supported"]
+          },
+          "sunset_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "previously_announced_sunset_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

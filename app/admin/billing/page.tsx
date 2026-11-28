@@ -1,15 +1,21 @@
+import { invoiceGroupPreparationMessages, readInvoiceGroupPreparationCode } from '@/lib/billing/invoiceGroupPreparationFeedback'
+import { randomUUID } from 'node:crypto'
 import { canPresentOperationalAction } from '@/lib/admin/actionPresentation'
+import { hasInvoiceFileDownloadPermission } from '@/lib/billing/invoiceFileAccess'
 import Link from 'next/link'
+import ConsolidatedInvoiceReview from './ConsolidatedInvoiceReview'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
-import { listInvoiceReviewRows, type InvoiceReviewStatus } from '@/lib/billing/invoiceReviewData'
+import { invoiceReviewActivePath, listInvoiceReviewRows, type InvoiceReviewStatus } from '@/lib/billing/invoiceReviewData'
+import { readInvoiceEdielReviewSources } from '@/lib/billing/readInvoiceEdielReview'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { approveAndSendReadyInvoicesAction } from './actions'
-import { createInvoiceFileAction } from './invoice-files/actions'
-import { listInvoiceFileCandidates, listInvoiceFiles, type InvoiceFileRecord } from '@/lib/billing/invoiceFileExport'
-import { isFileProvider, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
+import { listInvoiceFiles, loadInvoiceFilePeriodReconciliation, loadInvoiceFileReceipt, previewInvoiceFileGroups, previewInvoiceFileSelection } from '@/lib/billing/invoiceFileExport'
+import { InvoiceProviderConfigError, isFileProvider, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
+import { loadInvoiceFileEffects } from '@/lib/billing/invoiceFileReconciliation'
+import { readInvoiceFileMonthLockNotice, signInvoiceFileIntent } from '@/lib/billing/invoiceFileIntentToken'
 import AdminActionsMenu from '@/components/admin/ui/AdminActionsMenu'
 
 export const dynamic = 'force-dynamic'
@@ -18,12 +24,21 @@ type PageProps = {
   searchParams: Promise<{
     month?: string
     customer?: string
+    group_after?: string
     sent?: string
     failed?: string
+    group_error?: string | string[]
     approved?: string
+    approval_busy?: string | string[]
+    approval_price_review?: string | string[]
+    approval_correction_review?: string | string[]
+    approval_provider_review?: string | string[]
+    dispatch_frozen?: string | string[]
+    approval_scope_changed?: string | string[]
     mode?: string
-    file?: string
+    file?: string | string[]
     file_error?: string
+    file_month_lock_notice?: string | string[]
   }>
 }
 
@@ -33,16 +48,54 @@ const statusStyle: Record<InvoiceReviewStatus, string> = {
   preparing: 'bg-slate-50 text-slate-700 ring-slate-200',
   ready_for_review: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
   approved: 'bg-blue-50 text-blue-800 ring-blue-200',
+  file_created: 'bg-slate-50 text-slate-800 ring-slate-300',
   sent: 'bg-slate-900 text-white ring-slate-900',
   failed: 'bg-rose-50 text-rose-800 ring-rose-200',
 }
 
 const FILE_ERRORS: Record<string, string> = {
+  invoice_distribution_paper_address_missing: 'Pappersfaktura har valts men den frysta fakturaadressen är ofullständig. Ingen fil skapades.',
+  invoice_distribution_email_missing: 'Faktura via e-post har valts men en bekräftad fryst faktura-e-post saknas. Ingen fil skapades.',
+  invoice_file_delivery_unverified: 'Det valda leveranssättet kan inte verifieras i det godkända fakturaunderlaget. Ingen fil skapades.',
+  invoice_file_delivery_unsupported: 'Filexporten stöder inte fakturans valda leveranssätt. Ingen fil skapades.',
   invoice_distribution_missing: 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress. Ingen fil skapades.',
+  invoice_file_intent_scope_mismatch: 'Begäran hör till en annan fakturaperiod, leverantör eller miljö. Ladda om sidan för att skapa en ny fil.',
+  invoice_file_intent_invalid: 'Begäran att skapa fakturafil är ogiltig. Ladda om sidan och försök igen.',
+  invoice_file_recovery_unavailable: 'Det sparade exportkvittot kunde inte läsas. Försök igen.',
   invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil. Godkänn fakturorna först.',
   invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ingen fil skapades; försök igen.',
+  invoice_file_contract_case_hold: 'En faktura i urvalet omfattas av ett aktivt avtalsstopp. Ingen fil skapades.',
+  invoice_file_selection_changed: 'Urvalet innehåller ett ändrat godkännande eller saknar granskningsbevis. Granska fakturorna på nytt.',
+  invoice_file_selection_too_large: 'Urvalet är större än vad en fakturafil får innehålla.',
+  invoice_file_artifacts_too_large: 'Fakturafilen överskrider storleksgränsen.',
+  invoice_file_finance_lock_busy: 'Fakturaarkivet är tillfälligt upptaget. Försök igen om en stund.',
+  billing_source_correction_required: 'En mäträttelse är registrerad för en faktura i urvalet. Kontrollera underlaget före ny export. Ingen fil skapades.',
+  invoice_correction_source_busy: 'Fakturaunderlaget är tillfälligt låst. Försök igen om en stund. Ingen fil skapades.',
   invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad under Fakturering → Integrationer.',
   nordfin_client_id_missing: 'Nordfins ClientId saknas. Ange det under Fakturering → Integrationer.',
+  nordfin_invoice_number_required: 'En godkänd Nordfinfaktura saknar ett giltigt sparat fakturanummer. Ingen fil skapades.'
+}
+
+const CURRENT_PERIOD_LABELS = {
+  open: 'Fakturaperioden är öppen.',
+  locked: 'Fakturaperioden är låst.',
+  exported: 'Fakturaperioden är markerad som exporterad.',
+  closed: 'Fakturaperioden är stängd.',
+  reopened: 'Fakturaperioden är återöppnad.',
+}
+
+const RECONCILIATION_LABELS = {
+  pending: 'Månadslåsningen väntar på avstämning.',
+  locked: 'Avstämningen låste perioden vid körningen.',
+  incomplete: 'Underlagen var ofullständiga när avstämningen kördes.',
+  superseded: 'En senare periodändring hade företräde vid avstämningen.',
+  already_locked: 'Fakturaperioden var redan låst vid avstämningen.',
+}
+
+const EXPORT_EFFECTS_LABELS = {
+  pending: 'Äldre exportstatus väntar på uppdatering.',
+  applied: 'Äldre exportstatus har uppdaterats.',
+  held: 'Äldre exportstatus kräver granskning.',
 }
 
 function money(value: number | null) {
@@ -67,9 +120,27 @@ function productLabel(contractType: string | null, contractName: string | null) 
   }
 }
 
+function batchResultCount(value: unknown): number {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return 0
+  const count = Number(value)
+  return Number.isSafeInteger(count) ? count : 0
+}
+
 export default async function AdminBillingPage({ searchParams }: PageProps) {
   const admin = await requirePermissionServer('billing_underlay.read')
   const params = await searchParams
+  const approvalsInBatch = batchResultCount(params.approved)
+  const receivedGroupErrors = new Set(Array.isArray(params.group_error) ? params.group_error : [params.group_error])
+  const groupErrors = [...receivedGroupErrors].flatMap(raw => {
+    const code = raw ? readInvoiceGroupPreparationCode(raw) : null
+    return code ? [invoiceGroupPreparationMessages[code]] : []
+  })
+  const approvalFailures = batchResultCount(params.failed)
+  const approvalsToRetry = batchResultCount(params.approval_busy)
+  const approvalsForPriceReview = batchResultCount(params.approval_price_review)
+  const approvalsForCorrectionReview = batchResultCount(params.approval_correction_review)
+  const approvalsForProviderReview = batchResultCount(params.approval_provider_review)
+  const dispatchesFrozen = Math.min(approvalFailures, batchResultCount(params.dispatch_frozen))
   let selectedMonth = previousStockholmBillingMonth()
   if (params.month) {
     try { selectedMonth = parseBillingMonth(params.month).value } catch { selectedMonth = previousStockholmBillingMonth() }
@@ -79,27 +150,86 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
+  const canDownloadFiles = hasInvoiceFileDownloadPermission(admin.permissions)
   const canExport = await canPresentOperationalAction(['billing_underlay.export'], companyId)
+  const receiptLookup = companyId && params.file !== undefined && canDownloadFiles
+    ? loadInvoiceFileReceipt(companyId, params.file).then(
+        (file) => ({ file, unavailable: false }),
+        () => ({ file: null, unavailable: true }),
+      )
+    : null
 
-  const allRows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth }) : []
+  // A saved dispatch-period receipt belongs to the company and month even after provider settings change.
+  const [providerSelection, dispatchPeriod] = companyId
+    ? await Promise.all([
+      loadTenantInvoiceProviderSelection(companyId).catch(() => null),
+      import('@/lib/billing/invoiceDispatchPeriodReconciliation')
+        .then(async ({ readInvoiceDispatchPeriodStatus }) => ({ receipt: await readInvoiceDispatchPeriodStatus(companyId, selectedMonth), unavailable: false }))
+        .catch(() => ({ receipt: null, unavailable: true })),
+    ])
+    : [null, null]
+  const activePath = invoiceReviewActivePath(providerSelection)
+  const allRows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth, activePath }) : []
   const customerFilter = params.customer?.trim() || null
   const rows = customerFilter ? allRows.filter((row) => row.customerId === customerFilter) : allRows
+  const edielSourceReviews = companyId
+    ? await readInvoiceEdielReviewSources(companyId, admin.userId, rows.filter(row =>
+      row.edielSourceNeedsReview || row.status === 'missing_meter_values',
+    ).map(row => row.underlayId))
+    : null
   const readyCount = allRows.filter((row) => row.status === 'ready_for_review').length
-  const approvedCount = allRows.filter((row) => row.status === 'approved').length
+  const approvedCount = allRows.filter((row) => row.hasApprovedCalculation).length
+  const fileCreatedCount = allRows.filter((row) => row.status === 'file_created').length
   const sentCount = allRows.filter((row) => row.status === 'sent').length
   const flaggedCount = allRows.filter((row) => ['missing_meter_values', 'blocked', 'failed'].includes(row.status)).length
-  const sendableCount = readyCount + approvedCount
   const missingMeterCount = allRows.filter((row) => row.status === 'missing_meter_values').length
-  const providerSelection = companyId ? await loadTenantInvoiceProviderSelection(companyId).catch(() => null) : null
   const fileProvider = isFileProvider(providerSelection?.invoice_export_target_system) ? providerSelection.invoice_export_target_system : null
   const fileMode = fileProvider !== null
+  const batchCount = fileMode ? readyCount : readyCount + allRows.filter((row) => row.status === 'approved').length
   const fileEnvironment = providerSelection?.billing_provider_environment ?? null
-  const [fileCandidates, invoiceFiles] = companyId && fileMode && fileEnvironment
-    ? await Promise.all([
-        listInvoiceFileCandidates(companyId, selectedMonth, fileEnvironment, fileProvider ?? undefined).catch(() => []),
-        listInvoiceFiles(companyId).catch((): InvoiceFileRecord[] => []),
+  const invoiceFilesLookup = companyId && fileMode && fileEnvironment
+    ? listInvoiceFiles(companyId).catch(() => [])
+    : []
+  let fileIntent: { intentId: string; token: string; count: number; includesGroups: boolean } | null = null
+  let filePreviewError: string | null = null
+  if (companyId && user && canExport && admin.permissions.includes('billing_underlay.export') && fileProvider &&
+      (fileEnvironment === 'test' || fileEnvironment === 'production') && providerSelection?.invoice_export_enabled === true) {
+    try {
+      const [selection, groups] = await Promise.all([
+        previewInvoiceFileSelection({ companyId, billingMonth: selectedMonth, provider: fileProvider, environment: fileEnvironment }),
+        fileProvider === 'file_export'
+          ? previewInvoiceFileGroups({ companyId, billingMonth: selectedMonth, environment: fileEnvironment, actorUserId: user.id })
+          : Promise.resolve([]),
       ])
-    : [[], [] as InvoiceFileRecord[]]
+      if (selection.length + groups.length > 1000) throw new Error('invoice_file_selection_too_large')
+      const intentId = randomUUID()
+      fileIntent = {
+        intentId,
+        token: signInvoiceFileIntent({ intentId, companyId, actorUserId: user.id, billingMonth: selectedMonth,
+          scope: { provider: fileProvider, environment: fileEnvironment, selection, ...(groups.length ? { groups } : {}) } }),
+        count: selection.length + groups.length, includesGroups:groups.length>0,
+      }
+    } catch (error) {
+      filePreviewError = (error instanceof InvoiceProviderConfigError ? FILE_ERRORS[error.code] : undefined) ??
+        'Godkända fakturor kunde inte hämtas just nu. Ladda om sidan för att försöka igen.'
+    }
+  }
+  const invoiceFiles = await invoiceFilesLookup
+  const receipt = await receiptLookup
+  const archivedFile = receipt?.file
+  const archiveVersion = archivedFile?.artifact_archive_version
+  const isLegacyArchive = archiveVersion === null
+  const isVersionedExport = archiveVersion === 2 && archivedFile?.preparation_kind !== 'mixed_neutral_v1'
+  const handoffPending = archivedFile?.handoff_phase === 'created'
+  const [period, effects] = companyId && archivedFile && isVersionedExport
+    ? await Promise.all([
+        loadInvoiceFilePeriodReconciliation(companyId, archivedFile).catch(() => null),
+        handoffPending ? Promise.resolve(null) : loadInvoiceFileEffects(companyId, archivedFile.id, archivedFile.row_count).catch(() => null),
+      ])
+    : [null, null]
+  const legacyLockNotice = companyId && user && archivedFile && isLegacyArchive && archivedFile.billing_month === selectedMonth
+    ? readInvoiceFileMonthLockNotice({ companyId, actorUserId: user.id, billingMonth: selectedMonth, fileId: archivedFile.id }, params.file_month_lock_notice)
+    : false
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -116,12 +246,122 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
           </section>
         ) : null}
 
-        {companyId && (params.sent || params.failed) ? (
-          <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm shadow-sm">
-            {params.mode === 'file'
-              ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Skapa fakturafilen nedan för att skicka dem till fakturaleverantören.</>
-              : <>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.</>}
+        {companyId && canExport && groupErrors.length > 0 ? (
+          <section role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-900">
+            <h2 className="font-semibold">Samlingsfakturor som behöver åtgärdas</h2>
+            <ul className="mt-1 list-disc pl-5">
+              {groupErrors.map(message => <li key={message}>{message}</li>)}
+            </ul>
           </section>
+        ) : null}
+
+        {params.approval_scope_changed === '1' ? (
+          <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            Bolagsvalet, inloggningen eller fakturavägen har ändrats. Granska fakturorna i den aktuella vyn innan du försöker igen.
+          </p>
+        ) : null}
+
+        {companyId && (params.sent || params.failed) ? (
+          <section role="status" className="space-y-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm shadow-sm">
+            {params.mode === 'file'
+              ? <p><strong>Godkända i körningen: {approvalsInBatch}.</strong> Övriga fel: {approvalFailures}.</p>
+              : <p>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {approvalFailures - dispatchesFrozen} misslyckade och {params.approved ?? '0'} nygodkända.</p>}
+            {params.mode !== 'file' && dispatchesFrozen > 0 ? (
+              <p>Bolagets utskicksspärr stoppade {dispatchesFrozen} fakturautskick.</p>
+            ) : null}
+            {approvalsForPriceReview > 0 ? (
+              <p>Prisgranskning krävs för {approvalsForPriceReview} fakturautkast. Kontrollera nya prisversioner och beräkna om underlaget före godkännande.</p>
+            ) : null}
+            {approvalsForCorrectionReview > 0 ? (
+              <p>Registrerad mäträttelse behöver granskas för {approvalsForCorrectionReview} fakturautkast. Kontrollera underlagen före nytt godkännande.</p>
+            ) : null}
+            {approvalsForProviderReview > 0 ? (
+              <p>
+                Leverantör eller miljö behöver stämmas av för {approvalsForProviderReview} fakturautkast.
+                {' '}Stäm av tidigare reservationer i fakturalistan.
+                {' '}Kontrollera valet under <Link href="/admin/billing/integrations" className="underline">Integrationsinställningarna</Link>.
+              </p>
+            ) : null}
+            {approvalsToRetry > 0 ? (
+              <p>Väntar på omtag: {approvalsToRetry}. Uppgifterna var tillfälligt låsta. Försök godkänna igen om en stund.</p>
+            ) : null}
+            {params.mode === 'file' && approvalsInBatch > 0 ? (
+              <p>Fakturafilen omfattar bara godkända fakturor. Överlämningen till fakturaleverantören följs upp separat.</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {dispatchPeriod?.receipt || dispatchPeriod?.unavailable ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm" aria-labelledby="invoice-dispatch-period-heading">
+            <h2 id="invoice-dispatch-period-heading" className="font-semibold">Avstämning av skickade fakturor</h2>
+            <p className="mt-1" role="status">
+              {dispatchPeriod.unavailable ? 'Avstämningen kunde inte läsas. Försök igen.'
+                : dispatchPeriod.receipt?.reopened ? 'Fakturaperioden har öppnats igen.'
+                  : dispatchPeriod.receipt?.failed ? 'Senaste avstämningen kunde inte slutföras. Ett nytt försök är planerat.'
+                  : dispatchPeriod.receipt?.companyInactive ? 'Avstämningen väntar tills bolaget är aktivt.'
+                    : dispatchPeriod.receipt?.status === 'superseded' ? 'En senare periodändring har företräde.'
+                    : dispatchPeriod.receipt?.status === 'pending' ? 'Perioden väntar på verifierade leveranskvitton.'
+                      : 'Fakturaperioden låstes vid avstämningen.'}
+            </p>
+          </section>
+        ) : null}
+
+        {receipt?.file ? (
+          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900" aria-labelledby="invoice-file-receipt-heading">
+            <h2 id="invoice-file-receipt-heading" className="font-semibold">{isLegacyArchive ? 'Äldre fakturafil' : 'Arkiverad fakturafil'}</h2>
+            <p className="mt-1">
+              {receipt.file.billing_month} · {receipt.file.row_count} fakturor{receipt.file.environment === 'test' ? ' · test' : ''}
+            </p>
+            <p className="mt-1 break-all">Fil-ID {receipt.file.id}</p>
+            <p>{handoffPending ? 'Fil skapad. Leveranskvitto saknas.' : 'Överlämning ej styrkt.'}</p>
+            {receipt.file.handoff_recipient ? <p>Fryst mottagarkonto {receipt.file.handoff_recipient}</p> : null}
+            <p className="mt-1">Kontrollsumma för fakturaraderna <code className="break-all">{receipt.file.rows_sha256}</code></p>
+            {isLegacyArchive ? <p className="mt-1">När filen kan hämtas återskapas den från sparade fakturarader.</p> : null}
+            <a href={`/admin/billing/invoice-files/${receipt.file.id}`} className="mt-2 inline-block font-semibold underline">Ladda ner fakturafilen</a>
+          </section>
+        ) : receipt ? (
+          <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+            {receipt.unavailable ? 'Kvittot kunde inte hämtas just nu. Ladda om sidan för att försöka igen.' : 'Fakturafilen hittades inte.'}
+          </p>
+        ) : null}
+
+        {period ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm" aria-labelledby="invoice-file-period-heading">
+            <h2 id="invoice-file-period-heading" className="font-semibold">Månadslåsning</h2>
+            <p className="mt-1">{CURRENT_PERIOD_LABELS[period.currentPeriodStatus]}</p>
+            <p className="mt-1" role={period.retryingAfterFailure ? 'alert' : undefined}>
+              {period.retryingAfterFailure
+                ? 'Senaste avstämningen kunde inte slutföras. Den väntar på ett nytt försök.'
+                : period.awaitingHandoff ? 'Månadslåsningen väntar på verifierad överlämning.' : RECONCILIATION_LABELS[period.status]}
+            </p>
+          </section>
+        ) : isVersionedExport || legacyLockNotice ? (
+          <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+            {legacyLockNotice
+              ? 'Månadslåsningen kunde inte bekräftas efter exporten. Kontrollera fakturaperiodens status innan du fortsätter.'
+              : 'Månadslåsets status kunde inte hämtas. Fakturafilen ligger kvar i arkivet.'}
+          </p>
+        ) : null}
+
+        {effects ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm" aria-labelledby="invoice-file-effects-heading">
+            <h2 id="invoice-file-effects-heading" className="font-semibold">Fakturans efterarbete</h2>
+            <p className="mt-1" role={effects.retryingAfterFailure || effects.status === 'held' ? 'alert' : undefined}>
+              {effects.retryingAfterFailure
+                ? 'Äldre exportstatus kunde inte uppdateras. Den väntar på ett nytt försök.'
+                : EXPORT_EFFECTS_LABELS[effects.status]}
+            </p>
+            <p className="mt-1">Sparade fakturahändelser {effects.eventCount} av {effects.expectedEventCount}.</p>
+            {effects.missingFanoutCount > 0 ? (
+              <p role="alert" className="mt-1">
+                Köpost saknas för {effects.missingFanoutCount} {effects.missingFanoutCount === 1 ? 'fakturahändelse' : 'fakturahändelser'}.
+              </p>
+            ) : null}
+          </section>
+        ) : isVersionedExport && !handoffPending ? (
+          <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+            Fakturans efterarbete kunde inte läsas.
+          </p>
         ) : null}
 
         {companyId && fileMode ? (
@@ -130,47 +370,57 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
               <div>
                 <h2 id="invoice-file-heading" className="font-semibold text-slate-950">{fileProvider === 'nordfin' ? 'Fakturafil till Nordfin' : 'Fakturafil till fakturaleverantör'}</h2>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                  Godkända fakturor läggs i en fil som du läser in hos fakturaleverantören. En faktura hamnar bara i en fil och markeras som skickad när filen skapas. Varje fil kan laddas ner igen med samma innehåll.
+                  {fileIntent?.includesGroups
+                    ? 'Valda fakturor sparas i ett neutralt JSON-underlag. Överlämning och leveransstatus kräver ett separat kvitto.'
+                    : 'Godkända fakturor läggs i en fil som du läser in hos fakturaleverantören. Varje fil kan laddas ner igen med samma innehåll.'}
                 </p>
                 {fileEnvironment === 'test' ? <p className="mt-2 text-xs font-semibold text-amber-700">Testmiljö: filen är märkt för test.</p> : null}
               </div>
-              {canExport ? <form action={createInvoiceFileAction}>
+              {fileIntent ? <form action="/admin/billing/invoice-files/create" method="post">
                 <input type="hidden" name="billing_month" value={selectedMonth} />
+                <input type="hidden" name="export_intent_v2" value={fileIntent.token} />
+                <input type="hidden" name="export_receipt_v2" value={fileIntent.intentId} />
                 <button
-                  disabled={fileCandidates.length === 0 || providerSelection?.invoice_export_enabled !== true}
+                  disabled={fileIntent.count === 0}
                   className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Skapa fakturafil ({fileCandidates.length} godkända)
+                  {fileIntent.includesGroups ? 'Skapa neutral månadsfil' : 'Skapa fakturafil'} ({fileIntent.count} valda)
                 </button>
-              </form> : <p className="text-sm text-slate-600">Läsbehörighet. En behörig handläggare behöver skapa fakturafilen.</p>}
+              </form> : !canExport ? <p className="text-sm text-slate-600">Läsbehörighet. En behörig handläggare behöver skapa fakturafilen.</p> : null}
             </div>
             {providerSelection?.invoice_export_enabled !== true ? (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktivera utskick under <Link href="/admin/billing/integrations" className="underline">Fakturering → Integrationer</Link> innan filer kan skapas.</p>
             ) : null}
-            {params.file ? (
-              <p role="status" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">Fakturafilen är skapad. Ladda ner den nedan.</p>
+            {filePreviewError ? (
+              <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{filePreviewError}</p>
             ) : null}
-            {params.file_error ? (
+            {!receipt?.file && params.file_error ? (
               <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{FILE_ERRORS[params.file_error] ?? 'Fakturafilen kunde inte skapas.'}</p>
             ) : null}
             {invoiceFiles.length > 0 ? (
-              <details open={Boolean(params.file)} className="mt-4 text-sm">
+              <details open={Boolean(receipt?.file)} className="mt-4 text-sm">
                 <summary className="cursor-pointer font-semibold text-slate-800">Tidigare fakturafiler ({invoiceFiles.length})</summary>
+                {!canDownloadFiles ? (
+                  <p className="mt-2 text-sm text-slate-600">Nedladdning kräver exportbehörighet.</p>
+                ) : null}
               <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
                 {invoiceFiles.map((file) => (
-                  <li key={file.id} className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${params.file === file.id ? 'bg-emerald-50/60' : ''}`}>
+                  <li key={file.id} className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${receipt?.file?.id === file.id ? 'bg-emerald-50/60' : ''}`}>
                     <span>
                       <span className="font-semibold text-slate-900">{file.billing_month}</span>
                       <span className="ml-2 text-slate-600">{file.row_count} fakturor · {money(Number(file.total_inc_vat))}</span>
                       <span className="ml-2 text-xs text-slate-500">{new Date(file.created_at).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' })}{file.environment === 'test' ? ' · test' : ''}</span>
+                      {file.artifact_archive_version === null ? <span className="ml-2 text-xs text-slate-600">Äldre format</span> : null}
                     </span>
-                    <AdminActionsMenu label="Ladda ner" ariaLabel={`Ladda ner fakturafil för ${file.billing_month}`}>
-                      {(file.provider === 'nordfin' ? (['nordfin_xml', 'xlsx', 'csv'] as const) : (['csv', 'xlsx', 'json'] as const)).map((format) => (
-                        <a key={format} href={`/admin/billing/invoice-files/${file.id}?format=${format}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
-                          {format === 'xlsx' ? 'Excel' : format === 'nordfin_xml' ? 'Nordfin XML' : format.toUpperCase()}
-                        </a>
-                      ))}
-                    </AdminActionsMenu>
+                    {canDownloadFiles ? (
+                      <AdminActionsMenu label="Ladda ner" ariaLabel={`Ladda ner fakturafil för ${file.billing_month}`}>
+                        {(file.preparation_kind === 'mixed_neutral_v1' ? (['json'] as const) : file.provider === 'nordfin' ? (['nordfin_xml', 'xlsx', 'csv'] as const) : (['csv', 'xlsx', 'json'] as const)).map((format) => (
+                          <a key={format} href={`/admin/billing/invoice-files/${file.id}?format=${format}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
+                            {format === 'xlsx' ? 'Excel' : format === 'nordfin_xml' ? 'Nordfin XML' : format.toUpperCase()}
+                          </a>
+                        ))}
+                      </AdminActionsMenu>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -201,22 +451,27 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
             ) : null}
           </div>
 
-          {canExport && companyId && !customerFilter && sendableCount > 0 ? (
+          {canExport && companyId && !customerFilter && batchCount > 0 ? (
             <form action={approveAndSendReadyInvoicesAction}>
               <input type="hidden" name="billing_month" value={selectedMonth} />
+              <input type="hidden" name="expected_company_id" value={companyId} />
+              <input type="hidden" name="expected_actor_user_id" value={admin.userId} />
+              <input type="hidden" name="expected_provider" value={providerSelection?.invoice_export_target_system ?? ''} />
+              <input type="hidden" name="expected_environment" value={providerSelection?.billing_provider_environment ?? ''} />
               <button className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
-                {fileMode ? `Godkänn ${sendableCount} klara fakturor` : `Godkänn och skicka ${sendableCount} klara fakturor`}
+                {fileMode ? `Godkänn ${batchCount} klara fakturor` : `Godkänn och skicka ${batchCount} klara fakturor`}
               </button>
             </form>
           ) : null}
         </section>
 
         {!customerFilter ? (
-          <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+          <section className="grid grid-cols-2 gap-2 xl:grid-cols-5">
             {[
               ['Klara för granskning', readyCount, 'Kan öppnas och kontrolleras innan utskick.'],
               ['Flaggade', flaggedCount, missingMeterCount ? `${missingMeterCount} saknar kompletta mätvärden.` : 'Kräver åtgärd före fakturering.'],
-              ['Godkända', approvedCount, 'Godkända men ännu inte bekräftat skickade.'],
+              ['Godkända beräkningar', approvedCount, 'Räknas oavsett leveransstatus.'],
+              ['Filskapade', fileCreatedCount, 'Sparade i fakturafil. Överlämning följs upp separat.'],
               ['Skickade', sentCount, 'Bekräftade av fakturapartnern.'],
             ].map(([label, count, help]) => (
               <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -226,6 +481,11 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
             ))}
           </section>
         ) : null}
+
+        {companyId ? <ConsolidatedInvoiceReview
+          companyId={companyId} billingMonth={selectedMonth} customerId={customerFilter}
+          afterInvoiceId={params.group_after} canApprove={canExport}
+        /> : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
@@ -263,7 +523,18 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyle[row.status]}`}>{row.statusLabel}</span>
+                        {row.hasApprovedCalculation && row.status !== 'approved' ? <p className="mt-1 text-xs text-slate-700">Granskning: Godkänd</p> : null}
                         {row.blocker ? <p className="mt-2 max-w-xs text-xs leading-5 text-amber-900">{row.blocker}</p> : null}
+                        {row.edielSourceNeedsReview || edielSourceReviews?.has(row.underlayId) ? (
+                          <p className="mt-2 max-w-xs text-xs leading-5 text-amber-900">
+                            Mätvärdenas Ediel-källa behöver granskas innan underlaget kan faktureras.
+                          </p>
+                        ) : null}
+                        {scope.isPlatformAdmin && edielSourceReviews?.get(row.underlayId) ? (
+                          <Link href={`/admin/ediel/messages/${edielSourceReviews.get(row.underlayId)}`} className="mt-2 inline-block text-xs font-medium underline">
+                            Granska Ediel-originalet
+                          </Link>
+                        ) : null}
                       </td>
                       <td className="px-4 py-4 text-slate-700"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Avtal</span>{productLabel(row.contractType, row.contractName)}</td>
                       <td className="px-4 py-4 font-medium text-slate-700"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Elområde</span>{row.priceArea ?? '—'}</td>
@@ -271,7 +542,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       <td className="px-4 py-4 font-semibold tabular-nums text-slate-950 xl:text-right"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Att fakturera</span>{money(row.amountIncVat)}</td>
                       <td className="px-5 py-4 text-right">
                         {row.invoiceExportItemId ? (
-                          <Link href={`/admin/billing/invoices/${row.invoiceExportItemId}`} className="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">Visa faktura</Link>
+                          <Link href={`/admin/billing/invoices/${row.invoiceExportItemId}${row.reservationReview ? '#reservation' : ''}`} className="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">{row.reservationReview ? 'Stäm av reservation' : 'Visa faktura'}</Link>
                         ) : (
                           <span className="text-xs text-slate-400">Ej klar</span>
                         )}

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { PRICE_AREAS, isPriceArea, type PriceArea, type SpotPriceInterval } from '@/lib/pricing/types'
 import { fetchElprisetJustNuDay, SpotPriceProviderError } from '@/lib/pricing/spot/elprisetJustNuClient'
-import { aggregateMonthlySpotPrices } from '@/lib/pricing/spot/monthlySpotAggregator'
+import { aggregateMonthlySpotPrices, expectedSpotIntervalsForMonth } from '@/lib/pricing/spot/monthlySpotAggregator'
 import { validateSpotPriceDay } from '@/lib/pricing/spot/intervalCoverage'
 import { claimSpotImportJob, completeSpotImportJob, failSpotImportJob } from '@/lib/pricing/spot/spotImportJobs'
 import { rebuildMarketPreviews } from '@/lib/pricing/spot/marketPreviewBuilder'
@@ -349,23 +349,47 @@ export async function importSpotPricesForDayArea(input: {
 
 async function aggregateMonth(priceArea: PriceArea, billingMonth: string): Promise<{ imported: number; status: string }> {
   const bounds = stockholmMonthBounds(billingMonth)
-  const { data, error } = await supabaseService
-    .from('spot_price_intervals')
-    .select('source,price_area,time_start,time_end,sek_per_kwh,eur_per_kwh,exchange_rate,resolution')
-    .eq('source', PROVIDER)
-    .eq('price_area', priceArea)
-    .gte('time_start', bounds.start)
-    .lt('time_start', bounds.end)
-    .order('time_start', { ascending: true })
-  if (error) throw error
-  const intervals = ((data ?? []) as Array<Record<string, unknown>>).map(rowToInterval)
-  if (intervals.length === 0) return { imported: 0, status: 'incomplete' }
+  // A complete series cannot exceed the quarter-hour count for this physical Stockholm month.
+  const maximum = expectedSpotIntervalsForMonth(billingMonth, 'quarter_hour')
+  const intervals: SpotPriceInterval[] = []
+  let cursor: SpotPriceInterval | undefined
+  while (intervals.length <= maximum) {
+    const query = supabaseService
+      .from('spot_price_intervals')
+      .select('source,price_area,time_start,time_end,sek_per_kwh,eur_per_kwh,exchange_rate,resolution')
+      .eq('source', PROVIDER)
+      .eq('price_area', priceArea)
+      .gte('time_start', bounds.start)
+      .lt('time_start', bounds.end)
+      .order('time_start', { ascending: true })
+      .order('time_end', { ascending: true })
+    // The source/area/start/end key is unique. An equal start can still have a different end.
+    const pageQuery = cursor
+      ? query.or(`time_start.gt.${cursor.timeStart},and(time_start.eq.${cursor.timeStart},time_end.gt.${cursor.timeEnd})`)
+      : query
+    const { data, error } = await pageQuery.limit(Math.min(1000, maximum + 1 - intervals.length))
+    if (error) throw error
+    if (!data) throw new Error('Spotprisintervallen kunde inte läsas för månaden.')
+    if (data.length === 0) break
+
+    const page = (data as Array<Record<string, unknown>>).map(rowToInterval)
+    const last = page[page.length - 1]
+    if (cursor) {
+      const startsLater = Date.parse(last.timeStart) > Date.parse(cursor.timeStart)
+      const sameStartWithLaterEnd = Date.parse(last.timeStart) === Date.parse(cursor.timeStart)
+        && Date.parse(last.timeEnd) > Date.parse(cursor.timeEnd)
+      if (!startsLater && !sameStartWithLaterEnd) throw new Error('Spotprisläsningen kunde inte fortsätta till nästa intervall.')
+    }
+    intervals.push(...page)
+    cursor = last
+  }
+  if (intervals.length === 0 || intervals.length > maximum) return { imported: intervals.length, status: 'incomplete' }
 
   const summary = aggregateMonthlySpotPrices({ priceArea, billingMonth, intervals })
   const now = new Date().toISOString()
   const sourceChecksum = checksum(JSON.stringify(intervals.map((row) => [row.timeStart, row.timeEnd, row.sekPerKwh])))
   const verified = summary.status === 'complete'
-  const { error: summaryError } = await supabaseService.from('spot_price_monthly_summaries').upsert({
+  const { data: stored, error: summaryError } = await supabaseService.from('spot_price_monthly_summaries').upsert({
     source: summary.source,
     price_area: summary.priceArea,
     billing_month: summary.billingMonth,
@@ -384,9 +408,14 @@ async function aggregateMonth(priceArea: PriceArea, billingMonth: string): Promi
     status: verified ? 'verified' : 'incomplete',
     source_checksum: sourceChecksum,
     updated_at: now,
-  }, { onConflict: 'source,price_area,billing_month' })
+  }, { onConflict: 'source,price_area,billing_month' }).select('interval_count,status').single()
   if (summaryError) throw summaryError
-  return { imported: intervals.length, status: verified ? 'verified' : 'incomplete' }
+  if (!stored || !Number.isSafeInteger(stored.interval_count) || stored.interval_count < 0) {
+    throw new Error('Spotprissammanställningen saknar ett sparat resultat.')
+  }
+  // The write trigger aggregates the full source again in the database statement's snapshot.
+  const verifiedInBoth = verified && stored.status === 'verified' && stored.interval_count === intervals.length
+  return { imported: stored.interval_count, status: verifiedInBoth ? 'verified' : 'incomplete' }
 }
 
 export async function importSpotPricesForDay(input: {
@@ -464,6 +493,9 @@ export async function importSpotPricesForMonth(input: {
         if (day.error) errors.push(`${priceArea} ${calendarDate}: ${day.error}`)
       }
       result[priceArea] = await aggregateMonth(priceArea, input.billingMonth)
+      if (result[priceArea].status === 'incomplete') {
+        errors.push(`${priceArea} ${input.billingMonth}: Spotpriserna täcker inte hela månaden med verifierade intervall.`)
+      }
       try {
         await rebuildMarketPreviews({ priceArea, provider: PROVIDER })
       } catch (error) {
@@ -472,10 +504,13 @@ export async function importSpotPricesForMonth(input: {
     }
 
     const status = errors.length > 0 ? 'completed_with_warnings' : 'completed'
-    await supabaseService
+    const { error: finishError } = await supabaseService
       .from('spot_price_import_runs')
       .update({ status, finished_at: new Date().toISOString(), result_summary: result, error_log: errors })
       .eq('id', run.id)
+      .select('id')
+      .single()
+    if (finishError) throw finishError
     return { runId: run.id as string, status, result, errors }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Spotprisimporten misslyckades.'

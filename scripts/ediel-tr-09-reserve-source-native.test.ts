@@ -196,6 +196,7 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  expect(effects(s)).toEqual(beforeSend);expect(smtp.send).not.toHaveBeenCalled()
  smtp.send.mockResolvedValue(accepted(s))
  const delivered=await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})
+ expect(delivered.delivery).toBe('new_acceptance')
  expect(smtp.send).toHaveBeenCalledTimes(1);tlsContinues()
  const raw=smtp.send.mock.calls[0][0].raw as Buffer
  expect(raw.toString('ascii')).toContain('Content-Type: application/EDIFACT')
@@ -215,7 +216,7 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  // spend another budget operation, alarm or SMTP entry. Public projection
  // repair and fresh preparation archives do not invent a second delivery.
  const acceptedJournal=scopeGraph(s,transportTables),acceptedWire=original(s)
- expect(await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).toEqual(delivered)
+ expect(await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).toEqual({...delivered,delivery:'repaired_projection'})
  expect(smtp.send).toHaveBeenCalledTimes(1);expect(scopeGraph(s,transportTables)).toEqual(acceptedJournal)
  expect(exactSourceCustody(s,id)).toBe(true);originalUnchanged(s,acceptedWire)
  expect(await readEdielTransportExceptionAlarms({companyId:s.f.companyId,actorUserId:s.reviewer})).toHaveLength(1)

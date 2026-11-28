@@ -6,7 +6,7 @@ import { resolveCurrentInfoRequestScopeAuthorization } from '@/lib/onboarding/in
 import { findCurrentSupplierManualContact, readManualSupplierSendContext, MANUAL_SUPPLIER_INFORMATION_REQUEST_TYPE } from './manualGridOwnerSendGuards'
 import { hasExternallySendablePoa } from '@/lib/customers/poaReadiness'
 import { ensurePoaVerificationReference } from '@/lib/customers/poaEvidenceCompletion'
-import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments'
+import { ensurePoaPdfArchive, PoaArchiveChecksumMismatchError } from '@/lib/customers/poaDocuments'
 import { poaMailEvidence, poaMailEvidenceFingerprint, poaMailEvidenceIssues } from '@/lib/email/poaMailEvidence'
 import { resolveManualOperationsMailbox } from '@/lib/email/manualOperationsMailbox'
 import { resolveManualRecipient } from './requestMissingFacilityInformationCore'
@@ -173,9 +173,14 @@ export async function queueManualSupplierInformationRequest(input: {
   const initialMetadata = JSON.stringify(record(request.metadata))
   const initialStatus = String(request.status)
   const preArchiveFingerprint = poaMailEvidenceFingerprint(poa)
+  const documentEvidenceChanged = () => fail('poa_document_evidence_changed',
+    'Fullmaktens dokument och godkännandeverifikat hör inte längre till samma oförändrade underlag. Kontrollera originalet före utskick.')
   let archive: Awaited<ReturnType<typeof ensurePoaPdfArchive>>
   try { archive = await ensurePoaPdfArchive({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId: String(poa.id) }) }
-  catch { return fail('poa_document_archive_required', 'Fullmaktens godkända original kunde inte verifieras och arkiveras.') }
+  catch (error) {
+    if (error instanceof PoaArchiveChecksumMismatchError) return documentEvidenceChanged()
+    return fail('poa_document_archive_required', 'Fullmaktens godkända original kunde inte verifieras och arkiveras.')
+  }
   const freshRequest = await tenantSelect(input.companyId, 'grid_owner_information_requests', '*')
     .eq('company_id', input.companyId).eq('id', String(request.id)).eq('poa_id', String(request.poa_id))
     .eq('status', initialStatus).eq('metadata', initialMetadata).maybeSingle()
@@ -189,7 +194,7 @@ export async function queueManualSupplierInformationRequest(input: {
   if (poaMailEvidenceFingerprint(poa) !== preArchiveFingerprint || archivedProof.evidence_sha256 !== preArchiveFingerprint
     || poa.document_path !== archive.path || archivedProof.path !== archive.path
     || archivedProof.sha256 !== createHash('sha256').update(archive.pdf).digest('hex')) {
-    return fail('poa_document_evidence_changed', 'Fullmaktens dokument och godkännandeverifikat hör inte längre till samma oförändrade underlag. Kontrollera originalet före utskick.')
+    return documentEvidenceChanged()
   }
   // A new reviewed attempt replaces only still-queued older attempts. In-flight
   // or uncertain deliveries were blocked above and are never silently retried.

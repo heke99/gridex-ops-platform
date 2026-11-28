@@ -165,6 +165,41 @@ export async function projectMeteringValueToNormalized(input: {
   return id ? { status: 'duplicate', normalizedMeteringValueId: id } : { status: 'skipped' }
 }
 
+type BoundProjectionMeter = Pick<MeteringValueRow,
+  'id' | 'company_id' | 'canonical_dedupe_key' | 'source_ediel_message_id' | 'source_transaction_reference'>
+
+export async function readReplacedBoundProjection(companyId: string, meteringValue: BoundProjectionMeter, dedupeKey: string): Promise<string | null> {
+  const sourceMessageId = readText(meteringValue.source_ediel_message_id)
+  const sourceTransaction = readText(meteringValue.source_transaction_reference)
+  if (meteringValue.company_id !== companyId || meteringValue.canonical_dedupe_key !== dedupeKey || !sourceMessageId || !sourceTransaction) return null
+
+  const { data: projections, error: projectionError } = await supabaseService
+    .from('normalized_metering_values')
+    .select('id,replaced_by_value_id')
+    .eq('company_id', companyId)
+    .eq('source_metering_value_id', meteringValue.id)
+    .eq('source_message_id', sourceMessageId)
+    .eq('source_transaction_reference', sourceTransaction)
+    .eq('revision_status', 'replaced')
+    .eq('status', 'replaced')
+    .limit(2)
+  if (projectionError) throw projectionError
+  if (projections?.length !== 1) return null
+
+  const successorId = readText(projections[0].replaced_by_value_id)
+  if (!successorId || successorId === meteringValue.id) return null
+  const { data: successors, error: successorError } = await supabaseService
+    .from('metering_values')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('id', successorId)
+    .eq('previous_value_id', meteringValue.id)
+    .eq('canonical_dedupe_key', dedupeKey)
+    .limit(2)
+  if (successorError) throw successorError
+  return successors?.length === 1 ? readText(projections[0].id) : null
+}
+
 export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringValueInput): Promise<NormalizeResult> {
   await assertPlatformSchemaReady()
   const warnings: string[] = []
@@ -247,8 +282,13 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
     .eq('revision_status', 'current')
     .limit(2)
   if (normalizedError) throw normalizedError
-  if ((normalizedRows ?? []).length !== 1) throw new Error('atomic_metering_projection_missing_or_ambiguous')
-  const normalizedMeteringValueId = String((normalizedRows as Array<{ id: string }>)[0].id)
+  let normalizedMeteringValueId = normalizedRows?.length === 1 ? readText(normalizedRows[0].id) : null
+  if (input.immutableAttribution && (normalizedRows?.length ?? 0) === 0) {
+    // The bound RPC verified this applied revision before commit. A correction may
+    // replace it before this readback, while the bound metering receipt stays valid.
+    normalizedMeteringValueId = await readReplacedBoundProjection(input.companyId, meterValue, dedupeKey)
+  }
+  if (!normalizedMeteringValueId) throw new Error('atomic_metering_projection_missing_or_ambiguous')
 
   await emitDomainEvent({
     companyId: input.companyId,

@@ -1,3 +1,4 @@
+import { prepareDurableE66Work } from "@/lib/inbound-mail/runDurableE66"
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import { unstable_rethrow } from 'next/navigation'
 import {resolveTgtReportingBuildContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -18,7 +19,7 @@ import { pollAndIngestEdielMailbox, sendQueuedEdielMessage } from "@/lib/ediel/o
 
 
 
-import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
+import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listEdielTestRuns, updateEdielTestRunStatus } from "@/lib/ediel/db"
 
 
 
@@ -1118,6 +1119,30 @@ export function isOperationalAckMessage(message: EdielMessageRow): boolean {
   );
 }
 
+async function hasDurableE66Owner(message: EdielMessageRow, actorUserId: string): Promise<boolean> {
+  if (message.message_family !== "UTILTS" || message.message_code !== "E66" ||
+      !message.company_id || !message.inbound_email_message_id) return false;
+
+  const { data, error } = await supabaseService
+    .from("inbound_email_messages")
+    .select("mailbox_id")
+    .eq("id", message.inbound_email_message_id)
+    .eq("company_id", message.company_id)
+    .eq("environment", message.environment)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.mailbox_id) return false;
+
+  const { ownedSources } = await prepareDurableE66Work({
+    actorUserId,
+    companyId: message.company_id,
+    environment: message.environment,
+    mailboxIds: [data.mailbox_id],
+    sourceIds: [message.id],
+  });
+  return ownedSources.has(message.id);
+}
+
 export async function recalculateInboundAckAction(formData: FormData) {
   const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
@@ -1133,38 +1158,43 @@ export async function recalculateInboundAckAction(formData: FormData) {
     throw new Error("ACK kan bara räknas om från inbound-meddelanden.");
   }
 
-  const existingAckMessages = await listBusinessAckMessagesForSource({
-    sourceMessageId: edielMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
-  });
-  const supersedableAckMessages = existingAckMessages.filter((message) => {
-    const status = String(message.status ?? "").toLowerCase();
-    return (
-      isOperationalAckMessage(message) &&
-      ["draft", "prepared", "queued"].includes(status)
-    );
-  });
-
-  for (const ackMessage of supersedableAckMessages) {
-    await updateEdielMessageStatus({
-      actorUserId: context.userId,
-      edielMessageId: ackMessage.id,
-      status: "cancelled",
-      failureReason:
-        "Superseded by ACK recalculation. Historical message kept for audit.",
-    });
-
+  const scope = {
+    sourceMessageId: edielMessageId,
+    companyId: sourceMessage.company_id ?? context.companyId,
+    environment: sourceMessage.environment,
+    actorUserId: context.userId,
+  };
+  const previousAckMessageIds = (await listBusinessAckMessagesForSource(scope))
+    .map((message) => message.id);
+  let currentAckMessageIds: string[];
+  let durableOwner = false;
+  try {
+    durableOwner = await hasDurableE66Owner(sourceMessage, context.userId);
+    if (!durableOwner) {
+      // The runtime retains a qualified ACK or creates a new one through its owner.
+      await processInboundEdielMessage({
+        actorUserId: context.userId,
+        edielMessageId,
+      });
+    }
+    currentAckMessageIds = (await listBusinessAckMessagesForSource(scope))
+      .map((message) => message.id);
+  } catch (error) {
     await createEdielMessageEvent({
       actorUserId: context.userId,
-      edielMessageId: ackMessage.id,
+      edielMessageId,
       eventType: "manual_note",
-      eventStatus: "info",
-      message:
-        "ACK-utkastet markerades som superseded inför omräkning av inbound runtime-beslut.",
+      eventStatus: "warning",
+      message: "Omräkningens utfall kunde inte bekräftas. Kontrollera kvittensstatus före omtag.",
       payload: {
-        sourceMessageId: edielMessageId,
-        recalculationAction: "supersede_old_draft_ack",
+        recalculationAction: "rerun_inbound_runtime_decision",
+        result: "unconfirmed",
+        previousAckMessageIds,
       },
+    }).catch(() => {
+      console.warn("ediel_ack_recalculation_audit_failed", { edielMessageId });
     });
+    throw error;
   }
 
   await createEdielMessageEvent({
@@ -1172,20 +1202,15 @@ export async function recalculateInboundAckAction(formData: FormData) {
     edielMessageId,
     eventType: "manual_note",
     eventStatus: "info",
-    message:
-      "Inbound ACK/routing-beslut räknades om med aktuell tenant-resolver och canonical runtime.",
+    message: durableOwner
+      ? "Det skyddade E66-originalet hanteras av den ordinarie arbetskön. Kvittensstatus lästes om."
+      : "Inbound ACK/routing kördes på nytt. Kvittensens leveransstatus följer utkorgen.",
     payload: {
       recalculationAction: "rerun_inbound_runtime_decision",
-      supersededAckMessageIds: supersedableAckMessages.map((message) => message.id),
-      keptAckMessageIds: existingAckMessages
-        .filter((message) => !supersedableAckMessages.some((superseded) => superseded.id === message.id))
-        .map((message) => message.id),
+      result: durableOwner ? "durable_owner_retained" : "runtime_completed",
+      previousAckMessageIds,
+      currentAckMessageIds,
     },
-  });
-
-  await processInboundEdielMessage({
-    actorUserId: context.userId,
-    edielMessageId,
   });
 
   await revalidateRelatedMessage(edielMessageId);

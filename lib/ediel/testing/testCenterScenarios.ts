@@ -1,5 +1,11 @@
 export type TestCenterScenario = 'baseline' | 'duplicate' | 'missing_values' | 'correction' | 'rebilling'
 
+const missingBillableEnergy = 'Fakturatest kräver positiv fakturerbar periodenergi i QTY+136. Mätarställning QTY+220 räknas inte som förbruknings-kWh.'
+
+export function isExpectedMissingValuesBlock(error: unknown): error is Error {
+  return error instanceof Error && error.message === missingBillableEnergy
+}
+
 export type TestCenterScenarioMaterialization = {
   scenario: TestCenterScenario
   runs: Array<{

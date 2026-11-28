@@ -25,19 +25,24 @@ describe('authenticated shell performance invariants', () => {
     expect(page).toContain('await getVerifiedAuthUser()')
   })
 
-  it('starts independent dashboard role and company-scope reads together', () => {
+  it('shares canonical access between the dashboard layout and page before tenant reads', () => {
+    const access = read('app/dashboard/access.ts')
+    const layout = read('app/dashboard/layout.tsx')
     const page = read('app/dashboard/page.tsx')
 
-    expect(page).toMatch(
-      /const \[isPlatformAdmin, companyScope\] = await Promise\.all\(\[\s*userHasPlatformRole\(user\.id\),\s*getOperationalCompanyScope\(user\.id\),\s*\]\)/,
-    )
+    expect(access).toContain('getDashboardAccess = cache(')
+    expect(access).toContain('await requireAdminApiAccess()')
+    expect(access).toContain(".eq('id', guard.companyId)")
+    expect(layout).toContain('await getDashboardAccess(user.id)')
+    expect(page).toContain('await getDashboardAccess(user.id)')
+    expect(page).not.toContain('gridex_get_user_roles')
   })
 
-  it('starts independent admin-shell cookie, scope, and live-access reads together', () => {
+  it('loads independent scope and live-access reads together and limits memberships to company view', () => {
     const layout = read('app/admin/layout.tsx')
 
     expect(layout).toMatch(
-      /const \[cookieStore, canonicalScope, liveAccess, operationalScope\] = await Promise\.all\(\[\s*cookies\(\),\s*resolveAdminSelectedCompanyReadScope\(admin\),\s*getTenantLiveAccessForAdmin\(admin\),\s*isPlatformAdmin \? getOperationalCompanyScope\(admin\.userId\) : Promise\.resolve\(null\),\s*\]\)/,
+      /const \[scope, liveAccess, memberships\] = await Promise\.all\(\[\s*resolveAdminSelectedCompanyReadScope\(admin\),\s*getTenantLiveAccessForAdmin\(admin\),\s*isPlatformAdmin && preferredMode === 'company_view' \? listOperationalCompaniesForUser\(admin\.userId\) : \[\],\s*\]\)/,
     )
   })
 
@@ -66,7 +71,7 @@ describe('authenticated shell performance invariants', () => {
     expect(page).toContain('const companyScope = await resolveAdminSelectedCompanyReadScope(context)')
     expect(page).toContain('const companyId = companyScope.companyId')
     expect(page).toMatch(
-      /const \[requests, values\] = await Promise\.all\(\[\s*listAllGridOwnerDataRequests\(\{\s*status: 'all',\s*scope: 'meter_values',\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*listAllMeteringValues\(\{\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*\]\)/,
+      /const \[requests, values, requalificationAccess\] = await Promise\.all\(\[\s*listAllGridOwnerDataRequests\(\{\s*status: 'all',\s*scope: 'meter_values',\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*listAllMeteringValues\(\{\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*checkRequalificationAccess \? requireAdminApiAccess\(requalificationPermission, \{ companyId \}\) : null,\s*\]\)/,
     )
     expect(page).not.toContain('getOperationalCompanyScope')
     expect(page).toContain('userEmail={context.email}')
@@ -89,7 +94,7 @@ describe('authenticated shell performance invariants', () => {
     const page = read('app/admin/operations/switches/page.tsx')
 
     expect(page).toContain('const [tenantScope, resolvedSearchParams] = await Promise.all([')
-    expect(page).toContain('const [sites, events, outboundRequests, meteringPoints] = await Promise.all([')
+    expect(page).toContain('const [sites, events, outboundRequests, meteringPoints, marketStarts] = await Promise.all([')
     expect(page).toContain('sitesPromise,')
     expect(page).toContain('listSupplierSwitchEventsByRequestIds(supabase, requestIds)')
     expect(page).toContain('listMeteringPointsBySiteIds(supabase, siteIds, { companyId })')

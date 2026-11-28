@@ -85,6 +85,13 @@ jobs:
               if isinstance(error,subprocess.CalledProcessError):value['exit_code']=error.returncode
               if isinstance(error,subprocess.TimeoutExpired):value['timeout_seconds']=error.timeout
               return value
+          def trusted_reference_http_details(error):
+              if not isinstance(error,urllib.error.HTTPError):return {}
+              status=error.code
+              details={'http_status':status} if type(status) is int and 100<=status<=599 else {}
+              attempts=getattr(error,'z03c_reference_attempts',None)
+              if type(attempts) is int and 1<=attempts<=3:details['http_attempts']=attempts
+              return details
           def emit_pre_state_admission_failure(error,stage,state_publication_started):
               # Fixed vocabulary only. A vanished previously published state may
               # never be mistaken for an epoch that was not admitted.
@@ -92,13 +99,15 @@ jobs:
               classes={'HTTPError','URLError','TimeoutError','OSError','FileNotFoundError','PermissionError',
                   'CalledProcessError','TimeoutExpired','RuntimeError','ValueError','KeyError'}
               stages={'TRUSTED_REFERENCE','ADMISSION_PRECHECKS','SOURCE_INPUT_INVENTORY'}
-              codes={'z03c_trusted_normal_reference_skew','z03c_sync_state_unknown','z03c_fresh_empty_docker_host_required',
+              codes={'z03c_trusted_normal_reference_skew','z03c_trusted_normal_reference_date_invalid',
+                  'z03c_sync_state_unknown','z03c_fresh_empty_docker_host_required',
                   'z03c_official_cli_version_required','z03c_cli_stop_contract_required','z03c_node22_required',
                   'z03c_this_product_vm_preflight_required','z03c_checkout_blob_mismatch'}
               code='z03c_pre_state_admission_failed'
               if type(error) is RuntimeError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in codes:code=error.args[0]
               summary={'class':type(error).__name__ if type(error).__name__ in classes else 'OtherError',
-                  'code':code,'stage':stage if stage in stages else 'UNKNOWN_PRE_STATE_STAGE'}
+                  'code':code,'stage':stage if stage in stages else 'UNKNOWN_PRE_STATE_STAGE',
+                  **trusted_reference_http_details(error)}
               # This is not a clock, restoration, native or artifact attestation.
               sys.stderr.write(json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n');sys.stderr.flush()
           def process_start_ticks(pid):
@@ -141,17 +150,16 @@ jobs:
                   'TimeoutExpired','OSError','FileNotFoundError','PermissionError'}
               codes={'z03c_sync_state_restore_failed','z03c_owned_backend_stop_failed',
                   'z03c_owned_backend_still_running','z03c_child_process_identity_changed',
-                  'z03c_clock_executor_source_changed','z03c_clock_restore_skew'}
+                  'z03c_clock_executor_source_changed','z03c_clock_restore_skew',
+                  'z03c_trusted_normal_reference_skew','z03c_trusted_normal_reference_date_invalid'}
               code=str(error) if type(error) is RuntimeError and str(error) in codes else None
               exit_code=error.returncode if isinstance(error,subprocess.CalledProcessError) else None
               exit_code=exit_code if type(exit_code) is int and -255<=exit_code<=255 else None
-              http_status=error.code if isinstance(error,urllib.error.HTTPError) else None
-              http_status=http_status if type(http_status) is int and 100<=http_status<=599 else None
               summary={'code':'z03c_restoration_qualification_failed',
                   'stage':stage if stage in {'LOCAL_RESTORE','TRUSTED_NORMAL_REFERENCE'} else 'UNKNOWN_RESTORATION_STAGE',
                   'normal_clock_observed':True,'restoration_verified':False,
                   'error':{'class':type(error).__name__ if type(error).__name__ in classes else 'OtherError',
-                      'code':code,'exit_code':exit_code,'http_status':http_status}}
+                      'code':code,'exit_code':exit_code,'http_status':None,**trusted_reference_http_details(error)}}
               sys.stderr.write(json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n');sys.stderr.flush()
           def emit_sync_failure_summary(observations):
               # Called ONLY after a fresh actual normal-clock qualification. No raw
@@ -198,14 +206,52 @@ jobs:
                   emit_sync_failure_summary(observations)
                   raise RuntimeError('z03c_sync_state_restore_failed')
               return observations['last'],normal
+          class TrustedReferenceNoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  return None
           def trusted_reference():
-              # Ordinary-clock only. No GitHub/dependency/OIDC/cloud request is
-              # initiated by the controlled work while its clock is advanced.
-              request=urllib.request.Request('https://api.github.com/?gridex_z03c_clock_nonce='+os.urandom(16).hex(),method='HEAD',headers={'User-Agent':'gridex-z03c-clock-qualification','Cache-Control':'no-cache, no-store','Pragma':'no-cache'})
-              with urllib.request.urlopen(request,timeout=15) as response:
-                  stamp=email.utils.parsedate_to_datetime(response.headers['Date']).timestamp()
-              if abs(time.time()-stamp)>30: raise RuntimeError('z03c_trusted_normal_reference_skew')
-              return stamp
+              # This admission/restoration reference is used only at ordinary time.
+              # Keep one monotonic budget and obtain a fresh origin response each time.
+              deadline=time.monotonic()+15
+              opener=urllib.request.build_opener(TrustedReferenceNoRedirect())
+              for attempt in range(1,4):
+                  remaining=deadline-time.monotonic()
+                  if remaining<=0:raise TimeoutError()
+                  request=urllib.request.Request('https://api.github.com/?gridex_z03c_clock_nonce='+os.urandom(16).hex(),method='HEAD',headers={'User-Agent':'gridex-z03c-clock-qualification','Cache-Control':'no-cache, no-store','Pragma':'no-cache'})
+                  try:
+                      with opener.open(request,timeout=remaining) as response:
+                          date_header=response.headers.get('Date')
+                  except urllib.error.HTTPError as error:
+                      error.z03c_reference_attempts=attempt
+                      try:
+                          if error.code not in {408,429,500,502,503,504} or attempt==3:raise
+                          delay=attempt
+                          retry_after=error.headers.get('Retry-After') if error.headers is not None else None
+                          if retry_after is not None:
+                              retry_after=retry_after.strip()
+                              try:
+                                  if retry_after.isascii() and retry_after.isdecimal():
+                                      delay=max(delay,float(retry_after))
+                                  else:
+                                      retry_at=email.utils.parsedate_to_datetime(retry_after)
+                                      if retry_at.tzinfo is None:raise ValueError()
+                                      delay=max(delay,retry_at.timestamp()-time.time())
+                              except (TypeError,ValueError,OverflowError):
+                                  raise error from None
+                          if delay>=deadline-time.monotonic():raise
+                      finally:
+                          error.close()
+                      time.sleep(delay)
+                      continue
+                  if time.monotonic()>=deadline:raise TimeoutError()
+                  try:
+                      stamp_date=email.utils.parsedate_to_datetime(date_header)
+                      if stamp_date.tzinfo is None:raise ValueError()
+                      stamp=stamp_date.timestamp()
+                  except (TypeError,ValueError,OverflowError):
+                      raise RuntimeError('z03c_trusted_normal_reference_date_invalid') from None
+                  if abs(time.time()-stamp)>30:raise RuntimeError('z03c_trusted_normal_reference_skew')
+                  return stamp
           def stop_owned_work(state):
               pid=state.get('owned_child_pgid')
               if pid:

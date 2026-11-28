@@ -5,22 +5,28 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { getCustomers } from '@/lib/customers/getCustomers'
-import { supabaseService } from '@/lib/supabase/service'
-import type { CustomerSiteRow } from '@/lib/masterdata/types'
-import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
-import type { CustomerContractRow } from '@/lib/customer-contracts/types'
-import { isCancelledSupplierSwitchStatus } from '@/lib/operations/controlTower'
+import { formatAdminDate } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
-// Segment matching only needs these columns; selecting them (instead of *) keeps
-// this page cheap even for tenants with large contract/site/switch volumes.
-type SegmentContractRow = Pick<CustomerContractRow, 'customer_id' | 'status'>
-type SegmentSiteRow = Pick<CustomerSiteRow, 'customer_id' | 'status'>
-type SegmentSwitchRow = Pick<SupplierSwitchRequestRow, 'customer_id' | 'status' | 'request_type'>
+const PAGE_SIZE = 50
 
-const SEGMENT_RELATED_ROW_LIMIT = 5000
+type SegmentCustomer = {
+ id: string
+ company_id: string
+ full_name: string | null
+ company_name: string | null
+ first_name: string | null
+ last_name: string | null
+ customer_number: string | null
+ customer_type: string | null
+ status: string | null
+ email: string | null
+ phone: string | null
+ created_at: string | null
+ site_count: number
+ active_site_count: number
+}
 
 type SegmentKey = 'all' | 'signed' | 'pending_activation' | 'move' | 'switch'
 
@@ -28,6 +34,7 @@ type PageProps = {
  searchParams: Promise<{
  q?: string
  segment?: string
+ page?: string
  }>
 }
 
@@ -39,7 +46,7 @@ function normalizeSegment(value: string | undefined): SegmentKey {
  return 'all'
 }
 
-function customerName(customer: Awaited<ReturnType<typeof getCustomers>>[number]): string {
+function customerName(customer: SegmentCustomer): string {
  const combinedName = [customer.first_name, customer.last_name]
  .filter(Boolean)
  .join(' ')
@@ -58,82 +65,25 @@ function customerTypeLabel(value: string | null): string {
  return 'Privat'
 }
 
-function buildHref(segment: SegmentKey, q: string): string {
+function buildHref(segment: SegmentKey, q: string, page = 1): string {
  const params = new URLSearchParams()
  if (segment !== 'all') params.set('segment', segment)
  if (q) params.set('q', q)
+ if (page > 1) params.set('page', String(page))
  return `/admin/customers/segments${params.toString() ? `?${params.toString()}` : ''}`
 }
 
-function getSiteStatus(site: SegmentSiteRow): string | null {
- return typeof site.status === 'string' ? site.status : null
-}
+type SegmentRead = { rows: SegmentCustomer[]; counts: Record<SegmentKey, number>; page: number }
 
-function isPendingActivationSiteStatus(status: string | null): boolean {
- return status === 'pending_activation' || status === 'pending_move'
-}
-
-function matchesSegment(params: {
- segment: SegmentKey
- customerId: string
- contracts: SegmentContractRow[]
- sites: SegmentSiteRow[]
- switchRequests: SegmentSwitchRow[]
-}): boolean {
- const { segment, customerId, contracts, sites, switchRequests } = params
-
- if (segment === 'all') return true
-
- const customerContracts = contracts.filter((row) => row.customer_id === customerId)
- const customerSites = sites.filter((row) => row.customer_id === customerId)
- const customerSwitches = switchRequests.filter((row) => row.customer_id === customerId)
-
- if (segment === 'signed') {
- return customerContracts.some((row) => ['signed', 'active'].includes(row.status))
- }
-
- if (segment === 'pending_activation') {
- return (
- customerContracts.some((row) => ['pending_signature', 'signed'].includes(row.status)) ||
- customerSites.some((row) => isPendingActivationSiteStatus(getSiteStatus(row)))
- )
- }
-
- if (segment === 'move') {
- return customerSwitches.some(
- (row) =>
- ['move_in', 'move_out_takeover'].includes(row.request_type) &&
- !['completed', 'failed', 'rejected'].includes(row.status) && !isCancelledSupplierSwitchStatus(row.status)
- )
- }
-
- if (segment === 'switch') {
- return customerSwitches.some(
- (row) =>
- row.request_type === 'switch' &&
- !['completed', 'failed', 'rejected'].includes(row.status) && !isCancelledSupplierSwitchStatus(row.status)
- )
- }
-
- return true
-}
-
-function countForSegment(
- segment: SegmentKey,
- customerIds: string[],
- contracts: SegmentContractRow[],
- sites: SegmentSiteRow[],
- switchRequests: SegmentSwitchRow[]
-): number {
- return customerIds.filter((customerId) =>
- matchesSegment({
- segment,
- customerId,
- contracts,
- sites,
- switchRequests,
- })
- ).length
+function validRead(value: unknown, companyId: string | null, segment: SegmentKey): value is SegmentRead {
+ if (!value || typeof value !== 'object') return false
+ const { rows, counts, page } = value as SegmentRead
+ if (!Array.isArray(rows) || !counts || !Number.isSafeInteger(page) || page < 1) return false
+ const keys = ['all', 'signed', 'pending_activation', 'move', 'switch'] as const
+ if (!keys.every(key => Number.isSafeInteger(counts[key]) && counts[key] >= 0 && counts[key] <= counts.all)) return false
+ const remaining = counts[segment] - (page - 1) * PAGE_SIZE
+ return (remaining > 0 || (page === 1 && remaining === 0)) && rows.length === Math.min(PAGE_SIZE, remaining)
+   && rows.every(row => row && typeof row.id === 'string' && typeof row.company_id === 'string' && (!companyId || row.company_id === companyId))
 }
 
 export default async function CustomerSegmentsPage({ searchParams }: PageProps) {
@@ -147,84 +97,32 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  const query = (resolvedSearchParams.q ?? '').trim()
  const segment = normalizeSegment(resolvedSearchParams.segment)
 
- const customers = await getCustomers({
-  query,
-  companyId: tenantScope.isPlatformAdmin ? null : tenantScope.companyId,
+ const requestedPage = Number(resolvedSearchParams.page ?? '1')
+ const pageNumber = Number.isSafeInteger(requestedPage) && requestedPage >= 1 && requestedPage <= 1_000_000 ? requestedPage : 1
+ const supabase = await createSupabaseServerClient()
+ const result = await supabase.rpc('gridex_customer_segments_page_v1', {
+  p_company_id: tenantScope.companyId,
+  p_query: query,
+  p_segment: segment,
+  p_page: pageNumber,
+  p_page_size: PAGE_SIZE,
  })
- const customerIds = customers.map((customer) => customer.id)
-
- const [
- { data: contracts, error: contractsError },
- { data: sites, error: sitesError },
- { data: switchRequests, error: switchError },
- supabase,
- ] = await Promise.all([
- customerIds.length > 0
- ? supabaseService
- .from('customer_contracts')
- .select('customer_id,status')
- .in('customer_id', customerIds)
- .limit(SEGMENT_RELATED_ROW_LIMIT)
- : Promise.resolve({ data: [], error: null }),
- customerIds.length > 0
- ? supabaseService
- .from('customer_sites')
- .select('customer_id,status')
- .in('customer_id', customerIds)
- .limit(SEGMENT_RELATED_ROW_LIMIT)
- : Promise.resolve({ data: [], error: null }),
- customerIds.length > 0
- ? supabaseService
- .from('supplier_switch_requests')
- .select('customer_id,status,request_type')
- .in('customer_id', customerIds)
- .limit(SEGMENT_RELATED_ROW_LIMIT)
- : Promise.resolve({ data: [], error: null }),
- createSupabaseServerClient(),
- ])
-
- if (contractsError) throw contractsError
- if (sitesError) throw sitesError
- if (switchError) throw switchError
-
- const {
- data: { user },
- } = await supabase.auth.getUser()
-
- const typedContracts = (contracts ?? []) as SegmentContractRow[]
- const typedSites = (sites ?? []) as SegmentSiteRow[]
- const typedSwitches = (switchRequests ?? []) as SegmentSwitchRow[]
-
- const filteredCustomers = customers.filter((customer) =>
- matchesSegment({
- segment,
- customerId: customer.id,
- contracts: typedContracts,
- sites: typedSites,
- switchRequests: typedSwitches,
- })
- )
-
- const counts = {
- all: customers.length,
- signed: countForSegment('signed', customerIds, typedContracts, typedSites, typedSwitches),
- pending_activation: countForSegment(
- 'pending_activation',
- customerIds,
- typedContracts,
- typedSites,
- typedSwitches
- ),
- move: countForSegment('move', customerIds, typedContracts, typedSites, typedSwitches),
- switch: countForSegment('switch', customerIds, typedContracts, typedSites, typedSwitches),
+ if (result.error || !validRead(result.data, tenantScope.companyId, segment)) {
+  return <main className="p-6" role="alert"><h1>Kundsegmenten kunde inte läsas</h1>
+   <Link href={buildHref(segment, query)}>Läs kundsegmenten igen</Link>
+  </main>
  }
+
+ const { rows: filteredCustomers, counts, page } = result.data
+ const total = counts[segment]
+ const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
  return (
  <div className="min-h-screen">
  <AdminHeader
  title="Kundsegment"
- subtitle="Separata vyer för signerat, väntar aktiv, flytt och byte."
- userEmail={user?.email ?? null}
+ subtitle="Signerade avtal, väntande aktivering, flytt och leverantörsbyten."
+ userEmail={access.email}
  />
 
  <div className="space-y-6 p-8">
@@ -245,14 +143,16 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <form className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+ {segment !== 'all' ? <input type="hidden" name="segment" value={segment} /> : null}
  <div className="flex-1">
- <label className="mb-2 block text-sm font-medium text-slate-700 ">
+ <label htmlFor="segment-search" className="mb-2 block text-sm font-medium text-slate-700 ">
  Sök kund
  </label>
  <input
+ id="segment-search"
  name="q"
  defaultValue={query}
- placeholder="Namn, e-post, org.nr, anläggning, adress, mätpunkts-id..."
+ placeholder="Namn, kundnummer, e-post, telefon, person- eller organisationsnummer"
  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm "
  />
  </div>
@@ -304,7 +204,7 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  Resultat
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- {filteredCustomers.length} kunder i vald segmentvy.
+ {total} kunder i vald segmentvy.
  </p>
  </div>
 
@@ -346,9 +246,7 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  </div>
  </td>
  <td className="px-6 py-4">
- {new Intl.DateTimeFormat('sv-SE', {
- dateStyle: 'medium',
- }).format(new Date(customer.created_at))}
+ {formatAdminDate(customer.created_at)}
  </td>
  <td className="px-6 py-4">
  <Link
@@ -374,6 +272,11 @@ export default async function CustomerSegmentsPage({ searchParams }: PageProps) 
  </tbody>
  </table>
  </div>
+ {pages > 1 ? <nav aria-label="Sidor i kundsegmentet" className="flex flex-wrap items-center gap-4 border-t border-slate-200 p-4 text-sm">
+  {page > 1 ? <Link className="font-semibold underline" href={buildHref(segment, query, page - 1)}>Föregående sida</Link> : null}
+  <span>Sida {page} av {pages}</span>
+  {page < pages ? <Link className="font-semibold underline" href={buildHref(segment, query, page + 1)}>Nästa sida</Link> : null}
+ </nav> : null}
  </section>
  </div>
  </div>

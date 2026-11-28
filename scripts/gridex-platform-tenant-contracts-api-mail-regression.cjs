@@ -42,8 +42,11 @@ contains('app/admin/platform/api-clients/CreateApiClientForm.tsx', /INTEGRATION_
 contains('app/admin/platform/api-clients/actions.ts', /permission_groups/, 'API-klienter sparar behörighetsgrupper')
 contains('app/admin/platform/api-clients/actions.ts', /updateIntegrationApiClientPermissionsAction/, 'Superadmin kan ändra API-behörigheter utan kodändring')
 
-contains('lib/website/publicContracts.ts', /public_price_text[\s\S]*mix/, 'Publik avtals-API skickar pristext och mix')
-const publicContracts = read('lib/website/publicContracts.ts')
+contains('app/api/v1/website/public-contracts/route.ts', /import\s*\{[^}]*\bpublicContractResponse\b[^}]*\}\s*from ['"]@\/lib\/website\/publicContracts['"]/, 'Publik avtals-API importerar sin kontraktsadapter')
+contains('app/api/v1/website/public-contracts/route.ts', /mapContractPublicationToPublicDto\(\{\s*publication:\s*publicContractResponse\(offer\)/, 'Publik avtals-API skickar adapterns kontrakt genom publik DTO')
+contains('lib/website/publicContracts.ts', /export \{[^}]*\bpublicContractResponse\b[^}]*\} from ['"]\.\/publicContracts\.part-2['"]/, 'Kontraktsfasaden exporterar den aktiva adaptern')
+const publicContracts = read('lib/website/publicContracts.part-2.ts')
+assert(/public_price_text:\s*publicPriceText[\s\S]*mix:\s*\{/.test(publicContracts), 'Publik avtals-API skickar pristext och mix')
 assert(/offer_reference:\s*offerReference/.test(publicContracts), 'Publik avtals-API exponerar opak offer_reference')
 assert(/contract_offer_id:\s*offerReference/.test(publicContracts), 'Legacy contract_offer_id i publik avtals-API är opak referens')
 assert(!/price_plan_id:\s*offer\.price_plan_id/.test(publicContracts), 'Publik avtals-API exponerar inte intern price_plan_id')

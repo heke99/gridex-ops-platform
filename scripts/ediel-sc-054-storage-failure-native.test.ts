@@ -62,7 +62,9 @@ async function seed(requestedEdielId: string) {
      AND NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text); COMMIT;`)
   vi.stubEnv('EDIEL_SMTP_FROM','native-sc054@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','native-sc054@example.invalid');vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_SMTP_HOST','smtp.example.invalid');vi.stubEnv('EDIEL_SMTP_PORT','587');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
   const ids = { company: randomUUID(), actor: randomUUID(), route: randomUUID(), profile: randomUUID(),
-    customer: randomUUID(), site: randomUUID(), point: randomUUID(), grid: randomUUID(), request: randomUUID() }
+    customer: randomUUID(), site: randomUUID(), point: randomUUID(), grid: randomUUID(), permission: randomUUID() }
+  // The original E66 has no E73 reference. Give it a current permission for
+  // the exact point before recording reception, as in the ordinary R4 path.
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(ids.company)},'Synthetic native SC054','active');
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
       VALUES(${literal(ids.actor)},'authenticated','authenticated',${literal(`sc054-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
@@ -80,7 +82,8 @@ async function seed(requestedEdielId: string) {
     INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(ids.grid)},${literal(ids.company)},${literal(ids.grid)},${literal(issuer)},'test',true,'active');
     INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${literal(ids.site)},${literal(ids.company)},${literal(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${literal(ids.grid)});
     INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${literal(ids.point)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},'735999260731000007','735999260731000007',${literal(ids.grid)});
-    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
+    INSERT INTO public.metering_permissions(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,status)
+      VALUES(${literal(ids.permission)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'active');`)
   registerUtiltsIssuer(sql, literal, issuer, ids.actor)
   const receptionActor = await decisionUser(ids.company, ['communication.send'], randomUUID() + 'Aa1!')
   const insertSource = async (transactions: UtiltsAckFixtureTransaction[]) => {
@@ -89,8 +92,8 @@ async function seed(requestedEdielId: string) {
     const { id, raw, parsed } = utiltsNativeSourceFixture(physical, randomUUID())
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: ids.company, environment: 'test', raw, parsed,
       receivedAt: RECEIVED_AT, smtpFrom: 'native-sc054@example.invalid', senderEmail: 'counterparty@example.invalid' })
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
-      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}',${literal(RECEIVED_AT)},'{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}',${literal(RECEIVED_AT)},'{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     await recordOriginalMailboxNativeReception({ ...mail, companyId: ids.company, sourceMessageId: id, actorUserId: receptionActor.id })
@@ -202,6 +205,10 @@ it('SC-054 a correct UTILTS transaction whose persist transaction fails yields n
 
   // Contrast: with the fault removed, replay of the same source persists and binds the positive APERAK.
   await processInboundEdielMessage({ actorUserId: own.ids.actor, edielMessageId: source.id })
+  expect(await database.getEdielMessageById(source.id)).toMatchObject({
+    grid_owner_data_request_id: null,
+    parsed_payload: { matchedMeteringPermissionId: own.ids.permission },
+  })
   const recovered = state(own.ids.company, source.id)
   expect(recovered.series).toEqual([{ id: expect.any(String), transaction: reference }])
   expect(recovered.values).toBeGreaterThan(0)

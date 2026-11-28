@@ -5,6 +5,7 @@ import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import BillingExportQueueForm from '@/components/admin/outbound/BillingExportQueueForm'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
@@ -15,6 +16,7 @@ import {
  listOutboundRequests,
 } from '@/lib/cis/db'
 import { updateOutboundRequestStatusAction } from '@/app/admin/cis/actions'
+import { ManualOutboundDeliveryForm, manualOutboundDeliveryTarget } from '@/components/admin/outbound/ManualOutboundDeliveryForm'
 import {
  bulkQueueReadyBillingExportsAction,
  runOperationsAutomationSweepAction,
@@ -31,6 +33,7 @@ type PageProps = {
  requestType?: string
  channelType?: string
  q?: string
+ requestId?: string
  }>
 }
 
@@ -170,6 +173,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  const requestType = (params.requestType ?? 'all').trim()
  const channelType = (params.channelType ?? 'all').trim()
  const query = (params.q ?? '').trim()
+ const exactRequestId = params.requestId === undefined ? undefined : typeof params.requestId === 'string' ? params.requestId.trim() : ''
 
  const supabase = await createSupabaseServerClient()
 
@@ -179,6 +183,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  requestType,
  channelType,
  query,
+ exactRequestId,
  companyId,
  }),
  listAllBillingUnderlays({ status: 'all', query: '', companyId }),
@@ -218,7 +223,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
        </form>
        <div className="flex flex-wrap gap-3">
          {canSweep ? <form action={runAutomationSweepFormAction}><button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Kör automatisk kontroll</button></form> : null}
-         {canQueueBilling ? <form action={queueReadyBillingExportsFormAction}><button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Förbered fakturaexporter</button></form> : null}
+         {canQueueBilling ? <BillingExportQueueForm action={queueReadyBillingExportsFormAction} /> : null}
        </div>
        <p className="text-sm text-slate-600">{requests.length} utskick i det inlästa urvalet. Meddelandets status gäller utskicket. Följ kundärendet för dess fortsatta handläggning.</p>
        {requests.length ? <div role="region" aria-label="Kundernas utskick" tabIndex={0} className="max-h-[68vh] min-w-0 space-y-3 overflow-y-auto rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
@@ -227,7 +232,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
            const canHandle = canUpdate && writableCompanies.get(request.company_id ?? companyId ?? '')
            const nextStep = request.status === 'cancelled' ? 'Utskicket är avbrutet.' : request.status === 'acknowledged' ? 'Meddelandet är kvitterat. Kontrollera kundärendet för nästa steg.' : request.status === 'failed' ? 'Utskicket behöver granskas. Kontrollera ärendet innan ett nytt försök.' : request.channel_type === 'unresolved' ? 'Mottagarens kontaktväg behöver kontrolleras innan utskick.' : request.status === 'sent' ? 'Utskicket är markerat som skickat. Följ ärendet för mottagarens bekräftelse och svar.' : 'Inväntar utskick. Följ ärendet för nästa steg.'
            const quickAction = (nextStatus: string, step: string, text: string) => <form action={updateOutboundRequestStatusAction}>
-             <input type="hidden" name="outbound_request_id" value={request.id} /><input type="hidden" name="customer_id" value={request.customer_id} /><input type="hidden" name="status" value={nextStatus} /><input type="hidden" name="dispatch_step" value={step} />
+             <input type="hidden" name="outbound_request_id" value={request.id} /><input type="hidden" name="customer_id" value={request.customer_id} /><input type="hidden" name="original_status" value={request.status} /><input type="hidden" name="status" value={nextStatus} /><input type="hidden" name="dispatch_step" value={step} />
              {step === 'fail' ? <input type="hidden" name="failure_reason" value="Utskicket markerades som misslyckat av handläggare." /> : null}
              <button className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold">{text}</button>
            </form>
@@ -238,7 +243,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
              {request.external_reference ? <p className="break-all text-sm">Referens: {request.external_reference}</p> : null}
              <p className="text-sm text-slate-700">{nextStep}</p>
              <div className="flex flex-wrap gap-3">{detail ? <Link href={detail.href} className="text-sm font-semibold underline">{detail.text}</Link> : null}{canReadCustomers ? <Link href={`/admin/customers/${request.customer_id}`} className="text-sm font-semibold underline">Öppna kundkort</Link> : null}</div>
-             {canHandle && ['queued', 'prepared', 'sent'].includes(request.status) ? <details className="rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold">Hantera utskick</summary><div className="mt-3 flex flex-wrap gap-3">{request.status === 'queued' ? quickAction('prepared', 'prepare', 'Förbered utskick') : null}{['queued', 'prepared'].includes(request.status) ? quickAction('sent', 'send', 'Markera som skickat') : null}{request.status === 'sent' ? quickAction('acknowledged', 'ack', 'Markera som kvitterat') : null}{quickAction('failed', 'fail', 'Markera som misslyckat')}</div></details> : null}
+             {canHandle && (['queued', 'prepared', 'sent'].includes(request.status) || manualOutboundDeliveryTarget(request)) ? <details className="rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold">Hantera utskick</summary><div className="mt-3 flex flex-wrap gap-3">{request.status === 'queued' ? quickAction('prepared', 'prepare', 'Förbered utskick') : null}{request.status !== 'failed' ? quickAction('failed', 'fail', 'Markera som misslyckat') : null}<ManualOutboundDeliveryForm request={request} action={updateOutboundRequestStatusAction} /></div></details> : null}
            </article>
          })}
        </div> : <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-600">Inga utskick matchar urvalet.</p>}
@@ -286,19 +291,6 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  const queuedRequests = requests.filter((request) =>
  ['queued', 'prepared'].includes(request.status)
  )
- const automationReadyRequests = requests.filter(
- (request) =>
- ['queued', 'prepared', 'failed'].includes(request.status) &&
- request.channel_type !== 'unresolved'
- )
- const autoAckCandidates = requests.filter(
- (request) =>
- request.status === 'sent' &&
- ['email_manual', 'file_export'].includes(request.channel_type)
- )
- const retryableMisslyckadRequests = failedRequests.filter(
- (request) => request.attempts_count < 3
- )
  const switchOutboundRequests = requests.filter(
  (request) => request.request_type === 'supplier_switch'
  )
@@ -336,7 +328,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <div className="min-h-screen">
  <AdminHeader
  title="Outbound queue"
- subtitle="Extern orkestrering för switch, mätvärden, billing-underlag och partner-handoff. Automation sweep kan nu lösa route, återköa efter cooldown, auto-förbereda, auto-skicka och auto-kvittera interna kanaler."
+ subtitle="Följ utskick för leverantörsbyten, mätvärden, fakturaunderlag och överlämning till partner. Den automatiska kontrollen söker kommunikationsväg för olösta utskick."
  userEmail={context.email}
  />
 
@@ -392,42 +384,6 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </section>
 
  <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
- <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
- <div className="text-sm font-medium text-slate-700 ">
- Automation-klara
- </div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {automationReadyRequests.length}
- </div>
- <div className="mt-2 text-sm text-slate-700 ">
- Köade/förberedda/failade requests som sweepen kan försöka driva vidare.
- </div>
- </div>
-
- <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
- <div className="text-sm font-medium text-slate-700 ">
- Auto-ack kandidater
- </div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {autoAckCandidates.length}
- </div>
- <div className="mt-2 text-sm text-slate-700 ">
- Skickad-requests på interna/manuella kanaler som sweepen kan kvittera.
- </div>
- </div>
-
- <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
- <div className="text-sm font-medium text-slate-700 ">
- Retrybara dispatch-fel
- </div>
- <div className="mt-1 text-2xl font-semibold text-slate-950 ">
- {retryableMisslyckadRequests.length}
- </div>
- <div className="mt-2 text-sm text-slate-700 ">
- Misslyckad requests som fortfarande ligger under retry-taket.
- </div>
- </div>
-
  <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Switch utan outbound
@@ -501,8 +457,6 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <option value="all">Alla statusar</option>
  <option value="queued">Köad</option>
  <option value="prepared">Förberedd</option>
- <option value="sent">Skickad</option>
- <option value="acknowledged">Kvitterad</option>
  <option value="failed">Misslyckad</option>
  <option value="cancelled">Avbruten</option>
  </select>
@@ -553,11 +507,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </button>
  </form> : null}
 
- {canQueueBilling ? <form action={queueReadyBillingExportsFormAction}>
- <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
- Förbered fakturaexporter
- </button>
- </form> : null}
+ {canQueueBilling ? <BillingExportQueueForm action={queueReadyBillingExportsFormAction} /> : null}
  </div>
  </div>
 
@@ -747,19 +697,14 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  {request.status === 'sent' ? (
  <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ">
- {['email_manual', 'file_export'].includes(request.channel_type)
- ? 'Den här requesten kan auto-kvitteras av sweepen eftersom kanalen är intern/manuell.'
- : 'Den här requesten väntar på extern återkoppling.'}
+ Utskicket väntar på bekräftelse från mottagaren.
  </div>
  ) : null}
 
  {request.status === 'failed' ? (
  <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ">
  {request.failure_reason ??
- 'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
- {request.attempts_count < 3
- ? 'Den automatiska omkörningen kan köa den igen efter en väntetid.'
- : 'Retry-taket är uppnått och kräver manuell insats.'}
+ 'Utskicket misslyckades och behöver granskas före ett nytt försök.'}
  </div>
  ) : null}
  </div>
@@ -770,6 +715,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <form action={updateOutboundRequestStatusAction}>
  <input type="hidden" name="outbound_request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={request.status} />
  <input type="hidden" name="status" value="prepared" />
  <input type="hidden" name="dispatch_step" value="prepare" />
  <button className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
@@ -778,34 +724,13 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </form>
  ) : null}
 
- {['queued', 'prepared'].includes(request.status) ? (
- <form action={updateOutboundRequestStatusAction}>
- <input type="hidden" name="outbound_request_id" value={request.id} />
- <input type="hidden" name="customer_id" value={request.customer_id} />
- <input type="hidden" name="status" value="sent" />
- <input type="hidden" name="dispatch_step" value="send" />
- <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
- Markera som skickad
- </button>
- </form>
- ) : null}
-
- {request.status === 'sent' ? (
- <form action={updateOutboundRequestStatusAction}>
- <input type="hidden" name="outbound_request_id" value={request.id} />
- <input type="hidden" name="customer_id" value={request.customer_id} />
- <input type="hidden" name="status" value="acknowledged" />
- <input type="hidden" name="dispatch_step" value="ack" />
- <button className="w-full rounded-2xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 ">
- Markera som kvitterad
- </button>
- </form>
- ) : null}
+ <ManualOutboundDeliveryForm request={request} action={updateOutboundRequestStatusAction} linkedOriginal={Boolean(linkedMessage)} />
 
  {['queued', 'prepared', 'sent'].includes(request.status) ? (
  <form action={updateOutboundRequestStatusAction}>
  <input type="hidden" name="outbound_request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
+ <input type="hidden" name="original_status" value={request.status} />
  <input type="hidden" name="status" value="failed" />
  <input
  type="hidden"
@@ -836,11 +761,18 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  />
 
  <div className="mt-4 grid gap-3">
+ <input type="hidden" name="original_status" value={request.status} />
+ <input type="hidden" name="original_external_reference" value={request.external_reference ?? ''} />
+ <input type="hidden" name="original_failure_reason" value={request.failure_reason ?? ''} />
+ <input type="hidden" name="original_response_payload_note" value="" />
  <select
  name="status" aria-label="Status"
  defaultValue={request.status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
+ {!['queued', 'prepared', 'failed', 'cancelled'].includes(request.status) ? (
+ <option value={request.status}>Behåll aktuell status</option>
+ ) : null}
  <option value="queued">Köad</option>
  <option value="prepared">Förberedd</option>
  <option value="sent">Skickad</option>
@@ -957,7 +889,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  Köad / Förberedd
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
- {queuedRequests.length} requests väntar på att dispatchas eller auto-förberedas.
+ {queuedRequests.length} utskick väntar på förberedelse eller sändning.
  </div>
  </div>
 
@@ -966,7 +898,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  Skickad
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
- {waitingResponseRequests.length} requests väntar på extern återkoppling eller auto-ack.
+ {waitingResponseRequests.length} utskick väntar på mottagarens bekräftelse.
  </div>
  </div>
 

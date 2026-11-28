@@ -5,7 +5,6 @@ vi.mock('@/lib/billing/invoiceApprovedDispatch', () => ({
   approval: () => ({}),
   assertItemStillReady: vi.fn(),
   loadItemContext: vi.fn(),
-  maybeLockCompleteMonth: vi.fn(),
   updateLegacyProjection: vi.fn(),
 }))
 import { buildInvoiceFileRow, monthsRemaining, parseInvoiceFileFormat, renderInvoiceFile, type InvoiceFileRow } from '@/lib/billing/invoiceFileExport'
@@ -103,6 +102,13 @@ describe('Nordfin invoice XML', () => {
     expect(out).toContain('<OrganizationNumber>5566778899</OrganizationNumber>')
   })
 
+  it('keeps an explicit paper choice even when the row also carries an email', () => {
+    const out = renderNordfinInvoiceXml([row({ delivery_method: 'paper', email: 'retained@example.invalid' })])
+    expect(out).toContain('<Delivery>PRINT</Delivery>')
+    expect(out).toContain('<CustomerEmail />')
+    expect(out).not.toContain('retained@example.invalid')
+  })
+
   it('renders a Nordfin file as XML by default and is deterministic', () => {
     expect(parseInvoiceFileFormat(null, 'nordfin')).toBe('nordfin_xml')
     expect(parseInvoiceFileFormat(null, 'file_export')).toBe('csv')
@@ -174,4 +180,36 @@ describe('Nordfin invoice XML', () => {
     expect(normalizeNordfinClientId('48;DROP')).toBeNull()
     expect(normalizeNordfinClientId('')).toBeNull()
   })
+})
+
+function numberedFileRow(provider: 'file_export' | 'nordfin', invoiceNumber: string | null) {
+  return buildInvoiceFileRow({
+    item: { id: '11111111-1111-4111-8111-111111111111', total_kwh: 100 },
+    invoice: { invoice_number: invoiceNumber, invoice_reference: 'BILLING-2026-10-11111111' },
+    customer: { name: 'Syntetisk kund' },
+    underlay: {},
+    lines: [],
+    legacyItem: null,
+    provider,
+    billingMonth: '2026-10',
+    now: new Date('2026-11-01T12:00:00Z'),
+  })
+}
+
+it.each([null, ' \t ', ' 2026-00042 ', '2026-\r00042'])('refuses a fresh Nordfin row without an exact stored number (%s)', invoiceNumber => {
+  expect(() => numberedFileRow('nordfin', invoiceNumber)).toThrow('Nordfinfilen kräver ett sparat fakturanummer')
+})
+
+it('keeps a saved Nordfin number in new XML and leaves the neutral reference separate', () => {
+  const nordfin = numberedFileRow('nordfin', '2026-00042')
+  expect(nordfin.invoice_number).toBe('2026-00042')
+  expect(renderNordfinInvoiceXml([nordfin])).toContain('<InvoiceNumber>2026-00042</InvoiceNumber>')
+  expect(numberedFileRow('file_export', null)).toMatchObject({
+    invoice_number: null, invoice_reference: 'BILLING-2026-10-11111111',
+  })
+})
+
+it('renders an already saved legacy GX row as stored', () => {
+  expect(renderNordfinInvoiceXml([row({ invoice_number: 'GX-202610-11111111' })]))
+    .toContain('<InvoiceNumber>GX-202610-11111111</InvoiceNumber>')
 })

@@ -55,14 +55,14 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
     { key: 'missing', label: 'Saknad data', value: missingKnown ? String(missing) : '–', hint: missingKnown ? missing ? 'Påverkar säkerheten' : 'Ingen saknad prognosbas i urvalet' : 'Antal saknade prognosbaser kan inte bedömas', status: !missingKnown ? 'info' : missing ? 'warning' : 'ok' },
   ]
 
-  const exportParams = new URLSearchParams({ report: 'forecast_run_items', month: month.slice(0, 7) })
+  const exportParams = new URLSearchParams({ report: 'forecast_run_items', month: month.slice(0, 7), expected_company_id: companyId })
   for (const [key, value] of Object.entries(filters)) if (key !== 'month' && value) exportParams.set(key, value)
 
   return (
     <div className="min-h-screen">
       <AdminHeader title="Prognos" subtitle="Förbruknings- och inköpsprognos per SE-område med synlig säkerhet." userEmail={admin.email} workspaceName={scope.companyName} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
-        <AnalyticsTabs active="forecast" />
+        <AnalyticsTabs active="forecast" month={month} />
         <AnalyticsFilters
           month={month}
           biddingZones={filterOptions.biddingZones}

@@ -52,6 +52,7 @@ export async function prepareAndQueueAiList(params: {
     : null
 
   const environment = await resolveOutboundRuntimeEnvironment({
+    companyId: params.companyId,
     preferredRouteId: params.communicationRouteId ?? null,
     explicitEnvironment: params.environment ?? null,
   })

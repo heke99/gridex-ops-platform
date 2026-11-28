@@ -4,6 +4,7 @@ import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { receivedUtiltsOwnerFixture } from './helpers/utiltsCanonicalOwnerIo'
 
 describe('coherent two-week inbound guide selection', () => {
   it.each(['2026-10-01', '2026-10-14'])('uses a complete preceding package for a guide-valid prior message received %s', date => {
@@ -30,7 +31,7 @@ describe('coherent two-week inbound guide selection', () => {
     })
   })
   it('retains the current guide when only functional object knowledge fails', () => {
-    const message = { ...energyHandoffMessage('2026-10-01'), metering_point_id: null, business_match_status: 'unmatched' }
+    const message = receivedUtiltsOwnerFixture({ ...energyHandoffMessage('2026-10-01'), metering_point_id: null, business_match_status: 'unmatched' })
     const selected = resolveCanonicalMessagePolicy(message)!
     expect(selected.guide.guideRevision).toBe('25-A-5')
     const runtime = runUtiltsRuntimeForMessage(message, { canonicalPolicy: selected })

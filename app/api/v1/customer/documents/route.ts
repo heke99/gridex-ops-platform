@@ -1,4 +1,7 @@
-import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
+import { currentApiResponseProfile, withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
+import { ApiInputError } from '@/lib/api/strictRequest'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -6,7 +9,10 @@ import {
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
-import { listPortalDocumentsPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import {
+  listCompatiblePortalDocuments,
+  portalContextFromResolved, readPortalDocumentReferenceAlias,
+} from '@/lib/customer-portal/apiData'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import {
   publicPageInput,
@@ -16,7 +22,7 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
- async function profiledGET(request: NextRequest) {
+async function profiledGET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_documents.read'])
   if (!context.ok) return context.response
 
@@ -33,35 +39,39 @@ export const dynamic = 'force-dynamic'
       if (request.nextUrl.searchParams.size !== 1 || !/^document_[A-Za-z0-9_-]{32}$/.test(reference)) {
         return customerPortalJson({ error: 'Ogiltig dokumentreferens.', code: 'invalid_document_reference' }, { status: 400 })
       }
-      const deadline = AbortSignal.any([request.signal, AbortSignal.timeout(12000)])
-      const seen = new Set<string>()
-      let cursor: string | null = null
-      for (;;) {
-        deadline.throwIfAborted()
-        const page = await listPortalDocumentsPage(portalContext, { limit: 100, cursor })
-        deadline.throwIfAborted()
-        const matches = page.items.filter(row => publicReference('document', context.client.company_id, row.id) === reference)
-        if (matches.length > 1) throw new Error('Ambiguous customer document reference')
-        if (matches.length === 1) {
-          await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1 })
-          return customerPortalJson({ data: [publicPortalDocument(context.client.company_id, matches[0])] })
-        }
-        if (!page.page.has_more) {
-          return customerPortalJson({ error: 'Dokumentet hittades inte.', code: 'document_not_found' }, { status: 404 })
-        }
-        cursor = page.page.next_cursor
-        if (!cursor || seen.has(cursor)) throw new Error('Incomplete customer document pagination')
-        seen.add(cursor)
+      const alias = await readPortalDocumentReferenceAlias(portalContext, reference)
+      if (alias.kind === 'matched') {
+        await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1 })
+        return customerPortalJson({
+          data: [{ ...publicPortalDocument(context.client.company_id, alias.document), document_reference: reference }],
+        })
       }
+      return customerPortalJson({ error: 'Dokumentet hittades inte.', code: 'document_not_found' }, { status: 404 })
     }
-    const page = await listPortalDocumentsPage(portalContext, publicPageInput(request.nextUrl.searchParams))
+    const profile = currentApiResponseProfile('customer')
+    const page = await listCompatiblePortalDocuments(
+      portalContext,
+      publicPageInput(request.nextUrl.searchParams),
+      !profile || profile.revision === WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    )
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: page.items.length })
     return customerPortalJson({
-      data: page.items.map((row) => publicPortalDocument(context.client.company_id, row)),
+      data: page.items.map(row => ({
+        ...publicPortalDocument(context.client.company_id, row),
+        ...(typeof row.public_reference_source === 'string' ? {
+          document_reference: publicReference('document', context.client.company_id, row.public_reference_source),
+          // A stable metadata identity cannot vouch for a changed physical file.
+          ...(row.public_reference_source !== row.id ? { secure_url: null } : {}),
+        } : {}),
+      })),
       page: page.page,
     })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt,
+      error: error instanceof PortalCursorError
+        ? new ApiInputError(error.message, error.code, error.status, error.field)
+        : error,
+    })
   }
 }
 

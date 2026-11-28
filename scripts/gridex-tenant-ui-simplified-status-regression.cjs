@@ -18,7 +18,8 @@ const card = 'components/admin/customers/CustomerBusinessActionsCard.tsx'
 const tenantView = 'lib/customer-operations/customerCardTenantView.ts'
 const registry = 'lib/customer-operations/customerActionRegistry.ts'
 const customersLib = 'lib/customers/getCustomers.ts'
-const customersPage = 'app/admin/customers/page.tsx'
+const customersRoute = 'app/admin/customers/page.tsx'
+const customersPage = 'app/admin/customers/page.part-2.tsx'
 
 // Tenant timeline wired: tenants get the six-step business view, superadmin
 // keeps the technical chain. Both read the same workflow/snapshot source.
@@ -38,6 +39,7 @@ mustInclude(registry, "hasFacility\n          ? 'Mätpunkt saknas'", 'partial fa
 // Tenant registry hides test customers by default; platform can opt in.
 mustInclude(customersLib, 'excludeTestData?: boolean', 'test data exclusion option exists')
 mustInclude(customersLib, "flag !== 'test_customers'", 'explicit test filter still shows them')
+mustInclude(customersRoute, "export { AdminCustomersPage as default } from './page.part-2'", 'the registry route serves the checked implementation')
 mustInclude(customersPage, 'excludeTestData: !tenantScope.isPlatformAdmin', 'tenant list excludes test rows by default')
 
 if (failures.length > 0) {

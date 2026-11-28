@@ -3,22 +3,25 @@ import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 
 
 
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage, utiltsRuntimeSegments, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from '@/lib/ediel/utilts/timezone'
+import { stockholmDateForInstant, strictIsoDate } from '@/lib/time/stockholm'
+import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent, linkEdielMessage, listEdielTestRuns } from '@/lib/ediel/db'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 
 
-import { findOpenOutboundBySource, syncGridOwnerDataRequestFromOutbound, updateOutboundRequestStatus } from '@/lib/cis/db'
+import { findOpenOutboundBySource, syncGridOwnerDataRequestFromOutbound, applyEdielOutboundProviderStatus } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow, MeteringValueRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 
-import { findMatchingGridOwnerDataRequest, matchMeteringPointForEdielMessage, matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
+import { findE66GridOwnerDataRequest, findMatchingGridOwnerDataRequest, matchMeteringPointForEdielMessage, matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint, type E66RequestReferenceIssue } from '@/lib/ediel/matching'
 import { getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId, type UtiltsTransactionPersistenceResult } from '@/lib/ediel/utilts/transactionPersistence'
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import {physicalUtiltsReference} from '@/lib/ediel/utilts/physicalReference'
 
 export type UtiltsProcessResult = {
@@ -30,6 +33,7 @@ export type UtiltsProcessResult = {
   ingestedMeterValueId?: string | null
   ingestedMeterValueIds?: string[]
   billingUnderlayId?: string | null
+  durableQualificationCommitted?: true
 }
 
 export function ensureJson(value: unknown): Record<string, unknown> {
@@ -467,13 +471,15 @@ export async function markDataRequestOutboundAcknowledged(params: {
   const outbound = candidates.find(Boolean)
   if (!outbound) return null
 
-  const updatedOutbound = await updateOutboundRequestStatus({
+  if (!outbound.company_id) throw new Error('Utskickets bolag saknas för UTILTS-kvittensen.')
+  const updatedOutbound = await applyEdielOutboundProviderStatus({
     actorUserId: params.actorUserId,
+    companyId: outbound.company_id,
     outboundRequestId: outbound.id,
+    gridOwnerRequestId: params.dataRequestId,
     status: 'acknowledged',
-    externalReference: params.externalReference ?? outbound.external_reference ?? null,
-    responsePayload: {
-      ...(ensureJson(outbound.response_payload)),
+    externalReference: params.externalReference,
+    responsePatch: {
       edielMessageId: params.edielMessageId,
       acknowledgedVia: 'inbound_utilts',
       normalizedMeteringPayload: params.normalizedPayload,
@@ -503,8 +509,8 @@ export async function maybeIngestMeteringValue(params: {
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
   boundOutcomes?: readonly UtiltsTransactionPersistenceResult[]
-}): Promise<MeteringValueRow[]> {
-  return ingestBoundUtiltsMetering(params)
+}): Promise<Array<Pick<MeteringValueRow, 'id'>>> {
+  return ingestBoundUtiltsMetering(params, 'ids')
 }
 
 export async function maybeCreateBillingUnderlay(params: {
@@ -874,7 +880,7 @@ export async function matchUtiltsTransactionsForTenant(params: {
     const externalMeteringPointId = stringOrNull(transaction.meterPointId)
     const externalGridAreaId = stringOrNull(transaction.gridAreaId)
     const meteringPointId = externalMeteringPointId
-      ? await matchMeteringPointIdByIdentifier({ companyId, identifiers: [externalMeteringPointId] })
+      ? await matchMeteringPointIdByIdentifier({ companyId, identifiers: [externalMeteringPointId], requireUnique: params.facts.messageCode==='E66' })
       : (transactions.length === 1 ? stringOrNull(params.message.metering_point_id) : null)
     const siteAndCustomer = meteringPointId
       ? await matchSiteAndCustomerForMeteringPoint({ meteringPointId, companyId })
@@ -900,26 +906,134 @@ export function allUtiltsTransactionMeteringPointsMatched(matches: readonly Util
   return relevant.length > 0 && relevant.every((match) => Boolean(match.meteringPointId))
 }
 
+export type SentE73Period = {from: string; until: string}
+
+function readE66DeliveryPeriods(runtime: UtiltsRuntimeResult) {
+  if (runtime.validation.issues.some(issue => issue.code === 'UTILTS_TIMEZONE_INVALID')) return null
+  const timezone = parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(runtime.facts))
+  if (!timezone || runtime.facts.transactions.length === 0) return null
+
+  const periods = runtime.facts.transactions.flatMap(transaction => {
+    if (transaction.deliveryPeriodFormat !== '719') return []
+    const start = localEdifactDateTimeToUtc(transaction.deliveryPeriodStart, timezone)
+    const end = localEdifactDateTimeToUtc(transaction.deliveryPeriodEnd, timezone)
+    return start && end && start < end ? [{start, end}] : []
+  })
+  return periods.length===runtime.facts.transactions.length ? periods : null
+}
+
+async function readE66RequestPeriodMatch(
+  runtime: UtiltsRuntimeResult,
+  request: GridOwnerDataRequestRow,
+  message: EdielMessageRow,
+  actorUserId: string,
+): Promise<{disjoint: boolean; sentPeriod: SentE73Period | null}> {
+  const unresolved = {disjoint: false, sentPeriod: null}
+  if (runtime.facts.messageCode !== 'E66' || !message.company_id) return unresolved
+  const periods = readE66DeliveryPeriods(runtime)
+  if (!periods) return unresolved
+
+  if (request.request_scope === 'meter_values' || request.request_scope === 'billing_underlay') {
+    const {data, error} = await supabaseService.rpc('gridex_read_sent_e73_period_v1', {
+      p_company_id: message.company_id,
+      p_request_id: request.id,
+      p_environment: message.environment,
+      p_actor_user_id: actorUserId,
+    })
+    if (error) throw error
+    if (data != null) {
+      const start = typeof data.requestedFrom === 'string' ? Date.parse(data.requestedFrom) : NaN
+      const end = typeof data.requestedUntil === 'string' ? Date.parse(data.requestedUntil) : NaN
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) throw new Error('ediel_sent_e73_period_invalid')
+      return {
+        sentPeriod: {from: new Date(start).toISOString(), until: new Date(end).toISOString()},
+        disjoint: periods.every(period => Date.parse(period.end) <= start || Date.parse(period.start) >= end),
+      }
+    }
+  }
+
+  if (!request.requested_period_start || !request.requested_period_end) return unresolved
+  let requestStart: string
+  let requestEnd: string
+  try {
+    requestStart = strictIsoDate(request.requested_period_start)
+    requestEnd = strictIsoDate(request.requested_period_end)
+  } catch {
+    // Older stored dates outside the supported calendar prove no contradiction.
+    return unresolved
+  }
+  if (requestEnd < requestStart) return unresolved
+  const disjoint = periods.every(({start, end}) => {
+    // The stored end date can include the entire day. The measured interval is end-exclusive.
+    const firstReadDate = stockholmDateForInstant(start)
+    const lastReadDate = stockholmDateForInstant(new Date(Date.parse(end) - 1))
+    return lastReadDate < requestStart || firstReadDate > requestEnd
+  })
+  return {disjoint, sentPeriod: null}
+}
+
+export type E66RequestCorrelationReview = {
+  reason: E66RequestReferenceIssue
+  requestReference: string | null
+  pointReference: string | null
+  periodFrom: string | null
+  periodUntil: string | null
+}
+
+function readOriginalE66RequestReferences(message: EdielMessageRow) {
+  const {segments, una} = tokenizeEdifact(message.raw_payload ?? '')
+  const transaction = segments.findIndex(segment => segment.tag === 'IDE')
+  if (transaction<0) return []
+  return [...new Set(segments.slice(0, transaction).flatMap(segment => {
+    if (segment.tag!=='RFF') return []
+    const [qualifier, value] = segmentComposite(segment,1,una)
+    return qualifier==='ACW' && value && value.length<=70 ? [value] : []
+  }))]
+}
+
 export async function linkInboundUtiltsMessageCanonically(params: {
   actorUserId: string
   message: EdielMessageRow
   transactionMatches?: readonly UtiltsTransactionMatch[]
+  provisionalRuntime?: UtiltsRuntimeResult
+  persistSourceLink?: boolean
 }) {
-  const transactionMeteringPointId = params.transactionMatches?.find((match) => match.meteringPointId)?.meteringPointId ?? null
-  const meteringPointId = await matchMeteringPointForEdielMessage(params.message) ?? transactionMeteringPointId
-  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({
-    meteringPointId,
-    companyId: params.message.company_id ?? null,
-  })
-  // Give the correlator the point resolved here so a reference hit naming
-  // another point is not bound (U-19).
-  const matchedDataRequest = await findMatchingGridOwnerDataRequest(
-    meteringPointId && !params.message.metering_point_id
-      ? { ...params.message, metering_point_id: meteringPointId }
-      : params.message,
+  const {message, provisionalRuntime} = params
+  const isE66 = provisionalRuntime?.facts.messageCode==='E66' && Boolean(message.company_id)
+  const physicalMatches = params.transactionMatches?.filter(match => match.externalMeteringPointId) ?? []
+  const physicalPoints = new Set(physicalMatches.map(match => match.meteringPointId))
+  const exactPoint = physicalMatches.length && physicalPoints.size===1 ? physicalMatches[0].meteringPointId : null
+  const transactionMeteringPointId = params.transactionMatches?.find(match => match.meteringPointId)?.meteringPointId ?? null
+  const meteringPointId = isE66 ? exactPoint : await matchMeteringPointForEdielMessage(message) ?? transactionMeteringPointId
+  const siteAndCustomer = await matchSiteAndCustomerForMeteringPoint({meteringPointId,companyId:message.company_id ?? null})
+  const requestReferences = isE66 ? readOriginalE66RequestReferences(message) : []
+  const reference = requestReferences.length===1 ? requestReferences[0] : null
+  const e66 = isE66 && message.company_id ? await findE66GridOwnerDataRequest({
+    companyId:message.company_id,environment:message.environment,actorUserId:params.actorUserId,
+    reference,hasAmbiguousReferences:requestReferences.length>1,meteringPointId,
+  }) : null
+  const requestCandidate = e66 ? e66.request : await findMatchingGridOwnerDataRequest(
+    meteringPointId && !message.metering_point_id ? {...message,metering_point_id:meteringPointId} : message,
   )
+  const periodMatch = requestCandidate && provisionalRuntime
+    ? await readE66RequestPeriodMatch(provisionalRuntime,requestCandidate,message,params.actorUserId)
+    : null
+  let issue: E66RequestReferenceIssue | null = e66?.issue ?? null
+  if (isE66 && requestCandidate) {
+    if (siteAndCustomer?.customerId !== requestCandidate.customer_id ||
+      (requestCandidate.site_id !== null && siteAndCustomer?.siteId !== requestCandidate.site_id)) issue='point_mismatch'
+    else if (periodMatch?.disjoint) issue='disjoint_period'
+    else if (!periodMatch?.sentPeriod) issue='unverified_period'
+  }
+  const matchedDataRequest = issue || periodMatch?.disjoint ? null : requestCandidate
+  const sourcePeriods = issue && provisionalRuntime ? readE66DeliveryPeriods(provisionalRuntime) : null
+  const sourcePeriod = sourcePeriods?.length===1 ? sourcePeriods[0] : null
+  const requestReview: E66RequestCorrelationReview | null = issue ? {
+    reason:issue,requestReference:reference,pointReference:physicalMatches[0]?.externalMeteringPointId ?? null,
+    periodFrom:sourcePeriod?.start ?? null,periodUntil:sourcePeriod?.end ?? null,
+  } : null
 
-  await linkEdielMessage({
+  if (params.persistSourceLink !== false) await linkEdielMessage({
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
     gridOwnerDataRequestId: matchedDataRequest?.id ?? null,
@@ -934,5 +1048,7 @@ export async function linkInboundUtiltsMessageCanonically(params: {
     meteringPointId,
     siteAndCustomer,
     matchedDataRequest,
+    requestReview,
+    sentRequestPeriod: matchedDataRequest ? periodMatch?.sentPeriod ?? null : null,
   }
 }

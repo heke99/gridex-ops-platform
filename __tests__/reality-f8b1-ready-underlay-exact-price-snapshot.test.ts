@@ -30,6 +30,9 @@ vi.mock('@/lib/supabase/service', () => ({
     from: (table: string) => builder(table),
     rpc: (fn: string, args: Row) => {
       rpcCalls.push({ fn, args })
+      if (fn === 'gridex_read_effective_contract_price_timeline_v1') {
+        return Promise.resolve({ data: { kind: 'legacy' }, error: null })
+      }
       const commands = (args.p_commands as unknown[]) ?? []
       return Promise.resolve({ data: commands.map((_, i) => `underlay-${i}`), error: null })
     },

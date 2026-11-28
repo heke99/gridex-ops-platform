@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { projectDueLegacySupplyEndFollowups, projectDueSupplyEndFollowups } from '@/lib/ediel/flows/supplyEndFollowup'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { SourceObjectScope } from '@/lib/ediel/sources/sourceOwnerWire'
 
@@ -101,8 +102,15 @@ export async function supplyStartAlreadyCancelled(input: { companyId: string; sw
 /** Accepted exact ends and genuinely confirmed due normal starts use their
  * native source owners. A sweep never emits an outgoing wire or retries. */
 export async function advanceSupplyMarketDeadlines(input: { actorUserId: string; companyId?: string | null; limit?: number }): Promise<{ updated: number }> {
-  const { data, error } = await rpc()('ediel_advance_supply_deadlines_v1', { p_company_id: input.companyId ?? null, p_actor_user_id: input.actorUserId, p_limit: Math.min(Math.max(Math.floor(input.limit ?? 100), 1), 200) })
+  const limit = Math.min(Math.max(Math.floor(input.limit ?? 100), 1), 200)
+  const { data, error } = await rpc()('ediel_advance_supply_deadlines_v1', { p_company_id: input.companyId ?? null, p_actor_user_id: input.actorUserId, p_limit: limit })
   if (error) throw error
   const result = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {}
+  const followups = await Promise.allSettled([
+    projectDueSupplyEndFollowups({ ...input, limit }),
+    projectDueLegacySupplyEndFollowups({ ...input, limit }),
+  ])
+  const failures = followups.filter(result => result.status === 'rejected')
+  if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Uppföljningen av leveransslut kunde inte slutföras.')
   return { updated: typeof result.updated === 'number' ? result.updated : 0 }
 }

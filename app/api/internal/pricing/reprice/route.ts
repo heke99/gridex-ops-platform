@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const body = (await request.json().catch(() => null) ?? {}) as Record<string, unknown>
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
     if (!billingUnderlayId) return NextResponse.json({ error: 'billing_underlay_id krävs.' }, { status: 400 })
 

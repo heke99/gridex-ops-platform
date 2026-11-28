@@ -9,7 +9,20 @@ let base=readFileSync(new URL('./ediel-transport-journal-sql-regression.mjs',imp
 const marker=' console.log(`PASS ${checks} targeted PostgreSQL transport journal checks;'
 assert.equal(base.split(marker).length,2)
 const proof=String.raw`
- const {smtpResultEvidence,smtpErrorEvidence}=await import(new URL('../lib/ediel/transport/smtpEvidence.ts',import.meta.url))
+ const { stripTypeScriptTypes } = await import('node:module')
+ const { SourceTextModule } = await import('node:vm')
+ const source = path => new SourceTextModule(stripTypeScriptTypes(
+  readFileSync(new URL(path, import.meta.url), 'utf8'), { mode: 'transform' }
+ ), { identifier: new URL(path, import.meta.url).href })
+ const evidence = source('../lib/ediel/transport/smtpEvidence.ts')
+ const outcome = source('../lib/ediel/transport/smtpOutcome.ts')
+ await evidence.link((specifier, importer) => {
+  assert.equal(importer, evidence)
+  assert.equal(specifier, './smtpOutcome')
+  return outcome
+ })
+ await evidence.evaluate()
+ const { smtpResultEvidence, smtpErrorEvidence } = evidence.namespace
  // The retained observation body is unchanged by later admission wrappers.
  // Fixtures do not qualify those independent upstream wrappers or source facts.
  let transportChecks=0
@@ -46,4 +59,4 @@ const proof=String.raw`
 `
 base=base.replace(marker,()=>proof+marker)
 const temp=fileURLToPath(new URL('./.ediel-tr02-ledger.tmp.mjs',import.meta.url));writeFileSync(temp,base)
-try{const r=spawnSync(process.execPath,[temp],{stdio:'inherit',env:process.env});if(r.error)throw r.error;process.exitCode=r.status??1}finally{unlinkSync(temp)}
+try{const r=spawnSync(process.execPath,['--experimental-vm-modules',temp],{stdio:'inherit',env:process.env});if(r.error)throw r.error;process.exitCode=r.status??1}finally{unlinkSync(temp)}

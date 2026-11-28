@@ -16,10 +16,12 @@ import {
   createOutboundRequest,
   findOpenOutboundBySource,
   repairOutboundRequestCommunicationRoute,
-  updateOutboundRequestStatus,
+  getOutboundRequestById,
+  applyEdielOutboundProviderStatus,
 } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
+import { postgrestEq, UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
 import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionTypes'
@@ -39,6 +41,7 @@ function normalizeEdielEnvironment(value?: string | null): EdielEnvironment | nu
 }
 
 export async function resolveOutboundRuntimeEnvironment(params: {
+  companyId: string
   preferredRouteId?: string | null
   explicitEnvironment?: EdielEnvironment | null
 }): Promise<EdielEnvironment> {
@@ -49,26 +52,36 @@ export async function resolveOutboundRuntimeEnvironment(params: {
     throw new Error('environment_not_resolved: route eller explicit miljö krävs innan Ediel-runtime kan väljas.')
   }
 
+  const companyId = params.companyId?.trim()
+  if (!companyId || !UUID_PATTERN.test(companyId)) {
+    throw new Error('environment_not_resolved: giltigt bolag krävs för att läsa vald Ediel-route.')
+  }
+
   const { data, error } = await supabaseService
     .from('communication_routes')
-    .select('target_system,target_email')
+    .select('environment_type,target_system,target_email')
     .eq('id', params.preferredRouteId)
+    .eq('is_active', true)
+    .or(`company_id.is.null,${postgrestEq('company_id', companyId)}`)
     .maybeSingle()
 
   if (error) throw error
+  if (!data) {
+    throw new Error('environment_not_resolved: vald Ediel-route saknas eller är inte aktiv.')
+  }
 
-  const targetSystem = String((data as { target_system?: string | null } | null)?.target_system ?? '').toLowerCase()
-  const targetEmail = String((data as { target_email?: string | null } | null)?.target_email ?? '').toLowerCase()
-
-  if (
-    targetSystem.includes('tgt') ||
-    targetSystem.includes('test') ||
-    targetEmail.endsWith('@ediel.se')
-  ) {
+  const { environment_type: declaredEnvironment, target_system, target_email } = data
+  if (declaredEnvironment === 'tgt_test' || declaredEnvironment === 'agt_test' || declaredEnvironment === 'bilateral_test') {
     return 'test'
   }
 
-  return 'production'
+  const targetSystem = (target_system ?? '').toLowerCase()
+  const targetEmail = (target_email ?? '').toLowerCase()
+  const legacyTestMarkers = targetSystem.includes('tgt') || targetSystem.includes('test') || targetEmail.endsWith('@ediel.se')
+  if (declaredEnvironment === 'production' && legacyTestMarkers) {
+    throw new Error('environment_not_resolved: produktionsrouten har motstridiga testuppgifter.')
+  }
+  return legacyTestMarkers ? 'test' : 'production'
 }
 
 export function ensureActorUserId(value?: string | null): string {
@@ -304,12 +317,15 @@ export async function queuePreparedEdielMessage(params: {
   }
 
   if (params.outboundRequestId) {
-    await updateOutboundRequestStatus({
+    const companyId = outboxMessage?.company_id ?? (await getOutboundRequestById(params.outboundRequestId))?.company_id
+    if (!companyId) throw new Error('Utskickets bolag saknas för Ediel-kön.')
+    await applyEdielOutboundProviderStatus({
       actorUserId: params.actorUserId,
       outboundRequestId: params.outboundRequestId,
+      companyId,
       status: 'prepared',
       externalReference: params.externalReference ?? null,
-      responsePayload: {
+      responsePatch: {
         edielMessageId: params.messageId,
         edielOutboxQueued: Boolean(outboxMessage),
         ...(params.payload ?? {}),

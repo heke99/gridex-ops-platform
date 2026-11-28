@@ -8,7 +8,7 @@ type Row = Record<string, unknown>
 type Post = { url: string; headers: Headers; body: string; signal: AbortSignal }
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>, references: {} as Record<string, string>,
-  posts: [] as Post[], statuses: [] as number[], allowed: true, nextId: 100,
+  posts: [] as Post[], statuses: [] as number[], allowed: true, nextId: 100, pauseAt: null as null | 'receipt' | 'projection',
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from(table: string) {
@@ -37,6 +37,10 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
             public_delivery_id: null, request_body_hash: null, ...structuredClone(row),
           })
         }
+        if (io.pauseAt === 'projection' && table === 'webhook_subscriptions' && patch && 'failure_count' in patch) {
+          io.tables.webhook_subscriptions[0].status = 'paused'
+          io.pauseAt = null
+        }
         const rows = io.tables[table].filter(row => filters.every(filter => filter(row))).slice(0, maximum)
         if (patch) rows.forEach(row => Object.assign(row, structuredClone(patch)))
         if (single && rows.length > 1) throw new Error('Ambiguous finite row observation')
@@ -57,6 +61,7 @@ vi.mock('@/lib/integrations/tenantContext', () => ({ loadExternalTenantReference
 vi.mock('@/lib/integrations/publicWebhookTransport', () => ({ postPublicWebhook: async (input: Post) => {
   io.posts.push({ ...input, headers: new Headers(input.headers) })
   const status = io.statuses.shift() ?? 200
+  if (io.pauseAt === 'receipt') io.tables.webhook_subscriptions[0].status = 'paused'
   return { status, ok: status >= 200 && status < 300, body: 'SYNTHETIC transport observation' }
 } }))
 
@@ -80,10 +85,10 @@ let previousSecret: string | undefined
 beforeAll(() => { previousSecret = process.env[SECRET_ENV]; process.env[SECRET_ENV] = SECRET })
 afterAll(() => { if (previousSecret === undefined) delete process.env[SECRET_ENV]; else process.env[SECRET_ENV] = previousSecret })
 beforeEach(() => {
-  io.posts = []; io.statuses = []; io.allowed = true; io.nextId = 100; io.references = { [COMPANY]: SCOPE }
+  io.posts = []; io.statuses = []; io.allowed = true; io.pauseAt = null; io.nextId = 100; io.references = { [COMPANY]: SCOPE }
   io.tables = {
     webhook_subscriptions: [{ id: '00000000-0000-4000-8000-000000000011', company_id: COMPANY, api_client_id: CLIENT,
-      status: 'active', endpoint_url: 'https://receiver.example.invalid/webhook', event_types: ['site.created', 'contracts.publication.changed'],
+      status: 'active', failure_count: 0, endpoint_url: 'https://receiver.example.invalid/webhook', event_types: ['site.created', 'contracts.publication.changed'],
       metadata: { source: 'partner_api' }, custom_headers: {}, timeout_ms: 1000, max_attempts: 3, signing_secret_ref: 'PARTNER_PUBLIC_EVENT_TEST' }],
     integration_api_clients: [{ id: CLIENT, company_id: COMPANY, status: 'active', revoke_reason: null, metadata: {} }],
     webhook_deliveries: [], domain_events: [],
@@ -212,4 +217,36 @@ describe('Partner webhook publisher preserves the scoped public event contract',
     await enqueue(source); expect(await dispatchDueWebhookDeliveries()).toMatchObject({ sent: 1, failed: 0 })
     expect((JSON.parse(io.posts[0].body) as { data: Row }).data.revision_token).toBe(source.payload?.revision_token)
   })
+})
+
+it('does not send the next delivery once this worker has durably paused that subscription', async () => {
+  const subscription = io.tables.webhook_subscriptions[0]
+  subscription.failure_count = 9
+  const first = await enqueue()
+  first.attempts = Number(first.max_attempts) - 1
+  const nextSource = {...event(), id:'00000000-0000-4000-8000-000000000033'}
+  io.tables.domain_events.push(nextSource)
+  expect(await enqueueWebhookDeliveriesForEvent(nextSource, {strict:true})).toBe(1)
+  const next = io.tables.webhook_deliveries[1]
+  io.statuses = [500, 200]
+  const result = await dispatchDueWebhookDeliveries(2)
+  expect(first.status).toBe('dead_letter')
+  expect(subscription.status).toBe('paused')
+  expect(io.posts).toHaveLength(1)
+  expect(result.sent).toBe(0)
+  expect(next.status).toBe('skipped')
+})
+
+it.each(['receipt', 'projection'] as const)('preserves an operator pause committed at %s during a failed delivery', async pauseAt => {
+  const subscription = io.tables.webhook_subscriptions[0]
+  subscription.failure_count = 2
+  const delivery = await enqueue()
+  io.statuses = [500]
+  io.pauseAt = pauseAt
+  const result = await dispatchDueWebhookDeliveries(1)
+  expect(io.posts).toHaveLength(1)
+  expect(result).toMatchObject({sent:0,failed:1})
+  expect(delivery.status).toBe('failed')
+  expect(subscription.status).toBe('paused')
+  expect(subscription.failure_count).toBe(3)
 })

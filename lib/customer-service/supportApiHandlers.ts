@@ -141,7 +141,8 @@ async function postSupportMessageHandler(request: NextRequest, contextInput: Par
       clientId: context.client.id,
       customerId: context.identity.customer_id,
       operation: '/api/v1/customer/support/cases/[reference]/messages',
-      payload: { reference, ...body },
+      // Match the case used by the write, even when the body has additional fields.
+      payload: { ...body, reference },
       execute: async () => {
         const message = await addCustomerSupportMessage({
           companyId: context.client.company_id,
@@ -183,19 +184,24 @@ async function readBoundedBody(request: NextRequest, maxBytes: number): Promise<
   if (Number.isFinite(declared) && declared > maxBytes) throw tooLarge()
   if (!request.body) return Buffer.alloc(0)
   const reader = request.body.getReader()
-  const chunks: Uint8Array[] = []
-  let total = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    total += value.byteLength
-    if (total > maxBytes) {
-      await reader.cancel().catch(() => undefined)
-      throw tooLarge()
+  try {
+    const chunks: Uint8Array[] = []
+    let total = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > maxBytes) {
+        // Stream cleanup can outlast the rejection response.
+        void reader.cancel().catch(() => undefined)
+        throw tooLarge()
+      }
+      chunks.push(value)
     }
-    chunks.push(value)
+    return Buffer.concat(chunks)
+  } finally {
+    reader.releaseLock()
   }
-  return Buffer.concat(chunks)
 }
 
 /** Header file names are informational only; they are sanitized and the real type comes from the bytes. */

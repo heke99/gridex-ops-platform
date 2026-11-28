@@ -3,7 +3,7 @@ import { nativeLockProcess, nativeLockProcessEnv } from './helpers/native-lock-p
 import { createHash, randomUUID } from 'node:crypto'
 import { cleanE30SourceFixture } from './helpers/utiltsConsumptionSourceFixture'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { s01L359AggregateWire } from './helpers/utiltsS01AggregateFixture'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
@@ -16,13 +16,24 @@ import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptio
 import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
+import { recordInboundReception } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
-import { committedPatchedBody, committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry, receiveObservedUtilts, seedSentE73ForUtiltsConsumption } from './helpers/utiltsConsumptionParties'
+import {
+  committedDurableE66WrapperBody,
+  committedMixedE66SealBody,
+  committedPatchedBody,
+  committedPersistenceBody,
+  committedS01AreaPrecisionBody,
+  committedSc046ReturnStateBody,
+  committedSg11E66WrapperBody,
+  type PersistenceCatalogReceipt,
+} from './helpers/utiltsPersistenceCatalog'
+import { createUtiltsPersistenceCatalogFixture, nativeCatalogDiscoverySource, persistenceCatalogBodyPatches, persistenceCatalogOwners, scannerCases } from './helpers/utiltsPersistenceCatalogFixture'
 const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
@@ -50,7 +61,7 @@ function sql<T = unknown>(input: string, maxBuffer = 2000000): T {   if (process
   if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
-async function seed() {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+async function seed({ matchSentRequest = false, withImapReceipt = false, withDataRequest = true } = {}) {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
   const { ediel, issuer } = seedUtiltsConsumptionParties(sql, lit, ids.actor)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
@@ -77,7 +88,7 @@ async function seed() {   const ids = { source: randomUUID(), company: randomUUI
    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},${lit(ids.issuer)},'test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
-   INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
+   ${withDataRequest ? `INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');` : ''}`)
   const insertSource = async (raw: string, code = 'E66', environment = 'test', receivedAt = '2026-10-01T20:00:00Z' /* inside the 25-A-3 grace */) => {
     raw=cleanE30SourceFixture(raw,code)
     // Template parties are bound to this fixture's own receiver and issuer.
@@ -95,14 +106,32 @@ async function seed() {   const ids = { source: randomUUID(), company: randomUUI
     const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw.replace(/(UNB\+[^']*)\+\+1'/, "$1'") /* production: no UNB test flag */), sourceId)
     const { id, parsed } = fixture
     raw = fixture.raw
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,ids.request].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+    const mailbox = withImapReceipt ? await receiveObservedUtilts(sql, lit, {
+      companyId: ids.company, actorUserId: ids.actor, raw, parsed, receivedAt,
+    }) : null
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,inbound_email_message_id,mailbox_message_id)
+     SELECT ${lit(id)},${lit(ids.company)},${code === 'S01' ? 'NULL,NULL,NULL,NULL,NULL' : [ids.customer,ids.site,ids.point,ids.grid,withDataRequest ? ids.request : null].map(lit).join(',')},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,${lit(mailbox?.inboundEmailMessageId ?? null)},${lit(mailbox?.inboundEmailMessageId ?? null)}
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+    if (mailbox) {
+      const receipt = await recordInboundReception({ companyId: ids.company, actorUserId: ids.actor, messageId: id, ...mailbox })
+      expect(receipt.classification).toBe('first_reception')
+      const clock = sql<{ source: string; receivedAt: string }>(`SET ROLE service_role;
+        SELECT public.gridex_read_ediel_inbound_receipt_clock_v1(${lit(ids.company)},${lit(id)});
+        RESET ROLE;`)
+      expect(clock.source).toBe('imap_internal_date')
+      expect(Date.parse(clock.receivedAt)).toBe(Date.parse(receivedAt))
+    }
     seedUtiltsIssuerHistoryGround(sql, lit, id, ids.actor)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow, ids.actor)
     return data as unknown as EdielMessageRow
+  }
+  if (matchSentRequest) {
+    const reference = await seedSentE73ForUtiltsConsumption(sql, lit, ids)
+    const raw = message.raw_payload!
+    expect(raw).toContain('\nIDE+')
+    message.raw_payload = utiltsRecountUnt(raw.replace('\nIDE+', `\nRFF+ACW:${reference}'\nIDE+`))
   }
   const original = await insertSource(message.raw_payload!)
   const dataRequest = { id: ids.request, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, metering_point_id: ids.point, grid_owner_id: ids.grid, request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow
@@ -129,12 +158,15 @@ beforeEach(() => {   vi.clearAllMocks()
   effects.ack.mockImplementation(async ({ sourceMessage }: { sourceMessage: EdielMessageRow }) => ({ id: sourceMessage.id }))
   effects.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'observed-meter' } })
   effects.bill.mockResolvedValue({ id: 'observed-underlay' }) })
-it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {   const f = await seed()
+it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
+  await realSinks()
+  observeE66Completion()
   effects.status.mockRejectedValueOnce(new Error('synthetic_interruption_after_committed_persistence'))
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
   const before = snapshot(f.original.id)
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(f.original.id)}`)).toBe(1)
-  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.ack).not.toHaveBeenCalled(); expect(e66Completion).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const original = f.original.raw_payload!
   const changed = kind === 'quantity' ? original.replace('QTY+136:500', 'QTY+136:999')
@@ -147,14 +179,16 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
   effects.readRaw = changed
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('ediel_initial_utilts_owner_unavailable')
   expect(snapshot(f.original.id)).toEqual(before)
-  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
+  expect(effects.ack).not.toHaveBeenCalled(); expect(e66Completion).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   effects.readRaw = null
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
-  expect(replay.ingestedMeterValueIds).toEqual(['observed-meter'])
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  const storedMeterId = sql<string>(`SELECT to_jsonb(id) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)
+  expect(replay.ingestedMeterValueIds).toEqual([storedMeterId])
   expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6 }))
-  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true) })
 function snapshot(source: string) {   return sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source)}),
    'series',(SELECT jsonb_agg(to_jsonb(s)) FROM public.meter_reading_series s WHERE source_ediel_message_id=${lit(source)}),
@@ -601,7 +635,10 @@ it('JSONB key order is immaterial and wrong source code/environment fail interna
 })
 it('distinguishable observation order is immutable, not a set comparison', async () => {
   const f = await seed()
-  const lines = f.original.raw_payload!.replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+  const lines = f.original.raw_payload!
+    .replace('202607010000202607010015:719', '202607010000202607010030:719')
+    .replace('DTM+597:202607010020:203', 'DTM+597:202607010035:203')
+    .split('\n')
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
@@ -615,7 +652,10 @@ it('distinguishable observation order is immutable, not a set comparison', async
 })
 it('equivalent valid hour/minute wire spellings cannot replace a bound source', async () => {
   const f = await seed()
-  const raw = f.original.raw_payload!.replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719')
+  const raw = f.original.raw_payload!
+    .replace('15:806', '1:805')
+    .replace('202607010000202607010015:719', '202607010000202607010100:719')
+    .replace('DTM+597:202607010020:203', 'DTM+597:202607010105:203')
   const source = await f.insertSource(raw.replaceAll(f.original.interchange_reference!, 'HOUR'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'HOURE66001')), input = await f.prepare(source)
   await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
   const changed = { ...source, raw_payload: source.raw_payload!.replace('1:805', '60:806') }, prepared = await f.prepare(changed)
@@ -676,6 +716,21 @@ async function realSinks() {
   effects.meter.mockImplementation(meter.normalizeAndStoreMeteringValue)
   effects.bill.mockImplementation(billing.ingestBillingUnderlay)
 }
+const e66Completion = vi.fn()
+let restoreE66Completion: (() => void) | undefined
+function observeE66Completion() {
+  const rpc = supabaseService.rpc.bind(supabaseService)
+  const spy = vi.spyOn(supabaseService, 'rpc').mockImplementation(((...args: Parameters<typeof rpc>) => {
+    if (args[0] === 'gridex_sync_current_e66_request_v1') e66Completion(args[1])
+    return rpc(...args)
+  }) as typeof supabaseService.rpc)
+  restoreE66Completion = () => spy.mockRestore()
+}
+afterEach(() => {
+  restoreE66Completion?.()
+  restoreE66Completion = undefined
+  e66Completion.mockReset()
+})
 function consumedCount(company: string) {
   return sql(`SELECT jsonb_build_object('meter',(SELECT count(*) FROM public.metering_values WHERE company_id=${lit(company)}),'billing',(SELECT count(*) FROM public.billing_underlays WHERE company_id=${lit(company)}))`)
 }
@@ -690,34 +745,53 @@ it('real downstream writers consume database-derived stored values and retry ide
   expect((await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
-it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
-  const f = await seed()
-  await realSinks()
-  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
-  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
-  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
+const protectedBillingFields = ['month', 'year', 'currency', 'contributors', 'missing-contributors'] as const
+function simulateHistoricalBillingCorruption(companyId: string, field: typeof protectedBillingFields[number]) {
+  const protectedBillingState = () => sql(`SELECT jsonb_build_array(underlay_month,underlay_year,currency,payload->'consumptionContracts')
+    FROM public.billing_underlays WHERE company_id=${lit(companyId)}`)
+  const beforeMutation = protectedBillingState()
+  const mutation = field === 'month' ? 'underlay_month=underlay_month % 12 + 1' : field === 'year' ? 'underlay_year=underlay_year + 1'
     : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)"
       : "payload=payload-'consumptionContracts'"
-  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  const update = `UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(companyId)};`
+  expect(() => sql(update)).toThrow('e66_billing_calendar_member_immutable')
+  expect(protectedBillingState()).toEqual(beforeMutation)
+  // Simulate persisted historical corruption in this disposable native fixture.
+  // Re-enable the single guard before committing the synthetic corruption.
+  sql(`BEGIN;
+    ALTER TABLE public.billing_underlays DISABLE TRIGGER e66_billing_calendar_member_guard;
+    ${update}
+    ALTER TABLE public.billing_underlays ENABLE TRIGGER e66_billing_calendar_member_guard;
+    COMMIT;`)
+  expect(protectedBillingState()).not.toEqual(beforeMutation)
+}
+it.each(protectedBillingFields)('full processor rejects changed billing %s after insert before completion', async field => {
+  const f = await seed({ matchSentRequest: true })
+  await realSinks()
+  observeE66Completion()
+  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  simulateHistoricalBillingCorruption(f.ids.company, field)
   const afterMutation = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.complete.mockClear()
+  e66Completion.mockClear()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
-  expect(effects.complete).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(afterMutation)
 })
 it('full processor identical retry after underlay insert preserves row identity and legitimate workflow/audit changes', async () => {
-  const f = await seed()
+  const f = await seed({ matchSentRequest: true })
   await realSinks()
-  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
+  observeE66Completion()
+  e66Completion.mockImplementationOnce(() => { throw new Error('synthetic_interruption_after_underlay_insert') })
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
   sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE company_id=${lit(f.ids.company)}`)
   const row = sql<{ id: string; status: string; updated_by: null }>(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.complete.mockClear()
+  e66Completion.mockClear()
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(replay.billingUnderlayId).toBe(row.id)
-  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(row)
 })
@@ -737,9 +811,9 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
   await expect(createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
-const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {
+const sinkRpc = (input: UtiltsBoundPersistenceInput & { actorUserId: string }, sink: 'metering' | 'billing') => {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>
-  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,     ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
+  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: input.actorUserId,     ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
 }
 it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated returned projection instead of reinterpreting it', async sink => {
   const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
@@ -827,135 +901,9 @@ it('private storage and old unbound function are unavailable to service callers'
 // The SC046 forward changes only this wrapper's prosrc. Derive its installed
 // expectation from the exact committed predecessor and immutable forward; the
 // installed catalog itself must never supply the expected body.
-function sc046ExpectedWrapperBody(baseBody: string, migrationSource: string): string {
-  const hash = (value: string) => createHash('sha256').update(value).digest('hex')
-  if (hash(migrationSource) !== '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34') {
-    throw Error('native_sc046_migration_checksum_conflict')
-  }
-  if (hash(baseBody) !== 'd1072ccfd2c9ed9d7edd8e4bf780c0809bb4d904fe61a579be5239dfa6f220b1') {
-    throw Error('native_sc046_predecessor_conflict')
-  }
-  const block = (name: 'declarations' | 'classification') => {
-    const start = `${name} text := $${name}$`, end = `$${name}$;`
-    if (migrationSource.split(start).length !== 2 || migrationSource.split(end).length !== 2) {
-      throw Error('native_sc046_block_conflict')
-    }
-    const at = migrationSource.indexOf(start) + start.length, stop = migrationSource.indexOf(end, at)
-    if (stop < at) throw Error('native_sc046_block_conflict')
-    return migrationSource.slice(at, stop)
-  }
-  const declarationAnchor = 'DECLARE source public.ediel_messages%rowtype;result jsonb;'
-  const returnAnchor = ' -- The preserved owner may wait on its source/advisory locks.'
-  const declarations = block('declarations'), classification = block('classification')
-  if (baseBody.split(declarationAnchor).length !== 2 || baseBody.split(returnAnchor).length !== 2 || baseBody.includes('sc046_')) {
-    throw Error('native_sc046_anchor_conflict')
-  }
-  // Callback replacements keep every literal $ inside the PL/pgSQL untouched.
-  const body = baseBody.replace(declarationAnchor, () => declarationAnchor + declarations)
-    .replace(returnAnchor, () => classification + returnAnchor)
-  const inverse = body.replace(declarationAnchor + declarations, () => declarationAnchor).replace(classification, () => '')
-  if (inverse !== baseBody || inverse.replace(declarationAnchor, () => declarationAnchor + declarations)
-    .replace(returnAnchor, () => classification + returnAnchor) !== body) throw Error('native_sc046_inverse_conflict')
-  return body
-}
-function committedSc046ReturnStateBody(revision: string, base: { body: string; migrationHash: string }) {
-  const migration = '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
-  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
-  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
-  const migrationHash = createHash('sha256').update(source).digest('hex')
-  expect(migrationHash, migration).toBe(manifest.files[migration])
-  return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
-}
-function s01AreaExpectedPrecisionBody(baseBody: string, source: string) {
-  const signature='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
-  const patches=[...source.matchAll(/DO \$patch\$([\s\S]*?)END \$patch\$;/g)]
-    .map(match=>match[1]).filter(block=>block.includes("pg_get_functiondef('"+signature+"'::regprocedure)"))
-  if (patches.length!==1) throw Error('native_s01_precision_patch_identity_conflict')
-  const block=patches[0],old=block.match(/old_body:=\$old\$([\s\S]*?)\$old\$/)?.[1],next=block.match(/new_body:=\$new\$([\s\S]*?)\$new\$/)?.[1]
-  if (!old||!next||old!==baseBody
-    ||createHash('sha256').update(old).digest('hex')!=='ac53c3f07f74dc8829e4b5d8d6407c7b96f57f5a8c4d44147ab660b62c06c892'
-    ||createHash('sha256').update(next).digest('hex')!=='347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'
-    ||!block.includes('EXECUTE replace(ddl,old_body,new_body);')
-    ||!block.includes("<>'"+'347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'+"'")) {
-    throw Error('native_s01_precision_source_chain_conflict')
-  }
-  return next
-}
-function committedS01AreaPrecisionBody(revision: string, base: {body: string; migrationHash: string}) {
-  const migration='20261023201053_ediel_s01_area_aggregate_identity.sql'
-  const source=execFileSync('git',['show',`${revision}:supabase/migrations/${migration}`],{encoding:'utf8'})
-  // This new forward is outside the frozen historical manifest. Bind its
-  // entire committed file explicitly; the predecessor remains manifest-bound.
-  const migrationHash=createHash('sha256').update(source).digest('hex')
-  expect(migrationHash,migration).toBe('ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d')
-  return {body:s01AreaExpectedPrecisionBody(base.body,source),migrationHash}
-}
-// Discovery omits only confirmed SQL comments; literals still carry late-bound names.
-function nativeCatalogDiscoverySource(source: string): string {
-  const view = source.split(''), word = /[A-Za-z0-9_$\u0080-\uFFFF]/
-  const mask = (i: number) => { if (source[i] !== '\r' && source[i] !== '\n') view[i] = ' ' }
-  for (let i = 0; i < source.length;) {
-    if (source.startsWith('--', i)) { while (i < source.length && !/[\r\n]/.test(source[i])) mask(i++); continue }
-    if (source.startsWith('/*', i)) {
-      let depth = 1; mask(i++); mask(i++)
-      while (i < source.length && depth) {
-        if (source.startsWith('/*', i)) { depth++; mask(i++); mask(i++) }
-        else if (source.startsWith('*/', i)) { depth--; mask(i++); mask(i++) }
-        else mask(i++)
-      }
-      if (depth) return source
-      continue
-    }
-    if (source[i] === "'" || source[i] === '"') {
-      const quote = source[i++], escaped = quote === "'" && /[Ee]/.test(source[i - 2] ?? '') && (i < 3 || !word.test(source[i - 3]))
-      let closed = false
-      while (i < source.length) {
-        if (source[i] === '\\' && quote === "'") { if (!escaped) return source; i += 2; continue }
-        if (source[i++] !== quote) continue
-        if (source[i] === quote) { i++; continue }
-        closed = true; break
-      }
-      if (!closed) return source
-      continue
-    }
-    if (source[i] === '$' && (i === 0 || !word.test(source[i - 1]))) {
-      const tag = /^(?:\$\$|\$[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*\$)/.exec(source.slice(i))?.[0]
-      if (tag) { const end = source.indexOf(tag, i + tag.length); if (end < 0) return source; i = end + tag.length; continue }
-    }
-    i++
-  }
-  return view.join('')
-}
-const persistenceCatalogOwners = [
-  ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',     '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],   ['gridex_utilts_binding.require_execution_actor_v1(uuid,uuid)',     '20261001110500_ediel_utilts_current_execution_actor.sql', 'gridex_utilts_binding.require_execution_actor_v1'],   ['gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)',     '20261001051410_ediel_utilts_persist_reading_followup_owner.sql', 'public.gridex_persist_utilts_consumption_v1'],   ['gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)',     '20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql', 'gridex_utilts_binding.persist_consumption_before_precision_v1'],   ['gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)',     '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v1'],   ['gridex_utilts_binding.persist_series_legacy_v1(uuid,text,uuid,text,jsonb)',     '20260928181500_utilts_held_retry_stable_reservation.sql', 'gridex_utilts_binding.persist_series_v1'],   ['gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)',     '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v2'],   ['public.gridex_persist_utilts_transactions_v1(uuid,text,uuid,text,jsonb)',     '20260923135706_ediel_utilts_consumption_binding_v1.sql', 'public.gridex_persist_utilts_transactions_v1'], ] as const
 
 it('native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain', () => {
   // Pure SOURCE controls also run in this existing native catalog case, with no new case identity.
-  const scannerCases: [string, string, boolean][] = [
-    ['real call', 'PERFORM gridex_utilts_binding.persist_series_v2();', true],
-    ['line comment', '-- persist_series_v2\r\nSELECT 1;', false],
-    ['line comment EOF', '-- persist_series_v2', false],
-    ['nested blocks', '/* outer /* persist_series_v2 */ outer */ SELECT 1;', false],
-    ['comment then call', '/* ignored */ SELECT persist_series_v2();', true],
-    ['commented name then call', '/* persist_series_v2 */ SELECT persist_series_v2();', true],
-    ['nested comment then quoted call', '/* outer /* persist_series_v2 */ outer */ SELECT "persist_series_v2"();', true],
-    ['single literal', "EXECUTE '-- persist_series_v2 /* marker */';", true],
-    ['doubled single', "EXECUTE 'it''s -- persist_series_v2';", true],
-    ['escape single', String.raw`EXECUTE E'it\'s -- persist_series_v2';`, true],
-    ['escape backslash', String.raw`EXECUTE e'path\\' || 'persist_series_v2';`, true],
-    ['double identifier', 'SELECT "a""--persist_series_v2";', true],
-    ['dollar body', 'EXECUTE $$-- persist_series_v2 /* marker */$$;', true],
-    ['tagged dollar', 'EXECUTE $body_1$-- persist_series_v2$body_1$;', true],
-    ['unicode dollar', 'EXECUTE $å_1$-- persist_series_v2$å_1$;', true],
-    ['identifier dollars', 'SELECT foo$tag$; -- persist_series_v2\n', false],
-    ['positional parameter', 'SELECT $1; -- persist_series_v2\n', false],
-    ['CRLF blocks', '/* persist_series_v2\r\n*/\r\nSELECT 1;', false],
-    ['unclosed single', "SELECT 'unterminated -- persist_series_v2", true],
-    ['unclosed identifier', 'SELECT "unterminated -- persist_series_v2', true],
-    ['unclosed dollar', 'SELECT $body$unterminated -- persist_series_v2', true],
-    ['unclosed block', '/* unterminated persist_series_v2', true],
-    ['ordinary backslash ambiguity', String.raw`SELECT 'path\' -- persist_series_v2`, true],
-  ]
   for (const [label, source, wanted] of scannerCases) {
     const view = nativeCatalogDiscoverySource(source)
     expect(view.includes('persist_series_v2'), label).toBe(wanted)
@@ -964,10 +912,10 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   }
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
   const tree = execFileSync('git', ['rev-parse', `${revision}^{tree}`], { encoding: 'utf8' }).trim()
-  const signatures = persistenceCatalogOwners.map(([signature]) => signature)
-  const allowed = new Set<string>(signatures)
-  const publicEntry = signatures[0]
-  const privateOwners = signatures.filter(signature => signature.startsWith('gridex_utilts_binding.'))
+  const {
+    signatures, publicEntry, ownedPersistence, ownedMetering, mixedSeal, durableOwners, privateE66Owners,
+    laterCallers, serviceEntries, baselineOwners, allowed, privateOwners, reviewedE66Calls, durableProducerNames,
+  } = createUtiltsPersistenceCatalogFixture()
   const catalog = sql<PersistenceCatalogReceipt>(`WITH RECURSIVE
    app_roots AS (SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator')),
    set_roles(root_oid,role_oid,path) AS (
@@ -1021,12 +969,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' OR n.nspname LIKE 'gridex\\_%' ESCAPE '\\'),
     'migrations',(SELECT jsonb_agg(jsonb_build_object('version',version,'name',name) ORDER BY version) FROM supabase_migrations.schema_migrations));`, 32_000_000)
   const actual = new Map(catalog.functions.map(fn => [fn.signature, fn]))
-  // 20261003150200 (U-04) rewrites persist_series_v2 by guarded needle/replace.
-  const bodyPatches: Record<string, [string, string]> = {
-    'gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)': ['20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql', 'u04'],   }
   const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => {
     const committed = committedPersistenceBody(revision, migration, functionName)
-    const patch = bodyPatches[signature]
+    const patch = persistenceCatalogBodyPatches[signature]
     const s01Precision=signature==='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
     const installed = signature === publicEntry ? committedSc046ReturnStateBody(revision, committed)
       : s01Precision ? committedS01AreaPrecisionBody(revision,committed)
@@ -1034,6 +979,16 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
       : s01Precision ? '20261023201053_ediel_s01_area_aggregate_identity.sql' : patch ? patch[0] : migration, ...installed }
   })
+  // Cutover moved the complete SC046 body into the private writer. The public
+  // wrapper retained its ABI and later gained the SG11 compatibility guard.
+  // Both expected bodies come from the committed sources.
+  const predecessorBody = expected[0]
+  const durableWrapper = committedDurableE66WrapperBody(revision, predecessorBody.body)
+  const installedOwners = [
+    { signature: publicEntry, ...committedSg11E66WrapperBody(revision, durableWrapper.body) },
+    { ...predecessorBody, signature: ownedPersistence },
+    ...expected.slice(1),
+  ]
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
   const privateNames = privateOwners.map(signature => signature.slice(signature.indexOf('.') + 1, signature.indexOf('(')))
@@ -1047,10 +1002,10 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       expect(nativeCatalogDiscoverySource(prefix + input), label).toBe(prefix + input)
     }
   }
-  const namedCallsites = catalog.functions.filter(fn => {
+  const observedPrivateCalls = new Map(catalog.functions.map(fn => {
     const discoverySource = nativeCatalogDiscoverySource(fn.source)
-    return privateNames.some(name => discoverySource.includes(name))
-  })
+    return [fn.signature, privateNames.filter(name => discoverySource.includes(name))] as const
+  }).filter(([, callees]) => callees.length > 0))
   const dynamicDefinitions = catalog.functions.filter(fn => fn.language === 'plpgsql' && /\bEXECUTE\b/i.test(fn.source))
   const preupgradePath = process.env.GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
   const before = preupgradePath ? JSON.parse(readFileSync(preupgradePath, 'utf8')) as {
@@ -1068,7 +1023,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     && before.serverVersionNumber === catalog.serverVersionNumber
     && databaseIdentityKeys.every(key => before.databaseIdentity?.[key] === catalog.databaseIdentity[key])
   const receiptPath = process.env.GRIDEX_UTILTS_CATALOG_RECEIPT_PATH || `/tmp/gridex-utilts-catalog-${revision}.json`
-  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,     databasePhase: databasePhase || 'not_declared',     oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),     observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,     preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,     oidPreservationCompared: beforeMatches,     expectedOwners: expected.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),     namedCallsites: namedCallsites.map(fn => fn.signature), dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),     limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',       'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',       'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',       'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
+  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,     databasePhase: databasePhase || 'not_declared',     oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),     observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,     preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,     oidPreservationCompared: beforeMatches,     expectedOwners: installedOwners.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),     namedCallsites: [...observedPrivateCalls.keys()], dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),     limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',       'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',       'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',       'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 })
   console.info('EDIEL_UTILTS_NATIVE_CATALOG', JSON.stringify({ codeSha: revision, codeTree: tree, receiptPath,     receiptHash: createHash('sha256').update(readFileSync(receiptPath)).digest('hex'),     predecessorOid: receipt.observedPreservedOld6Oid, public7Oid: actual.get(publicEntry)?.oid,     functionCount: catalog.functions.length, effectiveRoleCount: catalog.roles.length, dependencyCount: catalog.dependencies.length,     oidPreservationCompared: receipt.oidPreservationCompared, dynamicDefinitionCount: dynamicDefinitions.length }))
   expect(catalog.roles.map(role => role.root)).toEqual(expect.arrayContaining(['anon', 'authenticated', 'service_role', 'authenticator']))
@@ -1087,8 +1042,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   }
   expect(catalog.functions.length).toBeGreaterThan(signatures.length)
   expect(receipt.oldPublic6Absent).toBe(true)
-  expect(new Set(signatures.map(signature => actual.get(signature)?.oid)).size).toBe(signatures.length)
-  for (const owner of expected) {
+  for (const signature of allowed) expect(actual.get(signature)?.oid, signature).toBeGreaterThan(0)
+  expect(new Set([...allowed].map(signature => actual.get(signature)!.oid)).size).toBe(allowed.size)
+  for (const owner of installedOwners) {
     const fn = actual.get(owner.signature)
     expect(fn, owner.signature).toBeDefined()
     expect(fn!.source, owner.signature).toBe(owner.body)
@@ -1101,6 +1057,23 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       || owner.signature.includes('persist_consumption_before_precision_v1') ? 'search_path=pg_catalog, public, extensions' : 'search_path=pg_catalog')
     expect(fn!.config!.every(setting => setting.startsWith('search_path=') || setting.toLowerCase() === 'timezone=utc'), owner.signature).toBe(true)
   }
+  for (const signature of durableOwners) {
+    const fn = actual.get(signature)!
+    expect(fn.owner, signature).toBe(actual.get(publicEntry)!.owner)
+    expect(fn.securityDefiner, signature).toBe(true)
+    expect(fn.acl, signature).toEqual([{ grantee: fn.owner, privilege: 'EXECUTE', grantable: false }])
+  }
+  for (const [signature, migration, , manifest] of laterCallers) {
+    const fn = actual.get(signature)!
+    const { body } = committedPersistenceBody(revision, migration, signature.split('(')[0],
+      manifest ?? 'migration-history-manifest.additions.json')
+    expect(fn.source, signature).toBe(signature === mixedSeal ? committedMixedE66SealBody(revision, body) : body)
+    expect(fn.owner, signature).toBe(actual.get(publicEntry)!.owner)
+    expect(fn.securityDefiner, signature).toBe(serviceEntries.has(signature) || signature === ownedMetering)
+    const acl = [{ grantee: fn.owner, privilege: 'EXECUTE', grantable: false }]
+    if (serviceEntries.has(signature)) acl.push({ grantee: 'service_role', privilege: 'EXECUTE', grantable: false })
+    expect(fn.acl, signature).toEqual(acl)
+  }
   expect(actual.get(publicEntry)!.argumentNames).toEqual(['p_company_id', 'p_environment', 'p_source_message_id', 'p_message_code', 'p_raw_payload', 'p_transactions', 'p_actor_user_id'])
   expect(actual.get(publicEntry)!.defaultCount).toBe(1)
   expect(actual.get(publicEntry)!.defaults).toBe('NULL::uuid')
@@ -1112,14 +1085,29 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     if (role.root === 'anon' || role.root === 'authenticated') expect(role.effectiveRole).not.toBe('service_role')
   }
   for (const row of catalog.roleMatrix.filter(row => allowed.has(row.signature))) {
-    const permitted = row.signature === publicEntry && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
+    const permitted = serviceEntries.has(row.signature) && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
     expect(row.execute, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(permitted)
+    if (privateE66Owners.includes(row.signature)) {
+      expect(row.schemaUsage, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(false)
+    }
   }
   for (const dependency of catalog.dependencies) {
     expect(dependency.functionSignature, `unreviewed tracked dependant: ${dependency.description}`).not.toBeNull()
-    expect(allowed.has(dependency.functionSignature!), `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
+    const caller = dependency.functionSignature!
+    const targetName = dependency.target.slice(dependency.target.indexOf('.') + 1, dependency.target.indexOf('('))
+    const reviewed = reviewedE66Calls.get(caller)
+    const permitted = reviewed ? reviewed.includes(targetName)
+      : baselineOwners.has(caller) && !privateE66Owners.includes(dependency.target)
+    expect(permitted, `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
   }
-  for (const fn of namedCallsites) expect(allowed.has(fn.signature), `unreviewed late-bound named producer: ${fn.signature}`).toBe(true)
+  for (const [signature, callees] of reviewedE66Calls) {
+    expect(observedPrivateCalls.get(signature), `reviewed E66 caller: ${signature}`).toEqual(callees)
+  }
+  for (const [signature, callees] of observedPrivateCalls) {
+    if (reviewedE66Calls.has(signature)) continue
+    expect(baselineOwners.has(signature), `unreviewed late-bound named producer: ${signature}`).toBe(true)
+    expect(callees.some(callee => durableProducerNames.includes(callee)), `unreviewed durable producer: ${signature}`).toBe(false)
+  }
   if (before) {
     expect(actual.get(signatures[2])!.oid, 'renamed predecessor must preserve the genuine pre-upgrade public6 OID').toBe(before.oldPublic6Oid)
     expect(receipt.oidPreservationCompared).toBe(true)
@@ -1151,7 +1139,7 @@ function sinkState(company: string) {
    'links',(SELECT jsonb_agg(to_jsonb(l) ORDER BY id) FROM public.metering_value_sources l WHERE company_id=${lit(company)}))`)
 }
 it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', 'read-at', 'reading-type', 'normalized-quantity', 'normalized-facility', 'normalized-resolution', 'normalized-site'])('R1 full processor refuses colliding stored %s before lineage/completion', async field => {
-  const f = await seed(), initial = await f.prepare()
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true }), initial = await f.prepare()
   await persistUtiltsTransactionResults(initial)
   expect((await sinkRpc(initial, 'metering')).error).toBeNull()
   if (field === 'customer') {
@@ -1165,10 +1153,11 @@ it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', '
   await persistUtiltsTransactionResults(await f.prepare(source))
   const before = sinkState(f.ids.company), persisted = snapshot(source.id)
   await realSinks()
+  observeE66Completion()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow(/utilts_consumption_existing_(metering|normalized)_conflict/)
   expect(sinkState(f.ids.company)).toEqual(before)
   expect(snapshot(source.id)).toEqual(persisted)
-  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
 })
 it('R1 identical different-source reuse preserves content and adds separate lineage', async () => {
@@ -1191,9 +1180,8 @@ it('R1 environment collision cannot add lineage or overwrite an existing result'
   expect((await sinkRpc(b, 'metering')).error?.message).toContain('existing_metering_environment_conflict')
   expect(sinkState(f.ids.company)).toEqual(before); expect(snapshot(source.id)).toEqual(persisted)
 })
-async function realCompletion() {
-  const db = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')
-  effects.complete.mockImplementation(db.syncGridOwnerDataRequestReceivedFromEdiel)
+async function observeE66CompletionAndStoreStatus() {
+  observeE66Completion()
   const ediel = await vi.importActual<typeof import('@/lib/ediel/db')>('@/lib/ediel/db')
   effects.status.mockImplementation(ediel.updateEdielMessageStatus)
 }
@@ -1201,13 +1189,16 @@ function requestState(request: string) {
   return sql<{ status: string; response_payload: { billingUnderlayId: string } }>(`SELECT to_jsonb(r) FROM public.grid_owner_data_requests r WHERE id=${lit(request)}`)
 }
 it.each(['completed', 'after-real-completion-before-ack', 'foreign-response-id', 'stale-response-id'])('R2 %s reuses verified underlay and preserves request/message/return lineage', async boundary => {
-  const f = await seed()
-  await realSinks(); await realCompletion()
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
+  await realSinks(); await observeE66CompletionAndStoreStatus()
   if (boundary === 'after-real-completion-before-ack') effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
   const first = processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   if (boundary === 'after-real-completion-before-ack') await expect(first).rejects.toThrow('after_real_completion')
   else await first
-  const id = requestState(f.ids.request).response_payload.billingUnderlayId
+  const completed = requestState(f.ids.request)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
+  expect(completed.status).toBe('received')
+  const id = completed.response_payload.billingUnderlayId
   expect(id).toMatch(/^[a-f0-9-]{36}$/)
   if (boundary === 'foreign-response-id') {
     const foreign = await seed(); await persistUtiltsTransactionResults(await foreign.prepare())
@@ -1218,42 +1209,47 @@ it.each(['completed', 'after-real-completion-before-ack', 'foreign-response-id',
   sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE id=${lit(id)}`)
   const billBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)
   effects.bill.mockClear()
+  e66Completion.mockClear()
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(effects.bill).toHaveBeenCalledTimes(1); expect(replay.billingUnderlayId).toBe(id)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
   expect(requestState(f.ids.request).response_payload.billingUnderlayId).toBe(id)
   expect(sql(`SELECT to_jsonb(parsed_payload->>'billingUnderlayId') FROM public.ediel_messages WHERE id=${lit(f.original.id)}`)).toBe(id)
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)).toEqual(billBefore)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
-it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('R2 populated response cannot bypass changed existing billing %s', async field => {
-  const f = await seed(); await realSinks(); await realCompletion()
+it.each(protectedBillingFields)('R2 populated response cannot bypass changed existing billing %s', async field => {
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true }); await realSinks(); await observeE66CompletionAndStoreStatus()
   effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('after_real_completion')
   const before = requestState(f.ids.request), persisted = snapshot(f.original.id)
+  expect(e66Completion).toHaveBeenCalledTimes(1)
+  expect(before.status).toBe('received')
   expect(before.response_payload.billingUnderlayId).toBeTruthy()
-  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
-    : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)" : "payload=payload-'consumptionContracts'"
-  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  simulateHistoricalBillingCorruption(f.ids.company, field)
   const billingBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
-  effects.ack.mockClear(); effects.complete.mockClear(); effects.status.mockClear()
+  effects.ack.mockClear(); e66Completion.mockClear(); effects.status.mockClear()
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('existing_billing_conflict')
-  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(e66Completion).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
   expect(requestState(f.ids.request)).toEqual(before); expect(snapshot(f.original.id)).toEqual(persisted)
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(billingBefore)
 })
 
 it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as const)('R3 real %s processor holds agency89 text collision with no consumable series or functional ACK', async shape => {
-  const f = await seed()
+  const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
+  // These E66 originals are unsolicited. A pending same-point request would
+  // exercise the separate missing-ACW review before the agency89 disposition.
+  const f = await seed({ withDataRequest: code !== 'E66' })
   const { observationHandoffMessage } = await import('../__tests__/helpers/utiltsObservationHandoff')
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
   let raw = shape.includes('readings') ? observationHandoffMessage('2026-10-01', f.ids.company).raw_payload! : f.original.raw_payload!
   raw = raw.replace('?+0200:406', '?+0100:406').replace('QTY+220:11000', 'QTY+220:10500')
     .replace('735999260731000007::9', '735999260731000007::89')
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : `BGM+${code}::260`)
     .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`).replace(code === 'E30' ? "\nMEA+AAZ++KWH'" : '\u0000', '') // U s85
   const source = await f.insertSource(ownIdentity(raw), code)
+  if (code === 'E66') expect(source.grid_owner_data_request_id).toBeNull()
   await realSinks()
   const result = await (shape === 'S07-policy' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage)({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.internalReviewRequired).toBe(true); expect(result.ingestedMeterValueIds).toEqual([])
@@ -1632,7 +1628,9 @@ it.each([['232', '260c'], ['233', '260b']] as const)('native orphan LOC+%s persi
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it('native mixed IDE consumes only the accepted sibling before separate 260a ACKs and retries identically', async () => {
-  const f = await seed()
+  // A prelinked request row does not establish an E66 billing basis.
+  // The E73 original, sent period and RFF+ACW must qualify on the real path.
+  const f = await seed({ matchSentRequest: true, withImapReceipt: true })
   const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260').split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const close = lines.findIndex(line => line.startsWith('UNT+'))
@@ -1657,6 +1655,12 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(effects.meter).toHaveBeenCalledTimes(1)
   expect(effects.bill).toHaveBeenCalledTimes(1)
+  expect(effects.bill.mock.calls[0][0]).toMatchObject({
+    sourceRequestId: f.ids.request,
+    boundSourceMessageId: source.id,
+    totalKwh: '7',
+    boundContracts: [{ transactionId: 'GRIDEX2607E66002', billing: { capability: 'write', sourceRequestId: f.ids.request } }],
+  })
   expect(effects.meter.mock.calls[0][0]).toMatchObject({ companyId: f.ids.company, quantityKwh: '7', sourceTransactionReference: 'GRIDEX2607E66002' })
   expect(effects.meter.mock.invocationCallOrder[0]).toBeLessThan(effects.ack.mock.invocationCallOrder[0])
   expect(first.ingestedMeterValueIds).toHaveLength(1)

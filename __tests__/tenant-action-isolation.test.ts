@@ -105,7 +105,8 @@ describe('tenant isolation for customer-bound server actions', () => {
     for (const name of ['updateGridOwnerDataRequestStatusAction', 'prepareGridOwnerDataRequestEdielAction']) {
       const fn = body(name)
       expect(fn).toContain("table: 'grid_owner_data_requests'")
-      const write = name.startsWith('update') ? 'updateGridOwnerDataRequestStatus(' : 'ensureAndPrepareUtiltsFromDataRequest('
+      const write = name.startsWith('update') ? 'updateGridOwnerDataRequestBusiness(' : 'ensureAndPrepareUtiltsFromDataRequest('
+      expect(fn.indexOf('assertEntityCompanyAccess')).toBeGreaterThanOrEqual(0)
       expect(fn.indexOf('assertEntityCompanyAccess')).toBeLessThan(fn.indexOf(write))
     }
   })

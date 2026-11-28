@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { BATCH2B_AUTOMATION_ACCESS, BATCH2C_AUTOMATION_ACCESS, BILLING_BLOCKER_ACCESS } from '@/lib/operations/automationPermissions'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { runBatch2BAutomation, createBillingBlockerCasesForCompany } from '@/lib/operations/batch2bAutomation'
 import { createCasesForBatch2CQueues, runBatch2CPeriodMotor } from '@/lib/operations/batch2cAutomation'
@@ -35,7 +36,7 @@ function done(status: 'success' | 'error', message: string): never {
 
 export async function runBatch2BAutomationAction(): Promise<void> {
   try {
-    const admin = await requireAdminActionAccess({ anyOf: ['customers.write', 'metering.write', 'billing_underlay.export', 'cases.write'] })
+    const admin = await requireAdminActionAccess(BATCH2B_AUTOMATION_ACCESS)
     const companyId = await resolveCompanyId(admin)
     const result = await runBatch2BAutomation({ companyId, actorUserId: admin.userId })
     revalidate()
@@ -48,7 +49,7 @@ export async function runBatch2BAutomationAction(): Promise<void> {
 
 export async function runBatch2CPeriodMotorAction(formData: FormData): Promise<void> {
   try {
-    const admin = await requireAdminActionAccess({ anyOf: ['metering.write', 'billing_underlay.export', 'cases.write'] })
+    const admin = await requireAdminActionAccess(BATCH2C_AUTOMATION_ACCESS)
     const companyId = await resolveCompanyId(admin)
     const result = await runBatch2CPeriodMotor({
       companyId,
@@ -66,7 +67,7 @@ export async function runBatch2CPeriodMotorAction(formData: FormData): Promise<v
 
 export async function createBillingBlockerCasesAction(): Promise<void> {
   try {
-    const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export'] })
+    const admin = await requireAdminActionAccess(BILLING_BLOCKER_ACCESS)
     const companyId = await resolveCompanyId(admin)
     const result = await createBillingBlockerCasesForCompany({ companyId, actorUserId: admin.userId })
     revalidate()
@@ -79,11 +80,11 @@ export async function createBillingBlockerCasesAction(): Promise<void> {
 
 export async function createBatch2CQueueCasesAction(): Promise<void> {
   try {
-    const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export', 'metering.write'] })
+    const admin = await requireAdminActionAccess(BATCH2C_AUTOMATION_ACCESS)
     const companyId = await resolveCompanyId(admin)
     const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
     revalidate()
-    done('success', `${result.casesCreated} driftuppgifter skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+    done('success', `${result.casesCreated} nya uppföljningar skapades efter granskning av ${result.queuesScanned} köposter.`)
   } catch (error) {
     unstable_rethrow(error)
     done('error', error instanceof Error ? error.message : 'Driftköer kunde inte kopplas till driftuppgifter.')

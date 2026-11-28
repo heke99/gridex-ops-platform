@@ -2,15 +2,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeSupabase, type Row } from './helpers/supabaseMock'
 
 const state: {
+  maxRows: number
   tables: Record<string, Row[]>
   errorsByTable: Record<string, { code?: string; message?: string }>
-} = { tables: {}, errorsByTable: {} }
+} = { maxRows: Infinity, tables: {}, errorsByTable: {} }
 
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from(table: string) {
-      const fake = createFakeSupabase({ tables: state.tables, errorsByTable: state.errorsByTable })
-      return fake.client.from(table)
+      const rows = (state.tables[table] ?? []).map((row, index) => ({
+        id: String(index + 1).padStart(8, '0'),
+        ...row,
+      }))
+      const fake = createFakeSupabase({ tables: { ...state.tables, [table]: rows }, errorsByTable: state.errorsByTable })
+      const query = fake.client.from(table)
+      const limit = query.limit.bind(query)
+      query.limit = count => limit(Math.min(count, state.maxRows))
+      return query
     },
   },
 }))
@@ -36,6 +44,7 @@ function value(overrides: Partial<Row> = {}): Row {
 }
 
 beforeEach(() => {
+  state.maxRows = Infinity
   state.tables = { normalized_metering_values: [] }
   state.errorsByTable = {}
 })
@@ -209,4 +218,59 @@ describe('evaluateMeteringCompletenessForMonth', () => {
 
     expect(result.issues.map((issue) => issue.code)).toContain('metering_point_resolution_mismatch')
   })
+})
+
+
+it('reads all quarter-hour intervals even below the requested PostgREST page size', async () => {
+  state.maxRows = 713
+  const start = Date.parse(MONTH_START)
+  const quarter = 15 * 60_000
+  const count = (Date.parse(MONTH_END) - start) / quarter
+  state.tables.normalized_metering_values = Array.from({ length: count }, (_, index) => value({
+    period_start: new Date(start + index * quarter).toISOString(),
+    period_end: new Date(start + (index + 1) * quarter).toISOString(),
+    quantity_kwh: 0.25,
+  }))
+
+  const result = await evaluateMeteringCompletenessForMonth({
+    companyId: 'company-1',
+    billingMonth: MONTH,
+    meteringPoints: [{ meteringPointId: 'mp-1', expectedKwh: count * 0.25 }],
+  })
+
+  expect(result).toMatchObject({ status: 'complete', valueCount: count, issues: [] })
+})
+
+it('compares each split price-period total with its own values on the same point', async () => {
+  const boundary = '2026-05-15T00:00:00.000Z'
+  state.tables.normalized_metering_values = [
+    value({ period_end: boundary, quantity_kwh: 20 }),
+    value({ period_start: boundary, quantity_kwh: 30 }),
+  ]
+
+  const result = await evaluateMeteringCompletenessForMonth({
+    companyId: 'company-1',
+    billingMonth: MONTH,
+    meteringPoints: [
+      { meteringPointId: 'mp-1', expectedKwh: 20, expectedPeriod: { start: MONTH_START, end: boundary } },
+      { meteringPointId: 'mp-1', expectedKwh: 32, expectedPeriod: { start: boundary, end: MONTH_END } },
+    ],
+  })
+
+  expect(result.status).toBe('complete')
+  expect(result.issues).toHaveLength(1)
+  expect(result.issues[0]).toMatchObject({
+    code: 'metering_total_mismatch', details: { actual_kwh: 30, expected_kwh: 32 },
+  })
+})
+
+it('does not attribute a single quantity spanning an exact period boundary', async () => {
+  state.tables.normalized_metering_values = [value()]
+  const result = await evaluateMeteringCompletenessForMonth({
+    companyId: 'company-1',
+    billingMonth: MONTH,
+    meteringPoints: [{ meteringPointId: 'mp-1', expectedKwh: 500, expectedPeriod: { start: MONTH_START, end: '2026-05-15T00:00:00.000Z' } }],
+  })
+  expect(result.status).toBe('complete')
+  expect(result.issues).toEqual([])
 })

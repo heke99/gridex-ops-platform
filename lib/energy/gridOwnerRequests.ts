@@ -153,12 +153,15 @@ async function findActorRoute(input: GridOwnerInformationRequestInput) {
 
 
 async function existingOpenRequest(input: GridOwnerInformationRequestInput) {
-  if (!input.customerSiteId) return null
-  const { data, error } = await supabaseService
+  if (!input.customerSiteId && !input.customerApplicationId) return null
+  const query = supabaseService
     .from('grid_owner_information_requests')
     .select('*')
     .eq('company_id', input.companyId)
-    .eq('customer_site_id', input.customerSiteId)
+  if (input.customerSiteId) query.eq('customer_site_id', input.customerSiteId)
+  else if (input.customerApplicationId) query.is('customer_site_id', null).eq('customer_application_id', input.customerApplicationId)
+  if (input.customerId) query.eq('customer_id', input.customerId)
+  const { data, error } = await query
     .eq('request_type', input.requestType ?? 'facility_lookup')
     .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response', 'needs_review'])
     .order('created_at', { ascending: false })
@@ -238,8 +241,7 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
   }
 
   const operationalRoute = await findOperationalRouteReadiness(input)
-  const existing = await existingOpenRequest(input)
-  if (existing) {
+  async function reuseRequest(existing: NonNullable<Awaited<ReturnType<typeof existingOpenRequest>>>): Promise<GridOwnerInformationRequestResult> {
     await patchRequestCanonicalContext({
       requestId: String(existing.id),
       companyId: input.companyId,
@@ -314,6 +316,9 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     }
   }
 
+  const existing = await existingOpenRequest(input)
+  if (existing) return reuseRequest(existing)
+
   const contactRoute = operationalRoute?.ready ? null : await findContactRoute(input)
   const actorRoute = contactRoute || operationalRoute?.ready ? null : await findActorRoute(input)
   if (!contactRoute && !actorRoute && !operationalRoute?.ready) warnings.push('grid_owner_contact_route_missing')
@@ -344,6 +349,9 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
       grid_area_code: gridAreaCode,
       price_area: priceArea,
       request_type: input.requestType ?? 'facility_lookup',
+      ...(!input.customerSiteId && input.customerApplicationId ? {
+        idempotency_key: ['website-application', input.companyId, input.customerApplicationId, input.requestType ?? 'facility_lookup'].join(':'),
+      } : {}),
       status,
       channel,
       template_id: clean(contactRoute?.template_id) ?? (actorRoute || operationalRoute?.ready ? 'facility_lookup.prodat_z01' : 'facility_lookup.default'),
@@ -366,6 +374,11 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     .single()
 
   if (error) {
+    // The existing unique open-request indexes serialize concurrent first use.
+    if (error.code === '23505') {
+      const winner = await existingOpenRequest(input)
+      if (winner) return reuseRequest(winner)
+    }
     if (missingSchema(error)) {
       return {
         requestId: null,
@@ -387,18 +400,6 @@ export async function ensureGridOwnerInformationRequest(input: GridOwnerInformat
     if (resolutionResult.error && !missingSchema(resolutionResult.error)) throw resolutionResult.error
   }
 
-  if (input.customerApplicationId) {
-    const appResult = await supabaseService
-      .from('website_customer_applications')
-      .update({
-        grid_owner_information_request_id: data.id,
-        status: status === 'ready_to_send' ? 'information_request_ready' : 'needs_facility_data',
-        updated_at: now,
-      })
-      .eq('id', input.customerApplicationId)
-      .eq('company_id', input.companyId)
-    if (appResult.error && !missingSchema(appResult.error)) throw appResult.error
-  }
 
   return {
     requestId: data.id as string,

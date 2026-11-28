@@ -46,6 +46,7 @@ export type WorkflowPrimaryAction =
   | "approve_and_send"
   | "dispatch_in_progress"
   | "wait_for_grid_owner"
+  | "follow_supplier_switch"
   | "create_supplier_switch"
   | "no_action_required";
 
@@ -252,16 +253,19 @@ export function buildCustomerCardWorkflow(
     infoRequests[0] ??
     null;
 
-  const activeSwitchRequest =
-    switchRequests.find((r) =>
-      [
-        "queued",
-        "validated",
-        "ready_to_send",
-        "submitted",
-        "waiting_response",
-      ].includes(String(r.status ?? "")),
-    ) ?? null;
+  const activeSwitchRequest = switchRequests.find(request => [
+    "queued",
+    "validated",
+    "ready_to_send",
+    "submitted",
+    "waiting_response",
+    "accepted",
+    "cancellation_requested",
+    "cancellation_sent",
+    "manual_followup_required",
+  ].includes(request.status) && request.company_id && request.customer_id === input.customerId &&
+    input.sites.some(site => site.id === request.site_id && site.company_id === request.company_id && site.customer_id === request.customer_id),
+  ) ?? null;
 
   const latestManualRequest = input.manualRequests?.[0] ?? null;
   const manualStatus = latestManualRequest?.status ?? null;
@@ -573,7 +577,7 @@ export function buildCustomerCardWorkflow(
     id: "next_step",
     label: "Nästa steg",
     explanation: hasPendingSwitch
-      ? "Leverantörsbyte pågår."
+      ? "Leveransärende pågår."
       : hasResponseForSwitch
         ? "Uppgifter mottagna. Redo för leverantörsbyte eller komplettering."
         : "Nästa steg bestäms när uppgifter från nätägaren är mottagna.",
@@ -755,7 +759,7 @@ export function buildCustomerCardWorkflow(
     id: "supplier_switch",
     label: "Leverantörsbyte",
     explanation: hasPendingSwitch
-      ? "Leverantörsbyte är skapat eller pågår."
+      ? "Leveransärendet är registrerat och pågår."
       : hasResponseForSwitch || snapshot.hasFacilityId
         ? "Redo att bedöma leverantörsbyte."
         : "Leverantörsbyte startar först när anläggningsdata är klar.",
@@ -770,8 +774,9 @@ export function buildCustomerCardWorkflow(
   let nextRequiredAction: string | null = null;
 
   if (hasPendingSwitch) {
-    primaryAction = "wait_for_grid_owner";
-    adminMessage = "Leverantörsbyte pågår. Väntar på svar.";
+    primaryAction = "follow_supplier_switch";
+    adminMessage = "Leveransärende pågår.";
+    nextRequiredAction = "Utskick, nätägarens svar och leveransstart visas i leveransärendet.";
   } else if (
     blockerCode === "facility_or_metering_point_missing" &&
     facilityLookupInFlight

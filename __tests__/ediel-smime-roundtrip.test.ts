@@ -3,7 +3,13 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import forge from 'node-forge'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { unpackInboundSmimeIfNeeded } from '@/lib/ediel/transport/smime'
+
+const { loadInboundPrivateCertificates } = vi.hoisted(() => ({
+  loadInboundPrivateCertificates: vi.fn().mockResolvedValue({ profiles: [], warnings: [] }),
+}))
+vi.mock('@/lib/ediel/security/privateCertificateStore', () => ({ loadInboundPrivateCertificates }))
 
 /**
  * Ediel S/MIME round trip with the installed node-forge (see the documented audit exception
@@ -75,4 +81,24 @@ describe('Ediel S/MIME enveloped-data round trip (node-forge)', () => {
     }
     expect(p7.findRecipient(other.cert)).toBeNull()
   })
+})
+
+it('reports malformed CMS before requesting a private certificate', async () => {
+  const damagedDer = Buffer.from([0x30, 0x82, 0x02])
+  const rawEmail = [
+    'Content-Type: application/pkcs7-mime; smime-type=enveloped-data',
+    'Content-Transfer-Encoding: base64',
+    '',
+    damagedDer.toString('base64'),
+  ].join('\r\n')
+
+  const result = await unpackInboundSmimeIfNeeded({ rawEmail, environment: 'test' })
+  expect(result).toMatchObject({
+    detected: true,
+    decryptedText: null,
+    securityStatus: 'decrypt_failed',
+    validationError: 'S/MIME upptäcktes men den krypterade delen har ett ogiltigt CMS-format.',
+    evidence: { cmsValidation: 'invalid', dbAttempt: null },
+  })
+  expect(loadInboundPrivateCertificates).not.toHaveBeenCalled()
 })

@@ -1,7 +1,8 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 
 import { createHash, randomUUID } from "crypto"
-import { isDeliveryStatusNotification } from './dsnClassifier'
+import { inspectMimeStructure, isEncryptedMimePart } from './mimeStructure'
+import { parseUna, stripUna } from '@/lib/ediel/core/una'
 import { binaryToBuffer, decodeTextBytes, decodeTransferEncoding, rawSourceToText, toBinaryString } from './mimeCharset'
 import { extractEdifactPayload, parseEdifactPayload, normalizeEdifactMessageCode } from "@/lib/inbound-mail/edielEmailParser"
 
@@ -77,12 +78,31 @@ export type InboundProcessingJobRow = {
   started_at: string | null;
   finished_at: string | null;
   error_message: string | null;
+  review_resolved_at?: string | null;
   payload: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };
 
+export const MAILBOX_POLL_PARTIAL = "Delvis lyckad. IMAP-läsningen slutfördes men minst ett brev kunde inte sparas."
+
+const partialPollNotices = new Set([
+  MAILBOX_POLL_PARTIAL,
+  "imap_transport_identity_bytes_conflict",
+  "imap_verified_fetch_identity_missing",
+  "imap_scan_source_storage_pending",
+  "imap_scan_source_fetch_failed",
+  "imap_scan_searched_uid_missing",
+  "imap_scan_fetched_unexpected_uid",
+  "imap_scan_retry_source_absent",
+]);
+
+export function isMailboxPollPartialNotice(value: string | null | undefined): boolean {
+  return typeof value === "string" && partialPollNotices.has(value);
+}
+
 export type PollMailboxResult = {
+  outcome: "complete" | "partial" | "failed" | "skipped_locked";
   mailboxId: string;
   mailboxName: string;
   environment: string;
@@ -151,6 +171,8 @@ export type InboundEngineRunResult = {
     configurationError: string | null;
     autoProcessedEdielMessages: number;
     autoProcessErrors: string[];
+    deferredE66Requests?: number;
+    e66RequestRetryStatus?: "idle" | "deferred" | "request_received" | "request_partial" | "replaced" | "cancelled" | "held" | "error";
   };
   results: PollMailboxResult[];
 };
@@ -742,153 +764,146 @@ export function sha256(value: string | Buffer): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-// Decodes one MIME part body. `binaryBody` is a byte-preserving latin1 string
-// of the part bytes. Transfer-encoded parts and raw 8-bit Buffer sources are
-// decoded by the part charset / EDIFACT UNB syntax identifier; a JS string
-// source is already characters and is returned as such.
-function decodeSplitPart(
-  binaryBody: string,
-  transferEncoding: string | null,
-  charset: string | null,
-  sourceIsBytes: boolean,
-): { text: string; sizeBytes: number } {
-  const encoding = transferEncoding?.trim().toLowerCase() ?? null;
-  let bytes: Buffer;
-  try {
-    bytes = decodeTransferEncoding(binaryBody, encoding);
-  } catch {
-    bytes = binaryToBuffer(binaryBody);
-  }
-  const transferEncoded = encoding === "base64" || encoding === "quoted-printable";
-  const text =
-    transferEncoded || sourceIsBytes
-      ? decodeTextBytes(bytes, charset)
-      : bytes.toString("utf8");
-  return { text, sizeBytes: bytes.length };
+export const MULTIPLE_EDIFACT_ORIGINALS = 'multiple_edifact_originals'
+export const IMAP_ORIGINAL_CUSTODY_UNVERIFIED = 'imap_original_custody_unverified'
+
+export function extractPhysicalEdifactCandidate(value: string | null | undefined): string | null {
+  const payload = extractEdifactPayload(value)
+  if (!payload) return null
+  const { dataElementSeparator } = parseUna(payload)
+  return stripUna(payload).trimStart().startsWith(`UNB${dataElementSeparator}`) ? payload : null
 }
 
-export function splitMimeParts(rawEmail: string | Buffer | Uint8Array | null): {
+type PhysicalEdifactPart = {
+  position: string
+  sourceSha256: string
+  decodedSha256: string
+  decodedBytes: number
+  edifactPayload: string
+  filename: string | null
+}
+
+export function splitMimeParts(
+  rawEmail: string | Buffer | Uint8Array | null,
+  options: { includePhysicalParts?: boolean } = {},
+): {
   bodyText: string | null;
   bodyHtml: string | null;
   attachments: InboundEmailAttachmentInput[];
   rawEdifactPayload: string | null;
+  physicalEdifactCandidateCount: number;
+  physicalEdifactParts: PhysicalEdifactPart[];
 } {
-  if (!rawEmail || (typeof rawEmail !== "string" && rawEmail.length === 0))
-    return {
-      bodyText: null,
-      bodyHtml: null,
-      attachments: [],
-      rawEdifactPayload: null,
-    };
+  const rawText = rawSourceToText(rawEmail)
+  const empty = { bodyHtml: null, attachments: [], rawEdifactPayload: null, physicalEdifactCandidateCount: 0, physicalEdifactParts: [] }
+  if (!rawEmail || !rawText) return { ...empty, bodyText: null }
 
-  const sourceIsBytes = typeof rawEmail !== "string";
-  const rawText = rawSourceToText(rawEmail) ?? "";
-  // Structure is parsed on the raw bytes (one char per byte) so each part can
-  // be decoded with its own charset.
-  const binary = toBinaryString(rawEmail);
-
-  if (isDeliveryStatusNotification(rawText)) {
-    // Keep the complete MIME envelope available for transport review, including
-    // after S/MIME unpacking, without creating business payload candidates.
-    return { bodyText: rawText, bodyHtml: null, attachments: [], rawEdifactPayload: null };
+  const binary = toBinaryString(rawEmail)
+  const includeSourceIdentity = options.includePhysicalParts === true && typeof rawEmail !== 'string'
+  const structure = inspectMimeStructure(binary, { preserveBytes: true, includeSourceIdentity })
+  if (structure.deliveryStatus || structure.exceededLimits || structure.issues.length > 0) {
+    // Preserve a held original for the wider MIME and transport review path.
+    return { ...empty, bodyText: rawText }
+  }
+  if (structure.entities.length === 0) {
+    const bytes = typeof rawEmail === 'string' ? null : binaryToBuffer(binary)
+    const decoded = bytes ? decodeTextBytes(bytes) : rawText
+    const payload = extractEdifactPayload(decoded)
+    const candidate = extractPhysicalEdifactCandidate(decoded)
+    const hash = bytes && candidate && includeSourceIdentity ? sha256(bytes) : null
+    return { ...empty, bodyText: decoded, rawEdifactPayload: payload,
+      physicalEdifactCandidateCount: candidate ? 1 : 0,
+      physicalEdifactParts: hash && bytes && candidate
+        ? [{ position: '1', sourceSha256: hash, decodedSha256: hash, decodedBytes: bytes.length, edifactPayload: candidate, filename: null }]
+        : [] }
   }
 
-  const firstBlank = binary.search(/\r?\n\r?\n/);
-  const rootHeader = firstBlank >= 0 ? binary.slice(0, firstBlank) : "";
-  const rootHeaders = parseHeaderBlock(rootHeader);
-  const boundary = headerParam(rootHeaders["content-type"], "boundary");
+  const bodies: string[] = []
+  const htmlBodies: string[] = []
+  const attachments: InboundEmailAttachmentInput[] = []
+  const candidates: string[] = []
+  const physicalEdifactParts: PhysicalEdifactPart[] = []
+  for (const entity of structure.entities) {
+    const { mediaType, contentType, headers } = entity
+    if (mediaType.startsWith('multipart/') || ['message/rfc822', 'message/global'].includes(mediaType)) continue
 
-  const bodies: string[] = [];
-  const htmlBodies: string[] = [];
-  const attachments: InboundEmailAttachmentInput[] = [];
-
-  if (!boundary) {
-    const body = firstBlank >= 0 ? binary.slice(firstBlank).trim() : binary;
-    const decoded = decodeSplitPart(
-      body,
-      rootHeaders["content-transfer-encoding"] ?? null,
-      headerParam(rootHeaders["content-type"], "charset"),
-      sourceIsBytes,
-    ).text;
-    const payload = extractEdifactPayload(decoded);
-    return {
-      bodyText: decoded,
-      bodyHtml: null,
-      attachments: [],
-      rawEdifactPayload: payload,
-    };
-  }
-
-  const delimiter = `--${boundary}`;
-  const rawParts = binary
-    .split(delimiter)
-    .slice(1)
-    .filter((part) => !part.trim().startsWith("--"));
-
-  for (const rawPart of rawParts) {
-    const part = rawPart.replace(/^\r?\n/, "");
-    const separator = part.search(/\r?\n\r?\n/);
-    if (separator < 0) continue;
-
-    const headerBlock = part.slice(0, separator);
-    const bodyBlock = part
-      .slice(separator)
-      .replace(/^\r?\n\r?\n/, "")
-      .replace(/\r?\n--$/, "")
-      .trim();
-    const headers = parseHeaderBlock(headerBlock);
-    const contentType = headers["content-type"] ?? "";
-    const disposition = headers["content-disposition"] ?? "";
-    const transferEncoding = headers["content-transfer-encoding"] ?? null;
-    const filename =
-      headerParam(disposition, "filename") ?? headerParam(contentType, "name");
-    const { text: decoded, sizeBytes } = decodeSplitPart(
-      bodyBlock,
-      transferEncoding,
-      headerParam(contentType, "charset"),
-      sourceIsBytes,
-    );
-    const lowerFilename = filename?.toLowerCase() ?? "";
-    const isAttachment = /attachment/i.test(disposition) || Boolean(filename);
-    const isEdifactCandidate =
-      Boolean(extractEdifactPayload(decoded)) ||
-      /\.(edi|edifact|txt|dat)$/i.test(lowerFilename);
-
-    if (isAttachment) {
-      attachments.push({
-        filename,
-        mimeType: contentType.split(";")[0]?.trim() || null,
-        sizeBytes,
-        rawText: decoded,
-        isEdifactCandidate,
-        metadata: { contentType, disposition, transferEncoding },
-      });
-      continue;
+    const disposition = headers.get('content-disposition')?.[0] ?? ''
+    const transferEncoding = headers.get('content-transfer-encoding')?.[0] ?? null
+    const filename = headerParam(disposition, 'filename') ?? headerParam(contentType, 'name')
+    const bytes = binaryToBuffer(entity.body)
+    const encoded = ['base64', 'quoted-printable'].includes(transferEncoding?.toLowerCase() ?? '')
+    // The original MIME retains ciphertext bytes for decryption and replay.
+    // Only decoded text belongs in the body and EDIFACT projections.
+    let decoded: string | null = null
+    if (!isEncryptedMimePart(entity)) {
+      decoded = typeof rawEmail !== 'string' || encoded
+        ? decodeTextBytes(bytes, headerParam(contentType, 'charset'))
+        : bytes.toString('utf8')
+    }
+    const candidate = extractPhysicalEdifactCandidate(decoded)
+    if (candidate) {
+      candidates.push(candidate)
+      if (entity.sourceIdentity) {
+        physicalEdifactParts.push({
+          position: entity.sourceIdentity.position,
+          sourceSha256: entity.sourceIdentity.sha256,
+          decodedSha256: sha256(bytes),
+          decodedBytes: bytes.length,
+          edifactPayload: candidate,
+          filename,
+        })
+      }
     }
 
-    if (/text\/html/i.test(contentType)) htmlBodies.push(decoded);
-    else bodies.push(decoded);
+    if (/attachment/i.test(disposition) || filename) {
+      attachments.push({
+        filename,
+        mimeType: mediaType || null,
+        sizeBytes: bytes.length,
+        rawText: decoded,
+        isEdifactCandidate: decoded !== null && (Boolean(candidate) || /\.(edi|edifact|txt|dat)$/i.test(filename ?? '')),
+        metadata: { contentType, disposition, transferEncoding },
+      })
+    } else if (decoded !== null) {
+      const targetBody = entity.index > 0 && mediaType === 'text/html' ? htmlBodies : bodies
+      targetBody.push(decoded)
+    }
+  }
+  return {
+    bodyText: bodies.join('\n\n') || null,
+    bodyHtml: htmlBodies.join('\n\n') || null,
+    attachments,
+    rawEdifactPayload: candidates.length === 1 ? candidates[0] : null,
+    physicalEdifactCandidateCount: candidates.length,
+    physicalEdifactParts,
+  }
+}
+
+type RetainedImapMime =
+  | { kind: 'legacy' | 'unverified' }
+  | { kind: 'verified'; mime: ReturnType<typeof splitMimeParts> }
+
+export function readRetainedImapMime(row: Record<string, unknown>, includePhysicalParts = false): RetainedImapMime {
+  if (row.imap_uid == null) return { kind: 'legacy' }
+  const raw = row.raw_email
+  const hash = row.raw_mailbox_bytes_sha256
+  if (typeof row.mailbox_id !== 'string' || typeof row.imap_folder !== 'string'
+    || typeof row.imap_account_scope !== 'string' || !/^[a-f0-9]{64}$/.test(row.imap_account_scope)
+    || typeof row.imap_uid_validity !== 'number' || typeof row.imap_uid !== 'number'
+    || typeof raw !== 'string' || typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) {
+    return { kind: 'unverified' }
   }
 
-  const allText = [
-    ...attachments
-      .filter((a) => a.isEdifactCandidate)
-      .map((a) => a.rawText ?? ""),
-    ...bodies,
-    ...htmlBodies,
-    rawText,
-  ];
-  const rawEdifactPayload =
-    allText
-      .map((value) => extractEdifactPayload(value))
-      .find((value): value is string => Boolean(value)) ?? null;
-
-  return {
-    bodyText: bodies.join("\n\n") || null,
-    bodyHtml: htmlBodies.join("\n\n") || null,
-    attachments,
-    rawEdifactPayload,
-  };
+  // The verified FETCH writer stores its literal as UTF-8 when valid and as
+  // Latin-1 otherwise. Trust a reconstruction only if the physical hash agrees.
+  let original = Buffer.from(raw, 'utf8')
+  if (sha256(original) !== hash) {
+    original = Buffer.from(raw, 'latin1')
+    if (original.toString('latin1') !== raw || sha256(original) !== hash) {
+      return { kind: 'unverified' }
+    }
+  }
+  return { kind: 'verified', mime: splitMimeParts(original, { includePhysicalParts }) }
 }
 
 export async function listConfiguredEdielMailboxes(
@@ -967,8 +982,10 @@ export async function markMailboxPollStarted(
   mailboxId: string,
   workerId = "inbound-mail-engine",
   forceLock = false,
+  preserveLastPoll = false,
 ): Promise<InboundLeaseReceipt | null> {
   const owner = makeWorkerId(workerId);
+  const lockedAt = nowIso();
   const staleCutoff = new Date(
     Date.now() -
       envInt("EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES", 30) * 60_000,
@@ -976,10 +993,9 @@ export async function markMailboxPollStarted(
   let query = supabaseService
     .from("ediel_mailboxes")
     .update({
-      last_polled_at: nowIso(),
-      locked_at: nowIso(),
+      ...(!preserveLastPoll ? { last_polled_at: lockedAt } : {}),
+      locked_at: lockedAt,
       locked_by: owner,
-      last_error: null,
       updated_at: nowIso(),
     })
     .eq("id", mailboxId);
@@ -991,8 +1007,21 @@ export async function markMailboxPollStarted(
   const { data, error } = await query.select("id,locked_by,locked_at").maybeSingle();
 
   if (error) throw error;
-  const receipt = readInboundLeaseReceipt(data);
-  if (data && (!receipt || receipt.id !== mailboxId || receipt.locked_by !== owner)) {
+  let claimed = data;
+  if (!claimed && !forceLock) {
+    // PostgREST can reapply the pre-update OR predicate to the returned row.
+    const readback = await supabaseService.from("ediel_mailboxes")
+      .select("id,locked_by,locked_at")
+      .eq("id", mailboxId)
+      .eq("locked_by", owner)
+      .eq("locked_at", lockedAt)
+      .maybeSingle();
+    if (readback.error) throw readback.error;
+    claimed = readback.data;
+  }
+
+  const receipt = readInboundLeaseReceipt(claimed);
+  if (claimed && (!receipt || receipt.id !== mailboxId || receipt.locked_by !== owner)) {
     throw new Error("mailbox_poll_claim_invalid");
   }
   return receipt;
@@ -1002,24 +1031,19 @@ export async function markMailboxPollFinished(input: {
   claim: InboundLeaseReceipt;
   ok: boolean;
   errorMessage?: string | null;
+  preserveLastSuccess?: boolean;
+  preserveLastError?: boolean;
 }): Promise<boolean> {
   const claim = readInboundLeaseReceipt(input.claim);
   if (!claim) return false;
-  const payload = input.ok
-    ? {
-        last_successful_poll_at: nowIso(),
-        locked_at: null,
-        locked_by: null,
-        last_error: null,
-        updated_at: nowIso(),
-      }
-    : {
-        locked_at: null,
-        locked_by: null,
-        last_error: input.errorMessage ?? "Mailbox polling failed",
-        updated_at: nowIso(),
-      };
-
+  const updatedAt = nowIso();
+  const payload = {
+    locked_at: null,
+    locked_by: null,
+    updated_at: updatedAt,
+    ...(input.ok && !input.preserveLastSuccess ? {last_successful_poll_at:updatedAt} : {}),
+    ...(!input.preserveLastError ? {last_error:input.ok ? null : input.errorMessage ?? "Mailbox polling failed"} : {}),
+  };
   const { data, error } = await supabaseService
     .from("ediel_mailboxes")
     .update(payload)

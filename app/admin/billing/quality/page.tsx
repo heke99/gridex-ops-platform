@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { canOpenCustomerDetail } from '@/lib/admin/accessModel'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { calculateCustomerReadinessScore } from '@/lib/customers/readinessScore'
 
@@ -47,6 +48,7 @@ function emptyResult() {
 
 export default async function BillingQualityPage() {
   const admin = await requireAdminPageKeyAccess('billing.workspace')
+  const canOpenCustomer = isPlatformAdminContext(admin) || canOpenCustomerDetail(admin.permissions)
   const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
   const supabase = await createSupabaseServerClient()
@@ -162,7 +164,14 @@ export default async function BillingQualityPage() {
               <tbody className="divide-y divide-slate-100">
                 {rows.map(({ customer, score }) => (
                   <tr key={customer.id} className="align-top">
-                    <td className="px-6 py-4"><Link href={`/admin/customers/${customer.id}`} className="font-semibold text-slate-950 hover:text-emerald-700">{customerName(customer)}</Link><div className="mt-1 text-xs text-slate-500">{customer.customer_type ?? 'kund'} · {customer.status ?? 'status saknas'}</div></td>
+                    <td className="px-6 py-4">
+                      {canOpenCustomer ? (
+                        <Link href={`/admin/customers/${customer.id}`} className="font-semibold text-slate-950 hover:text-emerald-700">{customerName(customer)}</Link>
+                      ) : (
+                        <span className="font-semibold text-slate-950">{customerName(customer)}</span>
+                      )}
+                      <div className="mt-1 text-xs text-slate-500">{customer.customer_type ?? 'kund'} · {customer.status ?? 'status saknas'}</div>
+                    </td>
                     {[score.customerScore, score.siteScore, score.contractScore, score.powerOfAttorneyScore, score.billingScore].map((value, index) => <td key={index} className="px-6 py-4"><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(value)}`}>{value}%</span></td>)}
                     <td className="px-6 py-4 text-xs text-slate-700">
                       <div>Avtal: {score.readyForContract ? 'Ja' : 'Nej'}</div>

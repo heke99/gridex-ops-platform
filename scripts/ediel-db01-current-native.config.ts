@@ -35,7 +35,7 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
     public_creator_input: Record<string, string>}
   current_database_basis: {kind: string; forwards: Array<GitInput & {path: string}>; schema_path: string}
   current_s01_source_install?: {status: string; exit_code: number; donor_path: string; donor_sha256: string; source_schema_sha256: string; predecessor_definition_sha256: string; sql_sha256: string}
-  current_guard_result?: {source_qualified_dependency_extensions?: Array<{name: string; identity: string[]; body_sha256: string}>; status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
+  current_guard_result?: {source_qualified_dependency_extensions?: Array<{name: string; identity: string[]; body_sha256: string}>; status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; selected_logical_objects: number; mismatches: unknown[]; supplemental_donor_mismatches: unknown[]}
   current_api_schema_result?: {status: string; source_sha: string; rpc_paths: string[]}
   phases?: Record<string, {status: string; exit_code: number | null}>
   current_source_basis: string
@@ -283,8 +283,10 @@ if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards
     receipt.current_s01_source_install.sql_sha256 !== 'deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b' ||
     receipt.current_s01_source_install.source_schema_sha256 !== fileHash(resolve(root, currentDatabase.schema_path)) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
-    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 377 ||
-    receipt.current_guard_result.function_definitions !== 377 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.reader_function_names !== 235 || receipt.current_guard_result.helper_function_names !== 383 ||
+    receipt.current_guard_result.function_definitions !== 383 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.selected_logical_objects !== 864 ||
+    !Array.isArray(receipt.current_guard_result.supplemental_donor_mismatches) || receipt.current_guard_result.supplemental_donor_mismatches.length !== 0 ||
     JSON.stringify(receipt.current_guard_result.source_qualified_dependency_extensions) !== JSON.stringify(s01DependencyExtensions) ||
     !Array.isArray(receipt.current_guard_result.mismatches) || receipt.current_guard_result.mismatches.length !== 0 ||
     receipt.current_api_schema_result?.status !== 'PASS' || receipt.current_api_schema_result.source_sha !== head ||

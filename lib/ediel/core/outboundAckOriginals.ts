@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
-import {readPhysicalAckSourceCorrelation,type InboundAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {readPhysicalAckSourceCorrelation,type AckCorrelationMessage,type InboundAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {AckFamily} from './ackPolicy'
 
@@ -8,7 +8,7 @@ export type OutboundAckOriginal=Readonly<{status:'qualified'|'held';message:Edie
 /** Internal service read after the ACK gateway's actor/source access gate.
  * Protected born evidence supplies authority; public status/outcome does not.
  * This deliberately neither captures a missing basis nor selects today's pack. */
-export async function readOutboundAckOriginals(sourceMessageId:string,ackFamily:AckFamily,expectedSource:EdielMessageRow|undefined,expectedTechnicalCompanyId:string|undefined,authorization:{actorUserId:string;phase:'prepare'|'read'|'send'}):Promise<OutboundAckOriginal[]> {
+export async function readOutboundAckOriginals(sourceMessageId:string,ackFamily:AckFamily,expectedSource:AckCorrelationMessage|undefined,expectedTechnicalCompanyId:string|undefined,authorization:{actorUserId:string;phase:'prepare'|'read'|'send'}):Promise<OutboundAckOriginal[]> {
  if(!authorization?.actorUserId||!['prepare','read','send'].includes(authorization.phase))throw new Error('ediel_existing_ack_original_current_actor_required')
  const {data,error}=await supabaseService.rpc('gridex_read_outbound_acks_for_source_v2',{p_source_message_id:sourceMessageId,p_ack_family:ackFamily,p_actor_user_id:authorization.actorUserId,p_phase:authorization.phase})
  const result=data as {version?:unknown;executionActorUserId?:unknown;executionPhase?:unknown;sourceMessageId?:unknown;sourcePayloadHash?:unknown;environment?:unknown;companyId?:unknown;originals?:unknown}|null

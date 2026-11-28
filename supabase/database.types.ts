@@ -343,6 +343,13 @@ export type Database = {
             foreignKeyName: "actor_test_attempt_evidence_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "actor_test_attempt_evidence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -593,6 +600,13 @@ export type Database = {
             foreignKeyName: "actor_test_attempts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "actor_test_attempts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -794,6 +808,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "actor_test_current_results_v"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "actor_test_manual_attestations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "actor_test_manual_attestations_company_id_fkey"
@@ -1008,6 +1029,13 @@ export type Database = {
           utilts_err_message_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "actor_test_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "actor_test_results_company_id_fkey"
             columns: ["company_id"]
@@ -1258,6 +1286,13 @@ export type Database = {
             foreignKeyName: "ai_list_discrepancies_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_list_discrepancies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -1426,6 +1461,13 @@ export type Database = {
           row_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_list_import_rows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ai_list_import_rows_company_id_fkey"
             columns: ["company_id"]
@@ -1679,6 +1721,13 @@ export type Database = {
             foreignKeyName: "ai_list_imports_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_list_imports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -1875,6 +1924,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "audit_logs_company_id_fkey"
             columns: ["company_id"]
@@ -2100,6 +2156,13 @@ export type Database = {
             foreignKeyName: "authorization_scopes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "authorization_scopes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -2299,6 +2362,13 @@ export type Database = {
           metadata?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "automation_locks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "automation_locks_company_id_fkey"
             columns: ["company_id"]
@@ -2574,6 +2644,13 @@ export type Database = {
             foreignKeyName: "base_price_components_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "base_price_components_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -2787,6 +2864,13 @@ export type Database = {
             foreignKeyName: "bidding_zone_monthly_metrics_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "bidding_zone_monthly_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -2996,6 +3080,13 @@ export type Database = {
             foreignKeyName: "billing_adjustment_cases_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_adjustment_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -3197,6 +3288,13 @@ export type Database = {
             foreignKeyName: "billing_automation_jobs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_automation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -3384,6 +3482,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_automation_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "billing_automation_runs_company_id_fkey"
             columns: ["company_id"]
@@ -3670,6 +3775,13 @@ export type Database = {
             foreignKeyName: "billing_export_run_items_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_export_run_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -3817,6 +3929,7 @@ export type Database = {
       }
       billing_export_runs: {
         Row: {
+          adapter_key: string
           billing_automation_run_id: string | null
           blocker_summary: Json
           company_id: string
@@ -3831,7 +3944,9 @@ export type Database = {
           partner_locked_at: string | null
           partner_response_log: Json
           payload_hash: string | null
+          payload_version: string
           period_month: string
+          retry_policy: Json
           rows_acknowledged: number
           rows_blocked: number
           rows_exported: number
@@ -3847,6 +3962,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          adapter_key?: string
           billing_automation_run_id?: string | null
           blocker_summary?: Json
           company_id: string
@@ -3861,7 +3977,9 @@ export type Database = {
           partner_locked_at?: string | null
           partner_response_log?: Json
           payload_hash?: string | null
+          payload_version?: string
           period_month: string
+          retry_policy?: Json
           rows_acknowledged?: number
           rows_blocked?: number
           rows_exported?: number
@@ -3877,6 +3995,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          adapter_key?: string
           billing_automation_run_id?: string | null
           blocker_summary?: Json
           company_id?: string
@@ -3891,7 +4010,9 @@ export type Database = {
           partner_locked_at?: string | null
           partner_response_log?: Json
           payload_hash?: string | null
+          payload_version?: string
           period_month?: string
+          retry_policy?: Json
           rows_acknowledged?: number
           rows_blocked?: number
           rows_exported?: number
@@ -3907,6 +4028,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_export_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "billing_export_runs_company_id_fkey"
             columns: ["company_id"]
@@ -4072,6 +4200,13 @@ export type Database = {
             foreignKeyName: "billing_import_batches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_import_batches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -4217,6 +4352,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_import_rows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "billing_import_rows_company_id_fkey"
             columns: ["company_id"]
@@ -4389,6 +4531,13 @@ export type Database = {
             foreignKeyName: "billing_period_locks_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_period_locks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -4555,6 +4704,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_provider_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "billing_provider_connections_company_id_fkey"
             columns: ["company_id"]
@@ -4735,6 +4891,13 @@ export type Database = {
             foreignKeyName: "billing_provider_webhook_events_company_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_provider_webhook_events_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -4897,6 +5060,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "billing_underlays"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_underlay_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "billing_underlay_events_company_id_fkey"
@@ -5197,6 +5367,13 @@ export type Database = {
             foreignKeyName: "billing_underlay_items_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_underlay_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -5346,6 +5523,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "billing_underlay_items_meter_value_id_fkey"
+            columns: ["meter_value_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_portal_current_metering_values_v1"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "billing_underlay_items_meter_value_id_fkey"
@@ -5621,6 +5805,13 @@ export type Database = {
             foreignKeyName: "billing_underlays_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_underlays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -5853,6 +6044,13 @@ export type Database = {
             foreignKeyName: "campaign_price_components_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "campaign_price_components_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -6012,6 +6210,13 @@ export type Database = {
             foreignKeyName: "campaign_versions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "campaign_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -6166,6 +6371,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "campaigns_company_id_fkey"
             columns: ["company_id"]
@@ -6331,6 +6543,13 @@ export type Database = {
             foreignKeyName: "canonical_audit_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_audit_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -6476,6 +6695,13 @@ export type Database = {
           result_payload?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "canonical_command_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "canonical_command_results_company_id_fkey"
             columns: ["company_id"]
@@ -6632,6 +6858,13 @@ export type Database = {
             foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_data_repair_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -6784,6 +7017,13 @@ export type Database = {
             foreignKeyName: "canonical_domain_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_domain_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -6920,6 +7160,13 @@ export type Database = {
           profile_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "canonical_ediel_profile_identities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "canonical_ediel_profile_identities_company_id_fkey"
             columns: ["company_id"]
@@ -7128,6 +7375,13 @@ export type Database = {
           source?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "canonical_energy_flow_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "canonical_energy_flow_events_company_id_fkey"
             columns: ["company_id"]
@@ -7397,6 +7651,13 @@ export type Database = {
             foreignKeyName: "canonical_energy_remediation_queue_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_energy_remediation_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -7551,6 +7812,13 @@ export type Database = {
           topic?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "canonical_event_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "canonical_event_outbox_company_id_fkey"
             columns: ["company_id"]
@@ -7861,6 +8129,13 @@ export type Database = {
             foreignKeyName: "canonical_provisioning_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "canonical_provisioning_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -8015,6 +8290,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_configuration_snapshots"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_readiness_shadow_comparisons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "canonical_readiness_shadow_comparisons_company_id_fkey"
@@ -8499,6 +8781,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "communication_routes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "communication_routes_company_id_fkey"
             columns: ["company_id"]
@@ -9122,6 +9411,13 @@ export type Database = {
             foreignKeyName: "company_actor_test_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_actor_test_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -9283,6 +9579,13 @@ export type Database = {
             foreignKeyName: "company_capabilities_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_capabilities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -9416,6 +9719,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_customer_number_sequences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_customer_number_sequences_company_id_fkey"
             columns: ["company_id"]
@@ -9691,6 +10001,13 @@ export type Database = {
             foreignKeyName: "company_email_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_email_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -9930,6 +10247,13 @@ export type Database = {
             foreignKeyName: "company_invitations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -10090,6 +10414,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_market_party_routes_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_market_party_routes_company_id_tenant_fkey"
             columns: ["company_id"]
@@ -10260,6 +10591,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_market_price_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_market_price_sources_company_id_fkey"
             columns: ["company_id"]
@@ -10464,6 +10802,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_memberships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_memberships_company_id_fkey"
             columns: ["company_id"]
@@ -10692,6 +11037,13 @@ export type Database = {
             foreignKeyName: "company_monthly_metrics_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_monthly_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -10834,6 +11186,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_number_sequences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_number_sequences_company_id_fkey"
             columns: ["company_id"]
@@ -10995,6 +11354,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_onboarding_lifecycle_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "company_onboarding_lifecycle_company_id_fkey"
             columns: ["company_id"]
@@ -11235,6 +11601,13 @@ export type Database = {
             foreignKeyName: "company_provisioning_jobs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_provisioning_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -11419,6 +11792,13 @@ export type Database = {
             foreignKeyName: "consumption_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "consumption_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -11594,6 +11974,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
             referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "contract_charge_ledger_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "contract_charge_ledger_company_id_fkey"
@@ -11799,6 +12186,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_invoice_fee_remediation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_invoice_fee_remediation_tasks_company_id_fkey"
             columns: ["company_id"]
@@ -12011,6 +12405,13 @@ export type Database = {
             foreignKeyName: "contract_lifecycle_backfill_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_lifecycle_backfill_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -12216,6 +12617,13 @@ export type Database = {
             foreignKeyName: "contract_lifecycle_operation_errors_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_lifecycle_operation_errors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -12355,6 +12763,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_offer_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_offer_versions_company_id_fkey"
             columns: ["company_id"]
@@ -12691,6 +13106,13 @@ export type Database = {
             foreignKeyName: "contract_offers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -12991,6 +13413,13 @@ export type Database = {
             foreignKeyName: "contract_price_option_area_prices_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_price_option_area_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -13204,6 +13633,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_price_options_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_price_options_company_id_fkey"
             columns: ["company_id"]
@@ -13539,6 +13975,13 @@ export type Database = {
             foreignKeyName: "contract_price_snapshots_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_price_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -13788,6 +14231,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_pricing_migration_reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_pricing_migration_reviews_company_id_fkey"
             columns: ["company_id"]
@@ -14100,6 +14550,13 @@ export type Database = {
             foreignKeyName: "contract_products_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -14255,6 +14712,13 @@ export type Database = {
             foreignKeyName: "contract_publication_graph_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_publication_graph_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -14388,6 +14852,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_publication_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_publication_revisions_company_id_fkey"
             columns: ["company_id"]
@@ -14843,6 +15314,13 @@ export type Database = {
             foreignKeyName: "customer_addresses_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_addresses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -15084,6 +15562,13 @@ export type Database = {
             foreignKeyName: "customer_application_intakes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_application_intakes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -15296,6 +15781,13 @@ export type Database = {
             foreignKeyName: "customer_application_provisioning_steps_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_application_provisioning_steps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -15462,6 +15954,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "website_customer_applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_application_workflow_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_application_workflow_events_company_id_fkey"
@@ -15649,6 +16148,13 @@ export type Database = {
           workflow_version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_application_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_application_workflows_company_id_fkey"
             columns: ["company_id"]
@@ -15996,6 +16502,13 @@ export type Database = {
             foreignKeyName: "customer_authorization_documents_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_authorization_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -16235,6 +16748,13 @@ export type Database = {
             foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -16404,6 +16924,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_blockers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_blockers_company_id_fkey"
             columns: ["company_id"]
@@ -16678,6 +17205,13 @@ export type Database = {
             foreignKeyName: "customer_case_attachments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_attachments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -16832,6 +17366,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customer_cases"
             referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_case_events_company_id_fkey"
@@ -17163,6 +17704,13 @@ export type Database = {
             foreignKeyName: "customer_cases_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -17415,6 +17963,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_communication_templates_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_communication_templates_company_id_tenant_fkey"
             columns: ["company_id"]
@@ -17699,6 +18254,13 @@ export type Database = {
             foreignKeyName: "customer_contacts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -17915,6 +18477,13 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_contract_acceptances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_contract_acceptances_company_id_fkey"
             columns: ["company_id"]
@@ -18154,6 +18723,13 @@ export type Database = {
             foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -18311,6 +18887,13 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_contract_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_contract_documents_company_id_fkey"
             columns: ["company_id"]
@@ -18495,6 +19078,13 @@ export type Database = {
             foreignKeyName: "customer_contract_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -18665,6 +19255,13 @@ export type Database = {
           id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_contract_evidence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_contract_evidence_company_id_fkey"
             columns: ["company_id"]
@@ -18857,6 +19454,13 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_contract_signature_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_contract_signature_requests_company_id_fkey"
             columns: ["company_id"]
@@ -19564,6 +20168,13 @@ export type Database = {
             foreignKeyName: "customer_contracts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -19899,6 +20510,13 @@ export type Database = {
             foreignKeyName: "customer_correction_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_correction_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -20145,6 +20763,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_data_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_data_tasks_company_id_fkey"
             columns: ["company_id"]
@@ -20464,6 +21089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "site_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_documents_company_id_fkey"
@@ -20805,6 +21437,13 @@ export type Database = {
             foreignKeyName: "customer_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -21049,6 +21688,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_identity_change_events_company_id_fkey"
@@ -21304,6 +21950,13 @@ export type Database = {
             foreignKeyName: "customer_identity_change_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -21449,6 +22102,13 @@ export type Database = {
           payload?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_info_request_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_info_request_events_company_id_fkey"
             columns: ["company_id"]
@@ -21776,6 +22436,13 @@ export type Database = {
             foreignKeyName: "customer_info_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_info_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -21986,6 +22653,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_internal_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_internal_notes_company_id_fkey"
             columns: ["company_id"]
@@ -22213,6 +22887,13 @@ export type Database = {
             foreignKeyName: "customer_invoice_documents_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -22428,6 +23109,13 @@ export type Database = {
           vat_rate?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_invoice_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_invoice_lines_company_id_fkey"
             columns: ["company_id"]
@@ -22869,6 +23557,13 @@ export type Database = {
             foreignKeyName: "customer_invoices_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -23163,6 +23858,13 @@ export type Database = {
           trace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_legal_acceptances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_legal_acceptances_company_id_fkey"
             columns: ["company_id"]
@@ -23492,6 +24194,13 @@ export type Database = {
             foreignKeyName: "customer_lifecycle_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_lifecycle_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -23677,6 +24386,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_match_review_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_match_review_cases_company_id_fkey"
             columns: ["company_id"]
@@ -23916,6 +24632,13 @@ export type Database = {
             foreignKeyName: "customer_monthly_metrics_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_monthly_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -24136,6 +24859,13 @@ export type Database = {
             foreignKeyName: "customer_notifications_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -24352,6 +25082,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_onboarding_applications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_onboarding_applications_company_id_fkey"
             columns: ["company_id"]
@@ -24656,6 +25393,13 @@ export type Database = {
             foreignKeyName: "customer_onboarding_legal_snapshots_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_onboarding_legal_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -24905,6 +25649,13 @@ export type Database = {
             foreignKeyName: "customer_onboarding_operations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_onboarding_operations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -25083,6 +25834,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_operation_events_company_id_fkey"
             columns: ["company_id"]
@@ -25431,6 +26189,13 @@ export type Database = {
             foreignKeyName: "customer_operation_jobs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -25716,6 +26481,13 @@ export type Database = {
             foreignKeyName: "customer_operation_request_snapshots_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_request_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -25983,6 +26755,13 @@ export type Database = {
             foreignKeyName: "customer_operation_tasks_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -26227,6 +27006,13 @@ export type Database = {
             foreignKeyName: "customer_portal_accounts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -26401,6 +27187,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_api_access_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_portal_api_access_logs_company_id_fkey"
@@ -26669,6 +27462,13 @@ export type Database = {
             foreignKeyName: "customer_portal_claims_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_claims_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -26900,6 +27700,13 @@ export type Database = {
             foreignKeyName: "customer_portal_completions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_completions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -27110,6 +27917,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_portal_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_portal_events_company_id_fkey"
             columns: ["company_id"]
@@ -27382,6 +28196,13 @@ export type Database = {
             foreignKeyName: "customer_portal_identities_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_identities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -27567,6 +28388,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_portal_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_portal_requests_company_id_fkey"
             columns: ["company_id"]
@@ -27815,6 +28643,13 @@ export type Database = {
             foreignKeyName: "customer_portal_write_idempotency_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_write_idempotency_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -28022,6 +28857,13 @@ export type Database = {
           points_with_history?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
             columns: ["company_id"]
@@ -28279,6 +29121,13 @@ export type Database = {
             foreignKeyName: "customer_site_address_conflicts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_site_address_conflicts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -28504,6 +29353,13 @@ export type Database = {
           source_reference?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_site_address_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_site_address_history_company_id_fkey"
             columns: ["company_id"]
@@ -28805,6 +29661,13 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_site_resolution_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_site_resolution_company_id_fkey"
             columns: ["company_id"]
@@ -29294,6 +30157,13 @@ export type Database = {
             foreignKeyName: "customer_sites_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -29673,6 +30543,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_supply_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_supply_periods_company_id_fkey"
@@ -30120,6 +30997,13 @@ export type Database = {
             foreignKeyName: "customers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -30315,6 +31199,13 @@ export type Database = {
             foreignKeyName: "dashboard_alerts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "dashboard_alerts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -30481,6 +31372,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "data_quality_issues_company_id_fkey"
             columns: ["company_id"]
@@ -30786,6 +31684,13 @@ export type Database = {
             foreignKeyName: "domain_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "domain_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -31013,6 +31918,13 @@ export type Database = {
             foreignKeyName: "duplicate_groups_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "duplicate_groups_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -31178,6 +32090,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_overdue_message_acks_v"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_ack_chains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_ack_chains_company_id_fkey"
@@ -31380,6 +32299,13 @@ export type Database = {
             foreignKeyName: "ediel_ack_lifecycle_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_ack_lifecycle_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -31567,6 +32493,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_ack_matrix_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_ack_matrix_rules_company_id_fkey"
             columns: ["company_id"]
@@ -31909,6 +32842,13 @@ export type Database = {
             foreignKeyName: "ediel_ack_transaction_results_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_ack_transaction_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -32164,6 +33104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_route_materialization_readiness_v"
             referencedColumns: ["sender_settings_id"]
+          },
+          {
+            foreignKeyName: "ediel_active_test_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_active_test_configurations_company_id_fkey"
@@ -32499,6 +33446,13 @@ export type Database = {
             foreignKeyName: "ediel_actor_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_actor_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -32698,6 +33652,13 @@ export type Database = {
             foreignKeyName: "ediel_ai_list_imports_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_ai_list_imports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -32889,6 +33850,13 @@ export type Database = {
             foreignKeyName: "ediel_aperak_error_details_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_aperak_error_details_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -33050,6 +34018,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_aperak_error_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_aperak_error_rules_company_id_fkey"
             columns: ["company_id"]
@@ -33266,6 +34241,13 @@ export type Database = {
             foreignKeyName: "ediel_brp_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_brp_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -33444,6 +34426,13 @@ export type Database = {
           transaction_subtype?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_business_correlations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_business_correlations_company_id_fkey"
             columns: ["company_id"]
@@ -33714,6 +34703,13 @@ export type Database = {
             foreignKeyName: "ediel_business_errors_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_business_errors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -33972,6 +34968,13 @@ export type Database = {
             foreignKeyName: "ediel_business_expectations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_business_expectations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -34215,6 +35218,13 @@ export type Database = {
           source_message_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_business_references_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_business_references_company_id_fkey"
             columns: ["company_id"]
@@ -34607,6 +35617,13 @@ export type Database = {
             foreignKeyName: "ediel_certificate_directory_cache_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_certificate_directory_cache_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -34984,6 +36001,13 @@ export type Database = {
             foreignKeyName: "ediel_certificates_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_certificates_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -35147,6 +36171,13 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_certification_evidence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_certification_evidence_company_id_fkey"
             columns: ["company_id"]
@@ -35625,6 +36656,13 @@ export type Database = {
             foreignKeyName: "ediel_configuration_snapshots_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_configuration_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -35819,6 +36857,13 @@ export type Database = {
             foreignKeyName: "ediel_counterparties_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_counterparties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -35991,6 +37036,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
             columns: ["beneficiary_company_id"]
@@ -36213,6 +37265,13 @@ export type Database = {
             foreignKeyName: "ediel_dead_letter_items_company_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_dead_letter_items_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -36394,6 +37453,13 @@ export type Database = {
           warnings?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_decision_traces_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_decision_traces_company_id_fkey"
             columns: ["company_id"]
@@ -36635,6 +37701,13 @@ export type Database = {
             foreignKeyName: "ediel_engine_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_engine_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -36867,6 +37940,13 @@ export type Database = {
           severity?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_error_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_error_rules_company_id_fkey"
             columns: ["company_id"]
@@ -37107,6 +38187,13 @@ export type Database = {
             foreignKeyName: "ediel_exchange_logs_company_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_exchange_logs_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -37264,6 +38351,13 @@ export type Database = {
           warnings?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_field_matrix_imports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_field_matrix_imports_company_id_fkey"
             columns: ["company_id"]
@@ -37428,6 +38522,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_field_matrix_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_field_matrix_rules_company_id_fkey"
             columns: ["company_id"]
@@ -37740,6 +38841,13 @@ export type Database = {
             foreignKeyName: "ediel_go_live_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_go_live_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -37993,6 +39101,13 @@ export type Database = {
             foreignKeyName: "ediel_inbound_business_decisions_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_inbound_business_decisions_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -38204,6 +39319,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_inbound_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_inbound_cases_company_id_fkey"
             columns: ["company_id"]
@@ -38517,6 +39639,13 @@ export type Database = {
             foreignKeyName: "ediel_inbound_quarantine_assigned_company_id_fkey"
             columns: ["assigned_company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_inbound_quarantine_assigned_company_id_fkey"
+            columns: ["assigned_company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -38705,6 +39834,13 @@ export type Database = {
             foreignKeyName: "ediel_inbound_request_decisions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_inbound_request_decisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -38863,6 +39999,13 @@ export type Database = {
             foreignKeyName: "ediel_it_system_profiles_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_it_system_profiles_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -38979,6 +40122,7 @@ export type Database = {
           clock_skew_ms: number | null
           company_id: string | null
           created_at: string
+          created_by: string | null
           email_address: string | null
           encryption_mode: string
           environment: string
@@ -38989,6 +40133,7 @@ export type Database = {
           is_shared_platform_mailbox: boolean
           last_error: string | null
           last_polled_at: string | null
+          last_successful_poll_at: string | null
           last_time_sync_check_at: string | null
           locked_at: string | null
           locked_by: string | null
@@ -39001,10 +40146,13 @@ export type Database = {
           security_status: string
           signing_mode: string
           smtp_from: string | null
+          smtp_host: string | null
+          smtp_port: number | null
           smtp_to: string | null
           tls_required: boolean
           transport_mode: string
           updated_at: string
+          updated_by: string | null
           username: string | null
         }
         Insert: {
@@ -39012,6 +40160,7 @@ export type Database = {
           clock_skew_ms?: number | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email_address?: string | null
           encryption_mode?: string
           environment?: string
@@ -39022,6 +40171,7 @@ export type Database = {
           is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
+          last_successful_poll_at?: string | null
           last_time_sync_check_at?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -39034,10 +40184,13 @@ export type Database = {
           security_status?: string
           signing_mode?: string
           smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           smtp_to?: string | null
           tls_required?: boolean
           transport_mode?: string
           updated_at?: string
+          updated_by?: string | null
           username?: string | null
         }
         Update: {
@@ -39045,6 +40198,7 @@ export type Database = {
           clock_skew_ms?: number | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email_address?: string | null
           encryption_mode?: string
           environment?: string
@@ -39055,6 +40209,7 @@ export type Database = {
           is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
+          last_successful_poll_at?: string | null
           last_time_sync_check_at?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -39067,10 +40222,13 @@ export type Database = {
           security_status?: string
           signing_mode?: string
           smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           smtp_to?: string | null
           tls_required?: boolean
           transport_mode?: string
           updated_at?: string
+          updated_by?: string | null
           username?: string | null
         }
         Relationships: [
@@ -39080,6 +40238,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_certificates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_mailboxes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_mailboxes_company_id_fkey"
@@ -39242,6 +40407,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_manual_review_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_manual_review_items_company_id_fkey"
             columns: ["company_id"]
@@ -39455,6 +40627,13 @@ export type Database = {
             foreignKeyName: "ediel_masterdata_reconciliation_items_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_masterdata_reconciliation_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -39658,6 +40837,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_match_candidates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_match_candidates_company_id_fkey"
             columns: ["company_id"]
@@ -39915,6 +41101,13 @@ export type Database = {
             foreignKeyName: "ediel_message_correlations_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_correlations_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -40072,6 +41265,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_message_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_message_events_company_id_fkey"
             columns: ["company_id"]
@@ -40360,6 +41560,13 @@ export type Database = {
             foreignKeyName: "ediel_message_intents_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_intents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -40521,6 +41728,13 @@ export type Database = {
             foreignKeyName: "ediel_message_intents_outbound_request_id_fkey"
             columns: ["outbound_request_id"]
             isOneToOne: false
+            referencedRelation: "gridex_ediel_ack_deadline_task_context_v1"
+            referencedColumns: ["request_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_intents_outbound_request_id_fkey"
+            columns: ["outbound_request_id"]
+            isOneToOne: false
             referencedRelation: "outbound_requests"
             referencedColumns: ["id"]
           },
@@ -40603,6 +41817,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_message_payloads_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_message_payloads_company_id_tenant_fkey"
             columns: ["company_id"]
@@ -40873,6 +42094,13 @@ export type Database = {
             foreignKeyName: "ediel_message_rules_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -41094,6 +42322,13 @@ export type Database = {
             foreignKeyName: "ediel_message_splits_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_splits_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -41248,6 +42483,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_message_validation_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_message_validation_issues_company_id_fkey"
             columns: ["company_id"]
@@ -41783,6 +43025,13 @@ export type Database = {
             foreignKeyName: "ediel_messages_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -41946,6 +43195,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_parties"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_resolved_company_id_fkey"
+            columns: ["resolved_company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_messages_resolved_company_id_fkey"
@@ -42215,6 +43471,13 @@ export type Database = {
             foreignKeyName: "ediel_outbound_queue_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_outbound_queue_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -42459,6 +43722,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_outbox_company_id_fkey"
             columns: ["company_id"]
@@ -42860,6 +44130,13 @@ export type Database = {
             foreignKeyName: "ediel_portal_validation_feedback_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_portal_validation_feedback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -43032,6 +44309,13 @@ export type Database = {
           score?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_process_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_process_links_company_id_fkey"
             columns: ["company_id"]
@@ -43211,6 +44495,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_processing_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_processing_runs_company_id_fkey"
             columns: ["company_id"]
@@ -43448,6 +44739,13 @@ export type Database = {
             foreignKeyName: "ediel_production_readiness_checks_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_production_readiness_checks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -43603,6 +44901,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_production_send_approvals_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_production_send_approvals_company_id_tenant_fkey"
             columns: ["company_id"]
@@ -43776,6 +45081,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_production_state_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_production_state_company_id_fkey"
             columns: ["company_id"]
@@ -43959,6 +45271,13 @@ export type Database = {
             foreignKeyName: "ediel_repair_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_repair_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -44108,6 +45427,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_repair_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_repair_runs_company_id_fkey"
             columns: ["company_id"]
@@ -44302,6 +45628,13 @@ export type Database = {
           snapshot?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_route_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_route_history_company_id_fkey"
             columns: ["company_id"]
@@ -44772,6 +46105,13 @@ export type Database = {
             foreignKeyName: "ediel_route_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_route_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -45009,6 +46349,13 @@ export type Database = {
           validation_warnings?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_routing_decisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_routing_decisions_company_id_fkey"
             columns: ["company_id"]
@@ -45305,6 +46652,13 @@ export type Database = {
             foreignKeyName: "ediel_rule_pack_backfill_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_rule_pack_backfill_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -45471,6 +46825,13 @@ export type Database = {
           snapshot?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_rule_pack_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_rule_pack_snapshots_company_id_fkey"
             columns: ["company_id"]
@@ -45771,6 +47132,13 @@ export type Database = {
             foreignKeyName: "ediel_rule_profile_versions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_rule_profile_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -45947,6 +47315,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_rule_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_rule_profiles_company_id_fkey"
             columns: ["company_id"]
@@ -46541,6 +47916,13 @@ export type Database = {
             foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
             columns: ["beneficiary_company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -46683,6 +48065,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_service_assignments_company_id_fkey"
@@ -47125,6 +48514,13 @@ export type Database = {
             foreignKeyName: "ediel_service_history_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -47285,6 +48681,13 @@ export type Database = {
           warning_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_sla_timers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_sla_timers_company_id_fkey"
             columns: ["company_id"]
@@ -47506,6 +48909,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_system_test_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_system_test_settings_company_id_fkey"
             columns: ["company_id"]
@@ -47797,6 +49207,13 @@ export type Database = {
           validation_report?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_test_artifacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_test_artifacts_company_id_fkey"
             columns: ["company_id"]
@@ -48168,6 +49585,13 @@ export type Database = {
             foreignKeyName: "ediel_test_run_messages_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -48402,6 +49826,13 @@ export type Database = {
           validation_report?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_test_run_steps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_test_run_steps_company_id_fkey"
             columns: ["company_id"]
@@ -48703,6 +50134,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_certificates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_test_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_test_runs_company_id_fkey"
@@ -49037,6 +50475,13 @@ export type Database = {
             foreignKeyName: "ediel_tgt_test_data_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_tgt_test_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -49303,6 +50748,13 @@ export type Database = {
             foreignKeyName: "ediel_transport_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_transport_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -49521,6 +50973,13 @@ export type Database = {
             foreignKeyName: "ediel_unresolved_items_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_unresolved_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -49656,6 +51115,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ediel_overdue_message_acks_v"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_unresolved_items_suggested_company_id_fkey"
+            columns: ["suggested_company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "ediel_unresolved_items_suggested_company_id_fkey"
@@ -49920,6 +51386,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "electricity_suppliers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "electricity_suppliers_company_id_fkey"
             columns: ["company_id"]
@@ -50387,6 +51860,13 @@ export type Database = {
             foreignKeyName: "event_outbox_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "event_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -50644,6 +52124,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "external_contract_intakes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "external_contract_intakes_company_id_fkey"
             columns: ["company_id"]
@@ -50999,6 +52486,13 @@ export type Database = {
             foreignKeyName: "facility_data_quality_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "facility_data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -51245,6 +52739,13 @@ export type Database = {
             foreignKeyName: "forecast_adjustments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "forecast_adjustments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -51427,6 +52928,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "forecast_run_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "forecast_run_items_company_id_fkey"
             columns: ["company_id"]
@@ -51621,6 +53129,13 @@ export type Database = {
             foreignKeyName: "forecast_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "forecast_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -51784,6 +53299,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_area_mappings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_area_mappings_company_id_fkey"
             columns: ["company_id"]
@@ -52060,6 +53582,13 @@ export type Database = {
             foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -52223,6 +53752,13 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_owner_contact_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_owner_contact_channels_company_id_fkey"
             columns: ["company_id"]
@@ -52396,6 +53932,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_owner_contact_routes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_owner_contact_routes_company_id_fkey"
             columns: ["company_id"]
@@ -52634,6 +54177,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "customer_id", "site_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_data_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "grid_owner_data_requests_company_id_fkey"
@@ -53139,6 +54689,13 @@ export type Database = {
             foreignKeyName: "grid_owner_information_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_information_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -53384,6 +54941,13 @@ export type Database = {
             foreignKeyName: "grid_owner_information_requests_outbound_request_id_fkey"
             columns: ["outbound_request_id"]
             isOneToOne: false
+            referencedRelation: "gridex_ediel_ack_deadline_task_context_v1"
+            referencedColumns: ["request_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_information_requests_outbound_request_id_fkey"
+            columns: ["outbound_request_id"]
+            isOneToOne: false
             referencedRelation: "outbound_requests"
             referencedColumns: ["id"]
           },
@@ -53459,6 +55023,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_owner_monthly_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_owner_monthly_metrics_company_id_fkey"
             columns: ["company_id"]
@@ -53904,6 +55475,13 @@ export type Database = {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -54245,6 +55823,13 @@ export type Database = {
             foreignKeyName: "inbound_ediel_match_attempts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_ediel_match_attempts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -54432,6 +56017,13 @@ export type Database = {
             foreignKeyName: "inbound_ediel_parse_results_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_ediel_parse_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -54594,6 +56186,13 @@ export type Database = {
             foreignKeyName: "inbound_email_attachments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_email_attachments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -54729,6 +56328,10 @@ export type Database = {
           from_address: string | null
           has_attachments: boolean
           id: string
+          imap_account_scope: string | null
+          imap_folder: string | null
+          imap_uid: number | null
+          imap_uid_validity: number | null
           interchange_reference: string | null
           internet_message_id: string | null
           mailbox_id: string | null
@@ -54740,8 +56343,10 @@ export type Database = {
           raw_edifact_payload: string | null
           raw_email: string | null
           raw_email_path: string | null
+          raw_mailbox_bytes_sha256: string | null
           raw_message_sha256: string | null
           received_at: string | null
+          received_at_source: string | null
           receiver_ediel_id: string | null
           sender_ediel_id: string | null
           subject: string | null
@@ -54766,6 +56371,10 @@ export type Database = {
           from_address?: string | null
           has_attachments?: boolean
           id?: string
+          imap_account_scope?: string | null
+          imap_folder?: string | null
+          imap_uid?: number | null
+          imap_uid_validity?: number | null
           interchange_reference?: string | null
           internet_message_id?: string | null
           mailbox_id?: string | null
@@ -54777,8 +56386,10 @@ export type Database = {
           raw_edifact_payload?: string | null
           raw_email?: string | null
           raw_email_path?: string | null
+          raw_mailbox_bytes_sha256?: string | null
           raw_message_sha256?: string | null
           received_at?: string | null
+          received_at_source?: string | null
           receiver_ediel_id?: string | null
           sender_ediel_id?: string | null
           subject?: string | null
@@ -54803,6 +56414,10 @@ export type Database = {
           from_address?: string | null
           has_attachments?: boolean
           id?: string
+          imap_account_scope?: string | null
+          imap_folder?: string | null
+          imap_uid?: number | null
+          imap_uid_validity?: number | null
           interchange_reference?: string | null
           internet_message_id?: string | null
           mailbox_id?: string | null
@@ -54814,8 +56429,10 @@ export type Database = {
           raw_edifact_payload?: string | null
           raw_email?: string | null
           raw_email_path?: string | null
+          raw_mailbox_bytes_sha256?: string | null
           raw_message_sha256?: string | null
           received_at?: string | null
+          received_at_source?: string | null
           receiver_ediel_id?: string | null
           sender_ediel_id?: string | null
           subject?: string | null
@@ -54824,6 +56441,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_email_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "inbound_email_messages_company_id_fkey"
             columns: ["company_id"]
@@ -55016,6 +56640,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_operation_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "inbound_operation_events_company_id_fkey"
             columns: ["company_id"]
@@ -55215,6 +56846,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_processing_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "inbound_processing_jobs_company_id_fkey"
             columns: ["company_id"]
@@ -55475,6 +57113,13 @@ export type Database = {
             foreignKeyName: "integration_api_clients_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -55676,6 +57321,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "integration_api_rate_limit_buckets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "integration_api_rate_limit_buckets_company_id_fkey"
@@ -55908,6 +57560,13 @@ export type Database = {
             foreignKeyName: "integration_api_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -56114,6 +57773,13 @@ export type Database = {
             foreignKeyName: "integration_api_write_idempotency_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_write_idempotency_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -56278,6 +57944,13 @@ export type Database = {
             foreignKeyName: "integration_provider_accounts_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_provider_accounts_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -56436,6 +58109,13 @@ export type Database = {
             foreignKeyName: "invoice_dead_letters_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_dead_letters_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -56581,6 +58261,13 @@ export type Database = {
           storage_path?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "invoice_documents_company_id_fkey"
             columns: ["company_id"]
@@ -56756,6 +58443,13 @@ export type Database = {
             foreignKeyName: "invoice_export_attempts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_attempts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -56875,12 +58569,16 @@ export type Database = {
       }
       invoice_export_files: {
         Row: {
+          artifact_archive_version: number | null
           billing_month: string
           company_id: string
           created_at: string
           created_by: string
           environment: string
+          handoff_phase: string
+          handoff_recipient: string | null
           id: string
+          preparation_kind: string | null
           provider: string
           row_count: number
           rows: Json
@@ -56888,12 +58586,16 @@ export type Database = {
           total_inc_vat: number
         }
         Insert: {
+          artifact_archive_version?: number | null
           billing_month: string
           company_id: string
           created_at?: string
           created_by: string
           environment: string
+          handoff_phase?: string
+          handoff_recipient?: string | null
           id?: string
+          preparation_kind?: string | null
           provider?: string
           row_count: number
           rows: Json
@@ -56901,12 +58603,16 @@ export type Database = {
           total_inc_vat: number
         }
         Update: {
+          artifact_archive_version?: number | null
           billing_month?: string
           company_id?: string
           created_at?: string
           created_by?: string
           environment?: string
+          handoff_phase?: string
+          handoff_recipient?: string | null
           id?: string
+          preparation_kind?: string | null
           provider?: string
           row_count?: number
           rows?: Json
@@ -56914,6 +58620,13 @@ export type Database = {
           total_inc_vat?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "invoice_export_files_company_id_fkey"
             columns: ["company_id"]
@@ -57252,6 +58965,13 @@ export type Database = {
             foreignKeyName: "invoice_export_items_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -57484,6 +59204,13 @@ export type Database = {
             foreignKeyName: "invoice_export_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -57687,6 +59414,13 @@ export type Database = {
             foreignKeyName: "invoice_provider_events_company_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_provider_events_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -57854,6 +59588,13 @@ export type Database = {
           recourse_fee?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_purchase_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "invoice_purchase_events_company_id_fkey"
             columns: ["company_id"]
@@ -58094,6 +59835,13 @@ export type Database = {
             foreignKeyName: "legal_bundle_version_documents_legal_template_version_id_fkey"
             columns: ["legal_template_version_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["platform_template_version_id"]
+          },
+          {
+            foreignKeyName: "legal_bundle_version_documents_legal_template_version_id_fkey"
+            columns: ["legal_template_version_id"]
+            isOneToOne: false
             referencedRelation: "gridex_tenant_effective_legal_sources_v"
             referencedColumns: ["platform_template_version_id"]
           },
@@ -58103,6 +59851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_template_versions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_bundle_version_documents_tenant_legal_override_id_fkey"
+            columns: ["tenant_legal_override_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["tenant_override_id"]
           },
           {
             foreignKeyName: "legal_bundle_version_documents_tenant_legal_override_id_fkey"
@@ -58183,6 +59938,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "legal_bundle_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "legal_bundle_versions_company_id_fkey"
             columns: ["company_id"]
@@ -58354,6 +60116,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "legal_bundles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "legal_bundles_company_id_fkey"
             columns: ["company_id"]
@@ -58656,6 +60425,13 @@ export type Database = {
             foreignKeyName: "legal_text_versions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "legal_text_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -58870,6 +60646,13 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "manual_communication_mailboxes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "manual_communication_mailboxes_company_id_fkey"
             columns: ["company_id"]
@@ -59110,6 +60893,13 @@ export type Database = {
             foreignKeyName: "manual_email_outbox_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "manual_email_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -59339,6 +61129,13 @@ export type Database = {
           to_email?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "manual_inbound_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "manual_inbound_messages_company_id_fkey"
             columns: ["company_id"]
@@ -59597,6 +61394,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_verified_grid_owners_v"
             referencedColumns: ["grid_owner_id"]
+          },
+          {
+            foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
+            columns: ["mailbox_company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "manual_inbound_messages_mailbox_company_id_fkey"
@@ -59871,6 +61675,13 @@ export type Database = {
             foreignKeyName: "market_process_policies_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "market_process_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -60070,6 +61881,13 @@ export type Database = {
           version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "meter_reading_series_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "meter_reading_series_company_id_fkey"
             columns: ["company_id"]
@@ -60277,6 +62095,13 @@ export type Database = {
             foreignKeyName: "meter_reading_values_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meter_reading_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -60462,6 +62287,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_period_gaps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_period_gaps_company_id_fkey"
             columns: ["company_id"]
@@ -60691,6 +62523,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_permission_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_permission_sites_company_id_fkey"
             columns: ["company_id"]
@@ -61003,6 +62842,13 @@ export type Database = {
             foreignKeyName: "metering_permissions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -61216,6 +63062,13 @@ export type Database = {
           value_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
             columns: ["company_id"]
@@ -61589,6 +63442,13 @@ export type Database = {
             foreignKeyName: "metering_points_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -61864,6 +63724,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_requirements_company_id_fkey"
             columns: ["company_id"]
@@ -62147,6 +64014,13 @@ export type Database = {
             foreignKeyName: "metering_value_batches_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_value_batches_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -62308,6 +64182,13 @@ export type Database = {
             foreignKeyName: "metering_value_errors_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_value_errors_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -62457,6 +64338,13 @@ export type Database = {
             foreignKeyName: "metering_value_sources_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_value_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -62564,6 +64452,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_value_sources_metering_value_id_fkey"
+            columns: ["metering_value_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_portal_current_metering_values_v1"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "metering_value_sources_metering_value_id_fkey"
@@ -62814,6 +64709,13 @@ export type Database = {
           value_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_values_company_id_fkey"
             columns: ["company_id"]
@@ -63176,6 +65078,13 @@ export type Database = {
             foreignKeyName: "normalized_metering_values_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "normalized_metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -63368,6 +65277,13 @@ export type Database = {
           tasks_created?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "operations_automation_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "operations_automation_runs_company_id_fkey"
             columns: ["company_id"]
@@ -63632,6 +65548,13 @@ export type Database = {
             foreignKeyName: "outbound_dispatch_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "outbound_dispatch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -63739,6 +65662,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "outbound_dispatch_events_outbound_request_id_fkey"
+            columns: ["outbound_request_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_ediel_ack_deadline_task_context_v1"
+            referencedColumns: ["request_id"]
           },
           {
             foreignKeyName: "outbound_dispatch_events_outbound_request_id_fkey"
@@ -63960,6 +65890,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "customer_id", "site_id"]
+          },
+          {
+            foreignKeyName: "outbound_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "outbound_requests_company_id_fkey"
@@ -64208,6 +66145,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "partner_exports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "partner_exports_company_id_fkey"
             columns: ["company_id"]
@@ -65711,6 +67655,13 @@ export type Database = {
             foreignKeyName: "platform_customer_relationship_observati_source_company_id_fkey"
             columns: ["source_company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_customer_relationship_observati_source_company_id_fkey"
+            columns: ["source_company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -65817,6 +67768,13 @@ export type Database = {
             columns: ["source_company_id"]
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_customer_relationship_observati_target_company_id_fkey"
+            columns: ["target_company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
             referencedColumns: ["company_id"]
           },
           {
@@ -66025,6 +67983,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "platform_data_quality_issues_company_id_fkey"
             columns: ["company_id"]
@@ -66261,6 +68226,13 @@ export type Database = {
           warnings?: string[]
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_go_live_route_simulations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "platform_go_live_route_simulations_company_id_fkey"
             columns: ["company_id"]
@@ -66751,6 +68723,13 @@ export type Database = {
             foreignKeyName: "platform_inbound_quarantine_assigned_company_id_fkey"
             columns: ["assigned_company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_inbound_quarantine_assigned_company_id_fkey"
+            columns: ["assigned_company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -67125,6 +69104,13 @@ export type Database = {
             foreignKeyName: "platform_reconciliation_findings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_reconciliation_findings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -67472,6 +69458,13 @@ export type Database = {
             foreignKeyName: "platform_usage_event_failures_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_usage_event_failures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -67674,6 +69667,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "portfolio_monthly_price_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "portfolio_monthly_price_history_company_id_fkey"
             columns: ["company_id"]
@@ -67882,6 +69882,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "portfolio_monthly_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "portfolio_monthly_prices_company_id_fkey"
             columns: ["company_id"]
@@ -68153,6 +70160,13 @@ export type Database = {
             foreignKeyName: "portfolio_monthly_settlements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "portfolio_monthly_settlements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -68357,6 +70371,13 @@ export type Database = {
           reason?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "portfolio_price_estimates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "portfolio_price_estimates_company_id_fkey"
             columns: ["company_id"]
@@ -68608,6 +70629,13 @@ export type Database = {
             foreignKeyName: "portfolio_settlement_invoice_bindings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "portfolio_settlement_invoice_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -68786,6 +70814,13 @@ export type Database = {
           valid_from?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "portfolio_settlement_permission_grants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "portfolio_settlement_permission_grants_company_id_fkey"
             columns: ["company_id"]
@@ -68973,6 +71008,13 @@ export type Database = {
             foreignKeyName: "portfolios_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "portfolios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -69112,6 +71154,13 @@ export type Database = {
           power_of_attorney_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "power_of_attorney_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "power_of_attorney_events_company_id_fkey"
             columns: ["company_id"]
@@ -69285,6 +71334,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "power_of_attorney_scopes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "power_of_attorney_scopes_company_id_fkey"
             columns: ["company_id"]
@@ -69621,6 +71677,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "customer_id", "site_id"]
+          },
+          {
+            foreignKeyName: "powers_of_attorney_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "powers_of_attorney_company_id_fkey"
@@ -70028,6 +72091,13 @@ export type Database = {
             foreignKeyName: "price_books_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "price_books_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -70285,6 +72355,13 @@ export type Database = {
             foreignKeyName: "price_components_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "price_components_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -70437,6 +72514,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "price_period_locks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "price_period_locks_company_id_fkey"
             columns: ["company_id"]
@@ -70617,6 +72701,13 @@ export type Database = {
             foreignKeyName: "price_plan_versions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "price_plan_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -70792,6 +72883,13 @@ export type Database = {
             foreignKeyName: "price_plans_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "price_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -70940,6 +73038,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pricing_audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "pricing_audit_logs_company_id_fkey"
             columns: ["company_id"]
@@ -71168,6 +73273,13 @@ export type Database = {
             foreignKeyName: "pricing_component_rules_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "pricing_component_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -71330,6 +73442,7 @@ export type Database = {
           price_area: string
           price_sek_per_kwh: number
           price_source_id: string | null
+          price_source_ids: string[] | null
           pricing_run_id: string
           resolution: string
         }
@@ -71349,6 +73462,7 @@ export type Database = {
           price_area: string
           price_sek_per_kwh: number
           price_source_id?: string | null
+          price_source_ids?: string[] | null
           pricing_run_id: string
           resolution: string
         }
@@ -71368,6 +73482,7 @@ export type Database = {
           price_area?: string
           price_sek_per_kwh?: number
           price_source_id?: string | null
+          price_source_ids?: string[] | null
           pricing_run_id?: string
           resolution?: string
         }
@@ -71392,6 +73507,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "billing_underlay_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_interval_evidence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "pricing_interval_evidence_company_id_fkey"
@@ -71612,6 +73734,13 @@ export type Database = {
             foreignKeyName: "pricing_preview_lines_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "pricing_preview_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -71765,6 +73894,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pricing_run_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "pricing_run_items_company_id_fkey"
             columns: ["company_id"]
@@ -71980,6 +74116,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "billing_underlays"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "pricing_runs_company_id_fkey"
@@ -72376,6 +74519,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_versions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "public_contract_offers_company_id_fkey"
@@ -72886,6 +75036,13 @@ export type Database = {
             foreignKeyName: "route_decision_logs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "route_decision_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -73158,6 +75315,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "spot_price_import_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "spot_price_import_jobs_company_id_fkey"
             columns: ["company_id"]
@@ -73529,6 +75693,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "supplier_switch_events_company_id_fkey"
             columns: ["company_id"]
@@ -73931,6 +76102,13 @@ export type Database = {
             foreignKeyName: "supplier_switch_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -74293,6 +76471,13 @@ export type Database = {
             foreignKeyName: "tenant_actor_identifiers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_actor_identifiers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -74432,6 +76617,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_actor_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_actor_roles_company_id_fkey"
             columns: ["company_id"]
@@ -74588,6 +76780,13 @@ export type Database = {
             foreignKeyName: "tenant_application_reference_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_application_reference_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -74736,6 +76935,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_bilateral_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_bilateral_agreements_company_id_fkey"
             columns: ["company_id"]
@@ -74904,6 +77110,13 @@ export type Database = {
             foreignKeyName: "tenant_certificate_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_certificate_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -75055,6 +77268,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_communication_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_communication_profiles_company_id_fkey"
             columns: ["company_id"]
@@ -75216,6 +77436,13 @@ export type Database = {
           website_publication_allowed?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_contract_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_contract_assignments_company_id_fkey"
             columns: ["company_id"]
@@ -75475,6 +77702,13 @@ export type Database = {
             foreignKeyName: "tenant_counterparty_relations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_counterparty_relations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -75683,6 +77917,13 @@ export type Database = {
             foreignKeyName: "tenant_counterparty_routes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_counterparty_routes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -75820,6 +78061,13 @@ export type Database = {
           seen_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_customer_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_customer_assertion_replays_company_id_fkey"
             columns: ["company_id"]
@@ -75996,6 +78244,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_customer_identity_providers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_customer_identity_providers_company_id_fkey"
             columns: ["company_id"]
@@ -76185,6 +78440,13 @@ export type Database = {
             foreignKeyName: "tenant_customer_sync_requests_company_id_tenant_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_customer_sync_requests_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -76327,6 +78589,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_ediel_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_ediel_profiles_company_id_fkey"
             columns: ["company_id"]
@@ -76504,6 +78773,13 @@ export type Database = {
             foreignKeyName: "tenant_email_domains_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_email_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -76654,6 +78930,7 @@ export type Database = {
           to_email: string
           trace_id: string | null
           updated_at: string
+          withdrawal_uncertain_attempt_id: string | null
         }
         Insert: {
           attachments?: Json
@@ -76694,6 +78971,7 @@ export type Database = {
           to_email: string
           trace_id?: string | null
           updated_at?: string
+          withdrawal_uncertain_attempt_id?: string | null
         }
         Update: {
           attachments?: Json
@@ -76734,6 +79012,7 @@ export type Database = {
           to_email?: string
           trace_id?: string | null
           updated_at?: string
+          withdrawal_uncertain_attempt_id?: string | null
         }
         Relationships: [
           {
@@ -76742,6 +79021,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "communication_logs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_email_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "tenant_email_outbox_company_id_fkey"
@@ -76968,6 +79254,13 @@ export type Database = {
             foreignKeyName: "tenant_email_outbox_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_email_outbox_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -77122,6 +79415,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_email_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_email_templates_company_id_fkey"
             columns: ["company_id"]
@@ -77293,6 +79593,13 @@ export type Database = {
             foreignKeyName: "tenant_integrity_audit_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_integrity_audit_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -77447,6 +79754,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_integrity_findings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_integrity_findings_company_id_fkey"
             columns: ["company_id"]
@@ -77652,6 +79966,13 @@ export type Database = {
             foreignKeyName: "tenant_launch_states_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_launch_states_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -77818,6 +80139,13 @@ export type Database = {
           version_label?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_legal_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_legal_overrides_company_id_fkey"
             columns: ["company_id"]
@@ -78031,6 +80359,13 @@ export type Database = {
             foreignKeyName: "tenant_legal_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_legal_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -78176,6 +80511,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_mailboxes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_mailboxes_company_id_fkey"
             columns: ["company_id"]
@@ -78337,6 +80679,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_message_capabilities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_message_capabilities_company_id_fkey"
             columns: ["company_id"]
@@ -78552,6 +80901,13 @@ export type Database = {
             foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -78689,6 +81045,13 @@ export type Database = {
           seen_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
             columns: ["company_id"]
@@ -78896,6 +81259,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["api_client_id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
@@ -79109,6 +81479,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["api_client_id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
@@ -79328,6 +81705,13 @@ export type Database = {
             foreignKeyName: "tenant_website_installation_receipts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_website_installation_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -79489,6 +81873,13 @@ export type Database = {
             foreignKeyName: "user_permission_overrides_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -79637,6 +82028,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_permissions_company_id_tenant_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "user_permissions_company_id_tenant_fkey"
             columns: ["company_id"]
@@ -79955,6 +82353,13 @@ export type Database = {
             foreignKeyName: "webhook_deliveries_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -80081,18 +82486,23 @@ export type Database = {
       }
       webhook_subscriptions: {
         Row: {
+          api_client_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
           custom_headers: Json
+          description: string | null
           endpoint_url: string
           event_types: string[]
           failure_count: number
           id: string
+          last_failure_at: string | null
+          last_success_at: string | null
           last_tested_at: string | null
           lifecycle_paused_by_tenant: boolean
           lifecycle_previous_status: string | null
           max_attempts: number
+          metadata: Json
           name: string
           rotated_at: string | null
           rotated_by: string | null
@@ -80107,18 +82517,23 @@ export type Database = {
           webhook_subscription_reference: string
         }
         Insert: {
+          api_client_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
           custom_headers?: Json
+          description?: string | null
           endpoint_url: string
           event_types?: string[]
           failure_count?: number
           id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
           last_tested_at?: string | null
           lifecycle_paused_by_tenant?: boolean
           lifecycle_previous_status?: string | null
           max_attempts?: number
+          metadata?: Json
           name: string
           rotated_at?: string | null
           rotated_by?: string | null
@@ -80133,18 +82548,23 @@ export type Database = {
           webhook_subscription_reference?: string
         }
         Update: {
+          api_client_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
           custom_headers?: Json
+          description?: string | null
           endpoint_url?: string
           event_types?: string[]
           failure_count?: number
           id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
           last_tested_at?: string | null
           lifecycle_paused_by_tenant?: boolean
           lifecycle_previous_status?: string | null
           max_attempts?: number
+          metadata?: Json
           name?: string
           rotated_at?: string | null
           rotated_by?: string | null
@@ -80159,6 +82579,34 @@ export type Database = {
           webhook_subscription_reference?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "webhook_subscriptions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_subscriptions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_subscriptions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "webhook_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "webhook_subscriptions_company_id_fkey"
             columns: ["company_id"]
@@ -80563,6 +83011,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_legacy_api_key_sunset_v"
             referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "website_contract_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "website_contract_quotes_company_id_fkey"
@@ -81134,6 +83589,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "website_customer_applications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "website_customer_applications_company_id_fkey"
@@ -81735,6 +84197,13 @@ export type Database = {
             foreignKeyName: "actor_test_attempts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "actor_test_attempts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -81883,6 +84352,13 @@ export type Database = {
           underlay_item_count: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_underlays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "billing_underlays_company_id_fkey"
             columns: ["company_id"]
@@ -82114,6 +84590,13 @@ export type Database = {
           website_readiness_source: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_offers_company_id_fkey"
             columns: ["company_id"]
@@ -82455,6 +84938,13 @@ export type Database = {
             foreignKeyName: "contract_offers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -82617,6 +85107,13 @@ export type Database = {
           website_publication_status: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "contract_offers_company_id_fkey"
             columns: ["company_id"]
@@ -82823,6 +85320,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_versions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "public_contract_offers_company_id_fkey"
@@ -83141,6 +85645,24 @@ export type Database = {
           },
         ]
       }
+      canonical_tenant_effective_legal_sources_v: {
+        Row: {
+          company_id: string | null
+          effective_available: boolean | null
+          effective_source: string | null
+          module_key: string | null
+          platform_sha256: string | null
+          platform_template_version_id: string | null
+          platform_title: string | null
+          platform_version: string | null
+          tenant_override_id: string | null
+          tenant_override_mode: string | null
+          tenant_override_sha256: string | null
+          tenant_override_title: string | null
+          tenant_override_version: string | null
+        }
+        Relationships: []
+      }
       canonical_tenant_legal_overrides_v: {
         Row: {
           body: string | null
@@ -83182,6 +85704,13 @@ export type Database = {
           version?: never
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_legal_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_legal_overrides_company_id_fkey"
             columns: ["company_id"]
@@ -83388,6 +85917,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_versions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "public_contract_offers_company_id_fkey"
@@ -83735,6 +86271,13 @@ export type Database = {
             foreignKeyName: "billing_underlays_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "billing_underlays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -83866,6 +86409,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "external_contract_intakes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "external_contract_intakes_company_id_fkey"
             columns: ["company_id"]
@@ -84025,6 +86575,13 @@ export type Database = {
           status: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customers_company_id_fkey"
             columns: ["company_id"]
@@ -84207,6 +86764,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "customer_id", "site_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "supplier_switch_requests_company_id_fkey"
@@ -84517,6 +87081,13 @@ export type Database = {
             foreignKeyName: "public_contract_offers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -84727,6 +87298,13 @@ export type Database = {
             foreignKeyName: "tenant_contract_assignments_company_id_fkey"
             columns: ["publication_company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_contract_assignments_company_id_fkey"
+            columns: ["publication_company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -84903,6 +87481,13 @@ export type Database = {
             foreignKeyName: "tenant_contract_assignments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_contract_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -85063,6 +87648,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_contracts_company_id_fkey"
@@ -85307,6 +87899,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_operation_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_operation_jobs_company_id_fkey"
             columns: ["company_id"]
@@ -85581,6 +88180,13 @@ export type Database = {
             foreignKeyName: "customers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -85800,6 +88406,13 @@ export type Database = {
             foreignKeyName: "ediel_actor_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_actor_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -85926,6 +88539,13 @@ export type Database = {
           subaddress: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
@@ -86121,6 +88741,13 @@ export type Database = {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -86308,6 +88935,13 @@ export type Database = {
             foreignKeyName: "ediel_messages_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -86487,6 +89121,13 @@ export type Database = {
             foreignKeyName: "ediel_messages_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -86662,6 +89303,13 @@ export type Database = {
           utilts_err_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_messages_company_id_fkey"
             columns: ["company_id"]
@@ -86916,6 +89564,13 @@ export type Database = {
             foreignKeyName: "ediel_route_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_route_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -87051,6 +89706,13 @@ export type Database = {
           version_code: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_message_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_message_rules_company_id_fkey"
             columns: ["company_id"]
@@ -87251,6 +89913,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_unresolved_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_unresolved_items_company_id_fkey"
             columns: ["company_id"]
@@ -87461,6 +90130,13 @@ export type Database = {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -87583,6 +90259,13 @@ export type Database = {
           transaction_reference_key: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_ack_chains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_ack_chains_company_id_fkey"
             columns: ["company_id"]
@@ -87730,6 +90413,13 @@ export type Database = {
             foreignKeyName: "metering_points_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -87859,6 +90549,13 @@ export type Database = {
             foreignKeyName: "metering_values_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -87977,6 +90674,13 @@ export type Database = {
           row_ids: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "metering_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "metering_permissions_company_id_fkey"
             columns: ["company_id"]
@@ -88103,6 +90807,13 @@ export type Database = {
             foreignKeyName: "metering_permissions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -88221,6 +90932,13 @@ export type Database = {
           row_ids: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_switch_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "supplier_switch_requests_company_id_fkey"
             columns: ["company_id"]
@@ -88355,6 +91073,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "data_quality_issues_company_id_fkey"
             columns: ["company_id"]
@@ -88577,6 +91302,13 @@ export type Database = {
             foreignKeyName: "integration_api_clients_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -88680,6 +91412,138 @@ export type Database = {
           },
           {
             foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      gridex_audit_business_v: {
+        Row: {
+          action_filter: string | null
+          action_label: string | null
+          company_id: string | null
+          created_at: string | null
+          entity_filter: string | null
+          entity_label: string | null
+          id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
@@ -88805,6 +91669,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_contracts_company_id_fkey"
@@ -89254,6 +92125,13 @@ export type Database = {
             foreignKeyName: "ediel_actor_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_actor_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -89504,6 +92382,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_facility_work_queue_v"
             referencedColumns: ["company_id", "customer_id", "site_id"]
+          },
+          {
+            foreignKeyName: "customer_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "customer_contracts_company_id_fkey"
@@ -89761,6 +92646,13 @@ export type Database = {
             foreignKeyName: "customers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -89916,6 +92808,13 @@ export type Database = {
             foreignKeyName: "metering_points_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -90034,6 +92933,13 @@ export type Database = {
           site_ids: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_sites_company_id_fkey"
             columns: ["company_id"]
@@ -90214,6 +93120,164 @@ export type Database = {
         }
         Relationships: []
       }
+      gridex_ediel_ack_deadline_task_context_v1: {
+        Row: {
+          answered: boolean | null
+          company_id: string | null
+          customer_id: string | null
+          id: string | null
+          request_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_operation_tasks_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
+      }
       gridex_energy_geodata_health_v: {
         Row: {
           grid_area_geometries_total: number | null
@@ -90313,6 +93377,13 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_site_resolution_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "customer_site_resolution_company_id_fkey"
             columns: ["company_id"]
@@ -90569,6 +93640,13 @@ export type Database = {
             foreignKeyName: "customer_sites_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -90736,6 +93814,13 @@ export type Database = {
           technical_send_ready: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ediel_actor_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "ediel_actor_settings_company_id_fkey"
             columns: ["company_id"]
@@ -91191,6 +94276,13 @@ export type Database = {
             foreignKeyName: "metering_points_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -91591,6 +94683,17 @@ export type Database = {
         }
         Relationships: []
       }
+      gridex_operator_meter_request_links_v1: {
+        Row: {
+          company_id: string | null
+          customer_id: string | null
+          id: string | null
+          receipt_value_saved: boolean | null
+          request_id: string | null
+          source: string | null
+        }
+        Relationships: []
+      }
       gridex_ops_hardening_health_v: {
         Row: {
           check_key: string | null
@@ -91598,6 +94701,175 @@ export type Database = {
           status: string | null
         }
         Relationships: []
+      }
+      gridex_portal_current_metering_values_v1: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          grid_owner_id: string | null
+          id: string | null
+          meter_point_id: string | null
+          metering_point_id: string | null
+          period_end: string | null
+          period_start: string | null
+          quality_code: string | null
+          read_at: string | null
+          reading_type: string | null
+          site_id: string | null
+          source_request_id: string | null
+          source_system: string | null
+          value_kwh: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "metering_values_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
       }
       gridex_public_contract_offer_admin_v: {
         Row: {
@@ -91661,6 +94933,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_versions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "public_contract_offers_company_id_fkey"
@@ -91814,6 +95093,13 @@ export type Database = {
           website_enabled: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "public_contract_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "public_contract_offers_company_id_fkey"
             columns: ["company_id"]
@@ -91978,6 +95264,13 @@ export type Database = {
             foreignKeyName: "website_contract_quotes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "website_contract_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -92123,6 +95416,13 @@ export type Database = {
           sender_settings_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
@@ -92600,6 +95900,161 @@ export type Database = {
         }
         Relationships: []
       }
+      gridex_supplier_switch_business_events_v: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          event_status: string | null
+          event_type: string | null
+          id: string | null
+          include_active_business_history: boolean | null
+          include_all_business_history: boolean | null
+          message: string | null
+          metadata: Json | null
+          payload: Json | null
+          switch_request_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_switch_request_id_fkey"
+            columns: ["switch_request_id"]
+            isOneToOne: false
+            referencedRelation: "company_switch_queue_v"
+            referencedColumns: ["switch_id"]
+          },
+          {
+            foreignKeyName: "supplier_switch_events_switch_request_id_fkey"
+            columns: ["switch_request_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_switch_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gridex_tenant_contract_readiness_v: {
         Row: {
           can_accept_applications: boolean | null
@@ -92756,6 +96211,13 @@ export type Database = {
             foreignKeyName: "grid_owners_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -92866,6 +96328,138 @@ export type Database = {
           },
         ]
       }
+      gridex_webhook_delivery_business_v: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          customer_number: string | null
+          endpoint_url: string | null
+          event_category: string | null
+          id: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       gridex_website_application_work_items_v: {
         Row: {
           application_id: string | null
@@ -92936,6 +96530,13 @@ export type Database = {
           sunset_date?: never
         }
         Relationships: [
+          {
+            foreignKeyName: "integration_api_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "integration_api_clients_company_id_fkey"
             columns: ["company_id"]
@@ -93481,6 +97082,13 @@ export type Database = {
             foreignKeyName: "portfolio_monthly_prices_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "portfolio_monthly_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -93720,6 +97328,13 @@ export type Database = {
             foreignKeyName: "tenant_contract_assignments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_contract_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -93922,6 +97537,13 @@ export type Database = {
             foreignKeyName: "tenant_integrity_findings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_integrity_findings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -94079,6 +97701,13 @@ export type Database = {
           status: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_integrity_audit_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "tenant_integrity_audit_runs_company_id_fkey"
             columns: ["company_id"]
@@ -94618,6 +98247,18 @@ export type Database = {
       canonical_manage_platform_user_access: {
         Args: { p_command: Json }
         Returns: Json
+      }
+      canonical_next_application_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
+      canonical_next_contract_number: {
+        Args: { p_company_id: string; p_customer_number?: string }
+        Returns: string
+      }
+      canonical_next_customer_number: {
+        Args: { p_company_id: string }
+        Returns: string
       }
       canonical_onboard_customer_graph: {
         Args: { p_command: Json }
@@ -96413,6 +100054,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_read_grouped_invoice_retention_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_invoice_id: string
+        }
+        Returns: Json
+      }
       ediel_read_inbound_prodat_physical_outcomes_v1: {
         Args: {
           p_ack_message_id: string
@@ -97724,6 +101373,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      gridex_activate_test_contract_price_addendum_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_document_id: string
+          p_review_sha256: string
+        }
+        Returns: Json
+      }
       gridex_actor_has_company_permission: {
         Args: {
           p_actor_user_id: string
@@ -97784,6 +101444,18 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_admin_webhook_command_v1: {
+        Args: {
+          p_actor_id: string
+          p_command: string
+          p_company_id: string
+          p_note: string
+          p_original_status: string
+          p_request_id: string
+          p_target_id: string
+        }
+        Returns: Json
       }
       gridex_advance_contract_confirmation_v2: {
         Args: {
@@ -97892,6 +101564,21 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_apply_ediel_outbound_provider_status_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_actor_id: string
+          p_company_id: string
+          p_external_reference: string
+          p_failure_reason: string
+          p_grid_owner_request_id: string
+          p_outbound_request_id: string
+          p_response_patch: Json
+          p_source_message_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
       gridex_apply_exact_z02_core: {
         Args: {
           p_actor_user_id?: string
@@ -97901,6 +101588,18 @@ export type Database = {
           p_operation_id?: string
           p_request_id: string
           p_site_id: string
+        }
+        Returns: Json
+      }
+      gridex_apply_grid_owner_provider_status_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_failure_reason: string
+          p_kind: string
+          p_request_id: string
+          p_response_patch: Json
+          p_source_id: string
         }
         Returns: Json
       }
@@ -97967,6 +101666,15 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_approve_consolidated_invoice_draft_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_invoice_id: string
+          p_review_hash: string
+        }
+        Returns: Json
+      }
       gridex_approve_first_production_send: {
         Args: {
           p_actor_setting_id?: string
@@ -97975,6 +101683,16 @@ export type Database = {
           p_reason?: string
         }
         Returns: undefined
+      }
+      gridex_approve_invoice_export_item_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_context: Json
+          p_export_item_id: string
+          p_review_hash: string
+        }
+        Returns: Json
       }
       gridex_approve_invoice_test_item_v1: {
         Args: {
@@ -98025,6 +101743,17 @@ export type Database = {
           p_actor_user_id: string
           p_company_id: string
           p_offer_id: string
+        }
+        Returns: Json
+      }
+      gridex_archive_test_contract_price_addendum_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_document_base64: string
+          p_submission_key: string
         }
         Returns: Json
       }
@@ -98280,6 +102009,18 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_block_ediel_outbox_batch_item_v1: {
+        Args: {
+          p_attempt_id: string
+          p_company_status: string
+          p_operation_decision: Json
+          p_outbox_item_id: string
+          p_reason: string
+          p_run_id: string
+          p_worker_id: string
+        }
+        Returns: string
+      }
       gridex_build_canonical_address: {
         Args: {
           p_address_line_1: string
@@ -98300,6 +102041,20 @@ export type Database = {
         Returns: Json
       }
       gridex_can: { Args: { p_permission: string }; Returns: boolean }
+      gridex_can_acknowledge_verified_imap_source_v1: {
+        Args: {
+          p_claimed_at: string
+          p_folder: string
+          p_mail: string
+          p_mailbox: string
+          p_scope: string
+          p_sha256: string
+          p_uid: number
+          p_validity: number
+          p_worker: string
+        }
+        Returns: boolean
+      }
       gridex_can_read_company: {
         Args: { p_company_id: string }
         Returns: boolean
@@ -98320,6 +102075,38 @@ export type Database = {
           p_source_message_id: string
         }
         Returns: Json
+      }
+      gridex_check_customer_email_resend_transport_v1: {
+        Args: { p_company: string; p_lock_token: string; p_outbox: string }
+        Returns: string
+      }
+      gridex_check_staff_bulk_metering_e73_claim_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_request_id: string
+          p_token: string
+        }
+        Returns: boolean
+      }
+      gridex_check_withdrawal_email_transport_v1: {
+        Args: {
+          p_company_id: string
+          p_lock_token: string
+          p_outbox_id: string
+        }
+        Returns: string
+      }
+      gridex_checkpoint_ediel_imap_scan_v1: {
+        Args: {
+          p_expected_metadata: Json
+          p_locked_at: string
+          p_locked_by: string
+          p_mailbox_id: string
+          p_scan: Json
+        }
+        Returns: boolean
       }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
@@ -98399,6 +102186,65 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_claim_e66_aperak_draft_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_claim_e66_normalization_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_claim_e66_qualification_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_claim_e66_readiness_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_claim_e66_terminal_handoff_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_claim_ediel_outbox_batch_v1: {
+        Args: { p_run_id: string; p_worker_id: string }
+        Returns: Json
+      }
+      gridex_claim_ediel_outbox_progress_v1: {
+        Args: {
+          p_company_id?: string
+          p_environment?: string
+          p_limit?: number
+          p_stale_after?: string
+          p_worker_id?: string
+        }
+        Returns: Json
+      }
       gridex_claim_invoice_provider_events: {
         Args: {
           p_company_id: string
@@ -98450,6 +102296,15 @@ export type Database = {
           id: string
           status: string
         }[]
+      }
+      gridex_claim_staff_bulk_metering_e73_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_request_id: string
+        }
+        Returns: string
       }
       gridex_cleanup_orphan_contract_pricing: {
         Args: { p_company_id: string; p_older_than?: string }
@@ -98524,6 +102379,109 @@ export type Database = {
           p_street: string
         }
         Returns: undefined
+      }
+      gridex_commit_e66_e50_rejection_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      gridex_commit_e66_matched_qualification_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_reply: Json
+          p_source: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      gridex_commit_e66_qualification_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      gridex_commit_e66_readiness_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_gate: Json
+          p_lease: string
+          p_mailbox: string
+          p_metering_id: string
+          p_next: number
+          p_normalized_id: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_commit_e66_registration_rejection_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      gridex_commit_mixed_e66_qualification_v1: {
+        Args: {
+          p_actor: string
+          p_assessment: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      gridex_commit_retained_smime_ack_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_cipher_sha256: string
+          p_claim_owner: string
+          p_claimed_at: string
+          p_clear_sha256: string
+          p_company_id: string
+          p_current_ack_id: string
+          p_environment: string
+          p_failed_payload_id: string
+          p_job_id: string
+          p_mail_id: string
+          p_projection: Json
+        }
+        Returns: string
+      }
+      gridex_commit_withdrawal_email_acceptance_v1: {
+        Args: {
+          p_company_id: string
+          p_lock_token: string
+          p_outbox_id: string
+          p_provider_message_id: string
+        }
+        Returns: string
       }
       gridex_company_go_live_readiness: {
         Args: { p_company_id: string }
@@ -98607,6 +102565,19 @@ export type Database = {
       }
       gridex_consume_api_rate_limit: {
         Args: { p_api_client_id: string; p_company_id: string; p_limit: number }
+        Returns: Json
+      }
+      gridex_consume_dispatched_e66_metering_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_limit: number
+          p_mailbox: string
+          p_next: number
+          p_source: string
+        }
         Returns: Json
       }
       gridex_consume_public_password_reset_budget_v1: {
@@ -98894,6 +102865,25 @@ export type Database = {
       }
       gridex_create_billing_export_run: {
         Args: { p_items?: Json; p_run: Json }
+        Returns: Json
+      }
+      gridex_create_capway_invoice_review_draft_v1: {
+        Args: {
+          p_company_id: string
+          p_enrichment: Json
+          p_invoices: Json
+          p_items: Json
+          p_run: Json
+        }
+        Returns: Json
+      }
+      gridex_create_consolidated_invoice_neutral_file_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_invoice_id: string
+          p_review_hash: string
+        }
         Returns: Json
       }
       gridex_create_customer_info_request_v1: {
@@ -99337,6 +103327,16 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: string
       }
+      gridex_customer_segments_page_v1: {
+        Args: {
+          p_company_id: string
+          p_page: number
+          p_page_size: number
+          p_query: string
+          p_segment: string
+        }
+        Returns: Json
+      }
       gridex_customer_status_counts_v1: {
         Args: {
           p_company_id?: string
@@ -99428,6 +103428,10 @@ export type Database = {
         Args: { p_company_id: string; p_sequence_key: string }
         Returns: string
       }
+      gridex_defer_withdrawal_confirmation_v1: {
+        Args: { p_case_id: string; p_company_id: string }
+        Returns: undefined
+      }
       gridex_delete_partner_webhook_subscription_v1: {
         Args: {
           p_api_client_id: string
@@ -99497,9 +103501,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      gridex_discover_e66_terminal_handoff_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: string
+      }
       gridex_dispute_information_complete: {
         Args: { p_value: Json }
         Returns: boolean
+      }
+      gridex_drain_e66_request_retry_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
+      }
+      gridex_drain_sealed_e66_request_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+        }
+        Returns: Json
       }
       gridex_ediel_accepted_transport_projection_v1: {
         Args: {
@@ -99717,6 +103748,14 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_ensure_billing_export_blocker_task_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_item_id: string
+        }
+        Returns: Json
+      }
       gridex_ensure_internal_contract_publication: {
         Args: {
           p_actor_user_id?: string
@@ -99733,6 +103772,10 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      gridex_facility_domain_diagnostic_payload_v1: {
+        Args: { p_event_type: string; p_payload: Json; p_source: string }
+        Returns: Json
+      }
       gridex_fail_website_contract_signature: {
         Args: {
           p_application_id: string
@@ -99742,6 +103785,24 @@ export type Database = {
           p_error_stage: string
         }
         Returns: undefined
+      }
+      gridex_finalize_automatic_invoice_purchase_ack_v1: {
+        Args: {
+          p_attempt_no: number
+          p_company_id: string
+          p_customer_invoice_id: string
+          p_due_date: string
+          p_environment: string
+          p_export_run_id: string
+          p_invoice_export_item_id: string
+          p_invoice_guid: string
+          p_issued_at: string
+          p_provider_key: string
+          p_purchase_ack: Json
+          p_request_payload: Json
+          p_started_at: string
+        }
+        Returns: Json
       }
       gridex_finalize_contract_publication_v1: {
         Args: {
@@ -99796,6 +103857,19 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_finalize_utilts_transaction_ack_v1: {
+        Args: {
+          p_actor_user_id?: string
+          p_company_id: string
+          p_environment: string
+          p_mailbox_id?: string
+          p_response_message_id: string
+          p_response_type: string
+          p_source_message_id: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       gridex_finalize_website_contract_signature:
         | {
             Args: {
@@ -99847,6 +103921,104 @@ export type Database = {
           takeover_snapshot_sha256: string
         }[]
       }
+      gridex_find_scheduled_e66_request_retry_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailboxes: string[]
+        }
+        Returns: Json
+      }
+      gridex_finish_consolidated_invoice_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_invoice_id: string
+          p_outcome: string
+          p_reason?: string
+          p_review_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finish_discovered_e66_classification_v1: {
+        Args: {
+          p_actor: string
+          p_claimed_at: string
+          p_company: string
+          p_environment: string
+          p_job: string
+          p_mailbox: string
+          p_outcome: string
+          p_worker: string
+        }
+        Returns: Json
+      }
+      gridex_finish_e66_classification_v1: {
+        Args: {
+          p_actor: string
+          p_claimed_at: string
+          p_company: string
+          p_environment: string
+          p_job: string
+          p_mailbox: string
+          p_message: string
+          p_outcome: string
+          p_parse: string
+          p_worker: string
+        }
+        Returns: Json
+      }
+      gridex_finish_e66_e50_rejection_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: string
+      }
+      gridex_finish_e66_registration_rejection_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: string
+      }
+      gridex_finish_e66_technical_rejection_v1: {
+        Args: {
+          p_ack: string
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: string
+      }
+      gridex_finish_monthly_billing_run_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_failure_reason: string
+          p_lock_token: string
+          p_metadata: Json
+          p_period_month: string
+          p_run_id: string
+          p_status: string
+          p_total_blocked: number
+          p_total_prepared: number
+          p_total_underlays: number
+        }
+        Returns: string
+      }
       gridex_fk_reference_blockers: {
         Args: {
           p_ignored_relations?: string[]
@@ -99869,6 +104041,17 @@ export type Database = {
       }
       gridex_forecast_point_inventory_v1: {
         Args: { p_company_id: string }
+        Returns: {
+          points: Json
+          total_count: number
+        }[]
+      }
+      gridex_forecast_point_inventory_v2: {
+        Args: {
+          p_company_id: string
+          p_period_end: string
+          p_period_start: string
+        }
         Returns: {
           points: Json
           total_count: number
@@ -99928,6 +104111,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_get_partner_postal_resolution_v1: {
+        Args: { p_company_id: string; p_scope_key: string }
+        Returns: Json
       }
       gridex_get_signature_before_record_retention_v1: {
         Args: { p_token_hash: string }
@@ -99998,12 +104185,36 @@ export type Database = {
         Args: { p_company_id: string; p_permission: string }
         Returns: boolean
       }
+      gridex_hold_e66_request_correlation_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_review: Json
+          p_source: string
+        }
+        Returns: string
+      }
       gridex_hold_manual_counterparty_reply_v1: {
         Args: {
           p_assessment: Json
           p_company_id: string
           p_inbound_id: string
           p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_hold_prelinked_mixed_e66_v1: {
+        Args: {
+          p_actor: string
+          p_assessment: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
         }
         Returns: Json
       }
@@ -100177,6 +104388,44 @@ export type Database = {
         Args: { p_company_id: string; p_fields: string[] }
         Returns: Json
       }
+      gridex_list_audit_business_v1: {
+        Args: {
+          p_action?: string
+          p_company_id: string
+          p_entity?: string
+          p_limit?: number
+        }
+        Returns: {
+          action_label: string
+          created_at: string
+          entity_label: string
+          id: string
+        }[]
+      }
+      gridex_list_closed_ack_deadline_history_v1: {
+        Args: {
+          p_company_id?: string
+          p_evaluated_at: string
+          p_limit?: number
+        }
+        Returns: {
+          due_at: string
+          ediel_message_id: string
+          evidence: string
+          status: string
+          timer_id: string
+          timer_type: string
+        }[]
+      }
+      gridex_list_consolidated_invoice_reviews_v1: {
+        Args: {
+          p_after_invoice_id?: string
+          p_billing_month: string
+          p_company_id: string
+          p_customer_id?: string
+        }
+        Returns: Json
+      }
       gridex_list_customer_operation_events: {
         Args: {
           p_action_required?: boolean
@@ -100220,10 +104469,127 @@ export type Database = {
           title: string
         }[]
       }
+      gridex_list_due_invoice_dispatch_periods_v1: {
+        Args: { p_limit?: number }
+        Returns: {
+          billing_month: string
+          company_id: string
+        }[]
+      }
+      gridex_list_due_invoice_export_legacy_projections_v1: {
+        Args: { p_limit?: number }
+        Returns: {
+          company_id: string
+          file_id: string
+        }[]
+      }
+      gridex_list_due_invoice_export_period_reconciliations_v1: {
+        Args: { p_limit?: number }
+        Returns: {
+          company_id: string
+          file_id: string
+        }[]
+      }
+      gridex_list_due_legacy_supply_end_followups_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: {
+          company_id: string
+          source_message_id: string
+          supply_period_id: string
+        }[]
+      }
+      gridex_list_due_supply_end_followups_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: {
+          company_id: string
+          effect_receipt_id: string
+        }[]
+      }
+      gridex_list_due_withdrawal_confirmations_v1: {
+        Args: { p_company_id: string; p_limit: number }
+        Returns: {
+          actor_user_id: string
+          case_id: string
+          case_title: string
+          company_id: string
+          customer_email: string
+          customer_id: string
+          customer_name: string
+          next_action: string
+        }[]
+      }
+      gridex_list_ediel_outbox_batches_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
       gridex_list_external_api_contracts: {
         Args: { p_company_id: string; p_customer_type?: string }
         Returns: {
           data: Json
+        }[]
+      }
+      gridex_list_held_e66_technical_imap_uids_v1: {
+        Args: {
+          p_claimed_at: string
+          p_folder: string
+          p_mailbox: string
+          p_scope: string
+          p_uids: number[]
+          p_validity: number
+          p_worker: string
+        }
+        Returns: number[]
+      }
+      gridex_list_legacy_facility_domain_events_v1: {
+        Args: { p_company_id: string; p_customer_id: string; p_limit?: number }
+        Returns: {
+          company_id: string
+          created_at: string
+          event_type: string
+          event_version: number
+          id: string
+          occurred_at: string
+          payload: Json
+          source: string
+          subject_customer_id: string
+        }[]
+      }
+      gridex_list_portal_billing_review_months_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_last_month: number
+          p_last_year: number
+        }
+        Returns: {
+          month: number
+          year: number
+        }[]
+      }
+      gridex_list_portal_contract_delivery_ends_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_ids: string[]
+          p_customer_ids: string[]
+        }
+        Returns: {
+          contract_id: string
+          last_delivery_date: string
+          market_end_at: string
+          period_id: string
+          supply_status: string
+        }[]
+      }
+      gridex_list_portal_contract_notice_dates_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_ids: string[]
+          p_customer_ids: string[]
+        }
+        Returns: {
+          contract_id: string
+          notice_received_on: string
+          planned_contract_end_on: string
         }[]
       }
       gridex_list_readable_whitelabel_platforms: {
@@ -100233,6 +104599,43 @@ export type Database = {
           membership_role: string
           name: string
           slug: string
+          status: string
+        }[]
+      }
+      gridex_list_webhook_admin_commands_v1: {
+        Args: { p_targets: Json }
+        Returns: {
+          can_ignore: boolean
+          can_resend: boolean
+          id: string
+          status: string
+        }[]
+      }
+      gridex_list_webhook_delivery_business_v1: {
+        Args: { p_company_id: string; p_limit?: number; p_status?: string }
+        Returns: {
+          company_id: string | null
+          created_at: string | null
+          customer_number: string | null
+          endpoint_url: string | null
+          event_category: string | null
+          id: string | null
+          status: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "gridex_webhook_delivery_business_v"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      gridex_list_webhook_subscription_business_v1: {
+        Args: { p_company_id: string; p_limit?: number }
+        Returns: {
+          company_id: string
+          endpoint_url: string
+          id: string
+          name: string
           status: string
         }[]
       }
@@ -100362,6 +104765,15 @@ export type Database = {
         Args: { p_import_item_id: string }
         Returns: Json
       }
+      gridex_match_e66_to_sent_e73_reference_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_reference: string
+        }
+        Returns: string[]
+      }
       gridex_materialize_company_operational_routes: {
         Args: {
           p_company_id: string
@@ -100467,6 +104879,19 @@ export type Database = {
         Args: { p_fallback_name?: string; p_value: string }
         Returns: string
       }
+      gridex_normalize_e66_with_customer_outcome_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_limit: number
+          p_mailbox: string
+          p_next: number
+          p_source: string
+        }
+        Returns: Json
+      }
       gridex_normalize_email: { Args: { p_email: string }; Returns: string }
       gridex_normalize_facility_id: {
         Args: { p_value: string }
@@ -100503,6 +104928,10 @@ export type Database = {
       gridex_normalize_swedish_postal_code: {
         Args: { p_postal_code: string }
         Returns: string
+      }
+      gridex_note_ediel_outbox_batch_v1: {
+        Args: { p_event: Json }
+        Returns: Json
       }
       gridex_observe_document_reference_v1: {
         Args: {
@@ -100652,6 +105081,23 @@ export type Database = {
           source: string
         }[]
       }
+      gridex_portal_consumption_authority_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_site_ids: string[]
+        }
+        Returns: Json
+      }
+      gridex_portal_consumption_page_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_from_month: string
+          p_to_month: string
+        }
+        Returns: Json
+      }
       gridex_portal_invoice_document_availability_v1: {
         Args: {
           p_company_id: string
@@ -100680,6 +105126,38 @@ export type Database = {
           value_count: number
         }[]
       }
+      gridex_portal_monthly_consumption_v2: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_from_month: string
+          p_to_month: string
+        }
+        Returns: {
+          covered_seconds: number
+          expected_seconds: number
+          is_complete: boolean
+          metering_point_count: number
+          month_key: string
+          period_end: string
+          period_start: string
+          reason_codes: string[]
+          total_kwh: number
+          value_count: number
+        }[]
+      }
+      gridex_portal_verified_supply_ends_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_period_ids: string[]
+        }
+        Returns: {
+          effective_end_at: string
+          market_state_version: number
+          period_id: string
+        }[]
+      }
       gridex_portfolio_actor_has_permission: {
         Args: {
           p_actor_user_id: string
@@ -100697,11 +105175,32 @@ export type Database = {
         Args: { p_value: Json }
         Returns: boolean
       }
+      gridex_prepare_batch2b_metering_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_month_start: string
+          p_point_id: string
+        }
+        Returns: Json
+      }
       gridex_prepare_billing_export_retry: {
         Args: {
           p_actor_user_id?: string
           p_company_id: string
           p_export_run_id: string
+        }
+        Returns: Json
+      }
+      gridex_prepare_consolidated_invoice_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_customer_id: string
+          p_environment: string
+          p_provider: string
+          p_sources: Json
         }
         Returns: Json
       }
@@ -100718,12 +105217,44 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_prepare_e66_scheduler_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_limit: number
+          p_mailboxes: string[]
+          p_sources: string[]
+        }
+        Returns: Json
+      }
       gridex_prepare_manual_contract_binding: {
         Args: {
           p_actor_user_id?: string
           p_company_id: string
           p_payload: Json
           p_pricing_snapshot: Json
+        }
+        Returns: Json
+      }
+      gridex_prepare_mixed_e66_finance_replacement_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_mailbox: string
+          p_predecessor: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_prepare_mixed_invoice_month_file_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_environment: string
+          p_intent_id: string
+          p_selection: Json
         }
         Returns: Json
       }
@@ -100744,6 +105275,25 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      gridex_prepare_test_price_series_by_underlays_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_underlay_ids: string[]
+        }
+        Returns: Json
+      }
+      gridex_preview_contract_withdrawal_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_intent_id: string
+        }
+        Returns: Json
+      }
       gridex_preview_delete_unused_contract: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json
@@ -100753,6 +105303,24 @@ export type Database = {
           p_actor_user_id: string
           p_company_id: string
           p_offer_id: string
+        }
+        Returns: Json
+      }
+      gridex_preview_invoice_file_selection_v2: {
+        Args: {
+          p_billing_month: string
+          p_company_id: string
+          p_environment: string
+          p_provider: string
+        }
+        Returns: Json
+      }
+      gridex_preview_mixed_invoice_group_selection_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_environment: string
         }
         Returns: Json
       }
@@ -100798,6 +105366,25 @@ export type Database = {
       gridex_prodat_variant_from_raw: {
         Args: { p_raw: string }
         Returns: string
+      }
+      gridex_project_direct_capway_ack_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_item: string
+          p_run: string
+        }
+        Returns: Json
+      }
+      gridex_project_legacy_supply_end_followup_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+          p_supply_period_id: string
+        }
+        Returns: Json
       }
       gridex_promote_energy_geodata_version: {
         Args: { p_geodata_version_id: string }
@@ -100945,6 +105532,10 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_publish_withdrawal_confirmation_v1: {
+        Args: { p_case_id: string; p_company_id: string; p_payload: Json }
+        Returns: Json
+      }
       gridex_published_website_offer_integrity: {
         Args: { p_company_id: string }
         Returns: Json
@@ -100972,6 +105563,62 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_queue_customer_contract_signature_command_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_channel: string
+          p_command_id: string | null
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_expected_request_id: string | null
+          p_expires_in_hours: number
+          p_mail: Json
+          p_recipient_email: string
+        }
+        Returns: Json
+      }
+      gridex_queue_invoice_dispatch_period_v1: {
+        Args: { p_actor: string; p_company: string; p_item: string }
+        Returns: Json
+      }
+      gridex_queue_prepared_supplier_e73_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_id?: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_address_grid_snapshot_v1: {
+        Args: { p_address_keys: string[] }
+        Returns: Json
+      }
+      gridex_read_billing_civil_month_authority_v1: {
+        Args: { p_company_id: string; p_month: string; p_period_ids: string[] }
+        Returns: {
+          market_start_at: string
+          period_id: string
+          source_message_id: string
+        }[]
+      }
+      gridex_read_billing_ediel_blocker_sources_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_underlay_ids: string[]
+        }
+        Returns: {
+          source_message_id: string
+          underlay_id: string
+        }[]
+      }
+      gridex_read_billing_source_values_compact_v1: {
+        Args: { p_company_id: string; p_value_ids: string[] }
+        Returns: Json
+      }
       gridex_read_billing_source_values_v1: {
         Args: { p_company_id: string; p_value_ids: string[] }
         Returns: Json
@@ -100979,6 +105626,19 @@ export type Database = {
       gridex_read_billing_underlay_source_basis_v1: {
         Args: { p_company_id: string; p_underlay_ids: string[] }
         Returns: Json
+      }
+      gridex_read_bulk_metering_coverage_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_month: string
+          p_point_ids: string[]
+        }
+        Returns: {
+          coverage_status: string
+          point_id: string
+          request_status: string
+        }[]
       }
       gridex_read_committed_inbound_ack_v1: {
         Args: {
@@ -100999,6 +105659,45 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_read_consolidated_invoice_customer_document_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_invoice_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_consolidated_invoice_neutral_file_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_file_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_consolidated_invoice_review_v1: {
+        Args: { p_company_id: string; p_invoice_id: string }
+        Returns: Json
+      }
+      gridex_read_customer_calendar_e73_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_expected_route_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_customer_import_outcome_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_customer: string
+          p_requests: string[]
+        }
+        Returns: Json
+      }
       gridex_read_document_reference_context_v1: {
         Args: {
           p_actor_user_id: string
@@ -101008,6 +105707,114 @@ export type Database = {
           p_source_message_id: string
         }
         Returns: Json
+      }
+      gridex_read_e66_normalization_chunk_receipt_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_limit: number
+          p_mailbox: string
+          p_next: number
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_read_e66_normalization_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_read_e66_readiness_batch_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_limit: number
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_read_e66_request_correlation_reviews_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_e66_request_response_history_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_limit?: number
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_e66_work_progress_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_read_ediel_inbound_receipt_clock_v1: {
+        Args: { p_company_id: string; p_source_message_id: string }
+        Returns: Json
+      }
+      gridex_read_ediel_outbox_batch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_run_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_ediel_outbox_reconciliation_attempt_v1: {
+        Args: { p_claim_id: string; p_company_id: string; p_outbox_id: string }
+        Returns: Json
+      }
+      gridex_read_effective_contract_price_timeline_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_end: string
+          p_start: string
+        }
+        Returns: Json
+      }
+      gridex_read_facility_diagnostics_support_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_event_ids: string[]
+          p_request_ids: string[]
+        }
+        Returns: Json
+      }
+      gridex_read_facility_request_diagnostics_v1: {
+        Args: { p_request_ids: string[] }
+        Returns: {
+          dispatch_error_message: string
+          last_error_message: string
+          request_id: string
+        }[]
       }
       gridex_read_inbound_ack_source_v1: {
         Args: {
@@ -101029,6 +105836,44 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_read_invoice_dispatch_period_v1: {
+        Args: { p_company: string; p_month: string }
+        Returns: Json
+      }
+      gridex_read_invoice_export_effects_v1: {
+        Args: { p_company_id: string; p_file_id: string }
+        Returns: Json
+      }
+      gridex_read_invoice_export_period_reconciliation_v1: {
+        Args: { p_company_id: string; p_file_id: string }
+        Returns: Json
+      }
+      gridex_read_invoice_file_artifact_v2: {
+        Args: { p_company_id: string; p_file_id: string; p_format: string }
+        Returns: Json
+      }
+      gridex_read_invoice_file_intent_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_environment: string
+          p_intent_id: string
+          p_provider: string
+          p_selection: Json
+        }
+        Returns: Json
+      }
+      gridex_read_mixed_e66_billing_readiness_batch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_limit?: number
+          p_offset?: number
+          p_raw_underlay_id: string
+        }
+        Returns: Json
+      }
       gridex_read_outbound_acks_for_source_v1: {
         Args: { p_ack_family: string; p_source_message_id: string }
         Returns: Json
@@ -101046,6 +105891,16 @@ export type Database = {
         Args: { p_company_id: string; p_message_id: string }
         Returns: Json
       }
+      gridex_read_portal_captured_invoice_pdf_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_document_ids: string[]
+          p_include_invoice_pdf: boolean
+          p_invoice_id: string
+        }
+        Returns: Json
+      }
       gridex_read_prodat_ignored_fields_v1: {
         Args: {
           p_actor_user_id: string
@@ -101053,6 +105908,77 @@ export type Database = {
           p_environment: string
           p_readset_hash: string
           p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_sent_e73_period_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_staff_e66_import_progress_v1: {
+        Args: { p_company: string; p_request?: string }
+        Returns: {
+          company_id: string
+          customer_id: string
+          customer_label: string
+          environment: string
+          request_id: string
+          retry_required: boolean
+          started_at: string
+        }[]
+      }
+      gridex_read_supplier_switch_status_basis_v1: {
+        Args: { p_company_id: string; p_customer_ids: string[] }
+        Returns: Json
+      }
+      gridex_read_supply_end_followup_disposition_v1: {
+        Args: { p_case_id: string; p_company_id: string }
+        Returns: Json
+      }
+      gridex_read_supply_end_task_review_v1: {
+        Args: { p_company_id: string; p_task_ids: string[] }
+        Returns: {
+          company_id: string
+          customer_id: string
+          task_id: string
+        }[]
+      }
+      gridex_read_system_health_tenant_email_review_v1: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          acceptance_token: string
+          accepted_at: string
+          company_id: string
+          delivery_uncertain_at: string
+          email_type: string
+          id: string
+          review_state: string
+          subject: string
+          to_email: string
+          withdrawal_uncertain_attempt_id: string
+        }[]
+      }
+      gridex_read_test_contract_price_addendum_review_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_document_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_underlay_generation_receipt_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_key: string
+          p_scope: Json
         }
         Returns: Json
       }
@@ -101115,6 +106041,45 @@ export type Database = {
           status: string
         }[]
       }
+      gridex_reconcile_invoice_dispatch_period_v1: {
+        Args: { p_company: string; p_month: string }
+        Returns: Json
+      }
+      gridex_reconcile_invoice_export_legacy_projection_v1: {
+        Args: { p_company_id: string; p_file_id: string }
+        Returns: Json
+      }
+      gridex_reconcile_invoice_export_period_v1: {
+        Args: { p_company_id: string; p_file_id: string }
+        Returns: Json
+      }
+      gridex_reconcile_metering_period_gap_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_gap_id: string
+          p_mode: string
+        }
+        Returns: Json
+      }
+      gridex_reconcile_partner_export_case_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_export_id: string
+        }
+        Returns: Json
+      }
+      gridex_reconcile_withdrawal_email_acceptance_v1: {
+        Args: {
+          p_acceptance_token: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_outbox_id: string
+          p_reviewed_attempt_id: string
+        }
+        Returns: string
+      }
       gridex_record_application_provisioning_step: {
         Args: {
           p_company_id: string
@@ -101125,6 +106090,16 @@ export type Database = {
           p_step: string
         }
         Returns: undefined
+      }
+      gridex_record_capway_dispatch_ack_v1: {
+        Args: {
+          p_ack: Json
+          p_company: string
+          p_entry: string
+          p_item: string
+          p_lease: string
+        }
+        Returns: string
       }
       gridex_record_contract_backfill_issue: {
         Args: {
@@ -101150,6 +106125,27 @@ export type Database = {
           p_note?: string
         }
         Returns: Json
+      }
+      gridex_record_direct_capway_ack_v1: {
+        Args: {
+          p_ack: Json
+          p_company: string
+          p_entry: string
+          p_http_status: number
+          p_item: string
+          p_lease: string
+        }
+        Returns: string
+      }
+      gridex_record_inbound_overdue_task_v1: {
+        Args: {
+          p_checked_at: string
+          p_company_id: string
+          p_deadline_minutes: number
+          p_monitor: string
+          p_request_id: string
+        }
+        Returns: boolean
       }
       gridex_record_invoice_fee_remediation: {
         Args: {
@@ -101364,6 +106360,26 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_website_facility_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_application_id: string
+          p_company_id: string
+          p_next_step: string
+          p_request_id: string
+          p_warnings: Json
+        }
+        Returns: string
+      }
+      gridex_recover_invoice_file_receipt_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_intent_id: string
+        }
+        Returns: Json
+      }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }
         Returns: Json
@@ -101409,6 +106425,23 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      gridex_register_contract_withdrawal_case_v1: {
+        Args: {
+          p_actor_id: string
+          p_assessment: Json
+          p_channel: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_intent_id: string
+          p_meter_id: string
+          p_notes: string
+          p_reason: string
+          p_received_at: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
       gridex_register_customer_lifecycle_decision_v1: {
         Args: {
           p_actor_user_id: string
@@ -101419,6 +106452,30 @@ export type Database = {
           p_received_at: string
           p_scope_id: string
           p_scope_type: string
+        }
+        Returns: Json
+      }
+      gridex_register_grouped_invoice_correction_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_corrected_underlay_id: string
+          p_invoice_id: string
+          p_original_underlay_id: string
+          p_reason: string
+          p_source_value_id: string
+        }
+        Returns: Json
+      }
+      gridex_register_invoice_correction_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_corrected_underlay_id: string
+          p_invoice_id: string
+          p_original_underlay_id: string
+          p_reason: string
+          p_source_value_id: string
         }
         Returns: Json
       }
@@ -101435,6 +106492,15 @@ export type Database = {
       }
       gridex_release_automation_lock: {
         Args: { p_lock_key: string; p_lock_token: string }
+        Returns: boolean
+      }
+      gridex_release_staff_bulk_metering_e73_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_request_id: string
+          p_token: string
+        }
         Returns: boolean
       }
       gridex_remove_contract_offer: {
@@ -101516,6 +106582,23 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_requalify_planned_move_out_metering_value_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_normalized_value_id: string
+        }
+        Returns: Json
+      }
+      gridex_requeue_uncertain_withdrawal_email_v1: {
+        Args: {
+          p_company_id: string
+          p_outbox_id: string
+          p_reviewed_attempt_id: string
+        }
+        Returns: string
+      }
       gridex_require_outbound_reply_basis_v1: {
         Args: { m: Database["public"]["Tables"]["ediel_messages"]["Row"] }
         Returns: undefined
@@ -101553,6 +106636,77 @@ export type Database = {
             }
             Returns: string[]
           }
+      gridex_resend_customer_email_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_customer: string
+          p_expected_source?: string
+          p_requested: string
+          p_sender?: Json
+        }
+        Returns: Json
+      }
+      gridex_reserve_capway_dispatch_entry_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_external_reference: string
+          p_invoice: string
+          p_item: string
+          p_lease: string
+          p_phase: string
+          p_provider_key: string
+          p_request_hash: string
+          p_review_hash: string
+          p_run: string
+          p_target_guid?: string
+          p_updated_at: string
+        }
+        Returns: string
+      }
+      gridex_reserve_direct_capway_invoice_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_external_reference: string
+          p_invoice: string
+          p_item: string
+          p_lease: string
+          p_provider_key: string
+          p_request_hash: string
+          p_review_hash: string
+          p_run: string
+          p_updated_at: string
+          p_wire_body: string
+        }
+        Returns: string
+      }
+      gridex_reserve_manual_capway_purchase_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_expected_provider_status: string
+          p_expected_purchase_status: string
+          p_expected_updated_at: string
+          p_export_run_id: string
+          p_financing_mode: string
+          p_invoice_export_item_id: string
+          p_invoice_guid: string
+        }
+        Returns: boolean
+      }
+      gridex_reserve_withdrawal_email_provider_entry_v1: {
+        Args: {
+          p_company_id: string
+          p_lock_token: string
+          p_outbox_id: string
+        }
+        Returns: string
+      }
       gridex_resolve_contract_lifecycle_graph: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json
@@ -101596,6 +106750,19 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_resolve_legacy_outbound_route_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_expected_status: string
+          p_expected_updated_at: string
+          p_mode: string
+          p_request_id: string
+          p_route_id: string
+        }
+        Returns: Json
+      }
       gridex_resolve_managed_quality_rule_v1: {
         Args: {
           p_company: string
@@ -101622,6 +106789,23 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_resolve_retained_smime_ack_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_certificate_id: string
+          p_cipher_sha256: string
+          p_claim_owner: string
+          p_claimed_at: string
+          p_clear_sha256: string
+          p_cleartext: string
+          p_company_id: string
+          p_environment: string
+          p_failed_payload_id: string
+          p_job_id: string
+          p_mail_id: string
+        }
+        Returns: Json
+      }
       gridex_resolve_staff_identity_v1: {
         Args: { p_command: Json }
         Returns: Json
@@ -101634,6 +106818,19 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_retry_supplier_switch_outbound_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_expected_outbound_status: string
+          p_expected_outbound_updated_at: string
+          p_expected_switch_status: string
+          p_expected_switch_updated_at: string
+          p_outbound_request_id: string
+          p_switch_request_id: string
+        }
+        Returns: Json
+      }
       gridex_retry_website_contract_signature: {
         Args: {
           p_application_id: string
@@ -101642,8 +106839,29 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_reuse_partner_address_grid_snapshot_v2: {
+        Args: {
+          p_address_keys: string[]
+          p_client_id: string
+          p_company_id: string
+          p_ttl_hours: number
+        }
+        Returns: Json
+      }
       gridex_review_company_legal_profile: {
         Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
+      gridex_review_test_contract_price_addendum_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_document_id: string
+          p_verification: Json
+          p_verified_sha256: string
+        }
         Returns: Json
       }
       gridex_revoke_portfolio_settlement_permission: {
@@ -101671,6 +106889,25 @@ export type Database = {
       gridex_safe_nonnegative_numeric: {
         Args: { p_value: string }
         Returns: number
+      }
+      gridex_save_fresh_partner_address_resolution_v1: {
+        Args: {
+          p_address_evidence: Json
+          p_client_id: string
+          p_company_id: string
+          p_resolution: Json
+          p_ttl_hours: number
+        }
+        Returns: Json
+      }
+      gridex_save_partner_postal_resolution_v1: {
+        Args: {
+          p_company_id: string
+          p_expected_revision: string
+          p_resolution: Json
+          p_scope_key: string
+        }
+        Returns: Json
       }
       gridex_save_portfolio_area_price_drafts: {
         Args: {
@@ -101729,6 +106966,72 @@ export type Database = {
           p_company_id?: string
         }
         Returns: string
+      }
+      gridex_scan_metering_period_gaps_v1: {
+        Args: {
+          p_after_point_id?: string
+          p_company_id: string
+          p_month_starts: string[]
+        }
+        Returns: {
+          customer_id: string
+          facility_id: string
+          grid_owner_id: string
+          meter_point_id: string
+          missing_months: string[]
+          point_id: string
+          site_id: string
+        }[]
+      }
+      gridex_scan_metering_period_points_v2: {
+        Args: {
+          p_after_point_id?: string
+          p_company_id: string
+          p_include_unlinked: boolean
+          p_month_starts: string[]
+        }
+        Returns: {
+          customer_id: string
+          facility_id: string
+          grid_owner_id: string
+          meter_point_id: string
+          missing_months: string[]
+          point_id: string
+          site_id: string
+        }[]
+      }
+      gridex_seal_e66_completion_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: number
+      }
+      gridex_seal_e66_with_customer_outcome_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_seal_e66_with_request_handoff_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_source: string
+        }
+        Returns: Json
       }
       gridex_seed_company_onboarding_tasks: {
         Args: { p_company_id: string }
@@ -102006,6 +107309,21 @@ export type Database = {
           rows_upserted: number
         }[]
       }
+      gridex_step_mixed_e66_worker_v1: {
+        Args: {
+          p_action: string
+          p_actor: string
+          p_company: string
+          p_draft?: Json
+          p_draft_lease?: string
+          p_environment: string
+          p_ide?: string
+          p_mailbox: string
+          p_source?: string
+          p_worker_lease?: string
+        }
+        Returns: Json
+      }
       gridex_store_billing_underlay: {
         Args: {
           p_actor_user_id?: string
@@ -102023,6 +107341,29 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_store_e66_monthly_underlay_for_run_v1: {
+        Args: {
+          p_automation_run_id: string
+          p_commands: Json
+          p_company_id: string
+          p_lock_token: string
+        }
+        Returns: Json
+      }
+      gridex_store_e66_underlay_generation_receipt_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_after: Json
+          p_before: Json
+          p_command_results: Json
+          p_commands: Json
+          p_company_id: string
+          p_intent_key: string
+          p_scope: Json
+          p_source_rows: number
+        }
+        Returns: Json
+      }
       gridex_store_manual_reply_application_v2: {
         Args: {
           p_application: Json
@@ -102032,13 +107373,107 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_store_mixed_e66_underlay_generation_receipt_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_after: Json
+          p_before: Json
+          p_command_results: Json
+          p_commands: Json
+          p_company_id: string
+          p_intent_key: string
+          p_scope: Json
+          p_source_rows: number
+        }
+        Returns: Json
+      }
+      gridex_store_underlay_generation_receipt_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_after: Json
+          p_before: Json
+          p_command_results: Json
+          p_commands: Json
+          p_company_id: string
+          p_intent_key: string
+          p_scope: Json
+          p_source_rows: number
+        }
+        Returns: Json
+      }
+      gridex_store_verified_imap_intake_v1: {
+        Args: { p_attachments: Json; p_message: Json }
+        Returns: Json
+      }
       gridex_submit_customer_move_out_v1: {
         Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_submit_e66_request_retry_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailbox: string
+          p_meter_ids: string[]
+          p_request: string
+          p_response_patch: Json
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_submit_polled_e66_request_retry_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_mailboxes: string[]
+          p_meter_ids: string[]
+          p_request: string
+          p_response_patch: Json
+          p_source: string
+        }
+        Returns: Json
+      }
+      gridex_submit_portal_completion_v1: {
+        Args: {
+          p_attempt_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_payload?: Json
+          p_session_id: string
+          p_site_id: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      gridex_submit_portal_request_fields_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_site_id: string
+          p_fields: Json
+          p_intent_id: string
+          p_request_id: string
+          p_session_id: string
+        }
         Returns: Json
       }
       gridex_supported_price_areas_v1: {
         Args: { p_contract_product_version_id: string }
         Returns: string[]
+      }
+      gridex_sync_current_e66_request_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_meter_value_ids: string[]
+          p_request_id: string
+          p_response_patch: Json
+          p_source_message_id: string
+        }
+        Returns: Json
       }
       gridex_sync_internal_offer_to_canonical: {
         Args: { p_offer_id: string }
@@ -102184,12 +107619,70 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_update_grid_owner_request_business_v1: {
+        Args: {
+          p_actor_id: string
+          p_changes: Json
+          p_company_id: string
+          p_customer_id: string
+          p_original_status: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       gridex_update_jsonb_row: {
         Args: {
           p_company_id: string
           p_id: string
           p_payload: Json
           p_table: unknown
+        }
+        Returns: Json
+      }
+      gridex_update_manual_supplier_switch_status_v1: {
+        Args: {
+          p_company_id: string
+          p_expected_status: string
+          p_expected_updated_at: string
+          p_external_reference: string
+          p_failure_reason: string
+          p_request_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      gridex_update_ops_support_case_status_if_current_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_expected_source: string
+          p_expected_status: string
+          p_message: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      gridex_update_outbound_request_business_v1: {
+        Args: {
+          p_actor_id: string
+          p_changes: Json
+          p_company_id: string
+          p_customer_id: string
+          p_original_status: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_update_partner_export_business_v1: {
+        Args: {
+          p_actor_id: string
+          p_changes: Json
+          p_company_id: string
+          p_customer_id: string
+          p_export_id: string
+          p_original_status: string
         }
         Returns: Json
       }
@@ -102394,6 +107887,47 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_write_invoice_file_intent_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_artifacts: Json
+          p_billing_month: string
+          p_company_id: string
+          p_created_at: string
+          p_environment: string
+          p_file_id: string
+          p_intent_id: string
+          p_provider: string
+          p_rows: Json
+          p_rows_sha256: string
+          p_selection: Json
+        }
+        Returns: Json
+      }
+      gridex_yield_e66_normalization_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_next: number
+          p_source: string
+        }
+        Returns: boolean
+      }
+      gridex_yield_e66_readiness_v1: {
+        Args: {
+          p_actor: string
+          p_company: string
+          p_environment: string
+          p_lease: string
+          p_mailbox: string
+          p_next: number
+          p_source: string
+        }
+        Returns: boolean
+      }
       integration_api_rate_limit_check: {
         Args: {
           p_api_client_id: string
@@ -102456,6 +107990,43 @@ export type Database = {
           receipt_count: number
         }[]
       }
+      portal_customer_document_poa_winner_v1: {
+        Args: { p_company_id: string; p_customer_id: string; p_poa_id: string }
+        Returns: {
+          created_at: string
+          document_type: string
+          document_version: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          power_of_attorney_id: string
+          public_url: string
+          source: string
+          source_rank: number
+          source_system: string
+          source_table: string
+          status: string
+          title: string
+          uploaded_at: string
+        }[]
+      }
+      portal_customer_document_reference_alias_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_public_reference: string
+        }
+        Returns: Json
+      }
+      portal_customer_document_reference_v2: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_public_reference: string
+        }
+        Returns: Json
+      }
       portal_customer_documents_page_v1: {
         Args: {
           p_company_id: string
@@ -102484,6 +108055,38 @@ export type Database = {
           uploaded_at: string
         }[]
       }
+      portal_customer_documents_page_v2: {
+        Args: {
+          p_company_id: string
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_cursor_source_rank?: number
+          p_customer_id: string
+          p_limit?: number
+        }
+        Returns: {
+          created_at: string
+          cursor_created_at: string
+          cursor_id: string
+          cursor_source_rank: number
+          document_type: string
+          document_version: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          power_of_attorney_id: string
+          public_reference_source: string
+          public_url: string
+          source: string
+          source_rank: number
+          source_system: string
+          source_table: string
+          status: string
+          title: string
+          uploaded_at: string
+        }[]
+      }
       portal_customer_events_page_v1: {
         Args: {
           p_company_id: string
@@ -102502,6 +108105,10 @@ export type Database = {
           source_rank: number
           source_table: string
         }[]
+      }
+      portal_document_reference_value_v1: {
+        Args: { p_company_id: string; p_source: string }
+        Returns: string
       }
       public_contract_feed_fingerprint_v1: {
         Args: {

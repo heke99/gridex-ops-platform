@@ -19,6 +19,10 @@ const applications = [
 ].map(read).join('\n')
 const intakeOrchestrator = read('lib/customer-operations/customerIntakeOrchestrator.ts')
 const publicContracts = read('lib/website/publicContracts.ts')
+const legalBundleRoute = read('app/api/v1/website/legal-bundle/route.ts')
+const legalBundleOwner = read('lib/website/publicContracts.part-2.ts')
+const legalModuleOwner = read('lib/website/publicContracts.part-1.ts')
+const websiteLegal = read('lib/website/customerApplicationLegal.ts')
 const publicLegal = read('lib/legal/publicLegalDocuments.ts')
 const publicLegalPage = read('app/legal/[slug]/[type]/[versionId]/page.tsx')
 const poaWorkflow = read('lib/operations/powerOfAttorneyWorkflow.ts')
@@ -48,8 +52,14 @@ assert(
   'customer document grouping does not isolate POA and withdrawal',
 )
 assert(
-  publicContracts.includes('requirements = customerDocuments.flatMap'),
-  'legal-bundle still builds one customer requirement per canonical module',
+  /import\s*\{[^}]*\bbuildWebsiteLegalBundle\b[^}]*\}\s*from ['"]@\/lib\/website\/publicContracts['"]/.test(legalBundleRoute) &&
+    /export \{[^}]*\bbuildWebsiteLegalBundle\b[^}]*\} from ['"]\.\/publicContracts\.part-2['"]/.test(publicContracts) &&
+    /requireIntegrationApiAccess\(request,\s*\{[^}]*\}\)[\s\S]*?buildWebsiteLegalBundle\(auth\.client,\s*offerReference\)/.test(legalBundleRoute),
+  'legal-bundle route uses the canonical bundle owner with its authorized client',
+)
+assert(
+  /export async function buildWebsiteLegalBundle\([\s\S]*?requirements = customerDocuments\.flatMap/.test(legalBundleOwner),
+  'canonical legal-bundle owner builds the customer requirements from customer documents',
 )
 assert(
   applications.includes('groupedMode') &&
@@ -113,7 +123,13 @@ assert(
 )
 assert(
   packageSource.includes('customerLegalAcceptanceCategoryForModule') &&
-    publicContracts.includes('customerLegalAcceptanceCategoryForModule(moduleKey)'),
+    /export \{[^}]*\blegalAcceptanceTypeForModule\b[^}]*\} from ['"]\.\/publicContracts\.part-1['"]/.test(publicContracts) &&
+    /import\s*\{[^}]*\blegalAcceptanceTypeForModule\b[^}]*\}\s*from ['"]@\/lib\/website\/publicContracts['"]/.test(websiteLegal) &&
+    websiteLegal.includes('legalAcceptanceTypeForModule(version.type)') &&
+    /import\s*\{[^}]*\bcustomerLegalAcceptanceCategoryForModule\b[^}]*\}\s*from ['"]@\/lib\/legal\/customerDocumentPackage['"]/.test(legalModuleOwner) &&
+    legalModuleOwner.includes('return customerLegalAcceptanceCategoryForModule(moduleKey)') &&
+    /import\s*\{[^}]*\bcustomerLegalAcceptanceCategoryForModule\b[^}]*\}\s*from ['"]@\/lib\/legal\/customerDocumentPackage['"]/.test(tenantSync) &&
+    tenantSync.includes('customerLegalAcceptanceCategoryForModule(moduleKey)'),
   'website and customer portal do not share the same canonical module-to-evidence mapping',
 )
 assert(

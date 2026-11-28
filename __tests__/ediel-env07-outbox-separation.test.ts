@@ -26,17 +26,25 @@ import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 beforeEach(() => {
   vi.clearAllMocks()
   port.rows.clear(); port.messages.clear(); port.submitted.length = 0; port.messageReads.length = 0
+  const runs = new Map<string, Record<string, unknown>>()
   port.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
-    if (name !== 'claim_ediel_outbox_items') throw new Error(`Unexpected RPC: ${name}`)
+    if (name === 'gridex_note_ediel_outbox_batch_v1') {
+      const event = args.p_event as Record<string, unknown>
+      const runId = String(event.runId)
+      if (event.kind === 'start') runs.set(runId, event)
+      return { data: { runId, remainingReady: 0 }, error: null }
+    }
+    const run = runs.get(String(args.p_run_id))
+    if (name !== 'gridex_claim_ediel_outbox_progress_v1' && (name !== 'gridex_claim_ediel_outbox_batch_v1' || !run)) throw new Error(`Unexpected RPC: ${name}`)
     // Match the actual SQL claim's eligibility: completed/failed rows cannot
     // be reclaimed by the next single-row drain iteration.
     const rows = [...port.rows.values()].filter(row => ['prepared', 'queued'].includes(String(row.status))
-      && (!args.p_company_id || args.p_company_id === row.company_id)
-      && (!args.p_environment || args.p_environment === row.environment)).slice(0, Number(args.p_limit))
+      && (!(run?.companyId ?? args.p_company_id) || (run?.companyId ?? args.p_company_id) === row.company_id)
+      && (!(run?.environment ?? args.p_environment) || (run?.environment ?? args.p_environment) === row.environment)).slice(0, run ? 1 : Number(args.p_limit))
     // A real claim sets locked_at = now(); the send consumer verifies that lease.
     const claimedAt = new Date().toISOString()
     rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id; row.locked_at = claimedAt })
-    return { data: rows.map(row => ({ ...row })), error: null }
+    return { data: { items: rows.map(row => ({ ...row })), staleTransitionCount: 0 }, error: null }
   })
   port.from.mockImplementation((table: string) => {
     if (!['ediel_outbox', 'ediel_send_locks'].includes(table)) throw new Error(`Unexpected table: ${table}`)
@@ -65,7 +73,7 @@ beforeEach(() => {
     port.submitted.push({ company: message.company_id ?? null, raw: message.raw_payload ?? null })
     const observed = '2026-10-04T20:00:00Z'
     port.messages.set(message.id, { ...message, status: 'sent', message_sent_at: observed })
-    return { messageId: `<${message.id}@example.test>`, dispatchObservedAt: observed }
+    return { messageId: `<${message.id}@example.test>`, dispatchObservedAt: observed, delivery: 'new_acceptance' }
   })
 })
 

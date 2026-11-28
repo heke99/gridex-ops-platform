@@ -12,7 +12,17 @@ type Props = { params: Promise<{ id: string }> }
 export async function POST(request: Request, { params }: Props) {
   try {
     const { id } = await params
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const rawBody = await request.text()
+    let payload: unknown
+    try {
+      payload = rawBody.trim() ? JSON.parse(rawBody) : {}
+    } catch {
+      payload = null
+    }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return NextResponse.json({ error: 'Begärans JSON måste vara ett objekt.' }, { status: 400 })
+    }
+    const body = payload as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
     const access = await requireAdminApiAccess(['billing_underlay.export'], { companyId: requestedCompanyId })
     if (access.response) return access.response

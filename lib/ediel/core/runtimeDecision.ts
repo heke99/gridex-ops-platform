@@ -1,3 +1,4 @@
+import { E66_SG11_TIMESTAMP_REVIEW } from '@/lib/ediel/utilts/e66ObservationTimestampDiagnostic'
 import {fetchReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {resolveReceivedZ05RejectedIdentityRuntime} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRuntime'
 import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
@@ -350,7 +351,9 @@ function resolveUtiltsDecision(params: {
   }
 
   if (runtime.validation.classification === 'internal_review') {
-    params.decisionTrace.push('Egna UTILTS-transaktioner hålls för lokal granskning; saknad identitetsauktoritet ger varken positiv kvittens eller nationell felkod.')
+    const formatReview = runtime.validation.issues.some(issue => issue.code === E66_SG11_TIMESTAMP_REVIEW)
+    params.decisionTrace.push(formatReview ? runtime.ackPlan.reason :
+      'Egna UTILTS-transaktioner hålls för lokal granskning; saknad identitetsauktoritet ger varken positiv kvittens eller nationell felkod.')
     return {applicationDecision:'manual_review',functionalDecision:'manual_review',businessOutcome,utiltsFunctionalValidation,utiltsHeaderValidation,utiltsTransactionValidation}
   }
 

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import { getOperationalCompanyScope, TENANT_COMPANY_REQUIRED_MESSAGE, TenantCompanyRequiredError } from '@/lib/tenant/scope'
+import { listOperationalCompaniesForUser, TENANT_COMPANY_REQUIRED_MESSAGE, TenantCompanyRequiredError } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import {
@@ -20,26 +20,22 @@ export default async function AdminLayout({
 }) {
  const admin = await requireAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(admin)
+ const cookieStore = await cookies()
+ const preferredMode = isPlatformAdmin
+ ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
+ : 'company_view'
  let shell: {
- cookieStore: Awaited<ReturnType<typeof cookies>>
- scope: Awaited<ReturnType<typeof resolveAdminSelectedCompanyReadScope>> & Pick<Awaited<ReturnType<typeof getOperationalCompanyScope>>, 'memberships'>
+ scope: Awaited<ReturnType<typeof resolveAdminSelectedCompanyReadScope>>
+ memberships: Awaited<ReturnType<typeof listOperationalCompaniesForUser>>
  liveAccess: Awaited<ReturnType<typeof getTenantLiveAccessForAdmin>>
  }
  try {
- const [cookieStore, canonicalScope, liveAccess, operationalScope] = await Promise.all([
- cookies(),
+ const [scope, liveAccess, memberships] = await Promise.all([
  resolveAdminSelectedCompanyReadScope(admin),
  getTenantLiveAccessForAdmin(admin),
- isPlatformAdmin ? getOperationalCompanyScope(admin.userId) : Promise.resolve(null),
+ isPlatformAdmin && preferredMode === 'company_view' ? listOperationalCompaniesForUser(admin.userId) : [],
  ])
- const scope = {
- ...canonicalScope,
- companyName: isPlatformAdmin
- ? operationalScope && canonicalScope.companyId === operationalScope.companyId ? operationalScope.companyName : canonicalScope.companyName
- : liveAccess.companyName,
- memberships: operationalScope?.memberships ?? [],
- }
- shell = { cookieStore, scope, liveAccess }
+ shell = { scope, memberships, liveAccess }
  } catch (error) {
  if (!(error instanceof TenantCompanyRequiredError)) throw error
  // A tenant user without an active company sees no tenant data at all.
@@ -52,21 +48,19 @@ export default async function AdminLayout({
  </div>
  )
  }
- const { cookieStore, scope, liveAccess } = shell
- const preferredMode = isPlatformAdmin
- ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
- : 'company_view'
+ const { scope, memberships, liveAccess } = shell
+ const selectedMembership = memberships.find(membership => membership.companyId === scope.companyId)
  const selectedCompanyId = isPlatformAdmin && preferredMode === 'company_view' ? scope.companyId : null
  const companyOptions = isPlatformAdmin && preferredMode === 'company_view'
- ? scope.memberships.map((membership) => ({
+ ? memberships.map((membership) => ({
    id: membership.companyId,
    name: membership.companyName,
    status: membership.status,
  }))
  : []
  const workspaceName = isPlatformAdmin && preferredMode === 'company_view'
- ? scope.companyName ?? 'Välj bolag'
- : isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolagsyta saknas'
+ ? selectedMembership?.companyName ?? scope.companyName ?? 'Välj bolag'
+ : isPlatformAdmin ? 'Gridex Platform' : liveAccess.companyName ?? scope.companyName ?? 'Bolagsyta saknas'
  const workspaceSubtitle = isPlatformAdmin && preferredMode === 'company_view'
  ? 'Superadmin bolagsvy'
  : isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta'

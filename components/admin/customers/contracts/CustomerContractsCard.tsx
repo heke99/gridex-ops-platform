@@ -157,8 +157,18 @@ export default async function CustomerContractsCard({
  { companyId },
  ),
  ])
+ const documentHashesByContractId = new Map(contracts.map((contract) => [contract.id, contract.document_sha256] as const))
  const documentsByContractId = new Map(
- contractDocuments.map((document) => [document.customer_contract_id, document] as const),
+ contractDocuments
+ .filter((document) => {
+ const signedHash = documentHashesByContractId.get(document.customer_contract_id)
+ return !signedHash || (
+ /^[a-f0-9]{64}$/.test(signedHash) &&
+ document.document_type === 'signed_contract_pdf' &&
+ document.document_sha256 === signedHash
+ )
+ })
+ .map((document) => [document.customer_contract_id, document] as const),
  )
 
  const activeOffers = offers.filter((offer) => offer.is_active && offer.status === 'active')

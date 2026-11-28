@@ -274,21 +274,50 @@ BEGIN
   RAISE NOTICE 'tenant invoice provider selection native regression passed';
 END $$;
 
--- Invoice file export (Nordfin file provider): ready without credentials; file creation fails closed.
+-- Invoice file export (Nordfin): ready without credentials; current writer fails closed.
 DO $$
 DECLARE
   c uuid := gen_random_uuid();
   actor uuid := gen_random_uuid();
+  item_id uuid := gen_random_uuid();
+  intent_id uuid := gen_random_uuid();
+  file_id uuid := gen_random_uuid();
+  billing_month constant text := '2026-09';
+  created_at constant text := '2026-10-01T00:00:00.000Z';
+  file_base text := 'fakturor-' || billing_month || '-' || left(file_id::text, 8);
+  rows jsonb := jsonb_build_array(jsonb_build_object('invoice_export_item_id', item_id, 'amount_inc_vat', 1));
+  rows_hash text := encode(sha256(convert_to(rows::text, 'UTF8')), 'hex');
+  selection jsonb := jsonb_build_array(jsonb_build_object(
+    'itemId', item_id, 'reviewHash', repeat('a', 64), 'approvedAt', created_at, 'approvedBy', actor));
+  artifacts jsonb;
 BEGIN
   INSERT INTO public.companies(id,name,status) VALUES(c,'File export synthetic','active');
   PERFORM public.gridex_select_invoice_provider_v1(c, 'nordfin', 'test', actor);
-  IF (SELECT status FROM public.billing_provider_connections WHERE company_id = c AND provider = 'nordfin' AND environment = 'test') <> 'ready' THEN
+  IF (SELECT status FROM public.billing_provider_connections
+      WHERE company_id = c AND provider = 'nordfin' AND environment = 'test') IS DISTINCT FROM 'ready' THEN
     RAISE EXCEPTION 'file export: connection should be ready without credentials';
   END IF;
 
+  -- The archive checks filenames, media types and digests before the selection.
+  -- Use synthetic byte samples for the opaque formats and the required JSON envelope.
+  SELECT jsonb_agg(jsonb_build_object(
+    'format', format, 'fileName', file_name, 'contentType', content_type, 'rendererVersion', 'synthetic_v1',
+    'byteLength', octet_length(body), 'sha256', encode(sha256(body), 'hex'),
+    'bodyBase64', replace(encode(body, 'base64'), E'\n', '')))
+  INTO artifacts
+  FROM (VALUES
+    ('csv', file_base || '.csv', 'text/csv; charset=utf-8', 'synthetic'),
+    ('xlsx', file_base || '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'synthetic'),
+    ('json', file_base || '.json', 'application/json; charset=utf-8',
+      jsonb_build_object('format', 'gridex_invoice_file_v1', 'file_id', file_id, 'created_at', created_at,
+        'billing_month', billing_month, 'rows_sha256', rows_hash, 'invoices', rows)::text),
+    ('nordfin_xml', 'nordfin-' || file_base || '.xml', 'application/xml; charset=utf-8', '<synthetic/>')
+  ) AS formats(format, file_name, content_type, payload)
+  CROSS JOIN LATERAL (SELECT convert_to(payload, 'UTF8')) AS bytes(body);
+
   BEGIN
-    PERFORM public.gridex_create_invoice_export_file_v1(c, '2026-09', 'test', actor,
-      jsonb_build_array(jsonb_build_object('invoice_export_item_id', gen_random_uuid(), 'amount_inc_vat', 1)), repeat('a', 64));
+    PERFORM public.gridex_write_invoice_file_intent_v2(
+      c, billing_month, 'test', actor, rows, rows_hash, intent_id, 'nordfin', file_id, created_at, selection, artifacts);
     RAISE EXCEPTION 'file export: file created while dispatch disabled';
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     IF SQLERRM <> 'invoice_file_provider_not_active' THEN RAISE; END IF;
@@ -296,11 +325,18 @@ BEGIN
 
   PERFORM public.gridex_set_invoice_dispatch_enabled_v1(c, true, actor);
   BEGIN
-    PERFORM public.gridex_create_invoice_export_file_v1(c, '2026-09', 'test', actor,
-      jsonb_build_array(jsonb_build_object('invoice_export_item_id', gen_random_uuid(), 'amount_inc_vat', 1)), repeat('a', 64));
+    PERFORM public.gridex_write_invoice_file_intent_v2(
+      c, billing_month, 'test', actor, rows, rows_hash, intent_id, 'nordfin', file_id, created_at, selection, artifacts);
     RAISE EXCEPTION 'file export: unknown invoice accepted';
   EXCEPTION WHEN serialization_failure THEN
-    IF SQLERRM <> 'invoice_file_items_changed' THEN RAISE; END IF;
+    IF SQLERRM <> 'invoice_file_selection_changed' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.gridex_create_invoice_export_file_v1(c, billing_month, 'test', actor, rows, rows_hash);
+    RAISE EXCEPTION 'file export: retired writer accepted a request';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    IF SQLERRM <> 'invoice_file_v1_creation_retired' THEN RAISE; END IF;
   END;
   IF EXISTS (SELECT 1 FROM public.invoice_export_files WHERE company_id = c) THEN
     RAISE EXCEPTION 'file export: rejected claim left a file row';

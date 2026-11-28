@@ -2,7 +2,7 @@ import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactToken
 import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine.part-1'
-import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from '@/lib/ediel/utilts/timezone'
+import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromComponents } from '@/lib/ediel/utilts/timezone'
 import {utiltsApplicationErrorText} from './aperakSourceText'
 import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsEdielIdentity,validUtiltsGs1Identity} from './headerIdentityGuide'
 
@@ -178,21 +178,26 @@ export function resolveUtiltsHeaderGuideIssues(
       ...(bgm ? {aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:4,componentIndex:0}} : {}),
     }] : []
   const timezoneRule = rules.find(item => item.fieldNumber === '206')
-  const timezoneSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '735')
-  const timezoneParts = timezoneSegment ? segmentComposite(timezoneSegment, 1, wire.una) : []
-  const timezoneValue = timezoneParts[1]?.trim() ?? ''
-  const timezone = parseEdifactTimezoneOffsetFromSegments(timezoneSegment ? [`DTM+${timezoneParts.join(':')}`] : [])
-  const timezoneValid = Boolean(timezone)
-  const timezoneIssues = timezoneRule?.requirement === 'required' && !timezoneValid
+  const timezoneDeclarations = wire.segments.filter(segment => segment.tag === 'DTM').flatMap(segment => {
+    const parts = segmentComposite(segment, 1, wire.una)
+    if (parts[0] !== '735') return []
+    return [{ segment, parts, offset: parseEdifactTimezoneOffsetFromComponents(parts) }]
+  })
+  const firstOffset = timezoneDeclarations[0]?.offset ?? null
+  const invalidTimezone = timezoneDeclarations.find(({ offset }) => !offset || offset.offsetMinutes !== firstOffset?.offsetMinutes)
+  const timezone = invalidTimezone ? null : firstOffset
+  const invalidTimezoneValue = invalidTimezone?.parts[1]?.trim() ?? ''
+  const timezoneIssues = timezoneRule?.requirement === 'required' && !timezone
     ? [{
       severity: 'error' as const, kind: 'application' as const,
-      code: timezoneValue ? 'UTILTS_TIMEZONE_INVALID' : 'UTILTS_TIMEZONE_MISSING',
-      title: timezoneValue ? 'Ogiltig tidzon' : 'Tidzon saknas',
-      description: timezoneValue ? 'DTM+735 måste ha giltig UTC-offset och format 406.' : 'DTM+735/C507/2380 saknas.',
-      aperakErcCode: timezoneValue ? '42' : '41',
+      code: invalidTimezoneValue ? 'UTILTS_TIMEZONE_INVALID' : 'UTILTS_TIMEZONE_MISSING',
+      title: invalidTimezoneValue ? 'Ogiltig tidzon' : 'Tidzon saknas',
+      description: invalidTimezone?.offset ? 'DTM+735 anger motstridiga UTC-offsetvärden.'
+        : invalidTimezoneValue ? 'DTM+735 måste ha giltig UTC-offset och format 406.' : 'DTM+735/C507/2380 saknas.',
+      aperakErcCode: invalidTimezoneValue ? '42' : '41',
       aperakFieldCode: '206',
-      aperakText: timezoneValue ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-      ...(timezoneSegment ? {aperakInvalidOccurrence:{segmentIndex:timezoneSegment.index,elementIndex:1,componentIndex:timezoneParts[2]!=='406' ? 2 : 1}} : {}),
+      aperakText: invalidTimezoneValue ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(invalidTimezone ? {aperakInvalidOccurrence:{segmentIndex:invalidTimezone.segment.index,elementIndex:1,componentIndex:invalidTimezone.parts[2]!=='406' ? 2 : 1}} : {}),
     }] : []
   const dateRule = rules.find(item => item.fieldNumber === '205')
   const dateSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '137')

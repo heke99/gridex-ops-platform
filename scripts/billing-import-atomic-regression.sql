@@ -12,6 +12,7 @@ DECLARE
   rows jsonb;
   res jsonb;
   batch uuid;
+  missing_invoice_item uuid := gen_random_uuid();
 BEGIN
   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
   VALUES(actor,'authenticated','authenticated','billing-import-actor@example.invalid',now(),'{}','{}',now(),now(),false,false);
@@ -71,11 +72,32 @@ BEGIN
     RAISE EXCEPTION 'invoice review draft accepted a foreign run';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
 
-  -- An invoice test approval needs a pending test export item of the tenant.
+  -- The approval RPC validates the envelope before checking the owned export item.
   BEGIN
-    PERFORM public.gridex_approve_invoice_test_item_v1(a, gen_random_uuid(), '{}'::jsonb);
+    PERFORM public.gridex_approve_invoice_test_item_v1(a, missing_invoice_item, '{}'::jsonb);
+    RAISE EXCEPTION 'test approval accepted an empty envelope';
+  EXCEPTION WHEN invalid_parameter_value THEN
+    IF SQLERRM <> 'invoice_test_approval_payload_invalid' THEN RAISE; END IF;
+  END;
+
+  INSERT INTO public.user_profiles(id,email,user_status)
+  VALUES(actor,'billing-import-actor@example.invalid','active')
+  ON CONFLICT (id) DO UPDATE SET user_status = EXCLUDED.user_status;
+  INSERT INTO public.admin_users(user_id,role,is_active) VALUES(actor,'platform_admin',true);
+  PERFORM public.gridex_select_invoice_provider_v1(a, 'capway_aptic', 'test', actor);
+  UPDATE public.billing_provider_connections SET status = 'ready'
+  WHERE company_id = a AND provider = 'capway_aptic' AND environment = 'test';
+  PERFORM public.gridex_set_invoice_dispatch_enabled_v1(a, true, actor);
+
+  -- A qualified TEST approval still needs a pending export item in this company.
+  BEGIN
+    PERFORM public.gridex_approve_invoice_test_item_v1(a, missing_invoice_item, jsonb_build_object(
+      'status', 'approved', 'approval_source', 'invoice_test_center', 'approved_by', actor, 'approved_at', now(),
+      'review_hash', repeat('a', 64), 'calculation_snapshot_sha256', repeat('b', 64)));
     RAISE EXCEPTION 'test approval accepted an unknown export item';
-  EXCEPTION WHEN check_violation THEN NULL; END;
+  EXCEPTION WHEN check_violation THEN
+    IF SQLERRM <> 'invoice_test_approval_item_not_pending' THEN RAISE; END IF;
+  END;
 
   -- Billing lock and price lock move together.
   PERFORM public.gridex_set_billing_period_lock_v1(a, '2026-09', true, 'locked', actor, 'test', '{}'::jsonb);

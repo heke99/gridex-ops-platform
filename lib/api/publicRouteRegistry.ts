@@ -16,7 +16,7 @@ export type PublicApiRouteContract = {
 type PublicApiRouteDefinition = Omit<
   PublicApiRouteContract,
   'operationId' | 'responseSchema' | 'scopeMode' | 'cachePolicy' | 'publicIdPolicy'
->
+> & { cachePolicy?: PublicApiRouteContract['cachePolicy'] }
 
 /** Canonical granular scope set used by both customer-portal bundle entries. */
 const CUSTOMER_PORTAL_READ_SCOPES = [
@@ -53,10 +53,14 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-23.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-11-23.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-23.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-11-23.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-23.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-11-23.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Machine-readable release manifest containing versions and SHA-256 digests for the public OpenAPI contracts.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/legacy-compatibility.json', scopes: [], description: 'Current compatibility status of older public API features.', rateLimitClass: 'read', cachePolicy: 'no-store' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Current OpenAPI specification for website integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-02.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-08-02.1.', rateLimitClass: 'read' },
@@ -192,6 +196,7 @@ function scopeModeFor(route: PublicApiRouteDefinition): 'all' | 'any' {
 }
 
 function cachePolicyFor(route: PublicApiRouteDefinition): PublicApiRouteContract['cachePolicy'] {
+  if (route.cachePolicy) return route.cachePolicy
   if (route.path.includes('/openapi/')) return route.path.includes('/2026-') ? 'public-immutable' : 'private-revalidate'
   return 'no-store'
 }

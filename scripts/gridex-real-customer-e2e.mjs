@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { stagingProjectTargetError } from './lib/e2e-staging-project.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
@@ -21,6 +22,7 @@ const requireLegal = process.env.GRIDEX_E2E_REAL_REQUIRE_LEGAL !== 'NO'
 const requireBilling = process.env.GRIDEX_E2E_REAL_REQUIRE_BILLING === 'YES'
 const confirmed = process.env.GRIDEX_E2E_REAL_CUSTOMER_CONFIRM === 'YES'
 const targetKind = String(process.env.GRIDEX_E2E_TARGET || '').toLowerCase()
+const stagingProjectRef = String(process.env.GRIDEX_E2E_STAGING_PROJECT_REF || '').trim()
 
 function fail(message) {
   console.error(message)
@@ -40,6 +42,10 @@ if (process.env.VERCEL_ENV === 'production') {
   fail('Real-customer E2E refuses to run in a production Vercel context.')
 }
 
+const stagingTargetError = stagingProjectTargetError(baseUrl, stagingProjectRef)
+if (stagingTargetError === 'production') fail('Real-customer E2E refuses the production Supabase project.')
+if (stagingTargetError) fail('Real-customer E2E requires approved staging configuration: the project URL and GRIDEX_E2E_STAGING_PROJECT_REF must match.')
+
 const headers = {
   apikey: serviceKey,
   Authorization: `Bearer ${serviceKey}`,
@@ -56,7 +62,7 @@ async function rows(table, filters = {}) {
     if (value) params.set(key, `eq.${value}`)
   }
   params.set('limit', '100')
-  const response = await fetch(`${baseUrl}/rest/v1/${table}?${params.toString()}`, { headers })
+  const response = await fetch(`${baseUrl}/rest/v1/${table}?${params.toString()}`, { headers, redirect: 'error' })
   if (!response.ok) throw new Error(`${table} read failed with HTTP ${response.status}`)
   const payload = await response.json()
   if (!Array.isArray(payload)) throw new Error(`${table} did not return a row array`)
@@ -131,9 +137,9 @@ try {
   })
 
   const contracts = await check('contracts point forward to the real customer and back to the same tenant', async () => {
-    const found = await rows('contracts', { customer_id: customerId, company_id: companyId })
-    if (found.length < 1) throw new Error('No contracts rows found for the real test customer')
-    for (const row of found) assertScoped(row, 'contracts')
+    const found = await rows('customer_contracts', { customer_id: customerId, company_id: companyId })
+    if (found.length < 1) throw new Error('No customer_contracts rows found for the real test customer')
+    for (const row of found) assertScoped(row, 'customer_contracts')
     if (expectedContractId && !found.some((row) => row.id === expectedContractId)) throw new Error('Protected contract fixture is not linked to the real test customer')
     return { count: found.length, expected_contract_present: expectedContractId ? true : null }
   })
@@ -163,9 +169,9 @@ try {
     })
 
     await check('invoices remain tenant/customer scoped', async () => {
-      const found = await rows('invoices', { customer_id: customerId, company_id: companyId })
-      if (found.length < 1) throw new Error('No invoices rows found for a fixture that requires billing completion')
-      for (const row of found) assertScoped(row, 'invoices')
+      const found = await rows('customer_invoices', { customer_id: customerId, company_id: companyId })
+      if (found.length < 1) throw new Error('No customer_invoices rows found for a fixture that requires billing completion')
+      for (const row of found) assertScoped(row, 'customer_invoices')
       return { count: found.length }
     })
   }

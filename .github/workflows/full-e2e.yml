@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: E2E suite to run
+        description: 'all runs full, runtime-staging and real-customer-staging. Standalone smoke, coverage, and PR, nightly and staging-quality certificates are separate.'
         required: true
         default: smoke
         type: choice
@@ -110,6 +110,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -128,6 +129,7 @@ jobs:
           name: gridex-e2e-smoke-${{ github.run_id }}
           path: e2e-artifacts/inputs/smoke
       - name: Await the existing native producer at this exact checkout
+        id: native_producer_wait
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -154,7 +156,94 @@ jobs:
               process.stdout.write(String(latest[0].id));
             ' "$GITHUB_REPOSITORY" "$head_sha"
           )"
+          printf 'run_id=%s\n' "$native_run_id" >> "$GITHUB_OUTPUT"
           gh run watch "$native_run_id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30
+      - name: Record the failed exact native gate
+        if: failure() && steps.native_producer_wait.outcome == 'failure'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_RUN_ID: ${{ steps.native_producer_wait.outputs.run_id }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const positiveId = /^[1-9][0-9]*$/;
+          const repository = process.env.GITHUB_REPOSITORY || '';
+          const source = execFileSync('git', ['--no-replace-objects', 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          const workflowRun = process.env.GITHUB_RUN_ID || '';
+          const workflowAttempt = process.env.GITHUB_RUN_ATTEMPT || '';
+          if (!/^[0-9a-f]{40}$/.test(source) || !positiveId.test(workflowRun) || !positiveId.test(workflowAttempt)) {
+            throw new Error('native_gate_failure_checkout_unqualified');
+          }
+          const id = process.env.NATIVE_RUN_ID || '';
+          let producer = null;
+          let reason = 'producer_not_selected';
+          if (positiveId.test(id) && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+            reason = 'producer_readback_unavailable';
+            let run;
+            try {
+              run = JSON.parse(execFileSync('gh', ['api', 'repos/' + repository + '/actions/runs/' + id],
+                { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000 }));
+            } catch {}
+            if (run) {
+              reason = 'producer_readback_unqualified';
+              if (String(run.id) === id && run.head_sha === source && run.path === '.github/workflows/ops-hardening.yml'
+                && run.repository?.full_name === repository && run.head_repository?.full_name === repository
+                && ['pull_request', 'push'].includes(run.event) && Number.isSafeInteger(run.run_attempt) && run.run_attempt > 0
+                && run.status === 'completed'
+                && ['success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale', 'startup_failure'].includes(run.conclusion)) {
+                producer = { run_id: id, run_attempt: run.run_attempt, conclusion: run.conclusion };
+                reason = run.conclusion === 'success' ? 'producer_wait_failed' : 'producer_failed';
+              }
+            }
+          }
+          fs.mkdirSync('e2e-artifacts', { recursive: true });
+          fs.writeFileSync('e2e-artifacts/pr-native-gate-failure.json', JSON.stringify({
+            schema_version: 1, verdict: 'RED', candidate_sha: source, workflow_run_id: workflowRun,
+            workflow_run_attempt: workflowAttempt, reason, native_producer: producer,
+          }, null, 2) + '\n');
+          NODE
+      - name: Upload failed native gate diagnosis
+        if: failure() && steps.native_producer_wait.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-pr-native-gate-failure-${{ github.run_id }}
+          path: e2e-artifacts/pr-native-gate-failure.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Await ordinary and protected Ediel proof at this checkout
+        if: github.repository == 'heke99/gridex-ops-platform' && github.event.pull_request.number == 1270
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head="$(git --no-replace-objects rev-parse HEAD)"
+          for attempt in {1..100}; do
+            if inventory="$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$head&per_page=100")"; then
+              state="$(jq -r --arg head "$head" --arg repo "$GITHUB_REPOSITORY" '
+                . as $inventory |
+                [".github/workflows/ediel-fg-composition-native.yml",
+                 ".github/workflows/ediel-z10m-supplier-native.yml",
+                 ".github/workflows/ediel-completed-reading-clock-native.yml"]
+                | map(. as $path | $inventory.workflow_runs
+                  | map(select(.path==$path and .head_sha==$head and .event=="pull_request"
+                    and .repository.full_name==$repo and .head_repository.full_name==$repo))
+                  | max_by(.run_number))
+                | if any(.[]; .status=="completed" and .conclusion!="success") then "failed"
+                  elif all(.[]; .status=="completed" and .conclusion=="success") then "ready"
+                  else "waiting" end
+              ' <<< "$inventory")"
+              case "$state" in
+                ready) exit 0 ;;
+                failed) echo 'An exact-head Ediel proof job failed.' >&2; exit 1 ;;
+              esac
+            fi
+            if (( attempt < 100 )); then sleep 30; fi
+          done
+          echo 'Timed out waiting for all exact-head Ediel proof jobs.' >&2
+          exit 1
       - name: Require deterministic PR gates to execute and pass
         shell: bash
         env:
@@ -164,7 +253,7 @@ jobs:
         run: |
           node scripts/gridex-full-production-e2e.cjs --certificate=pr
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.native_producer_wait.outcome == 'success'
         with:
           name: gridex-pr-release-certificate-${{ github.run_id }}
           path: e2e-artifacts/pr-release-certificate.json
@@ -190,7 +279,7 @@ jobs:
       - run: npm ci
       - name: Verify executable PROJECT_E2E P0 contract
         run: node scripts/gridex-p0-executor.cjs
-      - name: Run full production release certificate
+      - name: Run repository E2E checks and production build
         env:
           NODE_OPTIONS: --max-old-space-size=8192 --require=${{ github.workspace }}/scripts/lib/refactor-safe-static-read.cjs
         run: node scripts/gridex-full-production-e2e.cjs --mode=full
@@ -201,7 +290,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gridex-e2e-full-${{ github.run_id }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'all' && format('gridex-e2e-full-{0}-{1}', github.run_id, github.run_attempt) || format('gridex-e2e-full-{0}', github.run_id) }}
           path: e2e-artifacts/
           if-no-files-found: error
           retention-days: 30
@@ -233,12 +322,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Require isolated staging configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_ACTOR_USER_ID GRIDEX_E2E_STAGING_PROJECT_REF; do
-            [[ -n "${!name:-}" ]] || { echo "Missing required staging setting: $name" >&2; exit 1; }
-          done
+        run: node scripts/gridex-full-production-e2e.cjs --staging-preflight=runtime
       - name: Run fresh-tenant runtime certificate
         run: node scripts/gridex-full-production-e2e.cjs --mode=runtime
       - name: Build sanitized AI verification handoff
@@ -248,7 +332,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gridex-e2e-runtime-${{ github.run_id }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'all' && format('gridex-e2e-runtime-{0}-{1}', github.run_id, github.run_attempt) || format('gridex-e2e-runtime-{0}', github.run_id) }}
           path: e2e-artifacts/
           if-no-files-found: error
           retention-days: 30
@@ -257,6 +341,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && (inputs.mode == 'real' || inputs.mode == 'all'))
+    environment: staging-e2e
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -269,6 +354,7 @@ jobs:
       GRIDEX_E2E_REAL_CUSTOMER_NUMBER: ${{ secrets.GRIDEX_E2E_REAL_CUSTOMER_NUMBER }}
       GRIDEX_E2E_REAL_REQUIRE_LEGAL: ${{ vars.GRIDEX_E2E_REAL_REQUIRE_LEGAL }}
       GRIDEX_E2E_REAL_REQUIRE_BILLING: ${{ vars.GRIDEX_E2E_REAL_REQUIRE_BILLING }}
+      GRIDEX_E2E_STAGING_PROJECT_REF: ${{ vars.GRIDEX_E2E_STAGING_PROJECT_REF }}
       GRIDEX_E2E_TARGET: staging
       GRIDEX_E2E_REAL_CUSTOMER_CONFIRM: 'YES'
       GRIDEX_E2E_ALLOW_OUTBOUND: 'NO'
@@ -286,7 +372,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_REAL_COMPANY_ID GRIDEX_E2E_REAL_CUSTOMER_ID; do
+          for name in GRIDEX_E2E_SUPABASE_URL GRIDEX_E2E_SUPABASE_SERVICE_ROLE_KEY GRIDEX_E2E_REAL_COMPANY_ID GRIDEX_E2E_REAL_CUSTOMER_ID GRIDEX_E2E_STAGING_PROJECT_REF; do
             [[ -n "${!name:-}" ]] || { echo "Missing required protected staging fixture: $name" >&2; exit 1; }
           done
       - name: Run persistent real-customer certificate
@@ -298,7 +384,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gridex-e2e-real-customer-${{ github.run_id }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'all' && format('gridex-e2e-real-customer-{0}-{1}', github.run_id, github.run_attempt) || format('gridex-e2e-real-customer-{0}', github.run_id) }}
           path: e2e-artifacts/
           if-no-files-found: error
           retention-days: 30
@@ -351,5 +437,49 @@ jobs:
         with:
           name: gridex-nightly-release-certificate-${{ github.run_id }}
           path: e2e-artifacts/nightly-release-certificate.json
+          if-no-files-found: error
+          retention-days: 30
+
+  manual-all-evidence:
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'all'
+    needs: [full, runtime-staging, real-customer-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download current attempt full evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: e2e-artifacts/inputs/full
+      - name: Download current attempt runtime evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: e2e-artifacts/inputs/runtime
+      - name: Download current attempt real evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-real-customer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: e2e-artifacts/inputs/real
+      - name: Require the three manual all gates and their execution receipts
+        env:
+          FULL_RESULT: ${{ needs.full.result }}
+          RUNTIME_RESULT: ${{ needs.runtime-staging.result }}
+          REAL_RESULT: ${{ needs.real-customer-staging.result }}
+        run: node scripts/gridex-full-production-e2e.cjs --certificate=manual-all
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-manual-all-run-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: e2e-artifacts/manual-all-run-evidence.json
           if-no-files-found: error
           retention-days: 30

@@ -8,19 +8,22 @@ const io = vi.hoisted(() => ({
   cases: [] as Array<typeof caseA>,
   calls: [] as string[],
   events: [{ id: 'event-a', company_id: 'company-a', message: 'Granskning skapad', created_at: '2026-09-23T10:00:00Z', event_type: 'created', event_status: 'info' }],
+  supplyEndReview: vi.fn(),
   sourceCompany: 'company-a', customerCompany: 'company-a',
+  ignoreCaseCompany: false,
+  denied: false,
 }))
 
-vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async (key: string) => { io.calls.push(`guard:${key}`); return io.context } }))
+vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async (key: string) => { io.calls.push(`guard:${key}`); if (io.denied) throw Error('denied'); return io.context } }))
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => io.scope }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => ({ companyId: io.scope.companyId, memberships: [{ companyId: 'company-a', status: 'active', companyStatus: 'active' }] }) }))
 vi.mock('@/lib/customer-cases/db', () => ({
-  listCustomerCases: async (options: Record<string, unknown>) => { io.calls.push(`list:${JSON.stringify(options)}`); return io.cases.filter((row) => row.source === options.source && (!options.companyId || row.company_id === options.companyId) && (!Array.isArray(options.statuses) || options.statuses.includes(row.status))).slice(Number(options.offset ?? 0), Number(options.offset ?? 0) + Number(options.limit ?? 200)) },
-  getCustomerCaseById: async (id: string, companyId: string | null) => { io.calls.push(`case:${id}:${companyId}`); return io.cases.find((row) => row.id === id && (!companyId || row.company_id === companyId)) ?? null },
+  listCustomerCases: async (options: Record<string, unknown>) => { io.calls.push(`list:${JSON.stringify(options)}`); return io.cases.filter((row) => Array.isArray(options.sources) && options.sources.includes(row.source) && (!options.companyId || row.company_id === options.companyId) && (!Array.isArray(options.statuses) || options.statuses.includes(row.status))).slice(Number(options.offset ?? 0), Number(options.offset ?? 0) + Number(options.limit ?? 200)) },
+  getCustomerCaseById: async (id: string, companyId: string | null) => { io.calls.push(`case:${id}:${companyId}`); return io.cases.find((row) => row.id === id && (io.ignoreCaseCompany || !companyId || row.company_id === companyId)) ?? null },
   listCustomerCaseEvents: async (id: string, companyId: string | null) => { io.calls.push(`events:${id}:${companyId}`); return io.events },
   customerCaseStatusLabel: (value: string) => value,
 }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => ({
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.supplyEndReview, from: (table: string) => ({
   select: () => {
     const filters: Record<string, string> = {}
     const query = { eq: (key: string, value: string) => { filters[key] = value; return query }, maybeSingle: async () => {
@@ -44,19 +47,44 @@ describe('dedicated Ediel case route', () => {
     io.calls = []
     io.sourceCompany = 'company-a'
     io.customerCompany = 'company-a'
+    io.ignoreCaseCompany = false; io.supplyEndReview.mockClear()
+    io.denied = false
   })
 
-  it('reads exact ID independently of the list window and shows typed intent, full instructions and events', async () => {
+  it('reads exact ID independently of the list window and shows the company-safe reason, action state and event', async () => {
     const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
     expect(io.calls).toContain(`case:${caseA.id}:company-a`)
     expect(io.calls).toContain(`events:${caseA.id}:company-a`)
-    expect(html).toContain('ediel_unexpected_direction')
-    expect(html).toContain(caseA.description)
-    expect(html).toContain(caseA.next_action)
-    expect(html).toContain('Granskning skapad')
+    expect(html).toContain('Meddelandets avsändare behöver granskas')
+    expect(html).toContain('Processens tidsgrund kan inte verifieras mot källmeddelandet')
+    expect(html).toContain('En händelse har registrerats i ärendet')
+    expect(html).not.toContain('ediel_unexpected_direction')
+    expect(html).not.toContain(caseA.description)
+    expect(html).not.toContain(caseA.next_action)
+    expect(html).not.toContain('Granskning skapad')
     expect(html).toContain(`/admin/customers/${caseA.customer_id}`)
     expect(html).not.toContain(`/admin/ediel/messages/${caseA.metadata.source_ediel_message_id}`)
+  })
+
+  it.each(['ediel_supply_end_effect', 'ediel_supply_end_legacy'])('shows an exact renewed review for %s', async source => {
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    io.cases[0] = { ...caseA, source, reason_category: 'final_metering_and_billing', metadata: {
+      ...caseA.metadata, review_intent: 'final_metering_and_billing',
+    } }
+    io.supplyEndReview.mockResolvedValue({ data: {
+      caseId: caseA.id, sourceMessageId: caseA.metadata.source_ediel_message_id, status: 'review_required',
+    }, error: null })
+    const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
+    expect(html).toContain('Nätägaren har återtagit leveransslutet')
+    expect(html).toContain('Granska den aktuella leveransperioden')
+    expect(io.supplyEndReview).toHaveBeenLastCalledWith('gridex_read_supply_end_followup_disposition_v1', {
+      p_company_id: 'company-a', p_case_id: caseA.id,
+    })
+    io.supplyEndReview.mockResolvedValueOnce({ data: { caseId: io.cases[1].id, status: 'review_required' }, error: null })
+    const mismatched = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
+    expect(mismatched).not.toContain('Nätägaren har återtagit leveransslutet')
+    expect(mismatched).toContain('Leveransslutet kunde inte kontrolleras')
   })
 
   it('rejects cross-company and non-Ediel exact IDs before reading events or references', async () => {
@@ -78,6 +106,8 @@ describe('dedicated Ediel case route', () => {
     io.context.isPlatformAdmin = true
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
     expect(html).toContain(caseA.description)
+    expect(html).toContain(caseA.next_action)
+    expect(html).toContain('Granskning skapad')
     expect(html).toContain(`/admin/ediel/messages/${caseA.metadata.source_ediel_message_id}`)
     expect(html).not.toContain('name="status"')
   })
@@ -108,7 +138,7 @@ describe('dedicated Ediel case route', () => {
     io.context.permissions = ['cases.read', 'cases.write']
     io.cases[0] = { ...caseA, status: 'billing_blocked' }
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
-    expect(html).toContain('Aktuell status: billing_blocked')
+    expect(html).toContain('Aktuell status: Fakturering blockerad')
     expect(html).toContain('<option value="" disabled="" selected="">Välj ny status</option>')
   })
 
@@ -117,13 +147,45 @@ describe('dedicated Ediel case route', () => {
     io.cases = Array.from({ length: 202 }, (_, index) => ({ ...caseA, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`, title: `Ediel cohort ${index + 1}` }))
     const first = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions' }) }))
     expect(first).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=2')
-    expect(first).not.toContain('Ediel cohort 202')
+    expect(first).not.toContain(`caseId=${io.cases[201].id}`)
     const second = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '2', caseId: io.cases[201].id }) }))
     expect(io.calls.some((entry) => entry.includes('"offset":200') && entry.includes('"limit":201'))).toBe(true)
-    expect(second).toContain('Ediel cohort 202')
+    expect(second).toContain('Sida 2')
+    expect(second).not.toContain(`caseId=${io.cases[199].id}`)
     expect(second).toContain(`caseId=${io.cases[201].id}&amp;view=exceptions&amp;page=2`)
     expect(second).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=1')
     await expect(Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '0' }) })).rejects.toThrow('not-found')
     await expect(Page({ searchParams: Promise.resolve({ view: 'exceptions', page: 'garbage' }) })).rejects.toThrow('not-found')
+  })
+
+  it('fails closed if the case reader returns a row from a different selected company', async () => {
+    io.ignoreCaseCompany = true
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    await expect(Page({ searchParams: Promise.resolve({ caseId: io.cases[1].id }) })).rejects.toThrow('not-found')
+    expect(io.calls).toEqual(['guard:customer.cases', `case:${io.cases[1].id}:company-a`])
+  })
+
+  it('does not read dispositions before authorization or for an unbound source', async () => {
+    io.cases[0] = { ...caseA, reason_category: 'final_metering_and_billing' }
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    io.denied = true
+    await expect(Page({ searchParams: Promise.resolve({ caseId: caseA.id }) })).rejects.toThrow('denied')
+    expect(io.calls).toEqual(['guard:customer.cases'])
+    io.denied = false
+    io.sourceCompany = 'company-b'
+    await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) })
+    expect(io.supplyEndReview).not.toHaveBeenCalled()
+  })
+
+  it('qualifies the review against both the selected case and its own source', async () => {
+    io.cases[0] = { ...caseA, reason_category: 'final_metering_and_billing' }
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    const render = async () => renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
+    const disposition = { caseId: caseA.id, sourceMessageId: caseA.metadata.source_ediel_message_id, status: 'review_required' }
+    io.supplyEndReview.mockResolvedValue({ data: disposition, error: null })
+    expect(await render()).toMatch(/återtag/i)
+    expect(io.supplyEndReview).toHaveBeenCalledWith('gridex_read_supply_end_followup_disposition_v1', { p_company_id: 'company-a', p_case_id: caseA.id })
+    io.supplyEndReview.mockResolvedValue({ data: { ...disposition, sourceMessageId: 'other' }, error: null })
+    expect(await render()).toContain('Leveransslutet kunde inte kontrolleras.')
   })
 })

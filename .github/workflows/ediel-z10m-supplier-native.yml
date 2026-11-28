@@ -100,7 +100,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'd3a2eaab29c7621457e11d6df9bd10ee9c54150de16f7b57d63efaac142b1a3d',
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'a3873483f34386fe8abf78ce65d66d218d3da147b444f9ffb460d77eb62694c9',
                   'scripts/ediel-at-z10m-supplier-acceptance-native.config.ts': '458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1',
               }
               for path, digest in frozen_native.items():
@@ -145,7 +145,7 @@ jobs:
                         'original_native_source_sha256': {**frozen_native,
                             'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'f4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1'},
                         'native_source_sha256': frozen_native,
-                        'native_source_version': 'm3_first_receive_persisted_negative_ERR_TN_after_789_v1',
+                        'native_source_version': 'z10m_prospective_structure_with_separate_protected_readings_v1',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],
                         'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
                         'canonical_marker_expected': expected_markers,

@@ -33,6 +33,8 @@ export class EmailProviderSafeError extends Error {
   }
 }
 
+export class EmailProviderBeforeRequestError extends EmailProviderSafeError {}
+
 /**
  * Resend accepts idempotency keys of at most 256 characters and treats them as
  * HTTP request metadata. Hash the internal key so tenant/site identifiers never
@@ -55,7 +57,7 @@ function safeMailHeaders(headers: Record<string, string> | undefined) {
 function createResendClient() {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    throw new EmailProviderSafeError('Resend API-nyckel saknas. Lägg till RESEND_API_KEY i Vercel Production och deploya om.')
+    throw new EmailProviderBeforeRequestError('Resend API-nyckel saknas. Lägg till RESEND_API_KEY i Vercel Production och deploya om.')
   }
 
   return new Resend(apiKey)

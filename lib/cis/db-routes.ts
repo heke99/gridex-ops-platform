@@ -133,6 +133,8 @@ export async function findBestCommunicationRoute(params: {
       query = query.eq('environment_type', 'production')
     } else if (params.environment === 'test') {
       query = query.in('environment_type', ['tgt_test', 'agt_test', 'bilateral_test'])
+    } else if (params.environment === null) {
+      query = query.is('environment_type', null)
     }
 
     query = gridOwnerId ? query.eq('grid_owner_id', gridOwnerId) : query.is('grid_owner_id', null)

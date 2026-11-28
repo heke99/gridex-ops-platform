@@ -271,6 +271,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     verified_sender_present:
       readinessView?.has_verified_sender === true &&
       automation?.checks.verified_customer_email_sender === true,
+    required_email_sender_queueable: automation?.checks.required_email_sender_queueable === true,
     required_email_templates_present:
       readinessView?.has_mail_templates === true &&
       automation?.checks.required_email_templates_active === true,
@@ -310,6 +311,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
   if (!checks.power_of_attorney_text_present) push(blockers, 'power_of_attorney_text_missing', 'legal', 'Publicerad fullmaktstext saknas.')
   if (!checks.price_terms_present) push(blockers, 'price_terms_missing', 'legal', 'Publicerade prisvillkor saknas.')
   if (!checks.verified_sender_present) push(blockers, 'verified_email_sender_missing', 'email', 'Verifierad tenantavsändare för kundmail saknas.')
+  else if (!checks.required_email_sender_queueable) push(blockers, 'verified_email_sender_not_queueable', 'email', 'Den verifierade avsändaren kan inte köa obligatoriska kundmail. Kontrollera avsändarnamn och inställningarna på bolagskortet.')
   if (!checks.required_email_templates_present) push(blockers, 'required_email_templates_missing', 'email', 'Obligatoriska kundmailmallar saknas eller är inaktiva.')
   if (!checks.required_email_rules_present) push(blockers, 'required_email_rules_missing', 'email', 'Obligatoriska kundmailregler saknas eller är inaktiva.')
   if (!checks.automation_user_ready) push(blockers, 'automation_user_not_ready', 'automation', 'Kundautomationens verifierade systemanvändare är inte redo.')

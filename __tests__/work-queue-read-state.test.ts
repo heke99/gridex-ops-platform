@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
@@ -161,6 +163,7 @@ describe('actual page read states', () => {
     expectUnknownCounts(html)
   })
   it('keeps a verified manual action visible with partial coverage when the central source fails', async () => {
+    io.admin.permissions = ['metering.read', 'customers.read']
     io.rpcError = { code: '42501', message: 'private database detail' }
     io.tables.customers = [customer]
     io.tables.customer_operation_events = [{
@@ -272,5 +275,42 @@ describe('actual page read states', () => {
     await expect(WorkQueuePage()).rejects.toThrow('page permission denied')
     expect(io.createClient).not.toHaveBeenCalled()
     expect(io.rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('durable E66 import progress in the mounted work queue', () => {
+  const requestId = '00000000-0000-4000-8000-000000000007'
+  const importRow = {
+    company_id: 'tenant-A', request_id: requestId, customer_id: '00000000-0000-4000-8000-000000000015',
+    customer_label: 'Syntetisk kund', started_at: '2026-11-18T10:00:00.000Z',
+    environment: 'test', retry_required: true,
+  }
+
+  it('shows durable qualified import after failure without a saved review case', async () => {
+    io.admin.permissions = ['metering.read']
+    io.rpc.mockImplementation(async name => ({ data: name === 'gridex_read_staff_e66_import_progress_v1' ? [importRow] : [], error: null }))
+    const html = renderToStaticMarkup(await WorkQueuePage())
+    expect(html).toContain('Pågående mätvärdesimport från nätägare')
+    expect(html).toContain('Mätvärdesimporten behöver fortsätta efter ett avbrutet försök (TEST)')
+    expect(html).toContain(`href="/admin/operations/grid-owner-requests/${requestId}"`)
+    expect(io.rpc).toHaveBeenCalledWith('gridex_read_staff_e66_import_progress_v1', { p_company: 'tenant-A' })
+    expect(stat(html, 'Ärenden i kö')).toBe('0')
+  })
+
+  it('rejects unrelated returned rows without leaking the customer label', async () => {
+    io.admin.permissions = ['metering.read']
+    io.rpc.mockImplementation(async name => ({
+      data: name === 'gridex_read_staff_e66_import_progress_v1' ? [{ ...importRow, company_id: 'tenant-B' }] : [], error: null,
+    }))
+    const html = renderToStaticMarkup(await WorkQueuePage())
+    expect(html).not.toContain(importRow.customer_label)
+    expectUnknownCounts(html)
+  })
+
+  it('preserves the ordinary queue when Staff may only read a specific communication request', async () => {
+    io.admin.permissions = ['communication.read']
+    const html = renderToStaticMarkup(await WorkQueuePage())
+    expect(html).not.toContain('Pågående mätvärdesimport från nätägare')
+    expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_read_staff_e66_import_progress_v1')).toBe(false)
   })
 })

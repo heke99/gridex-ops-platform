@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { NextRequest } from 'next/server'
@@ -10,6 +11,7 @@ type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   reads: [] as string[],
+  priceSeriesDocumentProof: null as { kind: 'ready'; bodyBase64: string; sha256: string } | null,
   readGates: {} as Partial<Record<string, Promise<void>>>,
   fileChecks: [] as Row[],
   documentBatches: [] as Row[],
@@ -64,8 +66,15 @@ vi.mock('@/lib/supabase/service', async () => {
             status, headers: { 'content-type': 'application/json' },
           })
           if (url.pathname.includes('/rpc/')) {
-            if (resource === 'ediel_require_portal_retention_access_v1') return reply(null)
+            if (resource === 'ediel_require_portal_retention_access_v1'
+              || resource === 'gridex_read_portal_captured_invoice_pdf_v1') return reply(null)
             const args = JSON.parse(String(init?.body)) as Row
+            if (resource === 'gridex_read_consolidated_invoice_customer_document_v1') {
+              if (io.priceSeriesDocumentProof) {
+                expect(args).toEqual({ p_company_id: company, p_customer_ids: [customer], p_invoice_id: invoiceId })
+              }
+              return reply(io.priceSeriesDocumentProof)
+            }
             if (resource === 'gridex_portal_invoice_document_availability_v1') {
               io.documentBatches.push(args)
               if (io.fileError) return reply(io.fileError, 500)
@@ -97,6 +106,12 @@ vi.mock('@/lib/supabase/service', async () => {
           let rows = [...io.tables[resource]]
           for (const [field, expression] of url.searchParams) {
             if (['select', 'order', 'limit'].includes(field)) continue
+            if (field === 'or' && resource === 'customer_invoice_documents') {
+              const ownCustomer = expression.match(/^\(customer_id\.eq\.([0-9a-f-]{36}),customer_id\.is\.null\)$/)
+              if (!ownCustomer) throw new Error(`Unexpected document customer scope: ${expression}`)
+              rows = rows.filter(row => row.customer_id == null || row.customer_id === ownCustomer[1])
+              continue
+            }
             const dot = expression.indexOf('.')
             const operator = expression.slice(0, dot), value = expression.slice(dot + 1)
             rows = rows.filter(row => {
@@ -132,7 +147,10 @@ vi.mock('@/lib/supabase/service', async () => {
 
 import { getPortalInvoiceDetail } from '@/lib/customer-portal/db'
 import InvoicePage from '@/app/portal/fakturor/[id]/page'
+import { GET as openInvoicePdf } from '@/app/portal/fakturor/[id]/pdf/route'
+import { GET as downloadInvoiceUnderlay } from '@/app/portal/fakturor/[id]/underlag/route'
 import { GET } from '@/app/api/v1/customer/invoices/[id]/route'
+import { publicReference } from '@/lib/integrations/publicReferences'
 import { requireInvoiceFileCopyAvailable } from '@/lib/ediel/retention/invoiceFileRetention'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -168,6 +186,16 @@ function document(id = documentId, overrides: Row = {}): Row {
 }
 async function web() { return getPortalInvoiceDetail(context, invoiceId) }
 async function page() { return renderToStaticMarkup(await InvoicePage({ params: Promise.resolve({ id: invoiceId }) })) }
+async function expectPdfLink(html: string, expectedLocation: string) {
+  const path = `/portal/fakturor/${invoiceId}/pdf`
+  expect(html).toContain(`href="${path}"`)
+  expect(html).not.toContain(expectedLocation)
+  const result = await openInvoicePdf(new Request(`http://127.0.0.1:3000${path}`), { params: Promise.resolve({ id: invoiceId }) })
+  expect(result.status).toBe(303)
+  expect(result.headers.get('location')).toBe(expectedLocation)
+  expect(result.headers.get('cache-control')).toBe('private, no-store')
+  expect(result.headers.get('referrer-policy')).toBe('no-referrer')
+}
 async function api() {
   return GET(new NextRequest('http://127.0.0.1:54321/api/v1/customer/invoices/synthetic-invoice-reference'), {
     params: Promise.resolve({ id: 'synthetic-invoice-reference' }),
@@ -179,6 +207,7 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
   io.reads = []; io.fileChecks = []; io.documentBatches = []; io.retired = new Set(); io.fileError = null; io.sourceErrors = {}
   io.readGates = {}
+  io.priceSeriesDocumentProof = null
   io.webSignedIn = true; io.apiAllowed = true; io.requestedScopes = []
   io.tables = {
     customer_portal_accounts: [{ user_id: user, company_id: company, customer_id: customer, is_active: true, activated_at: timestamp }],
@@ -202,7 +231,7 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     const data = await web()
     expect(data.invoice).toMatchObject({ status: 'paid', amount_inc_vat: 1000, pdf_url: primaryUrl })
     expect(data.lines).toMatchObject([{ description: 'Elförbrukning', quantity: 120 }])
-    expect(await page()).toContain(primaryUrl)
+    await expectPdfLink(await page(), primaryUrl)
   })
 
   it('masks retired primary URL/path while retaining the invoice and its lines without changing stored history', async () => {
@@ -228,7 +257,7 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     expect(data.invoice).toMatchObject({ status: 'paid', amount_inc_vat: 1000, pdf_url: primaryUrl })
     expect(data.documents).toMatchObject([{ id: documentId, title: 'Historisk fakturakopia', source_system: 'synthetic-provider', public_url: null, file_path: null }])
     const html = await page()
-    expect(html).toContain(primaryUrl)
+    await expectPdfLink(html, primaryUrl)
     expect(html).not.toContain(retiredUrl)
   })
 
@@ -237,7 +266,7 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     io.tables.customer_invoice_documents = [document(invoiceId, { public_url: alternateUrl })]
     const html = await page()
     expect(html).not.toContain(primaryUrl)
-    expect(html).toContain(alternateUrl)
+    await expectPdfLink(html, alternateUrl)
     expect(io.fileChecks).toEqual(expect.arrayContaining([
       { p_company_id: company, p_retention_class: 'customer_invoice_pdf_bytes', p_target_id: invoiceId },
       { p_company_id: company, p_retention_class: 'customer_invoice_document_pdf_bytes', p_target_id: invoiceId },
@@ -253,7 +282,7 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     ]
     retire('customer_invoice_document_pdf_bytes', documentId)
     const html = await page()
-    expect(html).toContain(alternateUrl)
+    await expectPdfLink(html, alternateUrl)
     expect(html).not.toContain(retiredUrl)
     expect(html).not.toContain('href="pending-document.pdf"')
   })
@@ -280,17 +309,23 @@ describe('actual invoice scalar reads retain history while exact copies retire',
       document(uuid(22), { company_id: null, title: 'Unqualified document', public_url: 'https://files.example.test/unqualified.pdf' }),
       document(uuid(23), { invoice_id: uuid(101), title: 'Another invoice document', public_url: 'https://files.example.test/another-invoice.pdf' }),
     ]
+    if (channel === 'web') {
+      io.tables.customer_invoice_documents.push(document(uuid(24), {
+        customer_id: uuid(102), title: 'Other customer document', public_url: 'https://files.example.test/other-customer.pdf',
+      }))
+    }
     const stored = structuredClone(io.tables)
     if (channel === 'web') {
       const data = await web()
       expect(data.documents).toMatchObject([{ id: documentId, title: 'Historisk fakturakopia', public_url: alternateUrl }])
       expect(data.lines).toMatchObject([{ description: 'Elförbrukning' }])
       const html = await page()
-      expect(html).toContain(alternateUrl)
+      await expectPdfLink(html, alternateUrl)
       expect(html).not.toContain('Foreign line')
       expect(html).not.toContain('foreign.pdf')
       expect(html).not.toContain('unqualified.pdf')
       expect(html).not.toContain('another-invoice.pdf')
+      expect(html).not.toContain('other-customer.pdf')
     } else {
       const response = await api()
       expect(response.status).toBe(200)
@@ -467,5 +502,113 @@ describe('actual invoice scalar reads retain history while exact copies retire',
     expect(io.requestedScopes).toEqual([['customer_invoices.read']])
     expect(io.reads).toEqual([])
     expect(io.fileChecks).toEqual([])
+  })
+})
+
+describe('published TEST price series invoices have no qualified PDF producer', () => {
+  beforeEach(() => {
+    Object.assign(io.tables.customer_invoices[0], { source_system: 'invoice_price_series_test_v1', status: 'issued' })
+  })
+
+  it('serves the verified neutral bytes for the same issued TEST invoice while withholding PDF', async () => {
+    const invoice = io.tables.customer_invoices[0]
+    Object.assign(invoice, { total_kwh: 48, amount_ex_vat: 120, vat_amount: 30, amount_inc_vat: 150 })
+    io.tables.customer_invoice_documents = [document()]
+
+    const windows = [
+      { from: '2026-11-26', until: '2026-11-27', net: '48', vat: '12', gross: '60', unitPrice: '2' },
+      { from: '2026-11-27', until: '2026-11-28', net: '72', vat: '18', gross: '90', unitPrice: '3' },
+    ]
+    const frozenDocument = {
+      format: 'gridex_customer_price_series_invoice_test_v1',
+      environment: 'test',
+      invoiceReference: invoice.invoice_reference,
+      invoiceNumber: invoice.invoice_number,
+      issuedDate: '2026-11-30',
+      dueDate: '2026-12-30',
+      currency: 'SEK',
+      quantityKwh: '48',
+      amountExVat: '120',
+      vatAmount: '30',
+      amountIncVat: '150',
+      periods: windows.map(({ from, until, net, vat, gross, unitPrice }, index) => ({
+        facilityReference: 'Syntetisk anläggning',
+        sourceReference: `invoice_source_${'s'.repeat(31)}${index}`,
+        periodStartAt: `${index === 0 ? '2026-11-25' : '2026-11-26'}T23:00:00Z`,
+        periodEndExclusiveAt: `${from}T23:00:00Z`,
+        periodStartDate: from,
+        periodEndExclusiveDate: until,
+        lastIncludedDate: from,
+        priceArea: 'SE3',
+        quantityKwh: '24',
+        amountExVat: net,
+        vatAmount: vat,
+        amountIncVat: gross,
+        pricing: [{ description: 'Fast pris', quantity: '24', unit: 'kWh', unitPriceExVat: unitPrice, exVat: net, vat, total: gross }],
+      })),
+    }
+    const bytes = Buffer.from(JSON.stringify(frozenDocument))
+    io.priceSeriesDocumentProof = {
+      kind: 'ready',
+      bodyBase64: bytes.toString('base64'),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    }
+
+    const underlayPath = `/portal/fakturor/${invoiceId}/underlag`
+    const pdfPath = `/portal/fakturor/${invoiceId}/pdf`
+    const html = await page()
+    expect(html).toContain(`href="${underlayPath}"`)
+    expect(html).toContain('2026-11-26')
+    expect(html).toContain('2026-11-27')
+    expect(html).not.toContain(`href="${pdfPath}"`)
+    expect(html).not.toContain(primaryUrl)
+
+    const params = Promise.resolve({ id: invoiceId })
+    const neutralRequest = new Request(`http://127.0.0.1${underlayPath}`)
+    const neutral = await downloadInvoiceUnderlay(neutralRequest, { params })
+    const repeated = await downloadInvoiceUnderlay(neutralRequest, { params })
+    expect(neutral.status).toBe(200)
+    expect(repeated.status).toBe(200)
+    expect(neutral.headers.get('content-type')).toBe('application/json; charset=utf-8')
+    expect(neutral.headers.get('content-disposition')).toBe('attachment; filename="fakturaunderlag-prisperioder-test.json"')
+    expect(Buffer.from(await neutral.arrayBuffer())).toEqual(bytes)
+    expect(Buffer.from(await repeated.arrayBuffer())).toEqual(bytes)
+
+    const pdf = await openInvoicePdf(new Request(`http://127.0.0.1${pdfPath}`), { params })
+    expect(pdf.status).toBe(404)
+    expect(pdf.headers.get('location')).toBeNull()
+    expect(pdf.headers.get('cache-control')).toBe('private, no-store')
+  })
+
+  it.each(['partner URL', 'known export path', 'invoice document URL'])('withholds a legacy %s in the web invoice and download', async locator => {
+    const invoice = io.tables.customer_invoices[0]
+    Object.assign(invoice, { pdf_url: null, pdf_path: null })
+    if (locator === 'partner URL') invoice.pdf_url = primaryUrl
+    if (locator === 'known export path') invoice.pdf_path = `billing-exports/companies/${company}/invoices/${invoiceId}.pdf`
+    if (locator === 'invoice document URL') io.tables.customer_invoice_documents = [document()]
+
+    expect(await page()).not.toContain(`/portal/fakturor/${invoiceId}/pdf`)
+    const response = await openInvoicePdf(new Request('http://127.0.0.1/invoice'), { params: Promise.resolve({ id: invoiceId }) })
+    expect(response.status).toBe(404)
+    expect(response.headers.get('location')).toBeNull()
+  })
+
+  it('withholds the unqualified PDF document in the API while leaving other invoice documents visible', async () => {
+    io.tables.customer_invoice_documents = [document(), document(uuid(8), { document_type: 'invoice_attachment', public_url: alternateUrl })]
+    const response = await api()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.data.invoice).toMatchObject({ invoice_number: 'TEST-1' })
+    expect(body.data.documents).toMatchObject([{ document_type: 'invoice_attachment', secure_url: alternateUrl }])
+    expect(body.data.documents).toHaveLength(1)
+  })
+
+  it('returns not found for a direct request for the unqualified PDF document', async () => {
+    io.tables.customer_invoice_documents = [document()]
+    const reference = publicReference('document', company, documentId)
+    const response = await GET(new NextRequest(`http://127.0.0.1/api/v1/customer/invoices/synthetic-invoice-reference?document_reference=${reference}`), {
+      params: Promise.resolve({ id: 'synthetic-invoice-reference' }),
+    })
+    expect(response.status).toBe(404)
   })
 })

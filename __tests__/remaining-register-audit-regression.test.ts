@@ -4,6 +4,9 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+
+vi.mock('server-only', () => ({}));
+
 let captureIndex = 0;
 function captureRender(element: React.ReactNode): string {
     const html = renderToStaticMarkup(element);
@@ -15,7 +18,7 @@ type Query = {
     [key: string]: unknown;
     then: (resolve: (value: unknown) => unknown) => Promise<unknown>;
 };
-const io = vi.hoisted(() => ({ platform: false, cap: Infinity, missingCount: false, failedTable: '', tables: {} as Record<string, Row[]>, calls: [] as Array<{
+const io = vi.hoisted(() => ({ platform: false, cap: Infinity, missingCount: false, rejectStaleRange: false, failedTable: '', tables: {} as Record<string, Row[]>, calls: [] as Array<{
         table: string;
         filters: Array<[
             string,
@@ -35,17 +38,32 @@ function query(table: string) {
     ]> = [];
     const result = () => { let rows = (io.tables[table] ?? []).filter(row => filters.every(([key, value]) => Array.isArray(value) ? value.includes(row[key]) : row[key] === value)); for (const [key, asc] of [...orders].reverse())
         rows = [...rows].sort((a, b) => { const x = a[key], y = b[key]; return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x ?? '').localeCompare(String(y ?? ''))) * (asc ? 1 : -1); }); const count = rows.length; rows = rows.slice(start, Math.min(end + 1, start + io.cap)); if (columns !== '*')
-        rows = rows.map(row => Object.fromEntries(columns.split(',').map(x => x.trim()).filter(x => x in row).map(x => [x, row[x]]))); io.calls.push({ table, filters, limit: end - start + 1 }); return { data: rows, error: io.failedTable === table ? { message: 'synthetic transport error' } : null, count: io.missingCount ? null : count }; };
-    const q: Query = { select: (value: string) => { columns = value; return q; }, eq: (key: string, value: unknown) => { filters.push([key, value]); return q; }, in: (key: string, value: unknown[]) => { filters.push([key, value]); return q; }, order: (key: string, options?: {
+        rows = rows.map(row => Object.fromEntries(columns.split(',').map(x => x.trim()).filter(x => x in row).map(x => [x, row[x]]))); io.calls.push({ table, filters, limit: end - start + 1 }); return { data: rows, error: io.failedTable === table ? { message: 'synthetic transport error' } : null, count: io.missingCount ? null : count };
+    };
+    const response = () => {
+      const value = result();
+      if (io.rejectStaleRange && !value.error && value.count !== null && start > 0 && start >= value.count) {
+        return { data: null, count: null, error: { message: 'Requested Range Not Satisfiable' }, status: 416 };
+      }
+      return value;
+    };
+    const q: Query = { select: (value: string) => { columns = value; return q; },
+        match: (scope: Record<string, unknown>) => { filters.push(...Object.entries(scope)); return q; },
+        eq: (key: string, value: unknown) => { filters.push([key, value]); return q; }, in: (key: string, value: unknown[]) => { filters.push([key, value]); return q; }, order: (key: string, options?: {
             ascending?: boolean;
         }) => { orders.push([key, options?.ascending !== false]); return q; }, limit: (limit: number) => { end = limit - 1; return q; }, range: (a: number, b: number) => { start = a; end = b; return q; }, or: () => q, neq: () => q, gt: () => q, gte: () => q, lt: () => q, lte: () => q, not: () => q, ilike: () => q, is: () => q,
-        single: async () => ({ ...result(), data: result().data[0] ?? null }), maybeSingle: async () => ({ ...result(), data: result().data[0] ?? null }), then: (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve) };
+        single: async () => ({ ...result(), data: result().data[0] ?? null }), maybeSingle: async () => ({ ...result(), data: result().data[0] ?? null }), then: (resolve: (value: unknown) => unknown) => Promise.resolve(response()).then(resolve) };
     return q;
 }
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => query(table), rpc: async () => ({ data: [], error: null }) } }));
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({ from: (table: string) => query(table), rpc: async () => ({ data: [], error: null }), auth: { getUser: async () => ({ data: { user: { id: 'operator', email: 'operator@example.invalid' } } }) } }) }));
 const admin = () => ({ userId: 'operator', email: 'operator@example.invalid', companyId: 'A', permissions: ['customers.read', 'billing_underlay.read', 'metering.read', 'poa.read'], isPlatformAdmin: io.platform, roles: [] });
-vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => admin(), isPlatformAdminContext: () => io.platform }));
+vi.mock('@/lib/admin/guards', () => ({
+    requireAdminPageKeyAccess: async () => admin(),
+    // This fixture has billing_underlay.read and cannot generate underlays.
+    requireAdminActionAccess: async () => { throw Error('Forbidden'); },
+    isPlatformAdminContext: () => io.platform,
+}));
 vi.mock('@/lib/auth/requirePermissionServer', () => ({ requirePermissionServer: async () => admin() }));
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'A', isPlatformAdmin: io.platform, companyName: 'Syntetiskt bolag' }), resolveAdminSelectedCompanyReadScope: async () => ({ companyId: 'A', isPlatformAdmin: io.platform, companyName: 'Syntetiskt bolag' }) }));
 vi.mock('@/lib/tenant/scope', () => ({ isMissingRelationError: (error: unknown) => String((error as {
@@ -68,7 +86,7 @@ vi.mock('@/lib/ediel/services/manualPermissionOptions', () => ({ readManualServi
 const inert = () => { throw Error('No actions may execute'); };
 vi.mock('@/app/admin/customer-info-requests/actions', () => ({ applyZ14SnapshotAction: () => inert(), closeCustomerInfoRequestAction: () => inert(), createAuthorizationScopeAction: () => inert(), createCustomerInfoRequestAction: () => inert(), createMeteringPermissionDraftAction: () => inert(), queueCustomerInfoRequestAction: () => inert(), queueMeteringPermissionZ13Action: () => inert() }));
 function extract(file: string, names: string[], globals: Record<string, unknown> = {}) { const code = fs.readFileSync(file, 'utf8'), ast = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX); const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text ?? '')); expect(functions).toHaveLength(names.length); const sandboxModule = { exports: {} as Record<string, (...args: unknown[]) => unknown> }; vm.runInNewContext(ts.transpileModule(functions.map(node => 'export ' + node.getText(ast).replace(/^export\s+/, '')).join('\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: sandboxModule, exports: sandboxModule.exports, Date, Intl, Map, Set, ...globals }); return sandboxModule.exports; }
-beforeEach(() => { io.platform = false; io.cap = Infinity; io.missingCount = false; io.failedTable = ''; io.tables = {}; io.calls = []; io.portalFailure = false; io.customers = []; io.requests = []; io.scopes = []; io.permissions = []; io.replies = new Map(); io.blockers = []; vi.stubGlobal('React', React); });
+beforeEach(() => { io.platform = false; io.cap = Infinity; io.missingCount = false; io.rejectStaleRange = false; io.failedTable = ''; io.tables = {}; io.calls = []; io.portalFailure = false; io.customers = []; io.requests = []; io.scopes = []; io.permissions = []; io.replies = new Map(); io.blockers = []; vi.stubGlobal('React', React); });
 it('retains customer identity lookups beyond the first 100 and the company boundary', async () => { const { InvalidReadModelResponseError } = await import('@/lib/read-models/readResult'); const fn = extract('app/admin/work-queue/page.tsx', ['customerRows', 'loadCustomersByIds'], { InvalidReadModelResponseError }); io.tables.customers = Array.from({ length: 101 }, (_, i) => ({ id: `c-${i}`, company_id: 'A' })); const rows = await fn.loadCustomersByIds({ from: query }, 'A', io.tables.customers.map(row => row.id)) as Row[]; expect(rows).toHaveLength(101); expect(io.calls.every(call => call.filters.some(([key, value]) => key === 'company_id' && value === 'A'))).toBe(true); });
 it('summarizes allowed portal fields with business labels and values instead of raw payload keys', () => { const { portalReplySummary } = extract('app/admin/customer-info-requests/page.tsx', ['portalReplySummary']); const result = portalReplySummary({ submitted_payload: { facility_id: '735999000000000001', grid_owner_name: 'Exempelnät', annual_consumption_kwh: 12000, internal_payload: 'secret' } }); expect(result).toContain('Anläggningsnummer'); expect(result).toContain('735999000000000001'); expect(result).not.toContain('facility_id'); expect(result).not.toContain('internal_payload'); });
 it('shows a portal reply load failure explicitly', async () => { io.requests = [{ id: 'request', company_id: 'A', status: 'draft', request_type: 'customer_masterdata', target_party_type: 'customer' }]; io.portalFailure = true; const { default: Page } = await import('@/app/admin/customer-info-requests/page'); expect(captureRender(await Page())).toContain('Svar från kundportalen kunde inte läsas'); });
@@ -79,8 +97,60 @@ it('keeps technical pricing diagnostics out of the company underlay view', async
 it('selects the preferred run beyond the old 200-row history cap', async () => { billingRows(); io.platform = true; io.tables.pricing_runs = Array.from({ length: 201 }, (_, i) => ({ id: i === 200 ? 'preferred-locked-run' : `old-${i}`, company_id: 'A', billing_underlay_id: 'underlay', status: i === 200 ? 'locked' : 'success', created_at: '2026-10-01' })); const { default: Page } = await import('@/app/admin/billing/underlays/[id]/page'); const html = captureRender(await Page({ params: Promise.resolve({ id: 'underlay' }) })); expect(html).toContain('preferred-locked-run'); });
 it('filters price lines by the selected run before any global history cap', async () => { billingRows(); io.tables.pricing_preview_lines = [...Array.from({ length: 5000 }, (_, i) => ({ id: `old-line-${i}`, company_id: 'A', billing_underlay_id: 'underlay', pricing_run_id: 'old' })), { id: 'chosen', company_id: 'A', billing_underlay_id: 'underlay', pricing_run_id: 'run', description: 'Vald prisrad efter historiken' }]; const { default: Page } = await import('@/app/admin/billing/underlays/[id]/page'); expect(captureRender(await Page({ params: Promise.resolve({ id: 'underlay' }) }))).toContain('Vald prisrad efter historiken'); });
 it('shows invoice approval separately from a failed export', async () => { billingRows(); io.tables.invoice_export_items = [{ id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract', billing_underlay_id: 'underlay', pricing_run_id: 'run', status: 'failed', metadata: { approval: { status: 'approved' } }, error_payload: { message: 'raw_provider_diagnostic' } }]; io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }]; const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page'); const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) })); expect(html).toContain('Godkänd'); expect(html).toContain('Överföringen kräver åtgärd'); expect(html).not.toContain('raw_provider_diagnostic'); expect(html).not.toContain('Snapshot-hash'); });
+it.each([
+    ['file_export', 'Fakturafil', 'Väntar på fakturafil'],
+    ['nordfin', 'Fakturafil', 'Väntar på fakturafil'],
+    ['capway_aptic', 'Överföring till fakturapartner', 'Väntar på överföring'],
+])('shows the pending delivery step for an approved %s invoice', async (provider, heading, label) => {
+    billingRows();
+    io.tables.invoice_export_items = [{
+        id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract',
+        billing_underlay_id: 'underlay', pricing_run_id: 'run', provider, status: 'pending',
+        metadata: { approval: { status: 'approved' } },
+    }];
+    io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }];
+    const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page');
+    const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) }));
+    expect(html).toContain(heading);
+    expect(html).toContain(label);
+    expect(html).not.toContain('Fil skapad');
+});
+it('shows an uncertain file path when the reservation check could not be read', async () => {
+    billingRows();
+    io.tables.invoice_export_items = [{
+        id: 'item', company_id: 'A', customer_id: 'customer', customer_contract_id: 'contract',
+        billing_underlay_id: 'underlay', pricing_run_id: 'run', provider: 'file_export', status: 'pending',
+        metadata: { approval: { status: 'approved' } },
+    }];
+    io.tables.customer_invoices = [{ id: 'invoice', company_id: 'A', invoice_export_item_id: 'item', status: 'draft' }];
+    io.failedTable = 'companies';
+    const { default: Page } = await import('@/app/admin/billing/invoices/[id]/page');
+    const html = captureRender(await Page({ params: Promise.resolve({ id: 'item' }) }));
+    expect(html).toContain('Avstämningen kunde inte läsas');
+    expect(html).toContain('Fakturavägen behöver kontrolleras');
+    expect(html).not.toContain('Väntar på fakturafil');
+    expect(html).not.toContain('Överföring till fakturapartner');
+});
 it('keeps the fourth billing blocker accessible', async () => { io.tables.customers = [{ id: 'customer', company_id: 'A', full_name: 'Syntetisk kund' }]; io.blockers = Array.from({ length: 4 }, (_, i) => ({ code: `blocker-${i}`, title: `Orsak ${i}` })); const { default: Page } = await import('@/app/admin/billing/quality/page'); expect(captureRender(await Page())).toContain('Orsak 3'); });
-it('keeps audit raw codes and IDs in the platform view only', async () => { io.tables.audit_logs = [{ id: 'audit', company_id: 'A', action: 'customer.updated', entity_type: 'customer', entity_id: 'raw-internal-identity', created_at: '2026-10-01' }]; const { default: Page } = await import('@/app/admin/audit/page'); const html = captureRender(await Page({})); expect(html).not.toContain('raw-inte'); expect(html).not.toContain('Entity ID'); expect(html).not.toContain('customer.updated'); expect(html).toContain('Kund'); io.platform = true; expect(captureRender(await Page({}))).toContain('customer.updated'); });
+it('keeps audit raw codes and IDs in the platform view only', async () => {
+    io.tables.audit_logs = [{ id: 'audit', company_id: 'A', action: 'customer.updated', entity_type: 'customer', entity_id: 'raw-internal-identity', new_values: { provider: 'raw-technical-diagnostic' }, created_at: '2026-10-01' }];
+    io.tables.gridex_audit_business_v = [{ id: 'audit', company_id: 'A', action_label: 'Kunduppgifter uppdaterade', entity_label: 'Kund', created_at: '2026-10-01' }];
+    const { default: Page } = await import('@/app/admin/audit/page');
+    const html = captureRender(await Page({}));
+    expect(html).not.toContain('raw-inte');
+    expect(html).not.toContain('raw-technical-diagnostic');
+    expect(html).not.toContain('Entity ID');
+    expect(html).not.toContain('customer.updated');
+    expect(html).toContain('Kunduppgifter uppdaterade');
+    expect(io.calls.at(-1)?.table).toBe('gridex_audit_business_v');
+    const rawSearch = captureRender(await Page({ searchParams: Promise.resolve({ q: 'raw-internal-identity' }) }));
+    expect(rawSearch).toContain('Inga ändringar hittades');
+    const businessSearch = captureRender(await Page({ searchParams: Promise.resolve({ q: 'kunduppgifter' }) }));
+    expect(businessSearch).toContain('Kunduppgifter uppdaterade');
+    io.platform = true;
+    expect(captureRender(await Page({}))).toContain('customer.updated');
+    expect(io.calls.at(-1)?.table).toBe('audit_logs');
+});
 it('keeps raw connection diagnostics out of the ordinary data quality view', async () => { io.tables.webhook_deliveries = [{ id: 'delivery', company_id: 'A', event_type: 'raw_internal_event', status: 'failed', failure_reason: 'raw_transport_diagnostic' }]; const { default: Page } = await import('@/app/admin/data-quality/page'); const html = captureRender(await Page()); expect(html).not.toContain('raw_transport_diagnostic'); expect(html).not.toContain('Severity'); expect(html).not.toContain('Entity'); io.platform = true; expect(captureRender(await Page())).toContain('raw_transport_diagnostic'); });
 it('fills a billing page despite a lower backend cap and excludes another company', async () => {
     const { readBillingPage } = await import('@/lib/pricing/adminData');
@@ -91,6 +161,25 @@ it('fills a billing page despite a lower backend cap and excludes another compan
     expect(result.rows).toHaveLength(5);
     expect(result.rows.every(row => row.company_id === 'A')).toBe(true);
     expect(io.calls.every(call => call.filters.some(([key, value]) => key === 'company_id' && value === 'A'))).toBe(true);
+});
+it('recovers a stale billing page using the same company and period filters', async () => {
+    const { readBillingPage } = await import('@/lib/pricing/adminData');
+    io.rejectStaleRange = true;
+    io.tables.billing_underlays = [
+        { id: 'first', company_id: 'A', underlay_year: '2025' },
+        { id: 'last', company_id: 'A', underlay_year: '2025' },
+        { id: 'newer', company_id: 'A', underlay_year: '2026' },
+        { id: 'foreign', company_id: 'B', underlay_year: '2025' },
+    ];
+    const result = await readBillingPage('billing_underlays', 'A', {
+        page: 4, pageSize: 1, equals: { underlay_year: '2025' }, order: [{ column: 'id' }],
+    });
+    expect(result).toEqual({
+        page: 2, pageSize: 1, total: 2, rows: [{ id: 'last', company_id: 'A', underlay_year: '2025' }],
+    });
+    expect(io.calls).toHaveLength(3);
+    expect(io.calls.every(call => call.filters.some(([key, value]) => key === 'company_id' && value === 'A') &&
+        call.filters.some(([key, value]) => key === 'underlay_year' && value === '2025'))).toBe(true);
 });
 it('does not infer a complete billing dataset from a short capped page without an exact count', async () => {
     const { readBillingRows } = await import('@/lib/pricing/adminData');
@@ -217,10 +306,10 @@ it('does not preselect foreign or non-scalar customer parameters', async () => {
 });
 
 it('labels real emitted import and case audit actions and offers their exact filter values', async () => {
-    io.tables.audit_logs = [
-        { id: 'created', company_id: 'A', action: 'customer_created_from_import', entity_type: 'customer' },
-        { id: 'registered', company_id: 'A', action: 'customer_case_registered', entity_type: 'customer_case' },
-        { id: 'withdrawal', company_id: 'A', action: 'withdrawal_registered', entity_type: 'customer_case' },
+    io.tables.gridex_audit_business_v = [
+        { id: 'created', company_id: 'A', action_filter: 'customer_created_from_import', entity_filter: 'customer', action_label: 'Kund registrerad från import', entity_label: 'Kund' },
+        { id: 'registered', company_id: 'A', action_filter: 'customer_case_registered', entity_filter: 'customer_case', action_label: 'Kundärende registrerat', entity_label: 'Kundärende' },
+        { id: 'withdrawal', company_id: 'A', action_filter: 'withdrawal_registered', entity_filter: 'customer_case', action_label: 'Ånger registrerad', entity_label: 'Kundärende' },
     ];
     const { default: Page } = await import('@/app/admin/audit/page');
     const html = captureRender(await Page({}));
@@ -238,15 +327,15 @@ it('labels real emitted import and case audit actions and offers their exact fil
     expect(cases).toContain("action: row.case_type === 'withdrawal' ? 'withdrawal_registered' : 'customer_case_registered'");
 });
 it('filters exact company audit action and entity contracts without mixing customer categories', async () => {
-    io.tables.audit_logs = [
-        { id: 'customer', company_id: 'A', action: 'customer_created_from_import', entity_type: 'customer' },
-        { id: 'case', company_id: 'A', action: 'customer_case_registered', entity_type: 'customer_case' },
-        { id: 'withdrawal', company_id: 'A', action: 'withdrawal_registered', entity_type: 'customer_case' },
-        { id: 'foreign', company_id: 'B', action: 'customer_case_registered', entity_type: 'customer_case' },
+    io.tables.gridex_audit_business_v = [
+        { id: 'customer', company_id: 'A', action_filter: 'customer_created_from_import', entity_filter: 'customer', action_label: 'Kund registrerad från import', entity_label: 'Kund' },
+        { id: 'case', company_id: 'A', action_filter: 'customer_case_registered', entity_filter: 'customer_case', action_label: 'Kundärende registrerat', entity_label: 'Kundärende' },
+        { id: 'withdrawal', company_id: 'A', action_filter: 'withdrawal_registered', entity_filter: 'customer_case', action_label: 'Ånger registrerad', entity_label: 'Kundärende' },
+        { id: 'foreign', company_id: 'B', action_filter: 'customer_case_registered', entity_filter: 'customer_case', action_label: 'Kundärende registrerat', entity_label: 'Kundärende' },
     ];
     const { default: Page } = await import('@/app/admin/audit/page');
     await Page({ searchParams: Promise.resolve({ action: 'customer_case_registered', entity: 'customer_case' }) });
-    expect(io.calls.at(-1)?.filters).toEqual(expect.arrayContaining([['company_id', 'A'], ['action', 'customer_case_registered'], ['entity_type', 'customer_case']]));
+    expect(io.calls.at(-1)?.filters).toEqual(expect.arrayContaining([['company_id', 'A'], ['action_filter', 'customer_case_registered'], ['entity_filter', 'customer_case']]));
     const customerHtml = captureRender(await Page({ searchParams: Promise.resolve({ entity: 'customer' }) }));
     expect(customerHtml).toMatch(/<td[^>]*>Kund registrerad från import<\/td>/);
     expect(customerHtml).not.toMatch(/<td[^>]*>Kundärende registrerat<\/td>/);
@@ -267,6 +356,6 @@ it('keys the actual request selector by company and validated route customer for
         const page = await Page({ searchParams: Promise.resolve({ customer_id: customerId }) });
         const selector = find(page).find(element => element.type === ResourceSelects);
         expect(selector?.props.initialCustomerId).toBe(expected);
-        expect(selector?.key).toBe(`A:${expected}`);
+        expect(selector?.key).toBe(`A:${expected}::`);
     }
 });

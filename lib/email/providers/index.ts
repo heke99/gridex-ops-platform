@@ -1,5 +1,6 @@
 import type { EmailProvider } from './types'
 import { ResendEmailProvider } from './resendProvider'
+export { EmailProviderBeforeRequestError } from './resendProvider'
 
 export function getEmailProvider(): EmailProvider {
   const provider = (process.env.EMAIL_PROVIDER ?? 'resend').trim().toLowerCase()

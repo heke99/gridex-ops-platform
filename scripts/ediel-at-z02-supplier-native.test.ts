@@ -297,7 +297,7 @@ async function stage(f: Fixture, rawPayload: string, environment: 'test' | 'prod
       smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid' })
   const parsed = mailbox.parsed
   const [match, pointMatch] = await Promise.all([
-    matchOutboundRequestForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
+    matchOutboundRequestForInbound({ companyId: f.companyId, environment: mailbox.environment, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
     matchMeteringPointForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
   ])
   const tenant = await resolveInboundTenantFromIdentifiers({ mailboxCompanyId: f.companyId, mailboxId: mailbox.mailboxId,

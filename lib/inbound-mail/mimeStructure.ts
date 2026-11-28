@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto'
+
+export type MimeTransferEncodingIssue = 'mime_transfer_encoding_invalid' | 'mime_transfer_encoding_unsupported'
+
 // Bounded structural traversal shared by DSN classification and disposition.
 // Body prose and returned EDIFACT never become MIME headers.
 export type MimeEntity = {
@@ -7,6 +11,8 @@ export type MimeEntity = {
   mediaType: string
   contentType: string
   body: string
+  sourceIdentity?: { position: string; sha256: string }
+  transferEncodingIssue?: MimeTransferEncodingIssue
 }
 
 export function mimeFields(block: string): Map<string, string[]> {
@@ -27,6 +33,16 @@ export function mimeParameter(contentType: string, name: string): string | null 
   const encoded = /^(?:utf-8|us-ascii)'[^']*'(.*)$/i.exec(extended?.[1] ?? extended?.[2] ?? '')
   if (!encoded) return null
   try { return decodeURIComponent(encoded[1]) } catch { return null }
+}
+
+export function isEncryptedMimePart(entity: MimeEntity): boolean {
+  if (entity.mediaType === 'application/pkcs7-mime' || entity.mediaType === 'application/x-pkcs7-mime') return true
+  if (entity.mediaType !== 'application/octet-stream') return false
+
+  const name = mimeParameter(entity.contentType, 'name')
+  const dispositions = entity.headers.get('content-disposition') ?? []
+  return name?.toLowerCase() === 'smime.p7m' ||
+    dispositions.some(disposition => mimeParameter(disposition, 'filename')?.toLowerCase() === 'smime.p7m')
 }
 
 // preserveBytes keeps every decoded body as a byte-preserving latin1 "binary"
@@ -65,10 +81,10 @@ function validBase64(body: string): boolean {
 // With preserveBytes the input must be a latin1 "binary" string of the raw
 // message bytes; entity bodies stay byte-preserving and entities are listed in
 // document order.
-export function inspectMimeStructure(raw: string, options: { preserveBytes?: boolean } = {}): { entities: MimeEntity[]; issues: string[]; deliveryStatus: boolean; exceededLimits: boolean } {
+export function inspectMimeStructure(raw: string, options: { preserveBytes?: boolean; includeSourceIdentity?: boolean } = {}): { entities: MimeEntity[]; issues: string[]; deliveryStatus: boolean; exceededLimits: boolean } {
   const entities: MimeEntity[] = []
   const issues = new Set<string>()
-  const pending = [{ raw, parent: null as number | null, depth: 0 }]
+  const pending = [{ raw, parent: null as number | null, depth: 0, position: '1' }]
   let deliveryStatus = false
   let exceededLimits = false
   while (pending.length) {
@@ -93,22 +109,33 @@ export function inspectMimeStructure(raw: string, options: { preserveBytes?: boo
     if (encodings.length !== 1) { issues.add('mime_transfer_encoding_ambiguous'); continue }
     const encoding = encodings[0].toLowerCase()
     const encodedBody = next.raw.slice(separator).replace(/^\r?\n\r?\n/, '')
-    if (encoding === 'base64' && !validBase64(encodedBody)) issues.add('mime_transfer_encoding_invalid')
-    if (!['7bit','8bit','binary','base64','quoted-printable'].includes(encoding)) issues.add('mime_transfer_encoding_unsupported')
+    let transferEncodingIssue: MimeTransferEncodingIssue | undefined
+    if (encoding === 'base64' && !validBase64(encodedBody)) transferEncodingIssue = 'mime_transfer_encoding_invalid'
+    if (!['7bit','8bit','binary','base64','quoted-printable'].includes(encoding)) transferEncodingIssue = 'mime_transfer_encoding_unsupported'
+    if (transferEncodingIssue) issues.add(transferEncodingIssue)
     const body = decodedBody(encodedBody, encoding, options.preserveBytes)
     const index = entities.length
-    entities.push({ index, parent: next.parent, headers, mediaType, contentType, body })
-    if (mediaType === 'message/rfc822' || mediaType === 'message/global') {
-      pending.push({ raw: body, parent: index, depth: next.depth + 1 }); continue
+    const multipart = mediaType.startsWith('multipart/')
+    const encapsulated = mediaType === 'message/rfc822' || mediaType === 'message/global'
+    // Inside an encapsulated message this is the child entity's byte stream
+    // after transfer decoding of its parent, before decoding its own content.
+    const sourceIdentity = options.preserveBytes && options.includeSourceIdentity && !multipart && !encapsulated
+      ? { position: next.position, sha256: createHash('sha256').update(next.raw, 'latin1').digest('hex') }
+      : undefined
+    entities.push({ index, parent: next.parent, headers, mediaType, contentType, body,
+      ...(sourceIdentity ? { sourceIdentity } : {}),
+      ...(transferEncodingIssue ? { transferEncodingIssue } : {}) })
+    if (encapsulated) {
+      pending.push({ raw: body, parent: index, depth: next.depth + 1, position: next.position + '.1' }); continue
     }
-    if (!mediaType.startsWith('multipart/')) continue
+    if (!multipart) continue
     const boundary = mimeParameter(contentType, 'boundary')
     if (!boundary || boundary.length > 70) { issues.add('mime_boundary_invalid'); continue }
     let closed = false
-    const children: { raw: string; parent: number; depth: number }[] = []
+    const children: typeof pending = []
     const enqueue = (rawPart: string) => {
       if (pending.length + children.length + entities.length >= 256) { exceededLimits = true; issues.add('mime_structure_limit'); return }
-      children.push({ raw: rawPart, parent: index, depth: next.depth + 1 })
+      children.push({ raw: rawPart, parent: index, depth: next.depth + 1, position: next.position + '.' + (children.length + 1) })
     }
     if (options.preserveBytes) {
       const open = `--${boundary}`, close = `${open}--`

@@ -33,7 +33,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     const response = () => {
       if (table === 'metering_points') return { data: [{
         id: '22222222-2222-4222-8222-222222222222', customer_id: null, site_id: null,
-        grid_owner_id: null, bidding_zone_code: 'SE3', source_customer: null,
+        grid_owner_id: null, bidding_zone_code: 'SE3', lifecycle_supply_fraction: null, source_customer: null,
         estimated_annual_consumption_kwh: 0, consumption_profile_id: null,
         start_date: null, end_date: null, customer_sites: null,
       }], error: null }
@@ -62,9 +62,9 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     return query
   },
   async rpc(name: string, args: Record<string, string>) {
-    if (name === 'gridex_forecast_point_inventory_v1') return { data: [{ points: [
+    if (name === 'gridex_forecast_point_inventory_v2') return { data: [{ points: [
       { id: '22222222-2222-4222-8222-222222222222', customer_id: null, site_id: null,
-        grid_owner_id: null, bidding_zone_code: 'SE3', source_customer: null },
+        grid_owner_id: null, bidding_zone_code: 'SE3', lifecycle_supply_fraction: null, source_customer: null },
     ], total_count: 1 }], error: null }
     if (name !== 'gridex_forecast_metering_period_totals_v1') throw new Error('unexpected_rpc:' + name)
     io.rpcCalls.push({ name, args })
@@ -87,7 +87,7 @@ function quarters(count: number, start = '2025-10-01T00:00:00.000Z'): MeterValue
     period_start: new Date(instant + index * 900_000).toISOString(), value_kwh: 1, quantity_kwh: 99 }))
 }
 function periodTotal(start: string, end: string) {
-  const read = Reflect.get(forecasting, 'actualKwhForPeriod') as ((companyId: string, pointId: string, start: string, end: string) => Promise<number>) | undefined
+  const read = Reflect.get(forecasting, 'actualKwhForPeriod') as ((companyId: string, pointId: string, start: string, end: string) => Promise<number | null>) | undefined
   expect(read, 'both producers must share the complete scoped period reader').toBeTypeOf('function')
   return read!(company, point, start, end)
 }
@@ -120,6 +120,27 @@ describe('complete metering-period totals at the application boundary', () => {
     expect(io.inserts).toEqual([expect.objectContaining({ company_id: company, metering_point_id: point,
       forecast_kwh: count, actual_kwh: count, diff_kwh: 0, confidence_score: 95 })])
     expect(io.updates).toEqual([expect.objectContaining({ status: 'completed' })])
+    expect(io.rpcCalls).toHaveLength(2)
+    expect(io.rawReads).toBe(0)
+  })
+
+  it.each([
+    { currentValue: null, actual: null, diff: null, percent: null },
+    { currentValue: 0, actual: 0, diff: -1, percent: -100 },
+    { currentValue: 1250, actual: 1250, diff: 1249, percent: 124900 },
+  ])('distinguishes absent readings from measured actual $currentValue when persisting a run', async ({ currentValue, actual, diff, percent }) => {
+    io.rows = quarters(1)
+    if (currentValue !== null) {
+      io.rows.push({ ...quarters(1, '2026-10-01T00:00:00.000Z')[0], value_kwh: currentValue })
+    }
+
+    await expect(generateForecastRunItems({ companyId: company, forecastRunId: 'synthetic-run', periodStart: '2026-10-01' }))
+      .resolves.toEqual({ items: 1, missing: 0 })
+
+    expect(io.inserts).toEqual([expect.objectContaining({
+      company_id: company, metering_point_id: point, method: 'history', forecast_kwh: 1,
+      actual_kwh: actual, diff_kwh: diff, diff_percent: percent,
+    })])
     expect(io.rpcCalls).toHaveLength(2)
     expect(io.rawReads).toBe(0)
   })

@@ -36,6 +36,15 @@ function stableReference(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
+function nextAvailableIndex(codes: string[], prefix: string): number {
+  const existing = new Set(codes);
+  let index = codes.length;
+  while (existing.has(`${prefix}_${index + 1}`)) {
+    index += 1;
+  }
+  return index;
+}
+
 function newOption(
   contractType: CanonicalContractType,
   index: number,
@@ -204,13 +213,15 @@ export default function CommercialPricingEditor({
   const hasAdvancedConfiguration =
     options.length > 1 || components.length > 0;
 
-  useEffect(() => {
-    if (!simpleDefaults) return;
-    setOptions((current) => {
-      if (current.length !== 1) return current;
-      const option = current[0];
-      const next = {
-        ...option,
+  const [blockedOptionRemoval, setBlockedOptionRemoval] = useState<string | null>(
+    null,
+  );
+  const referencedOptions = new Set(
+    components.flatMap((component) => component.conditions.price_option_references),
+  );
+  const standardOption = simpleDefaults
+    ? {
+        ...options[0],
         customer_name: simpleDefaults.customerName.trim() || "Standardpris",
         customer_type: simpleDefaults.customerType,
         contract_type: contractType,
@@ -222,28 +233,8 @@ export default function CommercialPricingEditor({
           : null,
         default: true,
         selection_required: false,
-      };
-      const unchanged =
-        option.customer_name === next.customer_name &&
-        option.customer_type === next.customer_type &&
-        option.contract_type === next.contract_type &&
-        option.binding_months === next.binding_months &&
-        option.notice_months === next.notice_months &&
-        option.auto_renew_enabled === next.auto_renew_enabled &&
-        option.renewal_term_months === next.renewal_term_months &&
-        option.default === true &&
-        option.selection_required === false;
-      return unchanged ? current : [next];
-    });
-  }, [
-    contractType,
-    simpleDefaults?.autoRenewEnabled,
-    simpleDefaults?.bindingMonths,
-    simpleDefaults?.customerName,
-    simpleDefaults?.customerType,
-    simpleDefaults?.noticeMonths,
-    simpleDefaults?.renewalTermMonths,
-  ]);
+      }
+    : options[0];
 
   useEffect(() => {
     setOptions((current) =>
@@ -283,6 +274,41 @@ export default function CommercialPricingEditor({
     );
   }
 
+  function removeOption(reference: string) {
+    if (referencedOptions.has(reference)) {
+      setBlockedOptionRemoval(reference);
+      return;
+    }
+
+    setBlockedOptionRemoval(null);
+    setOptions((current) => {
+      if (current.length <= 1) return current;
+      const remaining = current.filter(
+        (option) => option.price_option_reference !== reference,
+      );
+      if (remaining.length === 1) {
+        return [{ ...remaining[0], default: true, selection_required: false }];
+      }
+      if (!remaining.some((option) => option.default)) {
+        remaining[0] = { ...remaining[0], default: true };
+      }
+      return remaining;
+    });
+  }
+
+  function addOption() {
+    setOptions((current) => {
+      const index = nextAvailableIndex(
+        current.map((option) => option.option_code),
+        "option",
+      );
+      return [
+        ...current.map((option) => ({ ...option, selection_required: true })),
+        newOption(contractType, index, applicableAreas, requiresAreaPrices),
+      ];
+    });
+  }
+
   function patchComponent(
     index: number,
     patch: Partial<CommercialPriceComponent>,
@@ -312,7 +338,7 @@ export default function CommercialPricingEditor({
       <input
         type="hidden"
         name="price_options_json"
-        value={JSON.stringify(options)}
+        value={JSON.stringify(advancedOpen ? options : [standardOption])}
       />
       <input
         type="hidden"
@@ -342,7 +368,10 @@ export default function CommercialPricingEditor({
               ? "Ta bort extra prisalternativ och komponenter innan standardläget kan användas."
               : undefined
           }
-          onClick={() => setAdvancedOpen((current) => !current)}
+          onClick={() => {
+            if (!advancedOpen) setOptions([standardOption]);
+            setAdvancedOpen(!advancedOpen);
+          }}
           className="rounded-xl border border-indigo-300 bg-white px-4 py-2 text-xs font-black text-indigo-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {advancedOpen
@@ -358,19 +387,19 @@ export default function CommercialPricingEditor({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-black text-slate-950">
-                {options[0]?.customer_name || "Standardpris"}
+                {standardOption.customer_name || "Standardpris"}
               </p>
               <p className="mt-1 text-xs text-slate-600">
-                Ett standardalternativ · {options[0]?.binding_months ?? 0} mån bindning · {options[0]?.notice_months ?? 0} mån uppsägning
+                Ett standardalternativ · {standardOption.binding_months ?? 0} mån bindning · {standardOption.notice_months ?? 0} mån uppsägning
               </p>
             </div>
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-800">
               Komplett automatiskt
             </span>
           </div>
-          {requiresAreaPrices && options[0] ? (
+          {requiresAreaPrices ? (
             <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {options[0].area_prices.map((row, rowIndex) => (
+              {standardOption.area_prices.map((row, rowIndex) => (
                 <label
                   key={row.price_row_reference}
                   className="grid min-w-0 gap-1 rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-950"
@@ -383,7 +412,7 @@ export default function CommercialPricingEditor({
                     step="0.0001"
                     value={row.amount}
                     onChange={(event) => {
-                      const areaPrices = options[0].area_prices.map(
+                      const areaPrices = standardOption.area_prices.map(
                         (candidate, candidateIndex) =>
                           candidateIndex === rowIndex
                             ? { ...candidate, amount: Number(event.target.value) }
@@ -607,58 +636,24 @@ export default function CommercialPricingEditor({
             <button
               type="button"
               disabled={options.length === 1}
-              onClick={() =>
-                setOptions((current) => {
-                  const remaining = current.filter(
-                    (candidate) =>
-                      candidate.price_option_reference !==
-                      option.price_option_reference,
-                  );
-                  if (remaining.length === 1) {
-                    return [
-                      {
-                        ...remaining[0],
-                        default: true,
-                        selection_required: false,
-                      },
-                    ];
-                  }
-                  if (
-                    remaining.length > 0 &&
-                    !remaining.some((candidate) => candidate.default)
-                  ) {
-                    remaining[0] = { ...remaining[0], default: true };
-                  }
-                  return remaining;
-                })
-              }
+              onClick={() => removeOption(option.price_option_reference)}
               className="mt-3 rounded-lg border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700 disabled:opacity-40"
             >
               Ta bort alternativ
             </button>
+            {blockedOptionRemoval === option.price_option_reference &&
+            referencedOptions.has(option.price_option_reference) ? (
+              <p role="alert" className="mt-2 text-sm text-rose-700">
+                Ändra villkoren eller ta bort komponenterna som använder detta
+                prisalternativ innan du tar bort alternativet.
+              </p>
+            ) : null}
           </fieldset>
         ))}
       </div>
       <button
         type="button"
-        onClick={() =>
-          setOptions((current) => [
-            ...current.map((option) => ({
-              ...option,
-              selection_required: true,
-            })),
-            {
-              ...newOption(
-                contractType,
-                current.length,
-                applicableAreas,
-                requiresAreaPrices,
-              ),
-              default: false,
-              selection_required: true,
-            },
-          ])
-        }
+        onClick={addOption}
         className="mt-3 rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white"
       >
         Lägg till prisalternativ
@@ -1062,7 +1057,12 @@ export default function CommercialPricingEditor({
         onClick={() =>
           setComponents((current) => [
             ...current,
-            newComponent(current.length),
+            newComponent(
+              nextAvailableIndex(
+                current.map((component) => component.component_code),
+                "component",
+              ),
+            ),
           ])
         }
         className="mt-3 rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white"

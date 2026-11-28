@@ -14,6 +14,8 @@ import {
   type FacilityWorkQueueRow,
   type FacilityWorkQueueStatus,
 } from '@/lib/facility/workQueue'
+import { ACTIVE_FACILITY_LOOKUP_STATUSES, canMarkFacilityLookupSentManually, canRegisterFacilityLookupResponse } from '@/lib/facility/facilityLookupStatus'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 type FacilityLookupRequestRow = {
@@ -179,7 +181,7 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false, canWri
         </div>
 
         {canWrite ? <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
-          <AdminDisclosurePanel id={`facility-mark-sent-${request.id}`} title="Markera skickad manuellt" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={markFacilityLookupSentManuallyAction} className="min-w-0">
+          {canMarkFacilityLookupSentManually(request.status) ? <AdminDisclosurePanel id={`facility-mark-sent-${request.id}`} title="Markera skickad manuellt" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={markFacilityLookupSentManuallyAction} className="min-w-0">
             <input type="hidden" name="request_id" value={request.id} />
             <div className="mt-3 grid gap-2 sm:grid-cols-[140px_1fr]">
               <select name="manual_channel" aria-label="Manuell kanal" defaultValue="portal" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
@@ -191,9 +193,9 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false, canWri
               <input name="note" aria-label="Notering" placeholder="Kort notering" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
             </div>
             <button className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Markera skickad</button>
-          </form></AdminDisclosurePanel>
+          </form></AdminDisclosurePanel> : null}
 
-          <AdminDisclosurePanel id={`facility-register-reply-${request.id}`} title="Registrera svar från nätägare" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={completeFacilityLookupAction} className="min-w-0">
+          {canRegisterFacilityLookupResponse(request.status) ? <AdminDisclosurePanel id={`facility-register-reply-${request.id}`} title="Registrera svar från nätägare" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={completeFacilityLookupAction} className="min-w-0">
             <input type="hidden" name="request_id" value={request.id} />
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <input name="facility_id" aria-label="Anläggnings-ID" defaultValue={request.facility_id ?? ''} placeholder="Anläggnings-ID" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
@@ -213,7 +215,7 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false, canWri
               {/* Route readiness är en plattformsteknisk vy — visas aldrig för tenantoperatörer. */}
               {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Anslutningsstatus</Link> : null}
             </div>
-          </form></AdminDisclosurePanel>
+          </form></AdminDisclosurePanel> : null}
         </div> : null}
       </div>
     </article>
@@ -273,26 +275,19 @@ export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await resolveAdminTenantReadScope(context)
   const { companyId, isPlatformAdmin } = companyScope
-  const canWrite = await canPresentAdminAction(['customers.write'])
   const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
   const canReadCustomers = canPresentAdminLink(context, { anyOf: ['customers.read'] })
   const canCreateCustomer = await canPresentOperationalAction(['customers.write'], isPlatformAdmin ? context.companyId : companyId)
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 
-  const ACTIVE_FACILITY_STATUSES = [
-    'draft', 'ready_to_send', 'sent', 'waiting_response', 'needs_review',
-    'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent',
-    'waiting_manual_response', 'manual_response_received', 'manual_response_parsed',
-    'blocked_missing_poa', 'blocked_missing_grid_owner_contact',
-  ]
   const ACTIVE_FACILITY_REQUEST_TYPES = ['facility_lookup', 'facility_identifier_lookup']
 
   let facilityRequestsQuery = supabase
     .from('grid_owner_information_requests')
     .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at, customer:customers!grid_owner_information_requests_customer_id_fkey(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites!grid_owner_information_requests_customer_site_id_fkey(street,postal_code,city,site_name)')
     .in('request_type', ACTIVE_FACILITY_REQUEST_TYPES)
-    .in('status', ACTIVE_FACILITY_STATUSES)
+    .in('status', ACTIVE_FACILITY_LOOKUP_STATUSES)
     .order('updated_at', { ascending: false })
     .limit(100)
 
@@ -306,7 +301,7 @@ export default async function FacilityRequestsPage() {
       .from('grid_owner_information_requests')
       .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at')
       .in('request_type', ACTIVE_FACILITY_REQUEST_TYPES)
-      .in('status', ACTIVE_FACILITY_STATUSES)
+      .in('status', ACTIVE_FACILITY_LOOKUP_STATUSES)
       .order('updated_at', { ascending: false })
       .limit(100)
     if (companyId) fallbackQuery = fallbackQuery.eq('company_id', companyId)
@@ -315,6 +310,19 @@ export default async function FacilityRequestsPage() {
   }
 
   const facilityRequests = (facilityRequestsData ?? []) as unknown as FacilityLookupRequestRow[]
+  const writableCompanies = new Set<string>()
+  const requestCompanyIds = [...new Set(facilityRequests.map((request) => request.company_id).filter(Boolean))]
+  if (requestCompanyIds.length > 0 && await canPresentAdminAction(['customers.write'])) {
+    const { data: companies, error: companyError } = await supabase
+      .from('companies')
+      .select('id,status')
+      .in('id', requestCompanyIds)
+    if (companyError) throw companyError
+
+    for (const company of companies ?? []) {
+      if (isCompanyWritableInTenantWorkspace(company.status)) writableCompanies.add(company.id)
+    }
+  }
   // Multiple customer/site foreign keys need explicit relationship hints above.
   // grid_owner_id has no PostgREST relationship, so load its display data in bulk.
   const gridOwnerIds = [...new Set(facilityRequests.flatMap((request) => request.grid_owner_id ? [request.grid_owner_id] : []))]
@@ -370,7 +378,7 @@ export default async function FacilityRequestsPage() {
               <p className="mt-1 text-sm text-slate-600">Registrera manuellt skickade begäranden och nätägarens svar.</p>
             </div>
             <div className="grid gap-4">
-              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} canWrite={canWrite} canReadCustomer={canReadCustomer} />)}
+              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} canWrite={writableCompanies.has(request.company_id)} canReadCustomer={canReadCustomer} />)}
             </div>
           </section>
         ) : null}

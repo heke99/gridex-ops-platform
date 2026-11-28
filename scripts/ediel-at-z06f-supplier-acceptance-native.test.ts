@@ -6,6 +6,7 @@
 // Existing qualified producer alone executes the native suite.
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {completedReadingHostedSuite,enterCompletedReadingHostedPhase} from './helpers/ediel-completed-reading-clock-native'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -20,6 +21,8 @@ import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {supabaseService} from '@/lib/supabase/service'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {utiltsRuntimeSegments} from '@/lib/ediel/utiltsEngine'
+import {localEdifactDateTimeToUtc,parseEdifactTimezoneOffsetFromSegments} from '@/lib/ediel/utilts/timezone'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
@@ -415,7 +418,11 @@ function expectCleanStagedCustomer(f:Fixture,change:Change,stored:Evidence['case
  expect(Object.fromEntries(Object.keys(clean).map(key=>[key,customer[key]]))).toEqual(clean)
 }
 it.each([false,true])('F first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
- const f=await fixture(),change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
+ // Both runs admit the original structure prospectively. The protected run
+ // also advances the disposable clock before admitting the completed reading.
+ const hosted=!withUd&&completedReadingHostedSuite('fg')
+ const f=await fixture()
+ const change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
  const initial=evidence(f,change.message.id)
  expectNoFirstEffects(f,change.message)
  if(withUd){expect(change.message.raw_payload).toContain('FORBIDDEN-UD-F');expect(initial.original.raw_payload).toBe(change.message.raw_payload!);expectIgnoredUd(f,change)}
@@ -458,8 +465,33 @@ it.each([false,true])('F first case approval versions only its original structur
  if(!withUd){
   // Compose this first case effect with the retained real E66 consumer. The
   // observation must exist after persistence, before any read reconciliation.
-  const reading=await f.reading(),outboundBefore=f.snapshots().outbound
-  expect(reading.qualified.runtime.transactionDispositions).toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
+  const financialCounts=()=>sql<number[]>(`SELECT jsonb_build_array(
+   (SELECT count(*) FROM public.billing_underlays WHERE company_id=${literal(f.f.companyId)}),
+   (SELECT count(*) FROM public.invoice_export_items WHERE company_id=${literal(f.f.companyId)}),
+   (SELECT count(*) FROM public.customer_invoices WHERE company_id=${literal(f.f.companyId)}),
+   (SELECT count(*) FROM public.invoice_export_files WHERE company_id=${literal(f.f.companyId)}))`)
+  expect(financialCounts()).toEqual([0,0,0,0])
+  if(!hosted)return
+  const phase: {finish?:Awaited<ReturnType<typeof enterCompletedReadingHostedPhase>>}={}
+  const reading=await f.reading({},async wire=>{
+   phase.finish=await enterCompletedReadingHostedPhase('fg',{
+    supply:f.f,structuralSourceId:change.message.id,structureEffectiveAt:own.effect.effectiveAt,actor:f.operator,wires:[wire],
+   })
+  }),outboundBefore=f.snapshots().outbound
+  const facts=reading.qualified.runtime.facts,transaction=facts.transactions[0]
+  const timezone=parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(facts))
+  const registeredAt=localEdifactDateTimeToUtc(transaction.registrationTime,timezone)
+  expect(timezone?.offsetMinutes).toBe(60)
+  expect(Date.parse(registeredAt??'')).toBeLessThanOrEqual(Date.parse(reading.message.message_received_at!))
+  expect(reading.message.execution_context_snapshot).toMatchObject({receivedUtiltsContext:{
+   contextOrigin:'database_insert',sourceMessageId:reading.message.id,
+   payloadHash:createHash('sha256').update(reading.message.raw_payload!).digest('hex'),
+  }})
+  expect(transaction.quantities.map(quantity=>[quantity.qualifier,quantity.value])).toEqual([
+   ['220',10000],['220',11000],['136',1000],
+  ])
+  expect(reading.qualified.runtime.transactionDispositions,JSON.stringify(reading.qualified.runtime.validation.issues))
+   .toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
   expect(await reading.persist()).toMatchObject([{disposition:'accepted',persistenceStatus:'persisted'}])
   const observed=sourceEffects(f,change.message.id)
   expect(observed.objects).toEqual(effects.objects);expect(observed.batches).toEqual(effects.batches)
@@ -471,6 +503,9 @@ it.each([false,true])('F first case approval versions only its original structur
   expect(view.error).toBeNull();expect(view.data).toMatchObject({expectations:[{status:'reading_observed',deadline:null,automaticRequestAllowed:false}]})
   expect(f.snapshots().outbound).toBe(outboundBefore)
   await reading.persist();expect(sourceEffects(f,change.message.id)).toEqual(observed)
+  expect(financialCounts()).toEqual([0,0,0,0])
+  if(!phase.finish)throw Error('fg_completed_reading_clock_phase_required')
+  phase.finish([{id:reading.message.id,outcome:'persisted'}])
  }
 })
 

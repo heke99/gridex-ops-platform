@@ -3,7 +3,8 @@ name: Staff API schema capture (capture only)
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/*staff*.sql'
+      - 'supabase/migrations/*.sql'
+      - 'supabase/bootstrap/*.sql'
       - 'supabase/database.types.ts'
       - 'supabase/schema.sql'
       - 'supabase/schema.fingerprint.json'
@@ -11,8 +12,15 @@ on:
       - 'scripts/supabase-types-manifest.json'
       - 'scripts/migration-history-manifest*.json'
       - 'scripts/gridex-aud-003-*.json'
+      - 'scripts/gridex-aud-003-schema-fingerprint.sql'
+      - 'scripts/sql/ediel-retention-replay-role-diagnostic.sql'
+      - 'scripts/sql/gridex-local-storage-owner-bootstrap.sql'
+      - 'scripts/sql/gridex-replay-refresh-runtime-readiness.sql'
+      - 'scripts/sql/gridex-db-parity-introspect.sql'
       - 'scripts/gridex-aud-003-clean-replay.sh'
       - 'scripts/gridex-schema-snapshot.cjs'
+      - 'package.json'
+      - 'scripts/lib/supabase-migration-provenance.cjs'
       - 'scripts/apply-supabase-types-nullability-overrides.cjs'
       - '.github/workflows/staff-api-schema-capture.yml'
 
@@ -629,6 +637,7 @@ jobs:
           # Do not upload replay/status output: startup output can contain local
           # credentials. Source the exact owner script so its EXIT trap keeps
           # the database alive until capture finishes, then stops/restores it.
+          CAPTURE_MIGRATION_SOURCE_BEFORE="$(node scripts/lib/supabase-migration-provenance.cjs)"
           # BEGIN fixed capture failure boundary
           GRIDEX_CAPTURE_ERROR_BOUNDARY=1
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
@@ -744,6 +753,12 @@ jobs:
           supabase gen types typescript --local > staff-schema-capture/database.types.ts
           node scripts/apply-supabase-types-nullability-overrides.cjs staff-schema-capture/database.types.ts
           npm run db:schema:snapshot -- --url "$CAPTURE_DB_URL" --out-dir staff-schema-capture
+          CAPTURE_MIGRATION_SOURCE="$(node scripts/lib/supabase-migration-provenance.cjs "$HOLD")"
+          if [[ "$CAPTURE_MIGRATION_SOURCE" != "$CAPTURE_MIGRATION_SOURCE_BEFORE" ]]; then
+            echo 'canonical migration source changed during capture' >&2
+            exit 1
+          fi
+          export CAPTURE_MIGRATION_SOURCE
           python3 - <<'PY'
           from datetime import datetime, timezone
           import hashlib
@@ -776,6 +791,7 @@ jobs:
               'postgres_server_version': os.environ['CAPTURE_SERVER_VERSION'],
               'pg_dump_version': subprocess.check_output([os.environ['GRIDEX_PG_DUMP'], '--version'], text=True).strip(),
               'latest_replay_migration': {'name': latest.name, 'sha256': digest(latest)},
+              'migration_source': json.loads(os.environ['CAPTURE_MIGRATION_SOURCE']),
               'schema_names': fingerprint['schemas'],
               'schema_fingerprint': fingerprint['sha256'],
               'artifact_sha256': {name: digest(output / name) for name in artifact_names},

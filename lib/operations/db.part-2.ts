@@ -5,8 +5,11 @@ import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
 import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier"
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
 import { strictIsoDate } from "@/lib/time/stockholm"
-import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
-import { stockholmMarketDate } from "@/lib/operations/supplierSwitchActivation"
+import {
+  getSupplierSwitchActivationReadiness, getVerifiedSupplierSwitchActivationReadiness, stockholmMarketDate,
+  type SupplierSwitchActivationReadiness,
+} from "@/lib/operations/supplierSwitchActivation"
+import { readConfirmedMarketStarts } from "@/lib/operations/readyBulkCandidates"
 import { scanAdminCandidates, type AdminCandidatePage } from "@/lib/operations/adminPagination"
 import { InvalidReadModelResponseError } from "@/lib/read-models/readResult"
 import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchScheduler"
@@ -16,16 +19,18 @@ import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } fro
 import type { CustomerOperationTaskRow, CustomerOperationTaskStatus, SupplierSwitchEventRow, SupplierSwitchRequestRow, SupplierSwitchRequestStatus, SupplierSwitchRequestType, SwitchReadinessResult } from "@/lib/operations/types"
 import { getActorId, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
 
+type ReadySupplierSwitchCandidate = SupplierSwitchRequestRow & { activation: SupplierSwitchActivationReadiness }
+
 export async function listReadySupplierSwitchCandidatePage(
   supabase: SupabaseClient,
   input: { companyId: string | null; cursor?: string | null; limit?: number },
-): Promise<AdminCandidatePage<SupplierSwitchRequestRow>> {
+): Promise<AdminCandidatePage<ReadySupplierSwitchCandidate>> {
   const now = new Date()
-  return scanAdminCandidates<SupplierSwitchRequestRow>({
-    context: { companyId: input.companyId, resource: 'supplier_switch_ready', predicateVersion: `accepted_activation_v1:${stockholmMarketDate(now)}` },
+  return scanAdminCandidates<ReadySupplierSwitchCandidate>({
+    context: { companyId: input.companyId, resource: 'supplier_switch_ready', predicateVersion: `confirmed_market_start_v2:${stockholmMarketDate(now)}` },
     cursor: input.cursor,
     limit: input.limit,
-    eligible: request => getSupplierSwitchActivationReadiness(request, now).ready,
+    eligible: request => request.activation.ready,
     load: async (after, limit) => {
       let query = supabase.from('supplier_switch_requests').select('*', { count: 'exact' })
         .eq('status', 'accepted')
@@ -48,7 +53,14 @@ export async function listReadySupplierSwitchCandidatePage(
           throw new InvalidReadModelResponseError()
         }
       }
-      return { rows: data as SupplierSwitchRequestRow[], count: count as number }
+      const scanned = data as SupplierSwitchRequestRow[]
+      const calendarReady = scanned.filter(request => getSupplierSwitchActivationReadiness(request, now).ready)
+      const starts = await readConfirmedMarketStarts(supabase, calendarReady)
+      const rows = scanned.map(request => ({
+        ...request,
+        activation: getVerifiedSupplierSwitchActivationReadiness(request, starts.get(request.id.toLowerCase()) ?? null, now),
+      }))
+      return { rows, count: count as number }
     },
   })
 }
@@ -165,6 +177,9 @@ export async function listAllSupplierSwitchRequests(
   return requests;
 }
 
+const switchBusinessEventFields =
+  "id,company_id,switch_request_id,event_type,event_status,message,payload,archived_at,archived_by,archive_reason,created_at,created_by,metadata,updated_at";
+
 export async function listSupplierSwitchEventsByRequestIds(
   supabase: SupabaseClient,
   requestIds: string[],
@@ -173,9 +188,10 @@ export async function listSupplierSwitchEventsByRequestIds(
   if (requestIds.length === 0) return [];
 
   let query = supabase
-    .from("supplier_switch_events")
-    .select("*")
+    .from("gridex_supplier_switch_business_events_v")
+    .select(switchBusinessEventFields)
     .in("switch_request_id", requestIds)
+    .eq("include_active_business_history", true)
     .is("archived_at", null);
 
   if (options.companyId) {
@@ -184,6 +200,7 @@ export async function listSupplierSwitchEventsByRequestIds(
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(options.limit ?? 100);
 
   if (error) throw error;
@@ -195,10 +212,12 @@ export async function listRecentSupplierSwitchEvents(
   limit = 50,
 ): Promise<SupplierSwitchEventRow[]> {
   const { data, error } = await supabase
-    .from("supplier_switch_events")
-    .select("*")
+    .from("gridex_supplier_switch_business_events_v")
+    .select(switchBusinessEventFields)
+    .eq("include_active_business_history", true)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit);
 
   if (error) throw error;
@@ -211,18 +230,19 @@ export async function findExistingOpenTask(
     customerId: string;
     siteId: string;
     taskType: string;
+    companyId?: string;
   },
 ): Promise<CustomerOperationTaskRow | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("customer_operation_tasks")
     .select("*")
     .eq("customer_id", params.customerId)
     .eq("site_id", params.siteId)
     .eq("task_type", params.taskType)
-    .in("status", ["open", "in_progress", "blocked"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .in("status", ["open", "in_progress", "blocked"]);
+  if (params.companyId) query = query.eq("company_id", params.companyId);
+
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
 
   if (error) throw error;
   return (data as CustomerOperationTaskRow | null) ?? null;
@@ -231,6 +251,7 @@ export async function findExistingOpenTask(
 export async function syncOperationTasksFromReadiness(
   supabase: SupabaseClient,
   readiness: SwitchReadinessResult,
+  companyId?: string,
 ): Promise<void> {
   const actorId = await getActorId(supabase);
   const activeTaskTypes = new Set<string>(
@@ -242,6 +263,7 @@ export async function syncOperationTasksFromReadiness(
       customerId: readiness.customerId,
       siteId: readiness.siteId,
       taskType: issue.taskType,
+      companyId,
     });
 
     if (existing) {
@@ -249,6 +271,7 @@ export async function syncOperationTasksFromReadiness(
     }
 
     const { error } = await supabase.from("customer_operation_tasks").insert({
+      ...(companyId ? { company_id: companyId } : {}),
       customer_id: readiness.customerId,
       site_id: readiness.siteId,
       metering_point_id: readiness.candidateMeteringPointId,
@@ -267,13 +290,15 @@ export async function syncOperationTasksFromReadiness(
     if (error) throw error;
   }
 
-  const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
+  let openTasksQuery = supabase
     .from("customer_operation_tasks")
     .select("*")
     .eq("customer_id", readiness.customerId)
     .eq("site_id", readiness.siteId)
     .in("status", ["open", "in_progress", "blocked"]);
+  if (companyId) openTasksQuery = openTasksQuery.eq("company_id", companyId);
 
+  const { data: existingOpenTasks, error: fetchOpenTasksError } = await openTasksQuery;
   if (fetchOpenTasksError) throw fetchOpenTasksError;
 
   const tasks = (existingOpenTasks ?? []) as CustomerOperationTaskRow[];
@@ -283,7 +308,7 @@ export async function syncOperationTasksFromReadiness(
       continue;
     }
 
-    const { error } = await supabase
+    let update = supabase
       .from("customer_operation_tasks")
       .update({
         status: "done",
@@ -291,7 +316,9 @@ export async function syncOperationTasksFromReadiness(
         updated_by: actorId,
       })
       .eq("id", task.id);
+    if (companyId) update = update.eq("company_id", companyId);
 
+    const { error } = await update;
     if (error) throw error;
   }
 }
@@ -301,11 +328,12 @@ export async function syncCustomerOperationsForSite(
   params: {
     customerId: string;
     siteId: string;
+    companyId?: string;
   },
 ): Promise<SwitchReadinessResult> {
   const site = await findCustomerSiteById(supabase, params.siteId);
 
-  if (!site || site.customer_id !== params.customerId) {
+  if (!site || site.customer_id !== params.customerId || (params.companyId && site.company_id !== params.companyId)) {
     throw new Error("Kunde inte hitta anläggningen för operations-sync");
   }
 
@@ -320,7 +348,7 @@ export async function syncCustomerOperationsForSite(
     powersOfAttorney,
   });
 
-  await syncOperationTasksFromReadiness(supabase, readiness);
+  await syncOperationTasksFromReadiness(supabase, readiness, params.companyId);
   return readiness;
 }
 
@@ -361,10 +389,17 @@ export async function syncCustomerOperationsForCustomer(
   };
 }
 
+export async function canWriteOperationTaskCompany(supabase: SupabaseClient, companyId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("gridex_can_write_company", { p_company_id: companyId });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function updateOperationTaskStatus(
   supabase: SupabaseClient,
   params: {
     taskId: string;
+    companyId: string;
     status: CustomerOperationTaskStatus;
   },
 ): Promise<CustomerOperationTaskRow> {
@@ -389,6 +424,7 @@ export async function updateOperationTaskStatus(
     .from("customer_operation_tasks")
     .update(updatePayload)
     .eq("id", params.taskId)
+    .eq("company_id", params.companyId)
     .select("*")
     .single();
 
@@ -485,6 +521,7 @@ export async function createSupplierSwitchRequest(
     customerId: params.readiness.customerId,
     siteId: params.site.id,
     meteringPointId: params.meteringPoint.id,
+    contractId: params.contractId,
   });
 
   // F-9: the incoming supplier on a switch to us is the operating tenant, never a
@@ -815,6 +852,8 @@ export async function updateSupplierSwitchRequestStatus(
   return (data as { request: SupplierSwitchRequestRow }).request;
 }
 
+type ArchivedSupplierSwitchEventRow = SupplierSwitchEventRow & { company_id: string | null }
+
 export async function archiveSupplierSwitchEvent(
   supabase: SupabaseClient,
   params: {
@@ -822,7 +861,7 @@ export async function archiveSupplierSwitchEvent(
     actorUserId: string;
     reason?: string | null;
   },
-): Promise<SupplierSwitchEventRow> {
+): Promise<ArchivedSupplierSwitchEventRow> {
   const { data, error } = await supabase
     .from("supplier_switch_events")
     .update({
@@ -836,7 +875,7 @@ export async function archiveSupplierSwitchEvent(
     .single();
 
   if (error) throw error;
-  return data as SupplierSwitchEventRow;
+  return data as ArchivedSupplierSwitchEventRow;
 }
 
 export async function createSupplierSwitchEvent(
@@ -880,8 +919,10 @@ export async function finalizeSupplierSwitchExecution(
       | "automation_sweep"
       | "bulk_admin_ready_queue";
     executionNotes?: string | null;
+    authorizeTargetCompany?: (companyId: string | null) => Promise<void>;
   },
 ): Promise<{
+  alreadyCompleted: boolean;
   requestBefore: SupplierSwitchRequestRow;
   request: SupplierSwitchRequestRow;
   siteBefore: CustomerSiteRow;
@@ -897,6 +938,8 @@ export async function finalizeSupplierSwitchExecution(
   if (!requestBefore) {
     throw new Error("Switchärendet hittades inte");
   }
+
+  await params.authorizeTargetCompany?.(requestBefore.company_id ?? null);
 
   const siteBefore = await findCustomerSiteById(
     supabase,
@@ -924,6 +967,7 @@ export async function finalizeSupplierSwitchExecution(
 
   if (requestBefore.status === "completed") {
     return {
+      alreadyCompleted: true,
       requestBefore,
       request: requestBefore,
       siteBefore,
@@ -972,6 +1016,7 @@ export async function finalizeSupplierSwitchExecution(
   if (finalizeError) throw finalizeError;
 
   const result = finalized as {
+    already_completed?: boolean;
     request: SupplierSwitchRequestRow;
     site_after?: CustomerSiteRow;
     metering_point_after?: MeteringPointRow | null;
@@ -981,6 +1026,7 @@ export async function finalizeSupplierSwitchExecution(
   const meteringPointAfter = result.metering_point_after ?? meteringPointBefore;
 
   return {
+    alreadyCompleted: result.already_completed === true,
     requestBefore,
     request,
     siteBefore,

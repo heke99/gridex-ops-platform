@@ -83,7 +83,15 @@ beforeEach(() => {
     // Each strict insert here supplies exactly one row; no authority is mocked.
     return Object.assign(query, { single: () => query.maybeSingle() })
   })
-  io.rpc.mockImplementation(async (name: string) => {
+  io.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+    if (name === 'gridex_project_legacy_supply_end_followup_v1') {
+      const period = tables.customer_supply_periods.find(row => row.company_id === args.p_company_id && row.id === args.p_supply_period_id)
+      const connection = { sourceMessageId: args.p_source_message_id, supplyPeriodId: args.p_supply_period_id }
+      const data = !period ? { ...connection, status: 'not_applicable' }
+        : period.status === 'ending' ? { ...connection, status: 'scheduled' }
+          : { ...connection, status: 'created', caseId: id(45) }
+      return { data, error: null }
+    }
     if (name !== 'ediel_apply_supply_source_v1') throw Error(`undeclared_rpc:${name}`)
     return { data: { applied: true, periods: [{ id: own.period, status: 'ending' }] }, error: null }
   })
@@ -156,19 +164,16 @@ describe.each(profiles)('AT-Z05 $subtype supplier ($reason)', profile => {
     assertOnlyEndTasks()
   })
 
-  it('actual facade uses only returned own ending-period scope and preserves finite history tables', async () => {
+  it('actual facade schedules the exact returned own period and preserves its history', async () => {
     const before = structuredClone(tables.customer_supply_periods)
     const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(profile) })
-    expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false, updated: ['customer_supply_periods', 'customer_cases'] })
+    expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false, updated: ['customer_supply_periods'] })
     expect(result.tenantMessage).toContain('giltiga sluttid')
-    expect(cases()).toHaveLength(1)
-    expect(cases()[0]).toMatchObject({ company_id: own.company, customer_id: own.customer, metering_point_id: own.point,
-      reason_category: 'final_metering_and_billing', metadata: { source_ediel_message_id: own.message } })
+    expect(cases()).toEqual([])
     expect(tables.customer_supply_periods).toEqual(before)
-    expect(db.calls[0]).toMatchObject({ table: 'customer_supply_periods', operation: 'select', filters: [
-      { method: 'eq', column: 'company_id', value: own.company }, { method: 'in', column: 'id', value: [own.period] }] })
-    expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', {
-      p_company_id: own.company, p_source_message_id: own.message, p_actor_user_id: own.actor })
+    expect(db.calls).toEqual([])
+    expect(io.rpc).toHaveBeenLastCalledWith('gridex_project_legacy_supply_end_followup_v1', {
+      p_company_id: own.company, p_source_message_id: own.message, p_supply_period_id: own.period, p_actor_user_id: own.actor })
     assertOnlyEndTasks()
   })
 
@@ -192,48 +197,42 @@ describe.each(profiles)('AT-Z05 $subtype supplier ($reason)', profile => {
     assertOnlyEndTasks()
   })
 
-  it('direct native closure creates its scoped final task and replay preserves that task', async () => {
+  it('direct partition-owned closure and replay route only the retained receipt', async () => {
     const row = message(profile), segmentIndex = tokenizeEdifact(row.raw_payload!).segments.findIndex(segment => segment.tag === 'LIN')
-    const receipt = { applied: true, idempotent: false,
+    const receipt = { applied: true,
       periods: [{ id: own.period, status: 'ending' }], effectReceiptIds: [id(44)],
       partition: [{ object: { messageIndex: 0, messageReference: '1', objectId: CLOSURE_OBJECT, identityAgency: '9',
         registers: [{ lineIndex: 0, segmentIndex, lineNumber: '1', registerIndex: null, registerPosition: 1 }] },
         disposition: 'applied', effectReceiptId: id(44), effectFactsHash: 'a'.repeat(64) }] }
-    io.rpc.mockResolvedValue({ data: receipt, error: null })
-    const before = structuredClone(tables.customer_supply_periods)
-    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
-    expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false,
-      updated: ['customer_supply_periods', 'customer_cases'] })
-    expect(cases()).toHaveLength(1)
-    expect(cases()[0]).toMatchObject({ company_id: own.company, customer_id: own.customer,
-      metering_point_id: own.point, reason_category: 'final_metering_and_billing',
-      metadata: { source_ediel_message_id: own.message } })
-    expect(tables.customer_supply_periods).toEqual(before)
-    assertOnlyEndTasks()
-    const after = structuredClone(tables)
-    io.rpc.mockResolvedValue({ data: { ...receipt, idempotent: true }, error: null })
-    await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
-    expect(tables).toEqual(after)
-    expect(cases()).toHaveLength(1)
+    for (const idempotent of [false, true]) {
+      io.rpc.mockResolvedValueOnce({ data: { ...receipt, idempotent }, error: null })
+        .mockResolvedValueOnce({ data: { status: 'not_applicable', effectReceiptId: id(44), sourceMessageId: own.message }, error: null })
+      const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
+      expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false, updated: ['customer_supply_periods'] })
+      expect(io.rpc).toHaveBeenLastCalledWith('ediel_project_supply_end_followup_v1', {
+        p_company_id: own.company, p_effect_receipt_id: id(44), p_actor_user_id: own.actor })
+    }
+    expect(cases()).toEqual([])
     assertOnlyEndTasks()
   })
 
-  it('plans each returned ending/ended scope without including an unrelated active period', async () => {
-    io.rpc.mockResolvedValue({ data: { applied: true, periods: [
+  it('projector commands are restricted to the returned ending/ended scopes', async () => {
+    io.rpc.mockResolvedValueOnce({ data: { applied: true, periods: [
       { id: own.period, status: 'ending' }, { id: own.secondPeriod, status: 'ended' }, { id: id(97), status: 'active' }] }, error: null })
-    await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(profile) })
-    expect(cases().map(row => [row.customer_id, row.metering_point_id])).toEqual([
-      [own.customer, own.point], [own.secondCustomer, own.secondPoint]])
+    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(profile) })
+    expect(io.rpc.mock.calls.filter(call => call[0] === 'gridex_project_legacy_supply_end_followup_v1')
+      .map(([,args]) => args.p_supply_period_id)).toEqual([own.period, own.secondPeriod])
+    expect(result.updated).toContain('customer_cases')
     assertOnlyEndTasks()
   })
 
-  it('idempotent native replay creates no extra final-value task and no new business reply', async () => {
+  it('idempotent native replay cannot open a scheduled case', async () => {
     await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(profile) })
-    io.rpc.mockResolvedValue({ data: { applied: true, idempotent: true, periods: [{ id: own.period, status: 'ending' }] }, error: null })
+    io.rpc.mockResolvedValueOnce({ data: { applied: true, idempotent: true, periods: [{ id: own.period, status: 'ending' }] }, error: null })
     const before = structuredClone(tables)
     await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message(profile) })
     expect(tables).toEqual(before)
-    expect(cases()).toHaveLength(1)
+    expect(cases()).toEqual([])
     assertOnlyEndTasks()
   })
 
@@ -248,8 +247,9 @@ describe.each(profiles)('AT-Z05 $subtype supplier ($reason)', profile => {
   it('cached customer and point hints cannot replace the committed ending-period task scope', async () => {
     await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: { ...message(profile),
       customer_id: own.cachedCustomer, metering_point_id: own.cachedPoint } })
-    expect(cases()).toHaveLength(1)
-    expect(cases()[0]).toMatchObject({ customer_id: own.customer, metering_point_id: own.point })
+    expect(cases()).toEqual([])
+    expect(io.rpc).toHaveBeenLastCalledWith('gridex_project_legacy_supply_end_followup_v1', {
+      p_company_id: own.company, p_source_message_id: own.message, p_supply_period_id: own.period, p_actor_user_id: own.actor })
     assertOnlyEndTasks()
   })
 

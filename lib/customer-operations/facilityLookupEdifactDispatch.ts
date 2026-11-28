@@ -182,7 +182,7 @@ async function markDispatchBlocked(input: {
       severity: 'error',
       actionRequired: true,
       source: 'facility_lookup_edifact_dispatch',
-      payload: { request_id: input.request.id, code: input.code, technicalMessage: input.message, details: input.details ?? {} },
+      payload: { request_id: input.request.id, code: input.code },
       idempotencyKey: `facility-lookup-edifact-blocked:${input.request.id}:${input.code}`,
     })
   }
@@ -289,6 +289,20 @@ export async function dispatchFacilityLookupEdifact(input: {
   if(prior)return {requestId:request.id,status:'already_waiting',outboundRequestId:prior.outbound.id,edielMessageId:prior.message.id,communicationRouteId:prior.message.communication_route_id,
     edielRouteProfileId:prior.message.route_profile_id??null,operationId:prior.message.source_operation_id??null,blockerCode:null,blockerMessage:null}
 
+  if (request.status === 'completed' || request.status === 'cancelled') {
+    return {
+      requestId: request.id,
+      status: 'skipped',
+      outboundRequestId: clean(request.outbound_request_id),
+      edielMessageId: clean(request.ediel_message_id),
+      communicationRouteId: clean(request.communication_route_id),
+      edielRouteProfileId: clean(request.ediel_route_profile_id),
+      operationId: clean(request.operation_id),
+      blockerCode: 'facility_lookup_request_terminal',
+      blockerMessage: 'Nätägarbegäran är redan avslutad.',
+    }
+  }
+
   if (request.request_type !== 'facility_lookup') {
     return markDispatchBlocked({
       request,
@@ -336,6 +350,7 @@ export async function dispatchFacilityLookupEdifact(input: {
   const existingOutbound = await findExistingDispatchForRequest(request)
   const operationId = clean(input.operationId) ?? clean(request.operation_id) ?? randomUUID()
   const environment = input.environment ?? await resolveOutboundRuntimeEnvironment({
+    companyId: request.company_id,
     preferredRouteId: routeReadiness.communicationRouteId,
     explicitEnvironment: input.environment ?? null,
   })

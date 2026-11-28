@@ -9,6 +9,9 @@ test.skip(!enabled, 'Requires the disposable local Supabase replay and writer-cr
 
 const fixture = enabled ? JSON.parse(readFileSync(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH, 'utf8')) : null
 const detail = (id) => `/admin/ediel/operational-cases?caseId=${encodeURIComponent(id)}`
+const tenantReviewTitle = 'Anläggningens grunduppgifter behöver granskas'
+const tenantNextAction = 'Kontrollera vilka uppgifter som har ändrats innan du uppdaterar anläggningen.'
+const tenantResolvedEvent = 'Ärendestatus ändrades till Löst.'
 
 async function login(page, email) {
   await page.goto('/login')
@@ -39,16 +42,17 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await row.click()
   await expect(page).toHaveURL(new RegExp(`caseId=${fixture.recent.id}$`))
   const recentDetails = await caseDetails(page)
-  await expect(recentDetails.getByRole('heading', { name: fixture.recent.title })).toBeVisible()
-  await expect(recentDetails).toContainText('masterdata_update_review')
-  await expect(recentDetails).toContainText(fixture.recent.description)
-  await expect(recentDetails).toContainText(fixture.recent.next_action)
+  await expect(recentDetails.getByRole('heading', { name: tenantReviewTitle, exact: true })).toBeVisible()
+  await expect(recentDetails).toContainText(tenantNextAction)
+  await expect(recentDetails).not.toContainText('masterdata_update_review')
+  await expect(recentDetails).not.toContainText(fixture.recent.title)
+  await expect(recentDetails).not.toContainText(fixture.recent.description)
   await expect(recentDetails.getByRole('link', { name: 'Visa kund' })).toHaveAttribute('href', `/admin/customers/${fixture.customerA}`)
   await expect(page.getByRole('link', { name: /Källmeddelande/ })).toHaveCount(0)
   await page.goto(detail(fixture.old.id))
   const oldDetails = await caseDetails(page)
-  await expect(oldDetails.getByRole('heading', { name: fixture.old.title })).toBeVisible()
-  await expect(oldDetails).toContainText(fixture.old.next_action)
+  await expect(oldDetails.getByRole('heading', { name: tenantReviewTitle, exact: true })).toBeVisible()
+  await expect(oldDetails).toContainText(tenantNextAction)
   await page.goto('/admin/customer-cases')
   const support = await adminContent(page)
   await expect(support.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
@@ -96,11 +100,12 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   const save = writerDetails.getByRole('button', { name: 'Spara status' })
   await expect(save).toBeFocused()
   await writer.keyboard.press('Enter')
-  await expect(writerDetails).toContainText('Löst')
-  await expect(writerDetails).toContainText('Ediel-ärendestatus uppdaterad till resolved')
+  await expect(writerDetails).toContainText('Aktuell status: Löst')
+  await expect(writerDetails.getByText(tenantResolvedEvent, { exact: true })).toHaveCount(1)
   await writer.reload()
-  await expect(await caseDetails(writer)).toContainText('Löst')
-  await expect(writer.getByText('Ediel-ärendestatus uppdaterad till resolved.', { exact: true })).toHaveCount(1)
+  const reloadedDetails = await caseDetails(writer)
+  await expect(reloadedDetails).toContainText('Aktuell status: Löst')
+  await expect(reloadedDetails.getByText(tenantResolvedEvent, { exact: true })).toHaveCount(1)
   await testInfo.attach('case-status-after-reload', {body: await writer.screenshot({fullPage: true}), contentType: 'image/png'})
   await writer.close()
 
@@ -108,7 +113,7 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await login(reader, fixture.readOnlyEmail)
   await reader.goto(detail(fixture.old.id))
   const readerDetails = await caseDetails(reader)
-  await expect(readerDetails.getByRole('heading', { name: fixture.old.title })).toBeVisible()
+  await expect(readerDetails.getByRole('heading', { name: tenantReviewTitle, exact: true })).toBeVisible()
   await expect(reader.getByLabel('Ärendestatus')).toHaveCount(0)
   await reader.close()
 })
@@ -123,8 +128,8 @@ test('own case remains readable on mobile and at 200 percent layout zoom', async
     await page.evaluate(zoom => {document.documentElement.style.zoom = zoom}, view.zoom)
     const details = await caseDetails(page)
     await details.scrollIntoViewIfNeeded()
-    await expect(details.getByRole('heading', {name: fixture.old.title})).toBeVisible()
-    await expect(details).toContainText(fixture.old.next_action)
+    await expect(details.getByRole('heading', { name: tenantReviewTitle, exact: true })).toBeVisible()
+    await expect(details).toContainText(tenantNextAction)
     await expect(page.getByLabel('Ärendestatus')).toHaveCount(0)
     await expect(page.getByRole('button', {name: 'Spara status', exact: true})).toHaveCount(0)
     const customer = details.getByRole('link', {name: 'Visa kund', exact: true})
@@ -133,6 +138,6 @@ test('own case remains readable on mobile and at 200 percent layout zoom', async
     await expect(customer).toHaveAttribute('href', `/admin/customers/${fixture.customerA}`)
     await testInfo.attach(`case-${view.name}`, {body: await page.screenshot({fullPage: true}), contentType: 'image/png'})
     await page.reload()
-    await expect(await caseDetails(page)).toContainText(fixture.old.next_action)
+    await expect(await caseDetails(page)).toContainText(tenantNextAction)
   }
 })

@@ -207,7 +207,9 @@ function nullAndZeroMessage(nullStatuses:string[]=["STS+8+46'"]){
  const message=energyHandoffMessage('2026-10-15')
  message.company_id='11111111-1111-4111-8111-111111111111';message.id='22222222-2222-4222-8222-222222222222'
  const lines=message.raw_payload!.split('\n'),at=lines.findIndex(line=>line.startsWith('SEQ+'))
- const head=lines.slice(0,at).map(line=>line.replace('202607010000202607010015:719','202607010000202607010030:719'))
+ const head=lines.slice(0,at).map(line=>line
+  .replace('202607010000202607010015:719','202607010000202607010030:719')
+  .replace('DTM+597:202607010020:203','DTM+597:202607010040:203'))
  const observations=["SEQ++1'","QTY+136:NULL'","DTM+597:202607010000:203'",...nullStatuses,
   "SEQ++2'","QTY+136:0'","DTM+597:202607010015:203'","STS+8+21'"]
  message.raw_payload=recountEdifactUnt([...head,...observations,"UNT+0+1'",lines[lines.length-1]].join('\n'))

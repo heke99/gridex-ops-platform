@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
@@ -8,6 +9,7 @@ import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
 import {
   buildPortalDatabasePage,
   decodePortalCursor,
+  PortalCursorError,
   portalPageLimit,
 } from '@/lib/customer-portal/keysetPagination'
 
@@ -207,12 +209,18 @@ async function portalTablePage(input: {
   statuses?: readonly string[]
 }) {
   const limit = portalPageLimit(input.page.limit)
-  const cursor = decodePortalCursor({
-    cursor: input.page.cursor,
-    companyId: input.context.companyId,
-    customerId: input.context.customerId,
-    resource: input.resource,
-  })
+  let cursor: ReturnType<typeof decodePortalCursor>
+  try {
+    cursor = decodePortalCursor({
+      cursor: input.page.cursor,
+      companyId: input.context.companyId,
+      customerId: input.context.customerId,
+      resource: input.resource,
+    })
+  } catch (error) {
+    if (!(error instanceof PortalCursorError)) throw error
+    throw new ApiInputError('Ogiltig sidmarkör.', error.code, error.status, error.field)
+  }
   const rows = await listWithSchemaFallback(input.selects.map((select) => async () => {
     let query = supabaseService
       .from(input.table)
@@ -571,6 +579,79 @@ export async function listPortalDocumentsPage(
     limit, companyId: context.companyId, customerId: context.customerId,
     resource: 'documents', orderColumn: 'created_at', sourceRankColumn: 'source_rank',
   })
+}
+
+const DOCUMENT_CANONICAL_RESOURCE = 'documents:canonical-v2'
+
+export async function listCompatiblePortalDocuments(
+  context: PortalCustomerContext,
+  page: PortalDatabasePageInput,
+  startCanonical: boolean,
+) {
+  if (!page.cursor && !startCanonical) return listPortalDocumentsPage(context, page)
+  let cursor
+  try {
+    cursor = decodePortalCursor({
+      cursor: page.cursor, companyId: context.companyId, customerId: context.customerId,
+      resource: DOCUMENT_CANONICAL_RESOURCE,
+    })
+  } catch (error) {
+    if (error instanceof PortalCursorError) {
+      return listPortalDocumentsPage(context, page)
+    }
+    throw error
+  }
+  await logPortalAccess({ context, route: '/api/v1/customer/documents', action: 'read_documents_page' })
+  const limit = portalPageLimit(page.limit)
+  const parameters = {
+    p_company_id: context.companyId,
+    p_customer_id: context.customerId,
+    p_cursor_created_at: cursor?.orderValue ?? null,
+    p_cursor_source_rank: cursor?.sourceRank ?? null,
+    p_cursor_id: cursor?.id ?? null,
+    p_limit: limit + 1,
+  }
+  const { data, error } = await supabaseService.rpc('portal_customer_documents_page_v2', parameters)
+  if (isPortalDocumentRetentionError(error)) throw error
+  if (error || !Array.isArray(data)) {
+    throw new PlatformSchemaNotReadyError('Canonical document pagination is unavailable.', portalQueryErrorMetadata(error))
+  }
+  if (data.length > limit + 1 || data.some(row => !row || typeof row !== 'object' ||
+      typeof row.public_reference_source !== 'string' || typeof row.cursor_created_at !== 'string' ||
+      typeof row.cursor_id !== 'string' || ![1, 2, 3].includes(row.cursor_source_rank))) {
+    throw new PlatformSchemaNotReadyError('Canonical document pagination returned an invalid projection.')
+  }
+  return buildPortalDatabasePage(data as Record<string, unknown>[], {
+    limit, companyId: context.companyId, customerId: context.customerId,
+    resource: DOCUMENT_CANONICAL_RESOURCE, orderColumn: 'cursor_created_at',
+    sourceRankColumn: 'cursor_source_rank', idColumn: 'cursor_id',
+  })
+}
+
+function isPortalDocumentRetentionError(error: { message?: string } | null): boolean {
+  return error?.message === 'portal_customer_retention_access_revoked'
+    || error?.message === 'customer_record_customer_scope_required'
+}
+
+export async function readPortalDocumentReferenceAlias(
+  context: PortalCustomerContext,
+  reference: string,
+): Promise<{ kind: 'unmatched' | 'unavailable' | 'ambiguous' } |
+           { kind: 'matched'; document: Record<string, unknown> }> {
+  await requirePortalRetentionAccess(context)
+  const parameters = { p_company_id: context.companyId, p_customer_id: context.customerId, p_public_reference: reference }
+  const { data, error } = await supabaseService.rpc('portal_customer_document_reference_v2', parameters)
+  if (isPortalDocumentRetentionError(error)) throw error
+  if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new PlatformSchemaNotReadyError('Document reference resolution is unavailable.', portalQueryErrorMetadata(error))
+  }
+  const payload = data as { kind?: unknown; document?: unknown }
+  if (payload.kind === 'matched' && payload.document && typeof payload.document === 'object' && !Array.isArray(payload.document)) {
+    await logPortalAccess({ context, route: '/api/v1/customer/documents', action: 'read_document_reference' })
+    return { kind: 'matched', document: payload.document as Record<string, unknown> }
+  }
+  if (payload.kind === 'unmatched' || payload.kind === 'unavailable' || payload.kind === 'ambiguous') return { kind: payload.kind }
+  throw new PlatformSchemaNotReadyError('Document reference resolution returned an invalid projection.')
 }
 
 const POA_SELECT = 'id,contract_id,customer_site_id,site_id,metering_point_id,scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,legal_text_version_id,scope_summary,created_at'

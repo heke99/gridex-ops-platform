@@ -7,9 +7,12 @@ export type SupplierSwitchActivationReadiness = {
   code:
     | 'ready'
     | 'not_accepted'
+    | 'lifecycle_held'
     | 'missing_z04_confirmation'
     | 'missing_effective_start_date'
     | 'awaiting_effective_start_date'
+    | 'market_start_unverified'
+    | 'market_start_unavailable'
   effectiveStartDate: string | null
   marketDate: string
   reason: string
@@ -23,13 +26,20 @@ function dateOnly(value: string | null | undefined): string | null {
   return match?.[1] ?? null
 }
 
+const stockholmDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Stockholm',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+const stockholmDateTimeFormatter = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Stockholm',
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+})
+
 export function stockholmMarketDate(now = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Stockholm',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now)
+  const parts = stockholmDateFormatter.formatToParts(now)
 
   const year = parts.find((part) => part.type === 'year')?.value
   const month = parts.find((part) => part.type === 'month')?.value
@@ -44,11 +54,15 @@ export function supplierSwitchEffectiveStartDate(
   return dateOnly(request.confirmed_start_date) ?? dateOnly(request.requested_start_date)
 }
 
+const activationHeldReason = 'Ärendet är pausat och behöver granskas innan leveransstart.'
+
+type SupplierSwitchActivationInput = Pick<
+  SupplierSwitchRequestRow,
+  'status' | 'inbound_z04_message_id' | 'confirmed_start_date' | 'requested_start_date'
+> & Partial<Pick<SupplierSwitchRequestRow, 'lifecycle_blocked'>>
+
 export function getSupplierSwitchActivationReadiness(
-  request: Pick<
-    SupplierSwitchRequestRow,
-    'status' | 'inbound_z04_message_id' | 'confirmed_start_date' | 'requested_start_date'
-  >,
+  request: SupplierSwitchActivationInput,
   now = new Date()
 ): SupplierSwitchActivationReadiness {
   const marketDate = stockholmMarketDate(now)
@@ -61,6 +75,16 @@ export function getSupplierSwitchActivationReadiness(
       effectiveStartDate,
       marketDate,
       reason: 'Leverantörsbytet måste vara affärsmässigt bekräftat av nätägaren med inbound PRODAT Z04.',
+    }
+  }
+
+  if (request.lifecycle_blocked) {
+    return {
+      ready: false,
+      code: 'lifecycle_held',
+      effectiveStartDate,
+      marketDate,
+      reason: activationHeldReason,
     }
   }
 
@@ -101,4 +125,46 @@ export function getSupplierSwitchActivationReadiness(
     marketDate,
     reason: `Inbound PRODAT Z04 är korrelerad och startdatum ${effectiveStartDate} är uppnått.`,
   }
+}
+
+export function verifiedMarketStartHasOccurred(start: string, now: Date): boolean {
+  // Keep the exact PostgreSQL precision of the canonical UTC start.
+  return start <= now.toISOString().replace(/Z$/, '000Z')
+}
+
+/** The start is the complete authenticated read of the bound Z04 period in UTC.
+ * Undefined means the proof read failed; null means it found no unique start. */
+export function getVerifiedSupplierSwitchActivationReadiness(
+  request: SupplierSwitchActivationInput & Partial<Pick<SupplierSwitchRequestRow, 'paused_at'>>,
+  marketStart: string | null | undefined,
+  now: Date,
+): SupplierSwitchActivationReadiness {
+  const calendar = getSupplierSwitchActivationReadiness(request, now)
+  if (request.status === 'accepted' && request.paused_at) {
+    return { ...calendar, ready: false, code: 'lifecycle_held', reason: activationHeldReason }
+  }
+  if (!calendar.ready && calendar.code !== 'awaiting_effective_start_date') return calendar
+
+  if (!marketStart) {
+    return {
+      ...calendar,
+      ready: false,
+      code: marketStart === null ? 'market_start_unverified' : 'market_start_unavailable',
+      reason: marketStart === null
+        ? 'En entydig marknadsstart från nätägarens bekräftelse saknas.'
+        : 'Den bekräftade marknadsstarten kunde inte kontrolleras. Läs om ärendet innan leveransstart.',
+    }
+  }
+
+  const startLabel = stockholmDateTimeFormatter.format(new Date(marketStart))
+  const marketStartReached = verifiedMarketStartHasOccurred(marketStart, now)
+  if (!marketStartReached || !calendar.ready) {
+    return {
+      ...calendar,
+      ready: false,
+      code: 'awaiting_effective_start_date',
+      reason: marketStartReached ? calendar.reason : `Nätägaren har bekräftat bytet. Leveransstart tidigast ${startLabel} svensk tid.`,
+    }
+  }
+  return { ...calendar, reason: `Nätägarens bekräftade marknadsstart ${startLabel} svensk tid är uppnådd.` }
 }

@@ -19,6 +19,7 @@ Website, Customer and Staff business responses identify their response profile i
 - [Customer specification](openapi/customer-portal-v1.json), [immutable documentation 2026-10-12.1](openapi/releases/2026-10-12.1/customer-portal-v1.json) and [Customer Portal guide](gridex-customer-portal-api.md).
 - [Staff specification](openapi/staff-v1.json), [immutable documentation 2026-10-12.1](openapi/releases/2026-10-12.1/staff-v1.json) and [Staff guide](gridex-staff-api.md).
 - [Independent onboarding specification](openapi/staff-onboarding-v1.json) and [identity/binding guide](staff-api/independent-onboarding.md).
+- The public compatibility status feed reports the current build and deprecation catalogue for all integration audiences. [Status endpoint](https://app.gridex.se/api/v1/openapi/legacy-compatibility.json) · [Response specification](openapi/legacy-compatibility-status-v1.json)
 - [Partner specification source](../lib/partner-api/openApi.ts) and [unified developer guide](../app/developers/customer-portal-api/page.tsx).
 - [Documentation findings and verification](../quality/audits/2026-10-12-ops-api-contracts/documentation-review.json).
 - [Older validator errata](api-validator-errata/README.md): three checksum-bound source patches; immutable released specifications retain their original bytes.

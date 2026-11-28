@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-import { normalizeContractPricing } from "../lib/pricing/contractPricingVersioning.ts";
+import { register } from "node:module";
 
 const baseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const companyId = process.env.GRIDEX_CONTRACT_TEST_COMPANY_ID || "";
 const actorId = process.env.GRIDEX_CONTRACT_TEST_ACTOR_ID || "";
+const stagingProjectRef = String(process.env.GRIDEX_E2E_STAGING_PROJECT_REF || "").trim();
 
 if (!baseUrl || !serviceKey || !companyId || !actorId) {
   console.error(
@@ -13,12 +14,32 @@ if (!baseUrl || !serviceKey || !companyId || !actorId) {
   );
   process.exit(2);
 }
-if (process.env.VERCEL_ENV === "production" || process.env.GRIDEX_CONTRACT_TEST_CONFIRM_STAGING !== "YES") {
+if (process.env.VERCEL_ENV === "production" ||
+    (process.env.NODE_ENV === "production" && process.env.GRIDEX_E2E_PRODUCTION_CONTEXT === "YES") ||
+    process.env.GRIDEX_CONTRACT_TEST_CONFIRM_STAGING !== "YES") {
   console.error(
     "This create/read/delete roundtrip is staging-only. Set GRIDEX_CONTRACT_TEST_CONFIRM_STAGING=YES in an isolated staging environment.",
   );
   process.exit(2);
 }
+
+const uuidPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+if (!uuidPattern.test(companyId) || !uuidPattern.test(actorId)) {
+  console.error("Staging roundtrip requires valid company and actor UUIDs.");
+  process.exit(2);
+}
+
+const productionProjectRef = "piidsfebjqjmnepdpnas";
+if (!/^[a-z0-9]{20}$/.test(stagingProjectRef) || stagingProjectRef === productionProjectRef ||
+    baseUrl !== `https://${stagingProjectRef}.supabase.co`) {
+  console.error("Staging roundtrip requires the approved staging project URL and GRIDEX_E2E_STAGING_PROJECT_REF.");
+  process.exit(2);
+}
+
+// Bare Node does not resolve the app's TypeScript path aliases. Resolve only
+// this dependency of the shared pricing function while importing it.
+register(new URL("./helpers/contract-staging-pricing-loader.mjs", import.meta.url));
+const { normalizeContractPricing } = await import("../lib/pricing/contractPricingVersioning.ts");
 
 const headers = {
   apikey: serviceKey,
@@ -28,6 +49,7 @@ const headers = {
 
 async function rpc(name, args) {
   const response = await fetch(`${baseUrl}/rest/v1/rpc/${name}`, {
+    redirect: "error",
     method: "POST",
     headers,
     body: JSON.stringify(args),
@@ -38,7 +60,7 @@ async function rpc(name, args) {
 }
 
 async function selectOne(path) {
-  const response = await fetch(`${baseUrl}/rest/v1/${path}`, { headers });
+  const response = await fetch(`${baseUrl}/rest/v1/${path}`, { headers, redirect: "error" });
   const payload = await response.json().catch(() => null);
   if (!response.ok) throw new Error(`read failed: ${JSON.stringify(payload ?? response.statusText)}`);
   return Array.isArray(payload) ? payload[0] ?? null : payload;
@@ -55,7 +77,7 @@ const expected = {
   variable_fee_ore_per_kwh: 1.375,
   discount_value: 10,
   discount_unit: "percent",
-  discount_calculation_base: "monthly_fee",
+  discount_calculation_base: "monthly_fixed_amount",
   discount_months: 3,
   default_binding_months: 0,
   default_notice_months: 1,
@@ -107,6 +129,8 @@ const payload = {
   lifecycle_status: "draft",
   status: "draft",
   pricing_model: pricing.pricingModel,
+  energy_direction: pricing.snapshot.energy_direction,
+  channels: { internal: "paused", website: "paused", api: "paused" },
   description: "Staging-only canonical contract roundtrip",
   valid_from: new Date().toISOString().slice(0, 10),
   valid_to: null,
@@ -119,19 +143,22 @@ const payload = {
 
 let offerId = null;
 try {
-  const created = await rpc("gridex_upsert_internal_contract_offer", {
+  const created = await rpc("gridex_upsert_internal_contract_offer_v2", {
     p_company_id: companyId,
     p_offer_id: null,
     p_payload: payload,
     p_pricing_snapshot: pricing.snapshot,
     p_actor_user_id: actorId,
   });
-  const offer = created?.offer ?? created?.[0]?.offer;
-  offerId = offer?.id ?? null;
-  if (!offerId) throw new Error(`RPC did not return offer.id: ${JSON.stringify(created)}`);
+  const command = Array.isArray(created) && created.length === 1 ? created[0] : created;
+  if (command?.ok !== true || command.company_id !== companyId.toLowerCase() ||
+      typeof command.offer?.id !== "string" || !uuidPattern.test(command.offer.id)) {
+    throw new Error("The canonical draft writer did not confirm a created offer for the staging company.");
+  }
+  offerId = command.offer.id;
 
   const canonical = await selectOne(
-    `canonical_internal_contract_offers_v?id=eq.${encodeURIComponent(offerId)}&select=*`,
+    `canonical_internal_contract_offers_v?id=eq.${encodeURIComponent(offerId)}&company_id=eq.${encodeURIComponent(companyId)}&select=*`,
   );
   if (!canonical) throw new Error("Canonical view did not return the created offer.");
 

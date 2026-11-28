@@ -176,6 +176,34 @@ vi.mock('@/lib/supabase/service', () => {
           originals:[...database.bornOriginals.values()].filter(row=>row.related_message_id===source.id&&row.message_family===args.p_ack_family&&row.direction==='outbound')
           .map(row=>({status:'qualified',message:structuredClone(row),payloadHash:createHash('sha256').update(String(row.raw_payload)).digest('hex')}))}}
       }
+      if (name === 'gridex_finalize_utilts_transaction_ack_v1') {
+        // Model the actual non-durable ledger finalizer, not an unconditional
+        // ACK success. Durable mixed-work preconditions belong to the native suite.
+        const { p_company_id: company, p_environment: environment, p_source_message_id: source,
+          p_transaction_id: transaction, p_response_type: response, p_response_message_id: message } = args
+        if (!company || !source || !message || typeof transaction !== 'string' || transaction.length === 0 ||
+            !['test', 'production'].includes(String(environment)) ||
+            !['positive_aperak', 'negative_aperak', 'utilts_err'].includes(String(response))) {
+          return { data: null, error: { code: '22023', message: 'utilts_transaction_ack_finalizer_invalid_scope' } }
+        }
+        const reservation = database.tables.get('ediel_ack_transaction_results')!.find(row =>
+          row.company_id === company && row.environment === environment && row.source_message_id === source &&
+          row.source_transaction_id === transaction)
+        if (!reservation) return { data: { status: 'conflict' }, error: null }
+        if (reservation.finalized_at) {
+          return {
+            data: reservation.final_response_type === response && reservation.response_message_id === message
+              ? { status: 'already_finalized', responseMessageId: message }
+              : { status: 'conflict' },
+            error: null,
+          }
+        }
+        const now = new Date().toISOString()
+        Object.assign(reservation, {
+          final_response_type: response, response_message_id: message, finalized_at: now, updated_at: now,
+        })
+        return { data: { status: 'finalized', responseMessageId: message }, error: null }
+      }
       if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error(`unexpected_rpc:${name}`)
       // Adapter-only harness: model an already committed consumer reservation.
       // Actual receipt/series/contract proof stays in the native suite.

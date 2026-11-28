@@ -38,7 +38,8 @@ export async function readBillingPage(
 ): Promise<{ rows: Record<string, unknown>[]; total: number; page: number; pageSize: number }> {
   if (!companyId) throw new Error('Välj ett bolag för att läsa faktureringsuppgifter.')
   const pageSize = Math.max(1, Math.min(1000, Math.trunc(options.pageSize ?? 80)))
-  let page = Number.isSafeInteger(options.page) && Number(options.page) > 0 ? Number(options.page) : 1
+  const maxPage = Math.floor(Number.MAX_SAFE_INTEGER / pageSize)
+  let page = Number.isSafeInteger(options.page) && Number(options.page) > 0 ? Math.min(Number(options.page), maxPage) : 1
   let total: number | null = null
   const rows: Record<string, unknown>[] = []
   while (true) {
@@ -47,6 +48,18 @@ export async function readBillingPage(
     for (const [key, value] of Object.entries(options.equals ?? {})) query = Array.isArray(value) ? query.in(key, value) : query.eq(key, value)
     for (const order of options.order ?? []) query = query.order(order.column, { ascending: order.ascending !== false })
     const result = await query.range(offset, page * pageSize - 1)
+    if (result.error && result.status === 416 && page > 1 && total === null) {
+      // PostgREST can reject a stale page before the SDK exposes its exact count.
+      const first = await query.range(0, 0)
+      if (first.error) throw first.error
+      if (!Number.isSafeInteger(first.count) || Number(first.count) < 0) throw result.error
+      if (first.count === 0) return { rows, total: 0, page: 1, pageSize }
+      const lastPage = Math.ceil(Number(first.count) / pageSize)
+      if (lastPage >= page) throw result.error
+      total = Number(first.count)
+      page = lastPage
+      continue
+    }
     if (result.error) throw result.error
     if (!Number.isSafeInteger(result.count) || Number(result.count) < 0 || !Array.isArray(result.data)) throw new Error('Faktureringsuppgifterna kunde inte läsas fullständigt.')
     if (total !== null && total !== result.count) throw new Error('Faktureringsuppgifterna ändrades under läsningen. Försök igen.')

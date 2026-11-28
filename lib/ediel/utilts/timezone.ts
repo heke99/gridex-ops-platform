@@ -14,6 +14,17 @@ function parseTimezoneSegment(segment: string): EdifactTimezoneOffset | null {
   const match = /^DTM\+735:(?:[^+\-\d])?([+-])(\d{2})(\d{2}):406$/i.exec(raw)
   if (!match) return null
 
+  return parsedOffset(match)
+}
+
+/** A tokenizer has already applied the declared UNA release character. */
+export function parseEdifactTimezoneOffsetFromComponents(parts: readonly string[]): EdifactTimezoneOffset | null {
+  if (parts.length !== 3 || parts[0] !== '735' || parts[2] !== '406') return null
+  const match = /^([+-])(\d{2})(\d{2})$/.exec(parts[1] ?? '')
+  return match ? parsedOffset(match) : null
+}
+
+function parsedOffset(match: RegExpExecArray): EdifactTimezoneOffset | null {
   const hours = Number(match[2])
   const minutes = Number(match[3])
   if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null

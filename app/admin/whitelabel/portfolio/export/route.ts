@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { getCustomerPortfolio, getWhiteLabelPortfolioOverview, portfolioMonthsCsv } from '@/lib/analytics/customerPortfolio'
-import { addMonths, monthStart } from '@/lib/analytics/utils'
+import { readPortfolioExportRange } from '@/lib/analytics/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,13 +17,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'platform och company krävs.' }, { status: 400 })
   }
 
-  const month = monthStart(request.nextUrl.searchParams.get('month'))
+  const range = readPortfolioExportRange(request.nextUrl.searchParams)
+  if (!range) return NextResponse.json({ error: 'Månaden måste anges som ÅÅÅÅ-MM.' }, { status: 400 })
+  const { from, month } = range
   const tenants = await getWhiteLabelPortfolioOverview(platformId, month)
   if (!tenants.some((row) => row.companyId === companyId)) {
     return NextResponse.json({ error: 'Bolaget tillhör inte plattformen.' }, { status: 404 })
   }
 
-  const portfolio = await getCustomerPortfolio(companyId, addMonths(month, -11), month)
+  const portfolio = await getCustomerPortfolio(companyId, from, month)
   return new NextResponse(`﻿${portfolioMonthsCsv(portfolio.months, portfolio.forecastMonths)}`, {
     headers: {
       'content-type': 'text/csv; charset=utf-8',

@@ -54,7 +54,7 @@ function communicationTraceFields(input: SendCompanyEmailInput) {
   }
 }
 
-function isLegalOrCritical(input: SendCompanyEmailInput) {
+export function isLegalOrCritical(input: Pick<SendCompanyEmailInput, 'legalOrCritical' | 'eventKey' | 'templateKey'>) {
   if (input.legalOrCritical) return true
   return ['contract.confirmation_sent', 'contract.cooling_off_sent', 'switch.started', 'switch.confirmed', 'switch.action_required', 'customer.welcome_active']
     .includes(input.eventKey ?? input.templateKey)
@@ -79,7 +79,7 @@ async function communicationLogOutboxState(logId: string) {
   return data?.length ? 'active' : null
 }
 
-async function isEventRuleEnabled(companyId: string, eventKey: string | null | undefined, templateKey: string) {
+export async function isEventRuleEnabled(companyId: string, eventKey: string | null | undefined, templateKey: string) {
   if (!eventKey || eventKey === 'test_email') return true
 
   const { data, error } = await supabaseService

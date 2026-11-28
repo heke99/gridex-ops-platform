@@ -92,15 +92,25 @@ async function findIdempotentSupportCase(input: {
   return (data as CustomerCaseRow | null) ?? null
 }
 
-export async function listTenantSupportCustomerOptions(companyId: string): Promise<TenantSupportCustomerOption[]> {
-  const { data, error } = await supabaseService
+export async function listTenantSupportCustomerOptions(companyId: string, selectedCustomerId?: string | null): Promise<TenantSupportCustomerOption[]> {
+  const maxOptions = 200
+  const customerOptionsQuery = () => supabaseService
     .from('customers')
     .select('id,customer_number,full_name,first_name,last_name,company_name')
     .eq('company_id', companyId)
+  const { data, error } = await customerOptionsQuery()
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(maxOptions)
   if (error) throw error
-  return (data ?? []).map((row) => {
+  let customers = data ?? []
+  if (selectedCustomerId && !customers.some(row => row.id === selectedCustomerId)) {
+    const { data: selected, error: selectedError } = await customerOptionsQuery()
+      .eq('id', selectedCustomerId)
+      .maybeSingle()
+    if (selectedError) throw selectedError
+    if (selected) customers = [selected, ...customers.slice(0, maxOptions - 1)]
+  }
+  return customers.map((row) => {
     const person = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
     const name = row.full_name ?? (person || row.company_name || row.customer_number || row.id)
     return { id: String(row.id), label: `${name}${row.customer_number ? ` · ${row.customer_number}` : ''}` }

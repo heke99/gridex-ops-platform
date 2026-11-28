@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import { evaluateBillingMonthInvoiceReadiness, lockBillingPeriodForInvoiceExport } from '@/lib/billing/invoiceReadiness'
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
 import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
@@ -902,13 +903,45 @@ export async function processDueInvoiceExportRetries(input: {
 }
 
 export async function getInvoiceExportRun(input: { companyId: string; exportRunId: string }) {
-  const [run, items] = await Promise.all([
-    supabaseService.from('invoice_export_runs').select('*').eq('company_id', input.companyId).eq('id', input.exportRunId).single(),
-    supabaseService.from('invoice_export_items').select('*').eq('company_id', input.companyId).eq('export_run_id', input.exportRunId).order('created_at', { ascending: true }),
-  ])
+  const run = await supabaseService.from('invoice_export_runs').select('*')
+    .eq('company_id', input.companyId).eq('id', input.exportRunId).maybeSingle()
   if (run.error) throw run.error
-  if (items.error) throw items.error
-  return { run: run.data, items: items.data ?? [] }
+  if (!run.data) throw new ApiInputError('Fakturaexporten hittades inte.', 'invoice_export_not_found', 404)
+
+  const pageSize = 1_000
+  const items: Record<string, unknown>[] = []
+  const ids = new Set<string>()
+  // The live row count also covers historical runs with a stale stored total.
+  let total: number | null = null
+  do {
+    const { data: page, count, error } = await supabaseService
+      .from('invoice_export_items')
+      .select('*', { count: 'exact' })
+      .eq('company_id', input.companyId)
+      .eq('export_run_id', input.exportRunId)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(items.length, items.length + pageSize - 1)
+    if (error) throw error
+    if (count === null || !Number.isSafeInteger(count) || count < 0 ||
+        (total !== null && count !== total) || !Array.isArray(page) ||
+        page.length > Math.min(pageSize, count - items.length) ||
+        (page.length === 0 && items.length < count)) {
+      throw new Error('invoice_export_items_incomplete')
+    }
+    total = count
+
+    for (const row of page) {
+      if (!row || typeof row.id !== 'string' || !row.id || ids.has(row.id) ||
+          row.company_id !== run.data.company_id || row.export_run_id !== run.data.id) {
+        throw new Error('invoice_export_items_incomplete')
+      }
+      ids.add(row.id)
+      items.push(row)
+    }
+  } while (items.length < total)
+
+  return { run: run.data, items }
 }
 
 export async function resetFailedInvoiceExportItems(input: { companyId: string; exportRunId: string }) {

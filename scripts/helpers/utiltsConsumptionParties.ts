@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } from '@/lib/ediel/flows/utiltsCanonicalValidation'
@@ -6,9 +6,80 @@ import { readCanonicalPeriodicReasonAuthority, readCanonicalUtiltsIssuerIdentity
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { captureEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import { edielSmtpConfig } from '@/lib/ediel/mailReadiness'
+import { prepareEdielOutboundOwnerWitness } from '@/lib/ediel/core/outboundOwnerWitness'
+import { storeMailboxFetchMessage } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
+import type { EdielMailboxRow } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 
 type Sql = <T = unknown>(input: string) => T
 type Lit = (value: unknown) => string
+
+/** Store a synthetic E73 original through the same rule-pack witness the
+ * sent-period reader requires. The accepted journal row is local test data,
+ * with no SMTP call. */
+export async function seedSentE73ForUtiltsConsumption(sql: Sql, lit: Lit, ids: {
+  company: string; actor: string; request: string; customer: string; site: string; point: string;
+  grid: string; ediel: string; issuer: string; requestedPeriod?: { from: string; until: string };
+}) {
+  const id = randomUUID()
+  const reference = `E73${id.replaceAll('-', '').slice(0, 16)}`
+  const interchange = id.replaceAll('-', '').slice(0, 14)
+  const requestedPeriod = ids.requestedPeriod ?? { from: '202607010000', until: '202607010015' }
+  const raw = [
+    "UNA:+.? '",
+    `UNB+UNOC:3+${ids.ediel}:ZZ+${ids.issuer}:ZZ+260630:2100+${interchange}++23-DDQ-E66-T+++1+1'`,
+    "UNH+1+UTILTS:D:02B:UN:E5SE5A'", `BGM+E73::260+${reference}+9+AB'`,
+    "DTM+137:202606302100:203'", "DTM+735:?+0100:406'", "MKS+23+E02::260'", `RFF+TN:${reference}'`,
+    `NAD+MS+${ids.ediel}:SVK:260'`, `NAD+MR+${ids.issuer}:SVK:260'`, `IDE+24+${reference}'`,
+    "LOC+172+735999260731000007::9'", "LOC+239+TES:SVK:260'", "LIN+++8716867000030:::9'",
+    `DTM+324:${requestedPeriod.from}${requestedPeriod.until}:719'`, "DTM+597:202606302100:203'", "STS+7++E73::260'",
+    "FTX+AAO+++Request missing E66'", "FTX+ZZZ+++Consumption'", "RFF+E66'", "UNT+19+1'", `UNZ+1+${interchange}'`,
+  ].join('')
+  const registry = sql<{
+    rule_pack_id: string; message_profile_id: string; profile_key: string;
+    original_version: string; original_snapshot: { rulePack: { source_hash: string } };
+  }>(`SELECT basis FROM public.resolve_canonical_ediel_rule_pack_with_witness_v1(
+    'electricity','UTILTS','E73','','outbound',(clock_timestamp() AT TIME ZONE 'Europe/Stockholm')::date) AS basis`)
+  const pack = registry.original_snapshot.rulePack
+  const owner = await prepareEdielOutboundOwnerWitness({ companyId: ids.company, actorUserId: ids.actor, environment: 'test', rawPayload: raw,
+    rulePackEvidence: { rulePackId: registry.rule_pack_id, messageProfileId: registry.message_profile_id,
+      profileKey: registry.profile_key, version: registry.original_version, sourceHash: pack.source_hash,
+      snapshot: registry.original_snapshot } })
+  const evidence = owner.evidence
+  const recipient = 'synthetic-e73@example.invalid'
+  const route = randomUUID()
+  const routeProfile = randomUUID()
+  sql(`BEGIN;
+    INSERT INTO public.tenant_message_capabilities(company_id,environment,message_family,message_code,direction,is_enabled,bilateral)
+    VALUES(${lit(ids.company)},'test','UTILTS','E73','outbound',true,true);
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+    VALUES(${lit(route)},${lit(ids.company)},'Synthetic E73 route','meter_values',${lit(ids.grid)},'bilateral_test',true,${lit(recipient)});
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,
+      sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,smtp_to,receiver_email)
+    VALUES(${lit(routeProfile)},${lit(ids.company)},${lit(route)},'Synthetic E73 profile','test','edifact',${lit(ids.ediel)},${lit(ids.issuer)},
+      '23-DDQ-E66-T',true,true,'edifact','unencrypted',${lit(recipient)},${lit(recipient)});
+    INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,
+      environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,created_by,application_reference,
+      sender_ediel_id,receiver_ediel_id,interchange_reference,transaction_reference,external_reference,canonical_rule_pack_id,
+      rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,
+      execution_context_snapshot,immutable_payload_hash,immutable_rendered_at,communication_route_id,route_profile_id,source_operation_id)
+    VALUES(${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},
+      'test','outbound','edifact','UTILTS','E73','prepared',${lit(raw)},
+      ${lit({ requestedMessageCode: 'E66', resolution: 'PT15M', bilateralCapabilityVerified: true })},${lit(ids.actor)},'23-DDQ-E66-T',
+      ${lit(ids.ediel)},${lit(ids.issuer)},${lit(interchange)},${lit(reference)},${lit(reference)},${lit(evidence.rulePackId)},
+      ${lit(evidence.profileKey)},${lit(evidence.messageProfileId)},${lit(evidence.version)},${lit(evidence.sourceHash)},${lit(evidence.snapshot)},
+      ${lit({ outboundOwnerWitnessId: owner.witnessId })},encode(sha256(convert_to(${lit(raw)},'UTF8')),'hex'),clock_timestamp(),
+      ${lit(route)},${lit(routeProfile)},${lit(ids.request)});
+    INSERT INTO gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding,created_at,entered_at,
+      observed_at,classification,provider_result)
+    SELECT gen_random_uuid(),m.id,m.company_id,m.environment,${lit(ids.actor)},'{}',
+      jsonb_build_object('originalHash',m.immutable_payload_hash,'to',${lit(recipient)}),clock_timestamp(),clock_timestamp(),
+      clock_timestamp(),'accepted',${lit({ accepted: [recipient], rejected: [] })}
+    FROM public.ediel_messages m WHERE m.id=${lit(id)};
+    UPDATE public.ediel_messages SET status='sent',message_sent_at=clock_timestamp() WHERE id=${lit(id)};
+    UPDATE public.grid_owner_data_requests SET status='sent',external_reference=${lit(reference)} WHERE id=${lit(ids.request)};
+    COMMIT;`)
+  return reference
+}
 
 /** Fixture-owned UTILTS parties: a unique receiver supplier identity and a unique
  * grid-owner issuer with its own synthetic approved issuer/transport-mandate
@@ -109,4 +180,30 @@ export function receiveUtiltsRetry(sql: Sql, lit: Lit, input: { companyId: strin
     INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,application_reference,interchange_reference,message_family,message_code,parse_status)
     VALUES(${lit(parse)},${lit(mail)},${lit(input.companyId)},${lit(p.rawPayload)},${lit(p.senderEdielId ?? null)},${lit(p.receiverEdielId ?? null)},${lit(p.applicationReference ?? null)},${lit(p.interchangeReference ?? null)},${lit(p.messageFamily ?? null)},${lit(p.messageCode ?? null)},'parsed')`)
   return { inboundEmailMessageId: mail, parseResultId: parse }
+}
+
+/** Feed synthetic retained bytes into the ordinary verified IMAP owner. There
+ * is no IMAP connection. The real owner stores the stable clock and intake job. */
+export async function receiveObservedUtilts(sql: Sql, lit: Lit, input: Parameters<typeof receiveUtiltsRetry>[2] & { receivedAt: string }) {
+  const box = randomUUID()
+  const recipient = edielSmtpConfig().from || 'synthetic-utilts-reception@example.invalid'
+  const mailbox = sql<EdielMailboxRow>(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox)
+    VALUES(${lit(box)},${lit(input.companyId)},'Synthetic UTILTS observed mailbox',${lit(recipient)},'test',true,false);
+    SELECT to_jsonb(b) FROM public.ediel_mailboxes b WHERE id=${lit(box)};`)
+  const source = Buffer.from([
+    'From: synthetic-issuer@example.invalid', `To: ${recipient}`, `Message-ID: <${box}@example.invalid>`,
+    'Content-Type: text/plain; charset=UTF-8', '', input.raw,
+  ].join('\r\n'))
+  const retained = await storeMailboxFetchMessage({
+    mailbox, actorUserId: input.actorUserId, message: { uid: 1, internalDate: new Date(input.receivedAt), source },
+    transport: { accountScope: createHash('sha256').update(box).digest('hex'), folder: 'INBOX', uidValidity: 1 },
+  })
+  if (retained.deduped) throw Error('native_observed_utilts_transport_was_not_new')
+  const parse = randomUUID(), p = input.parsed
+  sql(`INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,
+    application_reference,interchange_reference,message_family,message_code,parse_status)
+    VALUES(${lit(parse)},${lit(retained.id)},${lit(input.companyId)},${lit(p.rawPayload)},${lit(p.senderEdielId ?? null)},
+      ${lit(p.receiverEdielId ?? null)},${lit(p.applicationReference ?? null)},${lit(p.interchangeReference ?? null)},
+      ${lit(p.messageFamily ?? null)},${lit(p.messageCode ?? null)},'parsed');`)
+  return { inboundEmailMessageId: retained.id, parseResultId: parse }
 }

@@ -1,21 +1,32 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const io = vi.hoisted(() => ({
-  queue: [] as Array<Record<string, unknown>>, clock: 0, claimDelay: 0,
+  queue: [] as Array<Record<string, unknown>>, clock: 0, claimDelay: 0, staleTransitionCount: 0,
   claims: [] as Array<Record<string, unknown>>, releases: [] as Array<Record<string, unknown>>,
   decisionHook: null as null | (() => void), send: vi.fn(),
+  runs: new Map<string, Record<string, unknown>>(),
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   rpc: async (name: string, args: Record<string, unknown>) => {
-    if (name === 'claim_ediel_outbox_items') {
-      io.claims.push(args)
-      const rows = io.queue.filter(row => ['queued', 'prepared'].includes(String(row.status))).slice(0, Number(args.p_limit))
+    if (name === 'gridex_note_ediel_outbox_batch_v1') {
+      const event = args.p_event as Record<string, unknown>
+      const runId = String(event.runId)
+      if (event.kind === 'start') io.runs.set(runId, event)
+      return { data: { runId, remainingReady: io.queue.filter(row => row.status === 'queued').length }, error: null }
+    }
+    if (name === 'gridex_claim_ediel_outbox_progress_v1' || name === 'gridex_claim_ediel_outbox_batch_v1') {
+      const run = io.runs.get(String(args.p_run_id))
+      if (name === 'gridex_claim_ediel_outbox_batch_v1' && !run) throw Error('missing_fixture_run')
+      io.claims.push(run ? { ...args, p_company_id: run.companyId, p_environment: run.environment } : args)
+      const rows = io.queue.filter(row => ['queued', 'prepared'].includes(String(row.status))).slice(0, run ? 1 : Number(args.p_limit))
       for (const row of rows) Object.assign(row, { status: 'sending', locked_by: args.p_worker_id, current_send_attempt_id: `attempt-${io.claims.length}` })
       const data = rows.map(row => ({ ...row }))
       io.clock += io.claimDelay
-      return { data, error: null }
+      const staleTransitionCount = io.staleTransitionCount
+      io.staleTransitionCount = 0
+      return { data: { items: data, staleTransitionCount }, error: null }
     }
-    if (name === 'canonical_block_claimed_ediel_outbox_item') {
+    if (name === 'canonical_block_claimed_ediel_outbox_item' || name === 'gridex_block_ediel_outbox_batch_item_v1') {
       const row = io.queue.find(row => row.id === args.p_outbox_item_id && row.locked_by === args.p_worker_id && row.status === 'sending')
       if (!row) return { data: null, error: new Error('claim_lost') }
       Object.assign(row, { status: 'blocked_tenant_state', locked_by: null })
@@ -55,9 +66,9 @@ import { claimEdielOutboxItems, releaseUnsentEdielOutboxClaim } from '@/lib/edie
 const row = (id: string, company_id = 'allowed') => ({ id, company_id, environment: 'test', status: 'queued', locked_by: null, current_send_attempt_id: null })
 const drain = (extra = {}) => drainEdielOutbox({ actorUserId: 'automation', environment: 'test', now: () => io.clock, ...extra })
 beforeEach(() => {
-  io.queue = []; io.clock = 0; io.claimDelay = 0; io.claims = []; io.releases = []; io.decisionHook = null
+  io.queue = []; io.clock = 0; io.claimDelay = 0; io.staleTransitionCount = 0; io.claims = []; io.releases = []; io.decisionHook = null; io.runs.clear()
   io.send.mockReset().mockImplementation(async ({ outboxItemId }: { outboxItemId: string }) => {
-    io.queue.find(row => row.id === outboxItemId)!.status = 'sent'; return { status: 'sent', messageId: 'fixture' }
+    io.queue.find(row => row.id === outboxItemId)!.status = 'sent'; return { status: 'sent', messageId: 'fixture', delivery: 'new_acceptance' }
   })
 })
 it('drains past 25 denied tenant claims and sends the following allowed acknowledgement', async () => {
@@ -87,7 +98,7 @@ it('releases a slow claim before any send when the deadline passed during claimi
 it('does not overwrite a concurrent replacement claim or report a zero-row release as success', async () => {
   io.queue = [row('changed')]
   io.decisionHook = () => { io.clock = 50; Object.assign(io.queue[0], { locked_by: 'other-worker', current_send_attempt_id: 'new-attempt' }) }
-  await expect(drain({ budgetMs: 45 })).rejects.toThrow('ediel_outbox_unsent_release_claim_lost')
+  expect(await drain({ budgetMs: 45 })).toMatchObject({ stoppedBy: 'dependency_failure', processed: 0 })
   expect(io.send).not.toHaveBeenCalled()
   expect(io.queue[0]).toMatchObject({ status: 'sending', locked_by: 'other-worker', current_send_attempt_id: 'new-attempt' })
 })
@@ -150,7 +161,7 @@ it('authorized cron binds the drain globally and retains ignored company overrid
 it('refuses a pre-send release after a concurrent company change and never starts a send', async () => {
   io.queue = [row('moved-company')]
   io.decisionHook = () => { io.clock = 50; io.queue[0].company_id = 'other-company' }
-  await expect(drain({ budgetMs: 45 })).rejects.toThrow('ediel_outbox_unsent_release_claim_lost')
+  expect(await drain({ budgetMs: 45 })).toMatchObject({ stoppedBy: 'dependency_failure', processed: 0 })
   expect(io.send).not.toHaveBeenCalled()
   expect(io.queue[0]).toMatchObject({ company_id: 'other-company', status: 'sending', locked_by: expect.any(String), current_send_attempt_id: 'attempt-1' })
   expect(io.releases[0]).toMatchObject({ company_id: 'allowed', id: 'moved-company', status: 'sending', current_send_attempt_id: 'attempt-1', locked_by: expect.any(String) })
@@ -160,4 +171,14 @@ it('blocks a raw claim without company scope before any release query or send', 
   expect(await drain()).toMatchObject({ claimed: 1, processed: 0, sent: 0, blocked: 1, stoppedBy: 'queue_empty' })
   expect(io.queue[0].status).toBe('blocked_tenant_state')
   expect(io.releases).toHaveLength(0); expect(io.send).not.toHaveBeenCalled()
+})
+
+
+it('includes persisted stale transitions in the normal drain response without starting a send', async () => {
+  io.staleTransitionCount = 3
+  expect(await drain()).toMatchObject({
+    claimed: 0, processed: 0, sent: 0, deliveryUncertain: 3, staleDeliveryUncertain: 3, stoppedBy: 'queue_empty',
+  })
+  expect(io.send).not.toHaveBeenCalled()
+  expect(await drain()).toMatchObject({ deliveryUncertain: 0, staleDeliveryUncertain: 0 })
 })

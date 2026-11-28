@@ -5,8 +5,8 @@ import { requireAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/gu
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { getCustomerCaseById, updateCustomerCaseStatus } from '@/lib/customer-cases/db'
+import { isEdielOperationalCaseSource } from '@/lib/ediel/operations/operationalCaseSources'
 
-const SOURCE = 'ediel_inbound_state_machine'
 const STATUSES = new Set(['open', 'action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'])
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -24,12 +24,12 @@ export async function updateEdielOperationalCaseStatusAction(formData: FormData)
   const status = String(formData.get('status') ?? '').trim()
   if (!ID.test(caseId) || !STATUSES.has(status)) throw new Error('Ogiltig Ediel-ärendeåtgärd.')
   const row = await getCustomerCaseById(caseId, companyId)
-  if (!row || row.source !== SOURCE) throw new Error('Ediel-ärendet finns inte i valt bolag.')
+  if (!row || !isEdielOperationalCaseSource(row.source)) throw new Error('Ediel-ärendet finns inte i valt bolag.')
 
   await updateCustomerCaseStatus({
     caseId,
     companyId,
-    expectedSource: SOURCE,
+    expectedSource: row.source,
     status,
     message: `Ediel-ärendestatus uppdaterad till ${status}.`,
     actorUserId: admin.userId,

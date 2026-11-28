@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
       force,
       sharedOnly: !mailboxId,
       allowMissingMailboxConfig: true,
+      ...(process.env.GRIDEX_EDIEL_DURABLE_E66 === '1' ? { resumeDurableE66: true } : {}),
+      ...(process.env.GRIDEX_EDIEL_DURABLE_E66_REQUEST_RETRY === '1' ? { resumeDurableE66RequestRetry: true } : {}),
       actorUserId,
     })
     return NextResponse.json({ ok: true, result })

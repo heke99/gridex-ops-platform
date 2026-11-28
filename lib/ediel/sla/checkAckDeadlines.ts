@@ -44,16 +44,15 @@ export async function checkAckDeadlines(params: {
     if (!source) continue
     // Only PRODAT application completion reads the sent ACK bytes.
     const physicalProdatAperak = source.message_family === 'PRODAT' && row.timer_type === 'aperak_due'
-    const messages = () => supabaseService.from('ediel_messages')
-    const { data: acknowledgements, error: ackError } = physicalProdatAperak
-      ? await messages()
-        .select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report,raw_payload,source_operation_id')
-        .eq('company_id', row.company_id).eq('related_message_id', row.ediel_message_id)
-        .eq('direction', 'outbound').in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR']).limit(2000)
-      : await messages()
-        .select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report')
-        .eq('company_id', row.company_id).eq('related_message_id', row.ediel_message_id)
-        .eq('direction', 'outbound').in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR']).limit(2000)
+    const messages = supabaseService.from('ediel_messages')
+    const acknowledgementQuery = physicalProdatAperak
+      ? messages.select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report,raw_payload,source_operation_id')
+      : messages.select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report')
+    const { data: acknowledgements, error: ackError } = await acknowledgementQuery
+      .eq('company_id', row.company_id).eq('related_message_id', row.ediel_message_id)
+      .eq('direction', 'outbound').in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
+      // Compare at database precision before applying the receipt limit.
+      .lte('message_sent_at', now).limit(2000)
     if (ackError) throw ackError
     let transactionResults: Array<Record<string, unknown>> = []
     if (source.message_family === 'UTILTS' && row.timer_type === 'aperak_due') {
@@ -65,8 +64,7 @@ export async function checkAckDeadlines(params: {
     }
     const completion = inboundAckTimerCompletion({
       source: source as EdielMessageRow, timerType: String(row.timer_type),
-      acknowledgements: (acknowledgements ?? []).filter(ack =>
-        typeof ack.message_sent_at === 'string' && Date.parse(ack.message_sent_at) <= nowMs),
+      acknowledgements: acknowledgements ?? [],
       transactionResults,
     })
     const dueAt = Date.parse(String(row.due_at ?? ''))

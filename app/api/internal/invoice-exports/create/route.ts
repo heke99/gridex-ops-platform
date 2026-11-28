@@ -11,15 +11,22 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const payload: unknown = await request.json().catch(() => null)
+    const body = payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : {}
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
     const access = await requireAdminApiAccess(['billing_underlay.export'], { companyId: requestedCompanyId })
     if (access.response) return access.response
     const companyId = requestedCompanyId?.trim()
       ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId)
       : await requireAdminOperationalCompany(access.guard)
-    const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
-    if (!billingMonth) return NextResponse.json({ error: 'billing_month krävs.' }, { status: 400 })
+    const rawBillingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
+    const billingMonth = rawBillingMonth.trim()
+    if (!rawBillingMonth) return NextResponse.json({ error: 'billing_month krävs.' }, { status: 400 })
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(billingMonth)) {
+      return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
+    }
 
     const supabase = await createSupabaseServerClient()
     const company = await supabase

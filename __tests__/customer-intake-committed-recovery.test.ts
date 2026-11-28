@@ -11,7 +11,7 @@ vi.mock('@/app/admin/customers/[id]/actions',()=>({createCustomerDataRequestPack
 vi.mock('@/components/admin/customers/CustomerIntakeEnhancer',()=>({default:()=>null}))
 vi.mock('@/components/admin/customers/CustomerActionsMenu',()=>({default:({children}:{children:React.ReactNode})=>children}))
 vi.mock('next/cache',()=>({revalidatePath:vi.fn()}))
-vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>{if(io.denied)throw Error('denied');return {permissions:[]}},isPlatformAdminContext:()=>false}))
+vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>{if(io.denied)throw Error('denied');return {userId:'staff-a',companyId:'company-a',permissions:[]}},isPlatformAdminContext:()=>false}))
 vi.mock('@/lib/admin/accessModel',()=>({hasPermissionRequirement:()=>false}))
 vi.mock('@/lib/customers/matchingService',()=>({matchCustomerIdentity:async()=>({candidates:[]})}))
 vi.mock('@/lib/grid-owners/platformGridOwnerResolver',()=>({normalizeGridOwnerIdToOps:async()=>({opsGridOwnerId:null})}))

@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
+import { parseBillingMonth } from '@/lib/time/stockholm'
+import { requireAdminApiAccess, requireAdminOperationalCompany, requireAdminReadableCompany } from '@/lib/admin/apiGuards'
+import type { GuardResult } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function readBillingMonth(value: unknown): string | null {
-  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value.trim()) ? value.trim() : null
+  if (typeof value !== 'string') return null
+  try {
+    return parseBillingMonth(value.trim()).value
+  } catch {
+    return null
+  }
+}
+
+async function requireBillingPeriodReadCompany(guard: GuardResult): Promise<string> {
+  if (!guard.isPlatformAdmin || !guard.companyId) return requireAdminOperationalCompany(guard)
+
+  const companyId = await requireAdminReadableCompany(guard)
+  const { data, error } = await supabaseService.from('companies').select('id,status').eq('id', companyId).maybeSingle()
+  if (error) throw error
+  if (data?.id !== companyId) throw new Error('Det valda elhandelsbolaget finns inte.')
+  if (!isCompanyWritableInTenantWorkspace(data.status)) throw new Error('Bolaget är pausat eller inte operativt.')
+  return companyId
 }
 
 export async function GET(request: Request) {
@@ -15,7 +35,7 @@ export async function GET(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireAdminOperationalCompany(access.guard)
+    const companyId = await requireBillingPeriodReadCompany(access.guard)
     const url = new URL(request.url)
     const billingMonth = readBillingMonth(url.searchParams.get('billing_month') ?? url.searchParams.get('billingMonth'))
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
@@ -33,7 +53,10 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await requireAdminOperationalCompany(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const payload: unknown = await request.json().catch(() => null)
+    const body = payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : {}
     const billingMonth = readBillingMonth(body.billing_month ?? body.billingMonth)
     const action = typeof body.action === 'string' ? body.action.trim() : 'lock'
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })

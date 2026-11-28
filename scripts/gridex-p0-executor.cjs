@@ -5,11 +5,23 @@
 // paths are metadata: this executor does not attest browser or journey outcomes.
 const fs = require('node:fs')
 const path = require('node:path')
-const { spawnSync } = require('node:child_process')
+const { execFileSync, spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '..')
 const artifactDir = path.join(root, 'e2e-artifacts')
 fs.mkdirSync(artifactDir, { recursive: true })
+
+const gitHash = /^[a-f0-9]{40}$/
+function checkoutCommit() {
+  try {
+    const sha = execFileSync('git', ['--no-replace-objects', 'rev-parse', '--verify', 'HEAD^{commit}'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2_000, maxBuffer: 1024,
+    }).trimEnd()
+    return gitHash.test(sha) ? sha : null
+  } catch {
+    return null
+  }
+}
 
 const projectText = fs.readFileSync(path.join(root, 'PROJECT_E2E.yaml'), 'utf8')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'e2e/p0-executors.json'), 'utf8'))
@@ -94,7 +106,8 @@ const evidence = {
   schema_version: 2,
   evidence_scope: 'mapping_and_deterministic_support',
   generated_at: new Date().toISOString(),
-  commit_sha: process.env.GITHUB_SHA || null,
+  commit_sha: checkoutCommit(),
+  event_commit_sha: gitHash.test(process.env.GITHUB_SHA ?? '') ? process.env.GITHUB_SHA : null,
   contract: 'PROJECT_E2E.yaml',
   required_p0: uniqueP0,
   mapped_p0: mappedIds,

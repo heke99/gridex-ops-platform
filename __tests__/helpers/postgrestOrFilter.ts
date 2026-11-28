@@ -1,6 +1,6 @@
 /**
  * Minimal evaluator for the PostgREST logical filter grammar used by `.or()` in keyset pagination
- * (`col.op.value`, `and(...)`, `or(...)`, ops eq/lt/gt/lte/gte/is/in). Test-only.
+ * (`col.op.value`, `and(...)`, `or(...)`, ops eq/neq/lt/gt/lte/gte/is/in). Test-only.
  */
 type Row = Record<string, unknown>
 
@@ -45,6 +45,7 @@ function term(row: Row, expression: string): boolean {
   switch (op) {
     case 'is': return value === 'null' ? actual === null || actual === undefined : String(actual) === value
     case 'eq': return actual !== null && actual !== undefined && compare(actual, value) === 0
+    case 'neq': return actual !== null && actual !== undefined && compare(actual, value) !== 0
     case 'lt': return actual !== null && actual !== undefined && compare(actual, value) < 0
     case 'gt': return actual !== null && actual !== undefined && compare(actual, value) > 0
     case 'lte': return actual !== null && actual !== undefined && compare(actual, value) <= 0

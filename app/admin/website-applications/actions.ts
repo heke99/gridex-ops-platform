@@ -34,6 +34,7 @@ type ApplicationRecord = {
   metering_point_id: string | null
   contract_id: string | null
   status: string
+  updated_at: string
   payload: Record<string, unknown> | null
   raw_payload: Record<string, unknown> | null
   response_payload: Record<string, unknown> | null
@@ -245,7 +246,7 @@ async function applyFacilityDataWithoutLookupRequest(input: {
 async function loadApplication(applicationId: string): Promise<ApplicationRecord> {
   const { data, error } = await supabaseService
     .from('website_customer_applications')
-    .select('id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,payload,raw_payload,response_payload,timeline,audit_log,resolution_id,grid_owner_information_request_id,grid_area_code,grid_owner_id,price_area_code,resolution_status,resolution_confidence,requested_start_mode,calculated_earliest_start_date,facility_data_verified_at')
+    .select('id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,updated_at,payload,raw_payload,response_payload,timeline,audit_log,resolution_id,grid_owner_information_request_id,grid_area_code,grid_owner_id,price_area_code,resolution_status,resolution_confidence,requested_start_mode,calculated_earliest_start_date,facility_data_verified_at')
     .eq('id', applicationId)
     .single()
 
@@ -869,42 +870,39 @@ export async function requestWebsiteApplicationGridOwnerInfoAction(formData: For
     priceArea: readiness.priceArea,
     createdBy: admin.userId,
   })
-  const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
-  responsePayload.grid_owner_information_request_id = request.requestId
-  responsePayload.grid_owner_information_request_status = request.status
-  responsePayload.grid_owner_information_request_channel = request.channel
-
-  await supabaseService
-    .from('website_customer_applications')
-    .update({
-      grid_owner_information_request_id: request.requestId,
-      status: request.status === 'ready_to_send' ? 'information_request_ready' : 'needs_facility_data',
-      response_payload: responsePayload,
-      next_step: request.nextStep,
-      warnings: [...readiness.warnings, ...request.warnings],
-      timeline: [...asArray(application.timeline), timelineEvent('grid_owner_information_request_created', 'Begäran om anläggningsuppgifter skapades', { request_id: request.requestId, status: request.status })],
-      audit_log: [...asArray(application.audit_log), auditEvent('grid_owner_information_request_created', admin.userId, {}, { request })],
-      updated_at: new Date().toISOString(),
-    })
-    .eq('company_id', application.company_id)
-    .eq('id', application.id)
-    .throwOnError()
-
+  const warnings = [...readiness.warnings, ...request.warnings]
   if (request.requestId) {
-    await logAdminActionAndUsage({
-      companyId: application.company_id,
-      actorUserId: admin.userId,
-      customerId: application.customer_id,
-      entityType: 'grid_owner_data_request',
-      entityId: request.requestId,
-      action: 'facility_data_requested',
-      label: 'Anläggningsuppgifter begärda från nätägare',
-      source: 'website_application_review',
-      billable: true,
-      billingUnit: 'facility_data_request',
-      metadata: { application_id: application.id, request_status: request.status, channel: request.channel, next_step: request.nextStep },
+    const effect = await supabaseService.rpc('gridex_record_website_facility_request_v1', {
+      p_company_id: application.company_id,
+      p_application_id: application.id,
+      p_request_id: request.requestId,
+      p_actor_user_id: admin.userId,
+      p_next_step: request.nextStep,
+      p_warnings: warnings,
     })
+    if (effect.error) throw effect.error
+    if (effect.data !== request.requestId) throw new Error('Nätägarbegäran kunde inte bekräftas.')
   } else {
+    const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
+    responsePayload.grid_owner_information_request_status = request.status
+    responsePayload.grid_owner_information_request_channel = request.channel
+
+    await supabaseService
+      .from('website_customer_applications')
+      .update({
+        response_payload: responsePayload,
+        next_step: request.nextStep,
+        warnings,
+        timeline: [...asArray(application.timeline), timelineEvent('grid_owner_information_request_skipped', 'Begäran om anläggningsuppgifter kunde inte skapas', { status: request.status })],
+        audit_log: [...asArray(application.audit_log), auditEvent('grid_owner_information_request_skipped', admin.userId, {}, { request })],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('company_id', application.company_id)
+      .eq('id', application.id)
+      .eq('updated_at', application.updated_at)
+      .is('grid_owner_information_request_id', null)
+      .throwOnError()
+
     await logAdminActionAndUsage({
       companyId: application.company_id,
       actorUserId: admin.userId,

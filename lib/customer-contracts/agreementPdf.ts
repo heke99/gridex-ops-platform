@@ -156,8 +156,8 @@ function formatAmount(value: number | null | undefined, unit: string) {
 }
 
 function monthLabel(value: number | null | undefined) {
-  const months = value ?? 0
-  return `${months} ${months === 1 ? 'månad' : 'månader'}`
+  if (value == null) return 'Ej angivet'
+  return `${value} ${value === 1 ? 'månad' : 'månader'}`
 }
 
 function cleanAddress(value: string | null | undefined) {

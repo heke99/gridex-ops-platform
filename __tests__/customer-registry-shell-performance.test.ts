@@ -22,7 +22,7 @@ describe('customer registry shell performance invariants', () => {
 
     expect(page).toContain("requireAdminPageKeyAccess('customers.list')")
     expect(page).toContain('userEmail={context.email}')
-    expect(page).not.toContain('createSupabaseServerClient')
+    expect(page).toMatch(/const switchActivation = activationRequests\.length\s*\? await readSwitchActivationPresentation\(await createSupabaseServerClient\(\), activationRequests, \{ companyId: scopedCompanyId \}\)\s*: null/)
     expect(page).not.toContain('.auth.getUser()')
   })
 

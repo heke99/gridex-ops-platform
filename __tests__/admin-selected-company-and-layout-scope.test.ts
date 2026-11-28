@@ -6,6 +6,8 @@ const io = vi.hoisted(() => ({
   platform: false,
   companyId: 'guard-A' as string | null | undefined,
   legacy: vi.fn(),
+  membershipList: vi.fn(),
+  navigationMode: 'company_view' as string | undefined,
   reads: [] as Array<{ table: string; filters: Array<[string, unknown]> }>,
 }))
 
@@ -23,6 +25,7 @@ vi.mock('@/lib/admin/guards', () => ({
 }))
 vi.mock('@/lib/tenant/scope', () => ({
   getOperationalCompanyScope: io.legacy,
+  listOperationalCompaniesForUser: io.membershipList,
   isMissingRelationError: () => false,
   TENANT_COMPANY_REQUIRED_MESSAGE: 'Bolag saknas',
   TenantCompanyRequiredError: class extends Error {},
@@ -47,7 +50,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     return query
   },
 } }))
-vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'company_view' }) }) }))
+vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => io.navigationMode ? { value: io.navigationMode } : undefined }) }))
 vi.mock('@/lib/auth/logoutAction', () => ({ logoutAction: async () => undefined }))
 vi.mock('@/components/admin/AdminSidebar', () => ({
   default: ({ workspaceName, isCompanyLiveEnabled, selectedCompanyId }: {
@@ -66,6 +69,8 @@ beforeEach(() => {
   io.platform = false
   io.companyId = 'guard-A'
   io.reads = []
+  io.membershipList.mockReset().mockResolvedValue([])
+  io.navigationMode = 'company_view'
   io.legacy.mockReset().mockResolvedValue({
     companyId: 'legacy-B', companyName: 'Legacybolag B', memberships: [],
     message: null, requiresCompany: false,
@@ -148,5 +153,41 @@ it.each(['guard-A', null])('keeps the actual platform company-view selection %s 
   const html = renderToStaticMarkup(await AdminLayout({ children: null }))
   expect(html).toContain(`data-selected-company="${companyId ?? ''}"`)
   expect(html).not.toContain('Legacybolag B')
+  expect(io.reads).toEqual([])
+})
+
+
+it('renders platform view for a canonical admin_users actor without an operational membership', async () => {
+  io.platform = true
+  io.companyId = null
+  io.navigationMode = undefined
+  io.legacy.mockRejectedValue(new TenantCompanyRequiredError())
+
+  const html = renderToStaticMarkup(await AdminLayout({ children: React.createElement('p', null, 'Plattformens innehåll') }))
+
+  expect(html).toContain('Plattformens innehåll')
+  expect(html).toContain('Gridex Platform')
+  expect(html).not.toContain('Inget aktivt bolag')
+  expect(io.legacy).not.toHaveBeenCalled()
+  expect(io.membershipList).not.toHaveBeenCalled()
+  expect(io.reads).toEqual([])
+})
+
+it('uses any real memberships only for the canonical platform company selector', async () => {
+  io.platform = true
+  io.companyId = 'guard-A'
+  io.legacy.mockRejectedValue(new TenantCompanyRequiredError())
+  io.membershipList.mockResolvedValue([
+    { companyId: 'legacy-B', companyName: 'Legacybolag B', status: 'active' },
+    { companyId: 'guard-A', companyName: 'Verifierat valt bolag', status: 'active' },
+  ])
+
+  const html = renderToStaticMarkup(await AdminLayout({ children: React.createElement('p', null, 'Valt innehåll') }))
+
+  expect(html).toContain('Valt innehåll')
+  expect(html).toContain('Verifierat valt bolag')
+  expect(html).toContain('data-selected-company="guard-A"')
+  expect(io.legacy).not.toHaveBeenCalled()
+  expect(io.membershipList).toHaveBeenCalledExactlyOnceWith('operator')
   expect(io.reads).toEqual([])
 })

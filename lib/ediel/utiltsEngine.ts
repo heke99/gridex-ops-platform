@@ -1,3 +1,8 @@
+import {
+  diagnoseE66ObservationTimestamp,
+  E66_SG11_TIMESTAMP_REVIEW,
+  ignoredUtiltsEnergyTimestampIndices,
+} from '@/lib/ediel/utilts/e66ObservationTimestampDiagnostic'
 import {type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
 import {applyPeriodicReasonGuide} from '@/lib/ediel/utilts/periodicReasonGuide'
 import {utiltsIssuerIdentityFacts,type UtiltsIssuerIdentityAuthority,type UtiltsIssuerIdentityFacts} from '@/lib/ediel/utilts/issuerIdentityAuthority'
@@ -7,12 +12,13 @@ import { segmentComposite,segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/edi
 import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
 import {utiltsDecimalGuideIssues,utiltsPrecisionFunctionalIssues} from '@/lib/ediel/utilts/quantityPrecision'
 import {takeQualifiedUtiltsRuntimeOwner} from '@/lib/ediel/utilts/qualifyReceivedStructure'
-import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {evidenceHash, isEvidenceRecord, isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
-import { hasQualifiedUtiltsOctoberIdentityRules } from '@/lib/ediel/rulebook/utilts25A5'
+import { hasQualifiedUtiltsOctoberIdentityRules, UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { evaluateUtiltsFieldMatrix } from '@/lib/ediel/utilts/fieldMatrixProjection'
 import { resolveUtiltsFieldConditions, type UtiltsConditionResult } from '@/lib/ediel/utilts/fieldMatrixConditions'
@@ -51,6 +57,7 @@ export type UtiltsRuntimeReferenceOptions = {
   canonicalPolicy?: CanonicalEdielPolicy
   /** Internal whole-guide candidate selection; never authorizes effects/ACKs. */
   guideOnly?: boolean
+  holdSg11FormatReview?: boolean
   issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority
 }
 
@@ -190,10 +197,11 @@ function issueBelongsToTransaction(
   return reference === transactionReference(transaction, index)
 }
 
-function rawTransactionGroups(facts: UtiltsRuntimeFacts): string[][] {
+function rawTransactionGroups(facts: UtiltsRuntimeFacts, ignoredEnergyTimestamps?: ReadonlySet<number>): string[][] {
   const groups: string[][] = []
   let current: string[] | null = null
-  for (const segment of utiltsRuntimeSegments(facts)) {
+  for (const [index, segment] of utiltsRuntimeSegments(facts).entries()) {
+    if (ignoredEnergyTimestamps?.has(index)) continue
     if (/^IDE\+/i.test(segment)) {
       if (current) groups.push(current)
       current = [segment]
@@ -294,11 +302,12 @@ export function applyCanonicalE66QuantityPolicyToRuntimeResult(input: {
   message: EdielMessageRow
   result: UtiltsRuntimeResult
   functionalEligible?: ReadonlySet<string>
+  ignoredEnergyTimestamps?: ReadonlySet<number>
 }): UtiltsRuntimeResult {
   if (String(input.result.facts.messageCode ?? '').trim().toUpperCase() !== 'E66') return input.result
 
   const transactions = input.result.facts.transactions
-  const groups = rawTransactionGroups(input.result.facts)
+  const groups = rawTransactionGroups(input.result.facts, input.ignoredEnergyTimestamps)
   let issues = [...input.result.validation.issues]
 
   transactions.forEach((transaction, index) => {
@@ -763,6 +772,117 @@ function applyUtiltsProductConditionHolds(result: UtiltsRuntimeResult, condition
       reason: 'Okvalificerad tidsserieprodukt hålls lokalt; kvalificerade syskon behåller sina egna utfall.' } }
 }
 
+export const E66_INVALID_REGISTRATION_DATE_ISSUE = 'UTILTS_E66_REGISTRATION_DATE_INVALID'
+export const E66_REGISTRATION_RECEIPT_UNAVAILABLE = 'UTILTS_E66_REGISTRATION_RECEIPT_UNAVAILABLE'
+
+function retainedE66Receipt(message: EdielMessageRow): bigint | null {
+  const snapshot = message.execution_context_snapshot
+  const context = isEvidenceRecord(snapshot) ? snapshot.receivedUtiltsContext : undefined
+  const received = parseSourceReceiptInstant(message.message_received_at)
+  if (received === null || !message.raw_payload || !isEvidenceUuid(message.id) || !isEvidenceUuid(message.company_id)
+    || !['test', 'production'].includes(message.environment) || !isEvidenceRecord(context) || Object.keys(context).length !== 9
+    || context.version !== 1 || context.contextOrigin !== 'database_insert' || context.sourceMessageId !== message.id
+    || context.companyId !== message.company_id || context.environment !== message.environment || context.messageCode !== 'E66'
+    || context.payloadHash !== evidenceHash(message.raw_payload) || parseSourceReceiptInstant(context.sourceReceivedAt) !== received
+    || parseSourceReceiptInstant(context.capturedAt) === null) return null
+  return received
+}
+
+function isCurrentSwedishE66Inbound(message: EdielMessageRow, policy: CanonicalEdielPolicy | null | undefined): boolean {
+  return message.direction === 'inbound' && message.message_standard === 'edifact' && message.message_code === 'E66'
+    && policy?.guide.guideRevision === UTILTS_25_A_5_SOURCE.guideRevision
+    && policy.guide.primarySource?.sha256 === UTILTS_25_A_5_SOURCE.sha256
+}
+
+export function hasUnavailableE66RegistrationReceipt(message: EdielMessageRow, policy: CanonicalEdielPolicy | null): boolean {
+  return isCurrentSwedishE66Inbound(message, policy) && retainedE66Receipt(message) === null
+}
+
+function applyE66RegistrationReceiptGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, policy: CanonicalEdielPolicy | undefined, requireBinding: boolean): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'E66' || !isCurrentSwedishE66Inbound(message, policy)) return result
+
+  const receipt = retainedE66Receipt(message)
+  if (receipt === null) {
+    if (!requireBinding) return result
+    const issue: UtiltsValidationIssue = {
+      severity: 'warning', kind: 'application', code: E66_REGISTRATION_RECEIPT_UNAVAILABLE,
+      title: 'Mottagningstid kan inte verifieras',
+      description: 'Första mottagningen för detta E66-original saknar ett kvalificerat källkvitto.',
+    }
+    return {
+      ...result,
+      transactionDispositions: result.transactionDispositions.map(item => item.disposition === 'accepted'
+        ? { ...item, disposition: 'internal_review', responseType: 'none', issueCodes: [...item.issueCodes, issue.code] }
+        : item),
+      validation: { ...result.validation, ok: false, classification: 'internal_review', issues: [...result.validation.issues, issue] },
+      ackPlan: { ...result.ackPlan, shouldSendAperak: false, aperakOutcome: null, shouldSendUtiltsErr: false, reason: issue.description },
+    }
+  }
+
+  const wire = tokenizeEdifact(message.raw_payload)
+  const physicalSegments = utiltsRuntimeSegments(result.facts)
+  const firstIde = wire.segments.findIndex(segment => segment.tag === 'IDE')
+  const timezone = parseEdifactTimezoneOffsetFromSegments(physicalSegments.slice(0, firstIde))
+  if (!timezone) return result // The existing timestamp/zone guide owns physical field errors.
+
+  const issues = result.transactionDispositions.flatMap((item, index): UtiltsValidationIssue[] => {
+    if (item.disposition !== 'accepted') return []
+    const scope = result.facts.utiltsObservedTransactions?.[index]
+    const transaction = result.facts.transactions[index]
+    if (!scope || scope.transactionId !== transaction.transactionId) return []
+    const firstSeq = scope.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = firstSeq < 0 ? scope.segments : scope.segments.slice(0, firstSeq)
+    const registration = header.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '597')
+    if (!registration || !transaction.registrationTime || segmentComposite(registration, 1, wire.una)[2] !== '203') return []
+    const instant = parseSourceReceiptInstant(localEdifactDateTimeToUtc(transaction.registrationTime, timezone))
+    if (instant === null || instant <= receipt) return []
+    return [{
+      kind: 'application', severity: 'error', code: E66_INVALID_REGISTRATION_DATE_ISSUE,
+      title: 'Registreringstid efter mottagning', description: 'SG5 DTM+597 ligger efter originalets verifierade mottagningstid.',
+      aperakErcCode: '42', aperakFieldCode: '512', aperakText: 'INCORRECT DATA',
+      aperakInvalidOccurrence: { segmentIndex: registration.index, elementIndex: 1, componentIndex: 1 },
+      referenceQualifier: 'ACW', referenceNumber: item.transactionId, lineItemReference: item.transactionId,
+    }]
+  })
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
+function e66PeriodRegistrationIssues(
+  message: EdielMessageRow,
+  result: UtiltsRuntimeResult,
+  policy: CanonicalEdielPolicy | undefined,
+  eligible: ReadonlySet<string>,
+): UtiltsValidationIssue[] {
+  if (!isCurrentSwedishE66Inbound(message, policy) || !['E02', 'E03'].includes(result.facts.stage ?? '')) return []
+
+  // Swedish UTILTS 25-A-5 appendix 2, field 245: outside planning/operation
+  // the delivery end must not be later than the transaction registration.
+  const wire = tokenizeEdifact(message.raw_payload)
+  return result.facts.transactions.flatMap((transaction, index) => {
+    if (!eligible.has(String(transaction.transactionId ?? ''))) return []
+    const scope = result.facts.utiltsObservedTransactions?.[index]
+    if (!scope || scope.transactionId !== transaction.transactionId) return []
+    const firstSeq = scope.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = firstSeq < 0 ? scope.segments : scope.segments.slice(0, firstSeq)
+    const dates = header.filter(segment => segment.tag === 'DTM')
+      .map(segment => segmentComposite(segment, 1, wire.una))
+    const registrationFields = dates.filter(date => date[0] === '597')
+    const deliveryFields = dates.filter(date => date[0] === '324')
+    if (registrationFields.length !== 1 || registrationFields[0][2] !== '203'
+      || deliveryFields.length !== 1 || deliveryFields[0][2] !== '719') return []
+    const deliveryEnd = compactDateTimeMs(transaction.deliveryPeriodEnd)
+    const registration = compactDateTimeMs(transaction.registrationTime)
+    if (deliveryEnd === null || registration === null || deliveryEnd <= registration) return []
+    return [functionalIssue({
+      code: 'UTILTS_E66_DELIVERY_END_AFTER_REGISTRATION',
+      title: 'Leveransperioden slutar efter registreringstiden',
+      description: 'Leveransperiodens slut i SG5 DTM+324 ligger efter transaktionens registreringstid i SG5 DTM+597.',
+      utiltsErrCode: 'E50',
+      reference: transactionReference(transaction, index),
+    })]
+  })
+}
+
 function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'S02') return result
   const transactions = result.facts.utiltsObservedTransactions ?? []
@@ -980,6 +1100,7 @@ function runUtiltsRuntimeForMessageCore(
     }
   }
   const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
+  const ignoredEnergyTimestamps = ignoredUtiltsEnergyTimestampIndices(message.raw_payload ?? '', canonicalPolicy)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
   // retain their own transaction reference and checks.
@@ -1013,7 +1134,7 @@ function runUtiltsRuntimeForMessageCore(
       referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
     }
   }))
-  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '', ignoredEnergyTimestamps)]})
   let guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   // Only S01's current catalogue/technical slice is activated here. Request503
   // and other message conditions retain their existing qualified owners.
@@ -1021,6 +1142,8 @@ function runUtiltsRuntimeForMessageCore(
     ? resolveUtiltsFieldConditions({ policy: canonicalPolicy, rawPayload: message.raw_payload ?? '' }) : undefined
   guided = applyUtiltsCanonicalFieldGuide(message, guided, canonicalPolicy, productConditions)
   if (options?.guideOnly) return applyUtiltsProductConditionHolds(guided, productConditions)
+  guided = applyE66RegistrationReceiptGuide(message, guided, canonicalPolicy, Boolean(options?.canonicalPolicy?.timeAnchors))
+  if (guided.validation.issues.some(issue => issue.code === E66_REGISTRATION_RECEIPT_UNAVAILABLE)) return guided
   if(canonicalPolicy)guided=applyPeriodicReasonGuide({message,policy:canonicalPolicy,result:guided,authority:options?.periodicReasonAuthority,rebuild:rebuildUtiltsRuntimeResult})
   if(options?.issuerIdentityAuthority){
     if(!canonicalPolicy)throw new Error('ediel_utilts_issuer_identity_policy_required')
@@ -1041,16 +1164,68 @@ function runUtiltsRuntimeForMessageCore(
     message,
     result: applyUtiltsResolutionFormatPolicyToRuntimeResult({ message, result: functionalBase }),
     functionalEligible: eligible,
+    ignoredEnergyTimestamps,
   })
   const functionalEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: functionalCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional'),...utiltsPrecisionFunctionalIssues(message.raw_payload ?? '',eligible)]
+  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional'),...utiltsPrecisionFunctionalIssues(message.raw_payload ?? '',eligible),...e66PeriodRegistrationIssues(message, guided, canonicalPolicy, eligible)]
   return applyCanonicalE66PersistencePayload(applyUtiltsProductConditionHolds(rebuildUtiltsRuntimeResult({ message, result: guided, issues }), productConditions))
 }
 
+function applyE66Sg11FormatReview(
+  message: EdielMessageRow,
+  runtime: UtiltsRuntimeResult,
+  policy: CanonicalEdielPolicy,
+): UtiltsRuntimeResult {
+  const { ackPlan } = runtime
+  if (runtime.validation.classification === 'syntax_rejected' ||
+      ackPlan.contrlOutcome === 'negative' || ackPlan.utiltsHeaderRejection ||
+      runtime.transactionDispositions.length === 0) return runtime
+  const diagnostics = diagnoseE66ObservationTimestamp(message.raw_payload ?? '', policy)
+  if (diagnostics.length === 0) return runtime
+  const reason = 'E66 hålls för granskning eftersom DTM+597 hör till en otillåten mängdtyp.'
+  return {
+    ...runtime,
+    validation: {
+      ...runtime.validation,
+      ok: false,
+      classification: 'internal_review',
+      issues: [
+        ...runtime.validation.issues,
+        ...diagnostics.map(diagnostic => ({
+          severity: 'warning' as const, kind: 'application' as const,
+          code: E66_SG11_TIMESTAMP_REVIEW,
+          title: 'Otillåten observationstid i E66',
+          description: reason,
+          segment: 'DTM',
+          referenceNumber: diagnostic.transactionId,
+        })),
+      ],
+    },
+    transactionDispositions: runtime.transactionDispositions.map(transaction => ({
+      ...transaction, disposition: 'internal_review', responseType: 'none',
+      issueCodes: [...transaction.issueCodes, E66_SG11_TIMESTAMP_REVIEW],
+    })),
+    ackPlan: {
+      shouldSendContrl: ackPlan.shouldSendContrl,
+      contrlOutcome: ackPlan.contrlOutcome,
+      shouldSendAperak: false,
+      aperakOutcome: null,
+      shouldSendUtiltsErr: false,
+      utiltsErrCodes: [],
+      utiltsErrDetails: [],
+      aperakApplicationErrors: [],
+      reason,
+    },
+  }
+}
+
 export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:UtiltsRuntimeReferenceOptions):UtiltsRuntimeResult {
-  const runtime=runUtiltsRuntimeForMessageCore(message,options)
+  const evaluated = runUtiltsRuntimeForMessageCore(message, options)
+  const runtime = options?.canonicalPolicy && !options.guideOnly && options.holdSg11FormatReview
+    ? applyE66Sg11FormatReview(message, evaluated, options.canonicalPolicy)
+    : evaluated
   // Final effect paths always provide their retained policy. Guide candidates
   // and diagnostic calls with no source-qualified retained policy cannot seal.
   if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy,issuerIdentityAuthority:options.issuerIdentityAuthority,periodicReasonAuthority:options.periodicReasonAuthority})

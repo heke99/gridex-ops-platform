@@ -8,8 +8,10 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { readPr1266SchemaCapture } from './helpers/db05PredecessorSchema'
 
-const schema = readFileSync(resolve('supabase/schema.sql'), 'utf8')
+// The SC-046 bridge replays the exact historical wrapper epoch.
+const schema = readPr1266SchemaCapture()
 const migrationPath = 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
 const signature = 'public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)'
 const sourceHash = 'd1072ccfd2c9ed9d7edd8e4bf780c0809bb4d904fe61a579be5239dfa6f220b1'

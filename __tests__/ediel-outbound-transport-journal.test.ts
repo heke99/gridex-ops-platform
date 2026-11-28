@@ -36,6 +36,15 @@ describe('all-family durable outbound journal',()=>{
   mocks.rpc.mockResolvedValue({error:null,data:{proceed:false,classification:'accepted',providerReceipt:{accepted:[input.to],rejected:[],messageId:'<old>',response:'250 old'},observedAt:'2026-09-30T00:00:00Z'}})
   const result=await sendGenericFencedEdielEmail(input,context);expect(result.dispatchReplay).toBe(true);expect(result.messageId).toBe('<old>');expect(mocks.providerCalls).toBe(0)
  })
+ it('releases an unentered preparation when Postgres definitively refused the worker claim',async()=>{
+  const refusal={code:'P0001',message:'ediel_transport_worker_fence_lost'}
+  mocks.rpc.mockImplementation(async(_name,{p_input})=>p_input.action==='enter'
+    ? {data:null,error:refusal}
+    : {data:{proceed:true},error:null})
+  await expect(sendGenericFencedEdielEmail(input,context)).rejects.toBe(refusal)
+  expect(mocks.providerCalls).toBe(0)
+  expect(mocks.rpc.mock.calls.map(c=>c[1].p_input.action)).toEqual(['prepare','enter','release'])
+ })
  it('retains no-resend on lost entry response',async()=>{
   mocks.rpc.mockImplementation(async(_name,{p_input})=>p_input.action==='enter'?{data:null,error:new Error('response lost')}:{data:p_input.action==='observe'?{classification:'unknown'}:{proceed:true},error:null})
   await expect(sendGenericFencedEdielEmail(input,context)).rejects.toBeInstanceOf(SmtpDeliveryUncertainError);expect(mocks.providerCalls).toBe(0)

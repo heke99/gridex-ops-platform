@@ -2,21 +2,97 @@ import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+
 const io = vi.hoisted(() => ({
   platform: false, writer: false, attachmentError: false,
   cases: [] as Array<Record<string, unknown>>, events: [] as Array<Record<string, unknown>>,
-  list: vi.fn(), options: vi.fn(), detail: vi.fn(), eventRead: vi.fn(),
+  list: vi.fn(), detail: vi.fn(), eventRead: vi.fn(),
+  readThroughSdk: false, caseReads: [] as URL[],
+  customerRows: [] as Array<{ id: string; company_id: string; full_name: string }>,
+  optionReads: [] as Array<{ companyId: unknown; exactId: unknown; limit?: number }>,
 }))
 vi.mock('@/lib/admin/guards', () => ({
   requireAdminPageKeyAccess: async () => ({ userId: 'staff', email: 'staff@example.invalid', companyId: 'company-a', roles: [], permissions: io.writer ? ['cases.read', 'cases.write'] : ['cases.read'], isPlatformAdmin: io.platform }),
   isPlatformAdminContext: () => io.platform,
 }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: vi.fn() }))
-vi.mock('@/lib/customer-cases/db', () => ({ listCustomerCases: io.list, getCustomerCaseById: io.detail, listCustomerCaseEvents: io.eventRead }))
-vi.mock('@/lib/customer-cases/support', () => ({ listTenantSupportCustomerOptions: io.options }))
-vi.mock('@/lib/customer-service/supportAttachments', () => ({ listSupportAttachments: async () => { if (io.attachmentError) throw new Error('read_failed'); return [] } }))
+vi.mock('@/lib/customer-cases/db', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/customer-cases/db')>()
+  return {
+    listCustomerCases: (...args: Parameters<typeof actual.listCustomerCases>) =>
+      io.readThroughSdk ? actual.listCustomerCases(...args) : io.list(...args),
+    getCustomerCaseById: io.detail,
+    listCustomerCaseEvents: io.eventRead,
+  }
+})
+vi.mock('@/lib/customer-service/supportAttachments', () => ({
+  SUPPORT_ATTACHMENT_LIST_PAGE_SIZE: 100,
+  listSupportAttachmentsPage: async () => {
+    if (io.attachmentError) throw new Error('read_failed')
+    return { items: [], page: { next_cursor: null, has_more: false } }
+  },
+}))
 vi.mock('@/app/admin/customer-cases/actions', () => ({ createCustomerCaseFromFormAction: async () => {}, updateCustomerCaseStatusAction: async () => {}, addInternalNoteAction: async () => {}, recordPhoneInteractionAction: async () => {}, replyToCustomerAction: async () => {}, uploadSupportAttachmentAction: async () => {} }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => { throw new Error('No unscoped fallback lookup allowed') } } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { createClient } = await import('@supabase/supabase-js')
+  const client = createClient('https://synthetic.invalid', 'synthetic-key', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: async (input, init) => {
+      const url = new URL(String(input))
+      expect(url.origin + url.pathname).toBe('https://synthetic.invalid/rest/v1/customer_cases')
+      expect(init?.method).toBe('GET')
+      io.caseReads.push(url)
+      let rows = io.cases.filter(row => url.searchParams.get('company_id') === 'eq.' + row.company_id
+        && url.searchParams.get('customer_id') === 'eq.' + row.customer_id)
+      const statuses = url.searchParams.get('status')
+      if (statuses) {
+        expect(statuses).toMatch(/^in\.\([a-z_,]+\)$/)
+        rows = rows.filter(row => statuses.slice(4, -1).split(',').includes(String(row.status)))
+      }
+      const support = url.searchParams.get('or')
+      if (support) {
+        expect(support).toBe('(and(source.is.null,metadata.cs.{"support_case":true}),and(source.neq.ediel_inbound_state_machine,or(source.match.^tenant_support_,metadata.cs.{"support_case":true})))')
+        rows = rows.filter(row => row.source !== 'ediel_inbound_state_machine'
+          && ((row.metadata as { support_case?: unknown } | undefined)?.support_case === true
+            || (typeof row.source === 'string' && row.source.startsWith('tenant_support_'))))
+      }
+      expect(url.searchParams.get('order')).toBe('created_at.desc')
+      return Response.json(rows.slice(0, Number(url.searchParams.get('limit'))))
+    } },
+  })
+  return { supabaseService: {
+  from(table: string) {
+    if (table === 'customer_cases' && io.readThroughSdk) return client.from(table)
+    expect(table).toBe('customers')
+    const filters = new Map<string, unknown>()
+    const results = () => {
+      expect(filters.get('company_id')).toBe('company-a')
+      return io.customerRows.filter(row => row.company_id === filters.get('company_id')
+        && (!filters.has('id') || row.id === filters.get('id')))
+    }
+    const query = {
+      select: () => query,
+      eq: (key: string, value: unknown) => { filters.set(key, value); return query },
+      order: (key: string, options: { ascending: boolean }) => {
+        expect(key).toBe('created_at')
+        expect(options.ascending).toBe(false)
+        return query
+      },
+      limit: async (limit: number) => {
+        io.optionReads.push({ companyId: filters.get('company_id'), exactId: filters.get('id'), limit })
+        return { data: results().slice(0, limit), error: null }
+      },
+      maybeSingle: async () => {
+        expect(filters.has('id')).toBe(true)
+        io.optionReads.push({ companyId: filters.get('company_id'), exactId: filters.get('id') })
+        return { data: results()[0] ?? null, error: null }
+      },
+    }
+    return query
+  },
+  } }
+})
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('not_found') } }))
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => React.createElement('a', { href }, children) }))
 vi.mock('@/components/admin/AdminHeader', () => ({ default: ({ title, subtitle }: { title: string; subtitle: string }) => React.createElement('header', null, React.createElement('h1', null, title), React.createElement('p', null, subtitle)) }))
@@ -25,23 +101,50 @@ import DetailPage from '@/app/admin/customer-cases/[caseId]/page'
 import BillingCard from '@/components/admin/customers/CustomerBillingMeteringCard'
 import type { BillingUnderlayRow } from '@/lib/cis/types'
 
-const caseRow = (id: string, status = 'open') => ({ id, company_id: 'company-a', customer_id: 'customer', customer_name: 'Syntetisk kund', title: `Ärende ${id}`, status, priority: 'normal', source: 'tenant_support_phone', reason_category: 'support', created_at: '2026-11-15T10:00:00Z' })
+const openStatuses = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up']
+const closedStatuses = ['resolved', 'closed', 'cancelled']
+const activeCaseId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const selectedCustomerId = '00000000-0000-4000-8000-000000000010'
+const otherCustomerId = '00000000-0000-4000-8000-000000000020'
+const caseRow = (id: string, status = 'open') => ({ id: id === 'open' ? activeCaseId : id, company_id: 'company-a', customer_id: selectedCustomerId, customer_name: 'Syntetisk kund', title: `Ärende ${id}`, status, priority: 'normal', source: 'tenant_support_phone', reason_category: 'support', created_at: '2026-11-15T10:00:00Z' })
 beforeEach(() => {
   vi.stubGlobal('React', React)
   io.platform = false; io.writer = false; io.attachmentError = false
   io.cases = [caseRow('open'), caseRow('closed', 'closed')]
   io.events = Array.from({ length: 14 }, (_, i) => ({ id: `event-${i}`, event_type: 'support_internal_note', message: `Historik ${i}`, payload: { visibility: 'internal' }, created_at: '2026-11-15T10:00:00Z' })).reverse()
-  io.list.mockReset().mockImplementation(async () => io.cases)
-  io.options.mockReset().mockResolvedValue([{ id: 'customer', label: 'Syntetisk kund' }])
+  io.list.mockReset().mockImplementation(async ({ statuses }: { statuses: string[] }) =>
+    io.cases.filter(row => statuses.includes(String(row.status))))
+  io.customerRows = [{ id: selectedCustomerId, company_id: 'company-a', full_name: 'Syntetisk kund' }]
+  io.optionReads = []
+  io.readThroughSdk = false
+  io.caseReads = []
   io.detail.mockReset().mockImplementation(async () => io.cases[0])
   io.eventRead.mockReset().mockImplementation(async () => io.events)
 })
 const list = async () => renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({}) }))
-const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ caseId: 'open' }) }))
+const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promise.resolve({ caseId: activeCaseId }) }))
+
+function expectScopedQueueReads(customerId?: string) {
+  expect(io.list.mock.calls).toEqual([openStatuses, closedStatuses].map(statuses => [{
+    companyId: 'company-a', ...(customerId ? { customerId } : {}), supportOnly: true, limit: 200, statuses,
+  }]))
+}
+
+function expectScopedSdkQueueReads(customerId: string) {
+  expect(io.caseReads).toHaveLength(2)
+  expect(io.caseReads.map(url => url.searchParams.get('status')).sort()).toEqual([
+    `in.(${openStatuses.join(',')})`, `in.(${closedStatuses.join(',')})`,
+  ].sort())
+  for (const url of io.caseReads) {
+    expect(url.searchParams.get('limit')).toBe('200')
+    expect(url.searchParams.get('company_id')).toBe('eq.company-a')
+    expect(url.searchParams.get('customer_id')).toBe('eq.' + customerId)
+  }
+}
 
 it('keeps active cases visible and closed history collapsed without technical source names', async () => {
   const html = await list()
-  expect(io.list).toHaveBeenCalledWith({ companyId: 'company-a', limit: 200 })
+  expectScopedQueueReads()
   expect(html).toContain('>Supportkö</h2>')
   expect(html).toContain('Telefon')
   expect(html).not.toContain('tenant_support_phone')
@@ -62,15 +165,111 @@ it('shows an honest empty active queue when only closed cases remain', async () 
 })
 it('retains writer form tenant and idempotency fields and preselected customer', async () => {
   io.writer = true
-  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: 'customer', channel: 'phone' }) }))
-  expect(io.options).toHaveBeenCalledWith('company-a')
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: selectedCustomerId, channel: 'phone' }) }))
+  expect(io.optionReads).toEqual([{ companyId: 'company-a', exactId: undefined, limit: 200 }])
   expect(html).toContain('name="expected_company_id" value="company-a"')
   expect(html).toContain('name="idempotency_key"')
-  expect(html).toContain('<option value="customer" selected="">')
+  expect(html).toContain('<option value="' + selectedCustomerId + '" selected="">')
   expect(html).toContain('<option value="phone" selected="">')
   expect(html.match(/name="case_id"/g)).toHaveLength(1)
   if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/support-writer-company.html`, html)
 })
+it('selects an older tenant customer from the card without expanding the 200 options', async () => {
+  io.writer = true
+  const newerCustomers = Array.from({ length: 200 }, (_, index) => ({
+    id: 'newer-' + index, company_id: 'company-a', full_name: 'Senare kund ' + index,
+  }))
+  io.customerRows.unshift(...newerCustomers)
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: selectedCustomerId, channel: 'phone' }) }))
+  expect(html).toContain('<option value="' + selectedCustomerId + '" selected="">')
+  expect(io.optionReads).toEqual([
+    { companyId: 'company-a', exactId: undefined, limit: 200 },
+    { companyId: 'company-a', exactId: selectedCustomerId },
+  ])
+  expect(html.split('<select name="customer_id"')[1].split('</select>')[0].match(/<option /g)).toHaveLength(201)
+  expect(html).not.toContain('value="newer-199"')
+})
+it.each([
+  { customer: 'invalid', exactId: null },
+  { customer: otherCustomerId, exactId: otherCustomerId },
+])('does not append or select a malformed or foreign customer $customer', async ({ customer, exactId }) => {
+  io.writer = true
+  io.cases = []
+  io.customerRows.push({ id: otherCustomerId, company_id: 'company-b', full_name: 'Främmande kund' })
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer }) }))
+  expect(io.optionReads).toEqual([
+    { companyId: 'company-a', exactId: undefined, limit: 200 },
+    ...(exactId ? [{ companyId: 'company-a', exactId }] : []),
+  ])
+  expect(html).toContain('<option value="" selected="">Välj kund</option>')
+  expect(html).not.toContain('Främmande kund')
+})
+
+it('keeps older support with only qualified cases inside the database page cap', async () => {
+  io.readThroughSdk = true
+  const olderCases = [
+    { ...caseRow('old-phone'), title: 'Older qualified phone case' },
+    { ...caseRow('old-legacy-null'), source: null, metadata: { support_case: true }, title: 'Qualified legacy support case' },
+    { ...caseRow('old-other-tenant'), company_id: 'company-b', title: 'Foreign support case' },
+    { ...caseRow('old-other-customer'), customer_id: otherCustomerId, title: 'Different customer support case' },
+  ]
+  io.cases = [
+    { ...caseRow('ediel-legacy-marker'), source: 'ediel_inbound_state_machine', metadata: { support_case: true } },
+    { ...caseRow('wrong-regex-prefix'), source: 'tenantXsupportYphone' },
+    { ...caseRow('string-support-marker'), source: null, metadata: { support_case: 'true' } },
+    ...Array.from({ length: 200 }, (_, index) => ({ ...caseRow('newer-' + index), source: 'operations' })),
+    ...olderCases,
+  ]
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: selectedCustomerId }) }))
+  expect(html).toContain('Older qualified phone case')
+  expect(html).toContain('Qualified legacy support case')
+  expect(html).not.toMatch(/Foreign support case|Different customer support case|ediel-legacy-marker|wrong-regex-prefix|string-support-marker/)
+  expectScopedSdkQueueReads(selectedCustomerId)
+})
+it('keeps an older open support case visible behind 200 newer closed cases', async () => {
+  io.readThroughSdk = true
+  io.cases = [
+    ...Array.from({ length: 200 }, (_, index) => ({
+      ...caseRow('closed-' + index, 'closed'), created_at: '2026-11-26T10:00:00Z',
+    })),
+    { ...caseRow('older-open'), title: 'Återstående äldre kundärende' },
+    { ...caseRow('foreign-open'), company_id: 'company-b' },
+    { ...caseRow('different-customer'), customer_id: otherCustomerId },
+  ]
+  const html = renderToStaticMarkup(await CasesPage({
+    searchParams: Promise.resolve({ customer: selectedCustomerId }),
+  }))
+  expect(html).toContain('Återstående äldre kundärende')
+  expect(html).not.toContain('Inga öppna supportärenden')
+  expect(html).not.toMatch(/foreign-open|different-customer/)
+  expect(html).toContain('Avslutade supportärenden (200)')
+  expectScopedSdkQueueReads(selectedCustomerId)
+})
+
+it('qualifies the reader’s customer filter before limiting cases', async () => {
+  io.cases.push({ ...caseRow('other'), customer_id: otherCustomerId })
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: selectedCustomerId }) }))
+  expectScopedQueueReads(selectedCustomerId)
+  expect(html).toContain('Ärende open')
+  expect(html).not.toContain('Ärende other')
+  expect(html).toContain('Visa alla supportärenden')
+  expect(html).not.toContain('<form')
+})
+it('keeps a well-formed unmatched customer filter without widening the queue', async () => {
+  io.list.mockResolvedValue([])
+  const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer: otherCustomerId }) }))
+  expectScopedQueueReads(otherCustomerId)
+  expect(html).toContain('Inga öppna supportärenden')
+  expect(html).not.toContain('Ärende open')
+})
+it.each([{ customer: 'invalid' }, { customer: '' }, { customer: [selectedCustomerId, otherCustomerId] }])(
+  'rejects the malformed or ambiguous selector $customer without broad reads', async ({ customer }) => {
+    const html = renderToStaticMarkup(await CasesPage({ searchParams: Promise.resolve({ customer }) }))
+    expect(io.list).not.toHaveBeenCalled()
+    expect(html).toContain('Kunden kunde inte väljas.')
+    expect(html).toContain('Visa alla supportärenden')
+  },
+)
 it('does not make a separate unscoped lookup for a missing customer name', async () => {
   io.cases = [{ ...caseRow('no-name'), customer_name: null }]
   expect(await list()).toContain('Kunduppgifter saknas')
@@ -84,8 +283,8 @@ it('keeps technical channel available only in collapsed platform details', async
 })
 it('keeps the latest conversation visible and earlier entries available without reordering', async () => {
   const html = await detail()
-  expect(io.detail).toHaveBeenCalledWith('open', 'company-a')
-  expect(io.eventRead).toHaveBeenCalledWith('open', 'company-a')
+  expect(io.detail).toHaveBeenCalledWith(activeCaseId, 'company-a')
+  expect(io.eventRead).toHaveBeenCalledWith(activeCaseId, 'company-a')
   expect(html).toContain('Tidigare händelser (4)')
   expect(html).toMatch(/<details[^>]*id="earlier-support-history"[^>]*>/)
   const before = html.indexOf('Historik 0'), split = html.indexOf('</details>'), after = html.indexOf('Historik 13')
@@ -108,19 +307,35 @@ it('provides keyboard accessible bounded lists for a long support queue', async 
   expect(html).toContain('Ärende long-39')
   if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/support-long-company.html`, html)
 })
+const blockedUnderlay = {
+  id: 'underlay', customer_id: 'customer', underlay_year: 2026, underlay_month: 10,
+  readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER',
+} as unknown as BillingUnderlayRow
+const foreignUnderlay: BillingUnderlayRow = {
+  ...blockedUnderlay, id: 'foreign-underlay', customer_id: 'other-customer', underlay_month: 11,
+}
+
 it('calculates billing summary on the server and keeps raw blocker evidence out of company HTML', () => {
   const source = fs.readFileSync('components/admin/customers/CustomerBillingMeteringCard.tsx', 'utf8')
   expect(source).not.toMatch(/['"]use client['"]/)
-  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', canReadBilling: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
+  const props = { customerId: 'customer', sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [blockedUnderlay, foreignUnderlay] }
+  const html = renderToStaticMarkup(React.createElement(BillingCard, { ...props, canReadBilling: true }))
   expect(html).toContain('Kräver åtgärd')
+  expect(html).toContain('2026-10')
+  expect(html).not.toContain('2026-11')
   expect(html).not.toContain('RAW_TECHNICAL_BLOCKER')
-  expect(html).toContain('href="/admin/billing?customer=customer"')
+  expect(html).toContain('href="/admin/billing?customer=customer&amp;month=2026-10"')
+  const restricted = renderToStaticMarkup(React.createElement(BillingCard, { ...props, canReadBilling: false }))
+  expect(restricted).toContain('Kräver åtgärd')
+  expect(restricted).not.toContain('/admin/billing?')
   if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/billing-summary-company.html`, `<main>${html}</main>`)
 })
 
 it('retains platform blocker evidence inside a closed disclosure', () => {
-  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', isPlatformAdmin: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
+  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', isPlatformAdmin: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [blockedUnderlay, foreignUnderlay] }))
   expect(html).toContain('RAW_TECHNICAL_BLOCKER')
+  expect(html).toContain('2026-10')
+  expect(html).not.toContain('2026-11')
   expect(html).toContain('<details')
   expect(html).not.toContain('<details open')
 })

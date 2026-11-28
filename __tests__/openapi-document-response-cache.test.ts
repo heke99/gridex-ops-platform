@@ -3,9 +3,14 @@ import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET as latest } from '@/app/api/v1/openapi/customer-portal-v1.json/route'
 import { GET as archived } from '@/app/api/v1/openapi/2026-11-10.1/customer-portal-v1.json/route'
+import { GET as immutableLatest } from '@/app/api/v1/openapi/2026-11-23.1/customer-portal-v1.json/route'
 import { GET as releaseManifest } from '@/app/api/v1/openapi/release-manifest.json/route'
+import { GET as legacyCompatibilityStatus } from '@/app/api/v1/openapi/legacy-compatibility.json/route'
+import legacyCompatibilitySpec from '@/docs/openapi/legacy-compatibility-status-v1.json'
+import { publicRouteContract } from '@/lib/api/publicRouteRegistry'
 import latestDocument from '@/docs/openapi/customer-portal-v1.json'
 import archivedDocument from '@/docs/openapi/releases/2026-11-10.1/customer-portal-v1.json'
+import immutableLatestDocument from '@/docs/openapi/releases/2026-11-23.1/customer-portal-v1.json'
 import { openApiDocumentResponse, serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
 vi.mock('node:crypto', async original => {
@@ -22,6 +27,7 @@ afterEach(() => {
 describe('serialized OpenAPI response artifacts', () => {
   it.each([
     ['current alias', latest, latestDocument, '/api/v1/openapi/customer-portal-v1.json', 'no-store, max-age=0, must-revalidate'],
+    ['versioned latest', immutableLatest, immutableLatestDocument, '/api/v1/openapi/2026-11-23.1/customer-portal-v1.json', 'public, max-age=31536000, immutable'],
     ['versioned archive', archived, archivedDocument, '/api/v1/openapi/2026-11-10.1/customer-portal-v1.json', 'public, max-age=31536000, immutable'],
   ] as const)('serializes and hashes the real %s once while preserving its wire representation', async (_scope, route, document, path, policy) => {
     const expectedBody = serializeOpenApiDocument(document)
@@ -75,6 +81,44 @@ describe('serialized OpenAPI response artifacts', () => {
     expect(conditional.headers.get('x-request-id')).toBe('second')
     expect(conditional.headers.get('x-gridex-contract-version')).toBe('fixture-version')
     expect(createHash).toHaveBeenCalledTimes(1)
+  })
+
+  it('documents the unauthenticated build-current compatibility feed at its existing endpoint', async () => {
+    const path = '/api/v1/openapi/legacy-compatibility.json'
+    const operation = legacyCompatibilitySpec.paths[path].get
+    const url = `https://gridex.test${path}`
+    const manifest = await releaseManifest(new NextRequest('https://gridex.test/api/v1/openapi/release-manifest.json'))
+    const first = await legacyCompatibilityStatus(new NextRequest(url))
+    const etag = first.headers.get('etag')!
+    const conditional = await legacyCompatibilityStatus(new NextRequest(url, { headers: { 'if-none-match': etag } }))
+    const catalog = await first.json()
+
+    expect(publicRouteContract('GET', path)).toMatchObject({
+      operationId: operation.operationId,
+      cachePolicy: operation['x-cache-policy'],
+      scopes: operation['x-required-scopes'],
+      publicIdPolicy: operation['x-public-id-policy'],
+    })
+    expect(operation.security).toEqual([])
+    expect(manifest.headers.get('link')).toContain(`<${path}>; rel="related"`)
+    expect(first.status).toBe(200)
+    expect(first.headers.get('content-type')).toContain('application/json')
+    expect(first.headers.get('cache-control')).toBe(legacyCompatibilitySpec.components.headers.CacheControl.schema.const)
+    expect(conditional.status).toBe(304)
+    expect(conditional.headers.get('etag')).toBe(etag)
+    expect(await conditional.text()).toBe('')
+    expect(etag).not.toBe(manifest.headers.get('etag'))
+    expect(Object.keys(catalog).sort()).toEqual(legacyCompatibilitySpec.components.schemas.LegacyCompatibilityStatus.required.toSorted())
+    const manifestData = await manifest.json()
+    expect(catalog).toMatchObject({
+      build_commit: manifestData.build_commit,
+      release_version: manifestData.release_version,
+      runtime_contract_version: manifestData.runtime_contract_version,
+    })
+    expect(catalog.legacy_compatibility).not.toHaveLength(0)
+    for (const entry of catalog.legacy_compatibility) {
+      expect(Object.keys(entry).sort()).toEqual(legacyCompatibilitySpec.components.schemas.LegacyFeatureStatus.required.toSorted())
+    }
   })
 
   it('builds a fresh release manifest when the build commit changes', async () => {
