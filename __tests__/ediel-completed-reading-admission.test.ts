@@ -226,6 +226,7 @@ describe('exact-head completed-reading admission', () => {
       const child = spawnSync(process.execPath, ['scripts/gridex-full-production-e2e.cjs', '--certificate=pr'], {
         cwd: root, encoding: 'utf8', timeout: 10000,
         env: {
+          NODE_ENV: 'test',
           PATH: join(root, 'bin') + ':' + process.env.PATH,
           GITHUB_EVENT_NAME: 'pull_request', GITHUB_REPOSITORY: repository,
           GITHUB_REF: 'refs/pull/1270/merge', GITHUB_EVENT_PATH: join(root, 'missing-event.json'),
