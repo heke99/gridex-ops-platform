@@ -818,7 +818,7 @@ jobs:
                   m=re.search(r'EXECUTE FUNCTION ([\w.]+)\(',expected[key]);
                   if not m:fail('unparsed delivered trigger callback')
                   names.add(m[1])
-          # The reader's233 names alone do not qualify patched ACK/replay/birth guards.
+          # The reader's 235 names alone do not qualify patched ACK/replay/birth guards.
           # Expand every delivered patch target and new guard callback transitively.
           pending=list(names)
           while pending:
@@ -834,7 +834,7 @@ jobs:
           function_keys={key for name in names for key,sig,body in source_functions[name]
               if not(name=='public.ediel_read_bilateral_prodat_outbound_original_v1' and sig.count(',')==1)}
           # Exact source-qualified expansion from the reviewed S01 stored-contract owner.
-          # Keep the reader233/base373 boundaries; never accept an arbitrary larger closure.
+          # The reviewed reader and guard identities remain independently pinned.
           s01_dependency_extensions = [
             {'name': 'gridex_utilts_binding.esco_local_time_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'esco_local_time_v1(text, text)'], 'body_sha256': '45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1'},
             {'name': 'gridex_utilts_binding.require_s01_l359_basis_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'require_s01_l359_basis_v1(uuid, uuid)'], 'body_sha256': '7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269'},
@@ -1057,7 +1057,7 @@ jobs:
                       input=projection_sql.encode(),stdout=log,stderr=log).returncode
               result = {'status':'PASS' if code == 0 else 'FAIL','exit_code':code,
                   'source_sha':receipt['checkout_sha'],'source':projection_source,
-                  'verification':'actual SQL exit; the independent full840-object current comparison still follows'}
+                  'verification':'actual SQL exit; the independent reviewed 864-object current comparison still follows'}
               receipt['current_api_projection'] = result
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               if code:sys.exit(code)
@@ -1126,6 +1126,67 @@ jobs:
                   code=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
                       input=installer.encode(),stdout=log,stderr=log).returncode
               receipt['current_s01_source_install']={**source,'status':'PASS' if code==0 else 'FAIL','exit_code':code}
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if code:sys.exit(code)
+
+          current_guard_donors = {
+            '20261124152340_prepare_and_store_mixed_e66_reply.sql':'10d7d2be12b178580b01b843d0b275a18180dee2ee70aa429bf2430abe7f2ee1',
+            '20261125100106_complete_durable_e66_e50_utilts_err.sql':'c042bb47260bef152104b8289fbcbfbdaa9d602f4a392619fa25ce4a9c5e6f31',
+            '20261125100127_qualify_planned_move_out_supply_close.sql':'5752f8f6229c623ffd55f29e67c24eb46bf7164bc39c98d643ecf05c433470e8'}
+          mixed_context_tables={
+            'gridex_e66_intake':{'mixed_accepted_transactions','mixed_qualification_receipts','mixed_e73_request_basis',
+                'mixed_e73_draft_preconditions','mixed_e73_ide_completions','mixed_positive_create_context'},
+            'gridex_e66_metering_stage':{'mixed_jobs','mixed_normalization_receipts'}}
+          mixed_context_callbacks={'reject_mixed_e73_basis_mutation()','reject_mixed_e73_completion_mutation_v1()'}
+          rejection_check=('gridex_e66_intake','CONSTRAINT','registration_rejections e66_rejection_reason_supported')
+          def mixed_context_object(key):
+              schema,kind,name=key
+              tables=mixed_context_tables.get(schema,set())
+              return (name.split(' ',1)[0] in tables
+                or (kind=='ACL' and name.startswith('TABLE ') and name[6:] in tables)
+                or (schema=='gridex_e66_intake' and (
+                  (kind=='INDEX' and name=='mixed_e73_child_effects_idx')
+                  or (kind=='FUNCTION' and name in mixed_context_callbacks)
+                  or (kind=='ACL' and name.startswith('FUNCTION ') and name[9:] in mixed_context_callbacks))))
+
+          def apply_current_guard_donors():
+              # Install only the later reader dependencies and the empty relation
+              # closure needed by the mixed-context function. No mixed E66 writer,
+              # worker scheduler, seed data or business-state transition is run.
+              donor_sources={}
+              donor_receipts=[]
+              for name,digest in current_guard_donors.items():
+                  path='supabase/migrations/'+name
+                  source=(root/path).read_text()
+                  frozen=receipt['root_source']['blobs'].get(path,{})
+                  if frozen.get('mode')!='100644' or frozen.get('sha256')!=digest or sha(source)!=digest:
+                      fail('current guard donor identity differs from frozen ROOT: '+path)
+                  donor_sources[name]=source
+                  donor_receipts.append({'path':path,**frozen})
+              mixed_keys=[key for key in expected if mixed_context_object(key)]
+              if len(mixed_keys)!=36 or sum(key[1]=='TABLE' for key in mixed_keys)!=8 or sum(key[1]=='FUNCTION' for key in mixed_keys)!=2:
+                  fail('current mixed context relation closure changed')
+              allowed_kinds={'TABLE','FUNCTION','CONSTRAINT','FK CONSTRAINT','TRIGGER','INDEX','ACL','ROW SECURITY'}
+              if any(key[1] not in allowed_kinds for key in mixed_keys):
+                  fail('current mixed context relation kind changed')
+              # Schema dump orders its bounded objects by dependency. The matched
+              # function/ACL pairs are immutable trigger callbacks for these tables.
+              mixed_sql=[expected[key] for key in mixed_keys]
+              mixed_reply=donor_sources['20261124152340_prepare_and_store_mixed_e66_reply.sql']
+              mixed_guard=mixed_reply[mixed_reply.index('CREATE FUNCTION gridex_e66_intake.has_mixed_positive_create_context_v1('):
+                  mixed_reply.index('CREATE FUNCTION gridex_e66_intake.persist_mixed_positive_draft_v1(')]
+              e50=donor_sources['20261125100106_complete_durable_e66_e50_utilts_err.sql']
+              e50_constraint=e50[:e50.index('CREATE FUNCTION gridex_e66_intake.require_e50_original_v1(')]
+              e50_resume=e50[e50.index('DO $resume$'):]
+              move_out=donor_sources['20261125100127_qualify_planned_move_out_supply_close.sql']
+              statements='\n'.join(['BEGIN;',*mixed_sql,mixed_guard,e50_constraint,e50_resume,move_out,'COMMIT;',''])
+              with (private/'current-reader-guard-donors.log').open('ab') as log:
+                  code=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+                      input=statements.encode(),stdout=log,stderr=log).returncode
+              result={'status':'PASS' if code==0 else 'FAIL','exit_code':code,'donors':donor_receipts,
+                'source_sha':receipt['checkout_sha'],'source_schema_sha256':sha(schema_source),
+                'installed_sql_sha256':sha(statements),'mixed_catalog_object_count':len(mixed_keys)}
+              receipt['current_reader_guard_donors']=result
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               if code:sys.exit(code)
 
@@ -1309,6 +1370,7 @@ jobs:
                   # Separate current source install: the historical16/59/35 contract stays intact.
                   apply_current_contrl_source()
                   apply_qualified_dependencies(current_reader_dependencies)
+                  apply_current_guard_donors()
               finally:
                   receipt['current_read_forward_executions']=executed
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
@@ -1325,6 +1387,10 @@ jobs:
               if db!=before['database'] or role_graph()!=before['roles'] or auth_uid()!=before['auth_uid']:
                   fail('owned database/platform role/helper identity changed during forwards')
               mismatches=logical_mismatches(actual)
+              supplemental_keys={key for key in set(expected)|set(actual) if mixed_context_object(key)}|{rejection_check}
+              supplemental_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]) if key in expected else None,
+                'actual_sha256':sha(actual[key]) if key in actual else None} for key in sorted(supplemental_keys)
+                if actual.get(key)!=expected.get(key)]
               # The installed prerequisite must equal the canonical ROOT catalog object
               # and ACL exactly; it is outside the reader/guard selection counts.
               prerequisite_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]),
@@ -1337,18 +1403,20 @@ jobs:
               prior={(x['kind'],x['schema'],x['identity']):x for x in before['owners']};owners=catalog_owners();owner_results=[]
               for row in owners:
                   name=row['schema']+'.'+row['identity'].split('(')[0]
-                  wanted=(row['kind']=='FUNCTION' and name in names) or (row['kind']=='RELATION') or (row['kind']=='SCHEMA' and row['schema'] in schemas)
+                  wanted=(row['kind']=='FUNCTION' and (name in names or mixed_context_object((row['schema'],row['kind'],row['identity'])))) or (row['kind']=='RELATION') or (row['kind']=='SCHEMA' and row['schema'] in schemas)
                   if not wanted:continue
                   key=(row['kind'],row['schema'],row['identity']);previous=prior.get(key)
                   if row['owner']!=(previous['owner'] if previous else 'postgres'):fail('guard owner provenance changed: '+repr(key))
                   owner_results.append({'kind':row['kind'],'schema':row['schema'],'identity':row['identity'],'owner':row['owner'],
                     'provenance':'unchanged_BASE_owner' if previous else 'actual_postgres_forward_executor'})
-              result={'status':'FAIL' if mismatches else 'PASS','source_sha':receipt['checkout_sha'],
+              result={'status':'FAIL' if mismatches or supplemental_mismatches else 'PASS','source_sha':receipt['checkout_sha'],
                 'source_schema_sha256':receipt['root_source']['blobs']['supabase/schema.sql']['sha256'],
                 'reader_function_names':len(reader_names),'helper_function_names':len(names),'function_definitions':len(function_keys),
                 'source_qualified_dependency_extensions':s01_dependency_extensions,
                 'delivered_relation_objects':len(relation_keys),'selected_logical_objects':len(selected),
                 'database':db,'owners':owner_results,'mismatches':mismatches,
+                'supplemental_donor_mismatches':supplemental_mismatches,
+                'supplemental_donor_object_count':len(supplemental_keys),
                 'forward_prerequisite_objects':[{'identity':key,'sha256':sha(actual[key])} for key in prerequisite_keys if key in actual],
                 'forward_prerequisite_mismatches':prerequisite_mismatches,
                 'object_hashes':[{'identity':key,'sha256':sha(actual[key])} for key in sorted(selected) if key in actual],
@@ -1357,6 +1425,7 @@ jobs:
               receipt['current_guard_result']=result;receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               (receipt_path.parent/'current-guard-qualification.json').write_text(json.dumps(result,indent=2)+'\n')
               if mismatches:fail('current reader guard object definitions differ: '+repr([x['identity'] for x in mismatches]))
+              if supplemental_mismatches:fail('current reader guard donor catalog differs: '+repr([x['identity'] for x in supplemental_mismatches]))
               if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
           elif mode=='api':
               observe_current_write_api()
@@ -1647,6 +1716,13 @@ jobs:
           executions=receipt.get('current_read_forward_executions',[])
           guard=receipt.get('current_guard_result',{})
           api=receipt.get('current_api_schema_result',{})
+          guard_donors=receipt.get('current_reader_guard_donors',{})
+          if guard_donors.get('status')!='PASS' or guard_donors.get('exit_code')!=0 \
+              or guard_donors.get('source_sha')!=receipt['checkout_sha'] \
+              or guard_donors.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] \
+              or guard.get('supplemental_donor_mismatches')!=[] \
+              or guard_donors.get('mixed_catalog_object_count')!=36 or guard.get('supplemental_donor_object_count')!=37:
+              raise RuntimeError('JUnit qualification requires the executed current reader guard donors and exact catalog')
           if database.get('kind')!='BASE56_repair_two_forwards_plus_delivered_reader_guard_closure' or \
               database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=16 or \
               executions!=[{**item,'exit_code':0,'status':'PASS'} for item in database['forwards']] or \
@@ -1657,8 +1733,8 @@ jobs:
                 'e2b209c12edc9c57c3d6f13f3b0da24524c9acbe9bb920571b674feb46eb827c',0,'PASS')] or \
               guard.get('forward_prerequisite_mismatches')!=[] or len(guard.get('forward_prerequisite_objects',[]))!=2 or \
               guard.get('status')!='PASS' or guard.get('source_sha')!=receipt['checkout_sha'] or \
-              guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=377 or \
-              guard.get('function_definitions')!=377 or guard.get('delivered_relation_objects')!=18 or \
+              guard.get('reader_function_names')!=235 or guard.get('helper_function_names')!=383 or \
+              guard.get('function_definitions')!=383 or guard.get('delivered_relation_objects')!=18 or guard.get('selected_logical_objects')!=864 or \
               guard.get('source_qualified_dependency_extensions')!=[
                 {'name': 'gridex_utilts_binding.esco_local_time_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'esco_local_time_v1(text, text)'], 'body_sha256': '45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1'},
                 {'name': 'gridex_utilts_binding.require_s01_l359_basis_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'require_s01_l359_basis_v1(uuid, uuid)'], 'body_sha256': '7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269'},
