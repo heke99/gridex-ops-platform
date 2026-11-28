@@ -1191,6 +1191,38 @@ jobs:
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               if code:sys.exit(code)
 
+          provider_status_name='gridex_apply_ediel_outbound_provider_status_v1'
+          provider_status_signature=provider_status_name+'(uuid, uuid, uuid, text, text, text, jsonb, uuid, uuid, uuid)'
+          provider_status_objects={
+            ('public','FUNCTION',provider_status_signature):'cfd188c071649957a9265068171234c9ecd13aba28e9f897d22cb606dcb4eed3',
+            ('public','ACL','FUNCTION '+provider_status_name+'(p_outbound_request_id uuid, p_company_id uuid, p_actor_id uuid, p_status text, p_external_reference text, p_failure_reason text, p_response_patch jsonb, p_grid_owner_request_id uuid, p_source_message_id uuid, p_ack_message_id uuid)'):
+                'd4a48ee2057a5f6ecdc1843f188bb578a46adee10b6c132edb38fa8cb71c3882'}
+          provider_status_donor={
+            'path':'supabase/migrations/20261123222300_apply_ediel_outbound_provider_status.sql',
+            'mode':'100644','git_blob_oid':'594dbe68965afd82986dc78127e50312cbd1448a',
+            'sha256':'124eb15a96321f28a77d6e4aee13b7d7498e85de50bf04b2ca10e5a6d21db840'}
+
+          def apply_provider_status_donor():
+              # National Z08 calls this real RPC when applying prepared status.
+              # Keep the original native producer and qualify its missing RPC only.
+              path=provider_status_donor['path']
+              frozen={k:provider_status_donor[k] for k in ('mode','git_blob_oid','sha256')}
+              data=(root/path).read_bytes()
+              if receipt['root_source']['blobs'].get(path)!=frozen or hashlib.sha256(data).hexdigest()!=frozen['sha256']:
+                  fail('DB01 national producer provider-status donor bytes changed')
+              if any(sha(expected.get(key,''))!=digest for key,digest in provider_status_objects.items()):
+                  fail('DB01 national producer provider-status ROOT function or ACL changed')
+              if sql("SELECT to_regprocedure('public."+provider_status_signature+"') IS NULL")!='t':
+                  fail('DB01 national producer provider-status predecessor is not absent')
+              with (private/'current-national-provider-status-donor.log').open('ab') as log:
+                  code=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+                      input=data,stdout=log,stderr=log).returncode
+              receipt['current_national_provider_status_donor']={
+                'donor':provider_status_donor,'status':'PASS' if code==0 else 'FAIL','exit_code':code,
+                'source_sha':receipt['checkout_sha'],'source_schema_sha256':sha(schema_source)}
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if code:sys.exit(code)
+
           # OPS-04 attaches its TRUNCATE guards to the canonical DB-05 callback,
           # which BASE56 predates. Install only that callback and its exact ACL,
           # byte-extracted from the frozen delivered DB-05 owner, never its broad
@@ -1372,6 +1404,7 @@ jobs:
                   apply_current_contrl_source()
                   apply_qualified_dependencies(current_reader_dependencies)
                   apply_current_guard_donors()
+                  apply_provider_status_donor()
               finally:
                   receipt['current_read_forward_executions']=executed
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
@@ -1399,6 +1432,10 @@ jobs:
               supplemental_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]) if key in expected else None,
                 'actual_sha256':sha(actual[key]) if key in actual else None} for key in sorted(supplemental_keys)
                 if actual.get(key)!=expected.get(key)]
+              provider_keys=set(provider_status_objects)|{key for key in actual if key[0]=='public'
+                and key[1] in {'FUNCTION','ACL'} and key[2].removeprefix('FUNCTION ').startswith(provider_status_name+'(')}
+              provider_mismatches=[list(key) for key in sorted(provider_keys)
+                if key not in provider_status_objects or actual.get(key)!=expected[key]]
               # The installed prerequisite must equal the canonical ROOT catalog object
               # and ACL exactly; it is outside the reader/guard selection counts.
               prerequisite_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]),
@@ -1413,13 +1450,14 @@ jobs:
               prior={(x['kind'],x['schema'],x['identity']):x for x in before['owners']};owners=catalog_owners();owner_results=[]
               for row in owners:
                   name=row['schema']+'.'+row['identity'].split('(')[0]
-                  wanted=(row['kind']=='FUNCTION' and (name in names or mixed_context_object((row['schema'],row['kind'],row['identity'])))) or (row['kind']=='RELATION') or (row['kind']=='SCHEMA' and row['schema'] in schemas)
+                  wanted=(row['kind']=='FUNCTION' and (name in names or name=='public.'+provider_status_name
+                    or mixed_context_object((row['schema'],row['kind'],row['identity'])))) or (row['kind']=='RELATION') or (row['kind']=='SCHEMA' and row['schema'] in schemas)
                   if not wanted:continue
                   key=(row['kind'],row['schema'],row['identity']);previous=prior.get(key)
                   if row['owner']!=(previous['owner'] if previous else 'postgres'):fail('guard owner provenance changed: '+repr(key))
                   owner_results.append({'kind':row['kind'],'schema':row['schema'],'identity':row['identity'],'owner':row['owner'],
                     'provenance':'unchanged_BASE_owner' if previous else 'actual_postgres_forward_executor'})
-              result={'status':'FAIL' if mismatches or supplemental_mismatches else 'PASS','source_sha':receipt['checkout_sha'],
+              result={'status':'FAIL' if mismatches or supplemental_mismatches or provider_mismatches else 'PASS','source_sha':receipt['checkout_sha'],
                 'source_schema_sha256':receipt['root_source']['blobs']['supabase/schema.sql']['sha256'],
                 'reader_function_names':len(reader_names),'helper_function_names':len(names),'function_definitions':len(function_keys),
                 'source_qualified_dependency_extensions':s01_dependency_extensions,
@@ -1427,6 +1465,8 @@ jobs:
                 'database':db,'owners':owner_results,'mismatches':mismatches,
                 'supplemental_donor_mismatches':supplemental_mismatches,
                 'supplemental_donor_object_count':len(supplemental_keys),
+                'national_provider_status_mismatches':provider_mismatches,
+                'national_provider_status_object_count':len(provider_keys),
                 'forward_prerequisite_objects':[{'identity':key,'sha256':sha(actual[key])} for key in prerequisite_keys if key in actual],
                 'forward_prerequisite_mismatches':prerequisite_mismatches,
                 'object_hashes':[{'identity':key,'sha256':sha(actual[key])} for key in sorted(selected) if key in actual],
@@ -1438,6 +1478,7 @@ jobs:
               if mismatches:fail('current reader guard object definitions differ: '+repr([x['identity'] for x in mismatches]))
               if supplemental_mismatches:fail('current reader guard donor catalog differs: '+repr([x['identity'] for x in supplemental_mismatches]))
               if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
+              if provider_mismatches:fail('DB01 national producer provider-status function or ACL mismatch')
               mark_guard_qualification('complete')
           elif mode=='api':
               observe_current_write_api()
@@ -1446,14 +1487,17 @@ jobs:
               status=json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
               if status['API_URL']!='http://127.0.0.1:54321':fail('only owned local API can qualify')
               headers={'apikey':status['SERVICE_ROLE_KEY'],'Authorization':'Bearer '+status['SERVICE_ROLE_KEY'],'Accept':'application/openapi+json'}
+              provider_path='/rpc/'+provider_status_name
               for attempt in range(30):
                   try:
                       request=urllib.request.Request(status['API_URL']+'/rest/v1/',headers=headers)
                       with urllib.request.urlopen(request,timeout=5) as response: paths=json.load(response)['paths']
-                      if all('/rpc/'+name.split('.')[1] in paths for name in reader_roots):break
+                      if all('/rpc/'+name.split('.')[1] in paths for name in reader_roots) and 'post' in paths.get(provider_path,{}):break
                   except (urllib.error.URLError,KeyError,ValueError):pass
                   time.sleep(1)
-              else:fail('delivered reader RPCs absent from actual owned PostgREST schema')
+              else:fail('delivered reader or national provider-status RPC absent from actual owned PostgREST schema')
+              receipt['current_national_provider_status_api']={'status':'PASS','source_sha':receipt['checkout_sha'],
+                'path':provider_path,'method':'post','native_or_approval_credit':False}
               receipt['current_api_schema_result']={'status':'PASS','source_sha':receipt['checkout_sha'],'rpc_paths':['/rpc/'+name.split('.')[1] for name in reader_roots],
                 'evidence':'actual_local_service_OpenAPI_visibility_only_NOT_native_oracle_or_accepted_fact'}
               # Writer visibility has its own receipt; the two-reader oracle above
@@ -1735,6 +1779,19 @@ jobs:
               or guard.get('supplemental_donor_mismatches')!=[] \
               or guard_donors.get('mixed_catalog_object_count')!=36 or guard.get('supplemental_donor_object_count')!=37:
               raise RuntimeError('JUnit qualification requires the executed current reader guard donors and exact catalog')
+          provider=receipt.get('current_national_provider_status_donor',{})
+          provider_api=receipt.get('current_national_provider_status_api',{})
+          provider_path='supabase/migrations/20261123222300_apply_ediel_outbound_provider_status.sql'
+          provider_source=receipt['root_source']['blobs'].get(provider_path,{})
+          if provider.get('status')!='PASS' or provider.get('exit_code')!=0 \
+              or provider.get('source_sha')!=receipt['checkout_sha'] \
+              or provider.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] \
+              or provider.get('donor')!={'path':provider_path,**provider_source} \
+              or provider_source.get('sha256')!='124eb15a96321f28a77d6e4aee13b7d7498e85de50bf04b2ca10e5a6d21db840' \
+              or guard.get('national_provider_status_mismatches')!=[] or guard.get('national_provider_status_object_count')!=2 \
+              or provider_api!={'status':'PASS','source_sha':receipt['checkout_sha'],
+                'path':'/rpc/gridex_apply_ediel_outbound_provider_status_v1','method':'post','native_or_approval_credit':False}:
+              raise RuntimeError('JUnit qualification requires actual national producer provider-status installation and API')
           if database.get('kind')!='BASE56_repair_two_forwards_plus_delivered_reader_guard_closure' or \
               database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=16 or \
               executions!=[{**item,'exit_code':0,'status':'PASS'} for item in database['forwards']] or \

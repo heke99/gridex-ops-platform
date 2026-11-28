@@ -321,7 +321,8 @@ with tempfile.TemporaryDirectory(prefix='db01-current-contrl-unit-') as folder:
    receipt['current_database_basis']={'forwards':forward_items}
    namespace.update(sys=sys,forward_prerequisites={},apply_current_api_projection=lambda:events.append('api'),
                     apply_s01_current_source=lambda:events.append('s01'),
-                    apply_current_guard_donors=lambda:events.append('guard-donors'),**dependency_values)
+                    apply_current_guard_donors=lambda:events.append('guard-donors'),
+                    apply_provider_status_donor=lambda:events.append('provider-status'),**dependency_values)
    modes=next(n for n in tree.body if isinstance(n,ast.If) and ast.unparse(n.test)=="mode == 'before'")
    phase=modes.orelse[0];assert ast.unparse(phase.test)=="mode == 'forwards'"
    exec(compile(ast.Module(body=phase.body,type_ignores=[]),'<actual-forwards-phase>','exec'),namespace)
@@ -352,7 +353,7 @@ describe('DB01 current CONTRL source installation on the historical qualified ca
       '20261123195200', '20261123195300', '20261123200100', '20261123201900', '20261123203100',
       '20261123204302', '20261123204304', '20261123204310', '20261123210700', '20261123210800',
       '20261123212600', '20261123212700', '20261123212800', '20261123215300', '20261123215400',
-      '20261123222200', '20261124012100', '20261124021000', '20261124023900', '20261124055200', 'guard-donors',
+      '20261123222200', '20261124012100', '20261124021000', '20261124023900', '20261124055200', 'guard-donors', 'provider-status',
     ])
     expect(result.runs).toBe(1)
     expect(result.receipt.current_contrl_source_install?.status).toBe('PASS')
