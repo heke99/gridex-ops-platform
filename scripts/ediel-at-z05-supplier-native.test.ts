@@ -138,7 +138,11 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
  expect(tasks).toHaveLength(1)
  expect(tasks[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,
   task_type:'final_invoice_pending',status:'open',priority:'high',resolved_at:null})
- expect(tasks[0].metadata).toEqual({supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
+ expect(tasks[0].metadata).toEqual({
+  supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId,
+  source_end_message_id:f.sourceId,market_state_version:Number(period.market_state_version)+1,
+  market_end_at:f.endPlan.effectiveAt.replace(/(?:\.000)?Z$/,'+00:00'),
+ })
  // Preserve every other contract field, old event/task row, tenant and billing
  // row. Only these exact, independently scoped committed effects may differ.
  return{...before,contracts:before.contracts.map(row=>row.id===contractId?expectedContract:row),
