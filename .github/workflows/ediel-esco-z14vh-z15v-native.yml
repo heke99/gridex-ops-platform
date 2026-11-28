@@ -119,7 +119,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z14vh-z15v-esco-native.test.ts': '03ccb61a17e906f6e4d24e6cf05dc9823e557dd19cdd5d2e379100e13b105eb4',
+                  'scripts/ediel-at-z14vh-z15v-esco-native.test.ts': 'f79a9232b6d1683c4427e405a41b0b4131ba7cf1f1fbb07d3c32c9cf81511bd5',
                   'scripts/ediel-at-z14vh-z15v-esco-native.config.ts': '1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a',
               }
               for path, digest in frozen_native.items():
@@ -166,7 +166,7 @@ jobs:
                         'original_native_source_sha256': {**frozen_native,
                             'scripts/ediel-at-z14vh-z15v-esco-native.test.ts': '3401568a26d27803f46618a12fd02c61987e6b42ddd4e0d4849d74197bd0447b'},
                         'native_source_sha256': frozen_native,
-                        'native_source_version': 'esco_existing36_plus_sc031_public_n13_z05_10_own_z14_omission_v2',
+                        'native_source_version': 'esco_existing36_plus_sc031_public_n13_z05_10_own_register_quantity_v3',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],
                         'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
                         'canonical_marker_expected': expected_markers,

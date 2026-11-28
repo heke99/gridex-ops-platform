@@ -1170,7 +1170,10 @@ it('SC031 public Z05L own ten unused fields preserve physical ACKs, selected com
   const command=graphs[0].operation.command_snapshot as {site:Sc031Row;metering_point:Sc031Row;application:{payload_snapshot:Sc031Row}}
   expect(command.site.annual_consumption_kwh).toBeNull();expect(command.metering_point.reading_frequency).toBe('hourly')
   expect(graphs[0].site.annual_consumption_kwh).toBeNull();expect(graphs[0].meter.reading_frequency).toBe('hourly')
-  expect(JSON.stringify(command.application.payload_snapshot.prodatRegisters).includes('777')).toBe(extra)
+  const registers=command.application.payload_snapshot.prodatRegisters
+  expect(registers).toEqual([expect.objectContaining({
+   meteringPointId:target.external,identityAgency:'9',annualConsumption:extra?'777':null,
+  })])
   business.push({graph:sc031Business(graphs[0],target.external),projection:{...sc031Projection(result.case),site:{...result.case.parsed_site,facilityId:null,siteName:null},meter:{...sc031Projection(result.case).meter,meterPointId:null}}})
   const persisted=sc031PersistedCase(target.companyId,result.message.id,result.case.id),master=sc031Master(target.companyId),operations=sc031GraphOperations(target.companyId)
   await expect(approveEdielInboundCase({companyId:target.companyId,actorUserId:target.actorUserId,caseId:result.case.id,mode:'update_existing_customer',selectedCustomerId:target.customerId})).rejects.toThrow(/status applied/)
