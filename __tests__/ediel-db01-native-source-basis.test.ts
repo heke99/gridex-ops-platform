@@ -7,7 +7,6 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSyn
 import {tmpdir} from 'node:os'
 import {dirname, join, resolve} from 'node:path'
 import {afterAll, afterEach, beforeAll, beforeEach, expect, it, vi} from 'vitest'
-import {db01ContrlSchemaSha256, readDb01ContrlSchemaCapture} from './helpers/db01ContrlSchemaCapture'
 
 const s01DependencyExtensions = [
   {
@@ -113,7 +112,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
     current_s01_source_install: {"donor_path": "supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql", "donor_sha256": "ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d", source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex'), "predecessor_definition_sha256": "11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6", "sql_sha256": "deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b", "status": "PASS", "exit_code": 0},
-    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 377, function_definitions: 377, source_qualified_dependency_extensions: s01DependencyExtensions.map(item => ({...item, identity: [...item.identity]})), delivered_relation_objects: 18, mismatches: [],
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 235, helper_function_names: 383, function_definitions: 383, source_qualified_dependency_extensions: s01DependencyExtensions.map(item => ({...item, identity: [...item.identity]})), delivered_relation_objects: 18, selected_logical_objects: 864, mismatches: [], supplemental_donor_mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
       rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
@@ -353,23 +352,24 @@ it('does not use a guard result for another source or a different schema', async
   await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
 
-it('qualifies function definitions, ACLs and delivered guard objects from the historical DB01 capture', () => {
+it('qualifies function definitions, ACLs and delivered guard objects from the current canonical schema', () => {
   const fixtureRoot = join(temp, 'qualified-contrl')
   mkdirSync(join(fixtureRoot, 'supabase'), {recursive: true})
-  writeFileSync(join(fixtureRoot, 'supabase/schema.sql'), readDb01ContrlSchemaCapture())
+  const schema = readFileSync(join(root, 'supabase/schema.sql'))
+  writeFileSync(join(fixtureRoot, 'supabase/schema.sql'), schema)
   const currentReceipt = structuredClone(receipt) as {
     root_source: {blobs: Record<string, {sha256: string}>}
   }
-  currentReceipt.root_source.blobs['supabase/schema.sql'].sha256 = db01ContrlSchemaSha256
+  currentReceipt.root_source.blobs['supabase/schema.sql'].sha256 = createHash('sha256').update(schema).digest('hex')
   writeFileSync(receiptPath, JSON.stringify(currentReceipt))
   const python = String.raw`import os,pathlib,textwrap
 s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==234 and len(e['relation_keys'])==18 and len(e['names'])==381 and len(e['function_keys'])==381
-assert len(e['canonical_selection'])==860
-assert e['sha'](e['json'].dumps(e['canonical_selection'],sort_keys=True,separators=(',',':'))) == '05a5944274e538d3b4ca2db630df2c720e5e6b078f1b1d7571d9475bc7a058cb'
+assert len(e['reader_names'])==235 and len(e['relation_keys'])==18 and len(e['names'])==383 and len(e['function_keys'])==383
+assert len(e['canonical_selection'])==864
+assert e['sha'](e['json'].dumps(e['canonical_selection'],sort_keys=True,separators=(',',':'))) == '0714eb147c780d42def94a9d2b9cea7de1d80e5009091e7a7c727f81e0c1c430'
 assert 'gridex_ediel_transport.accepted_source_projection_current_v1' in e['reader_names']
 expected=e['expected']; compare=e['logical_mismatches']
 assert len(e['s01_dependency_extensions'])==4
