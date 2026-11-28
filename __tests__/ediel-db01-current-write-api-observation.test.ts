@@ -185,7 +185,7 @@ describe('DB01 closed current write API source projection', () => {
   it('pins the genuine preimage and uses only the three existing canonical source donors', () => {
     const result = installProbe({ builder: true })
     expect(result.error).toBeNull()
-    expect(result.spec).toMatchObject({ before_catalog_sha256: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d', preimage_artifact_id: 12655280424 })
+    expect(result.spec).toMatchObject({ before_catalog_sha256: '5cce4d76375c81a8a8b38ee40c323e1aeb0b8b39b0aaae5d06924d88ecd76e0a', preimage_artifact_id: 15261795613 })
     expect(result.donors).toHaveLength(3)
     expect(result.sql).toMatch(/^BEGIN;/)
     expect(result.sql.trim()).toMatch(/COMMIT;$/)
@@ -457,7 +457,7 @@ it.each(['valid', 'missing', 'failed', 'wrong-exit', 'wrong-head', 'wrong-schema
     }
   })
 
-it('preserves the historical 251-function writer and observes the qualified successor without retuning it', () => {
+it('preserves historical writer closures and pins the current qualified successor', () => {
   const python = String.raw`
 import ast, hashlib, json, pathlib, re, subprocess, sys, tempfile, textwrap
 repo=pathlib.Path.cwd();lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
@@ -476,7 +476,7 @@ post949=subprocess.check_output(['git','show','9f20356c2deefeb1f264d5746798dd09e
 historical,current=json.load(sys.stdin)
 with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder:
  path=pathlib.Path(folder)/'receipt.json'
- for source in [old,post949,historical,current]:
+ for source in [old,post949,historical,current,(repo/'supabase/schema.sql').read_text()]:
   catalog=namespace['blocks'](source);receipt={'checkout_sha':'source-only','root_source':{'blobs':{'supabase/schema.sql':{'sha256':sha(source)}}}}
   namespace.update(expected=catalog,source_functions=namespace['functions'](catalog),receipt=receipt,receipt_path=path,sql=lambda query:'[]')
   namespace['observe_current_write_api']();observation=receipt['current_write_api_observation']
@@ -484,7 +484,7 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
   acl={key:body for key,body in catalog.items() if key[1]=='ACL' and key[2].startswith('FUNCTION ')
       and key[0]+'.'+key[2][len('FUNCTION '):].split('(')[0] in names}
   results.append({'schema':sha(source),'definitions':observation['canonical_function_definitions'],'names':names,'acl':acl,'catalog':catalog})
- old_result, post949_result, frozen_result, current_result=results
+ old_result, post949_result, frozen_result, current_result, successor=results
  changed=[list(key) for key in sorted(set(old_result['catalog'])|set(post949_result['catalog']))
           if old_result['catalog'].get(key)!=post949_result['catalog'].get(key)]
  changed_definitions=[key[0]+'.'+key[2].split('(')[0] for key in sorted(set(frozen_result['catalog'])&set(current_result['catalog']))
@@ -494,6 +494,8 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
  inherited_acls_unchanged=all(current_result['acl'].get(key)==value for key,value in frozen_result['acl'].items())
  print(json.dumps({'schemaPin':spec['schema_sha256'],'oldSchema':old_result['schema'],'post949Schema':post949_result['schema'],
    'historicalSchema':frozen_result['schema'],'currentSchema':current_result['schema'],
+   'successorSchema':successor['schema'],'successorAddedNames':sorted(successor['names']-current_result['names']),
+   'successorRemovedNames':sorted(current_result['names']-successor['names']),
    'changedObjects':changed,'writerCounts':[len(x['names']) for x in results],
    'writerDefinitionDigests':[sha(json.dumps(x['definitions'],sort_keys=True,separators=(',',':'))) for x in results],
    'historicalDefinitionsIdentical':all(x['definitions']==old_result['definitions'] for x in results[:3]),
@@ -509,19 +511,23 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
     input: JSON.stringify([readPr1266SchemaCapture(), contrlFixtureSchema]), encoding: 'utf8', timeout: 10_000,
   }))
   expect(result).toEqual({
-    schemaPin: currentSchema,
+    schemaPin: '0962ddd7da411ffedb981175ed52c906d4acfefe53c792b2eda48e0b83a71204',
     oldSchema: 'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b',
     post949Schema,
     historicalSchema: currentSchema,
     currentSchema: db01ContrlSchemaSha256,
+    successorSchema: '0962ddd7da411ffedb981175ed52c906d4acfefe53c792b2eda48e0b83a71204',
+    successorAddedNames: ['gridex_received_sources.planned_move_out_supply_window_v1'],
+    successorRemovedNames: [],
     changedObjects: [['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)']],
-    writerCounts: [251, 251, 251, 252],
+    writerCounts: [251, 251, 251, 252, 253],
     writerDefinitionDigests: [
       ...Array(3).fill('23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d'),
       '6880c7a0e51874f0138f333d8d6f0a46d6c354a68e045807a8ee4e47510d7929',
+      'b9a3e3ddf44f4bbf596928b5bd280ae6b483490d5933117c96e9c1017281577f',
     ],
     historicalDefinitionsIdentical: true,
-    writerAclCounts: [251, 251, 251, 252],
+    writerAclCounts: [251, 251, 251, 252, 253],
     historicalAclsIdentical: true,
     currentAddedNames: ['gridex_ediel_transport.accepted_source_projection_current_v1'],
     currentRemovedNames: [],
@@ -538,6 +544,6 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
     ]],
     currentInheritedAclsUnchanged: true,
     '949InWriter': false,
-    beforeCatalogPin: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
+    beforeCatalogPin: '5cce4d76375c81a8a8b38ee40c323e1aeb0b8b39b0aaae5d06924d88ecd76e0a',
   })
 })

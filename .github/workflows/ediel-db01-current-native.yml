@@ -592,12 +592,12 @@ jobs:
               sys.exit(0)
 
           def current_write_api_install_spec():
-              return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
-                  'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'e8d9514b24f6ce755af567d44ec0af07f4ca5cf6e39e42a45d2dbc72d9dba17c','function_count':251,
-                  # Exact949 changes only a reader outside this unchanged251 writer closure.
-                  # Preserve the genuine preimage, canonical definitions and all metadata gates.
-                  'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
+              return {'before_catalog_sha256':'5cce4d76375c81a8a8b38ee40c323e1aeb0b8b39b0aaae5d06924d88ecd76e0a',
+                  'preimage_artifact_id':15261795613,'preimage_source':'17e6b984cebc1534df68ba5f8478e07ce35327e4',
+                  'schema_sha256':'0962ddd7da411ffedb981175ed52c906d4acfefe53c792b2eda48e0b83a71204','function_count':253,
+                  # Actual post-forward catalog from the same owned replay after current guard qualification.
+                  # Only the two donor body updates and missing coordinator differ from ROOT.
+                  'canonical_definitions_sha256':'b9a3e3ddf44f4bbf596928b5bd280ae6b483490d5933117c96e9c1017281577f',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
                   'actor_old_body':'48696b52c449df7b7d76b7d6ed5c71ecf0544621f9f2c3de82f51ba200ff0b60',
@@ -1768,8 +1768,8 @@ jobs:
           writer=receipt.get('current_write_api_projection',{});writer_api=receipt.get('current_write_api_schema_result',{})
           if writer.get('status')!='PASS' or writer.get('native_or_approval_credit') is not False or writer.get('source_sha')!=receipt['checkout_sha'] \
             or writer.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] \
-            or writer.get('preimage_artifact_id')!=12655280424 or writer.get('before_catalog_sha256')!='709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d' \
-            or writer.get('function_count')!=251 or writer.get('mismatches')!=[] \
+            or writer.get('preimage_artifact_id')!=15261795613 or writer.get('before_catalog_sha256')!='5cce4d76375c81a8a8b38ee40c323e1aeb0b8b39b0aaae5d06924d88ecd76e0a' \
+            or writer.get('function_count')!=253 or writer.get('mismatches')!=[] \
             or writer_api.get('status')!='PASS' or writer_api.get('source_sha')!=receipt['checkout_sha'] or writer_api.get('native_or_approval_credit') is not False \
             or writer_api.get('rpc_paths')!=['/rpc/gridex_enqueue_normal_supplier_switch_v1'] or writer_api.get('method')!='post':
               raise RuntimeError('JUnit qualification requires actual closed current writer source/catalog/API phases')
