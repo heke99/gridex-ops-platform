@@ -110,6 +110,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -211,6 +212,38 @@ jobs:
           path: e2e-artifacts/pr-native-gate-failure.json
           if-no-files-found: error
           retention-days: 30
+      - name: Await ordinary and protected Ediel proof at this checkout
+        if: github.repository == 'heke99/gridex-ops-platform' && github.event.pull_request.number == 1270
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head="$(git --no-replace-objects rev-parse HEAD)"
+          for attempt in {1..100}; do
+            if inventory="$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$head&per_page=100")"; then
+              state="$(jq -r --arg head "$head" --arg repo "$GITHUB_REPOSITORY" '
+                . as $inventory |
+                [".github/workflows/ediel-fg-composition-native.yml",
+                 ".github/workflows/ediel-z10m-supplier-native.yml",
+                 ".github/workflows/ediel-completed-reading-clock-native.yml"]
+                | map(. as $path | $inventory.workflow_runs
+                  | map(select(.path==$path and .head_sha==$head and .event=="pull_request"
+                    and .repository.full_name==$repo and .head_repository.full_name==$repo))
+                  | max_by(.run_number))
+                | if any(.[]; .status=="completed" and .conclusion!="success") then "failed"
+                  elif all(.[]; .status=="completed" and .conclusion=="success") then "ready"
+                  else "waiting" end
+              ' <<< "$inventory")"
+              case "$state" in
+                ready) exit 0 ;;
+                failed) echo 'An exact-head Ediel proof job failed.' >&2; exit 1 ;;
+              esac
+            fi
+            if (( attempt < 100 )); then sleep 30; fi
+          done
+          echo 'Timed out waiting for all exact-head Ediel proof jobs.' >&2
+          exit 1
       - name: Require deterministic PR gates to execute and pass
         shell: bash
         env:
