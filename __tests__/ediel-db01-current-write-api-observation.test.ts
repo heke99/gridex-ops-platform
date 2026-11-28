@@ -370,7 +370,7 @@ describe('DB01 current CONTRL source installation on the historical qualified ca
     expect(result.error).toBe('db01_current_contrl_source_unqualified')
     expect(result.runs).toBe(0)
   })
-  it('refuses the subsequent generated schema before querying the catalogue', () => {
+  it('accepts the exact candidate schema with the unchanged CONTRL definition', () => {
     const capture = readFileSync('supabase/schema.sql', 'utf8')
     const manifest = JSON.parse(readFileSync('scripts/supabase-types-manifest.json', 'utf8')) as {
       capture_artifact?: {schema_sha256?: string}
@@ -379,6 +379,12 @@ describe('DB01 current CONTRL source installation on the historical qualified ca
     expect(schemaSha256).toBe(manifest.capture_artifact?.schema_sha256)
     expect(schemaSha256).not.toBe(db01ContrlSchemaSha256)
     expect(contrlProbe({}, capture, schemaSha256)).toMatchObject({
+      error: null, runs: 1,
+      receipt: { current_contrl_source_install: { status: 'PASS', source_schema_sha256: schemaSha256 } },
+    })
+    const unknownCapture = capture + '\n-- unreviewed capture'
+    const unknownHash = createHash('sha256').update(unknownCapture).digest('hex')
+    expect(contrlProbe({}, unknownCapture, unknownHash)).toMatchObject({
       error: 'db01_current_contrl_source_unqualified', runs: 0, queries: [],
     })
   })
