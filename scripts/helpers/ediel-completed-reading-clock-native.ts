@@ -8,7 +8,8 @@ import { nativeSql as sql, literal } from './ediel-normal-switch-native-fixture'
 import { authenticateCurrentPhaseActor, readActualMarketClocks } from './ediel-prospective-market-clock-native'
 import { planCompletedReadingPhase, readCompletedReadingRegistration, verifyCompletedReadingPhase } from './ediel-completed-reading-clock'
 
-type Suite = 'fg' | 'z10m'
+export type Z06fFollowUpClockSuite = `z06f-followup-${'own' | 'register' | 'meter' | 'agency' | 'date' | 'quantity'}`
+type Suite = 'fg' | 'z10m' | Z06fFollowUpClockSuite
 type Source = { companyId: string; switchId: string; period: string; source: string }
 type Actor = { id: string; email: string }
 type Application = {
@@ -18,7 +19,7 @@ type Application = {
   actor: Actor
   wires: readonly string[]
 }
-type PersistedReading = { id: string; outcome: 'persisted' | 'structural_err' }
+type PersistedReading = { id: string; outcome: 'persisted' | 'structural_err' | 'unfulfilled' }
 const digest = (wire: string) => createHash('sha256').update(wire, 'utf8').digest('hex')
 
 export function completedReadingHostedSuite(suite: Suite): boolean {
@@ -48,7 +49,7 @@ export async function enterCompletedReadingHostedPhase(suite: Suite, input: Appl
       AND sp.source_message_id=${literal(supply.source)}
     JOIN public.ediel_messages change ON change.id=${literal(structuralSourceId)} AND change.company_id=sw.company_id
       AND change.environment='test' AND change.direction='inbound'
-      AND change.message_code=${literal(suite === 'fg' ? 'Z06' : 'Z10')}
+      AND change.message_code=${literal(suite === 'z10m' ? 'Z10' : 'Z06')}
       AND (
         (change.message_code='Z06' AND change.metering_point_id=sp.metering_point_id)
         OR (change.message_code='Z10' AND (change.metering_point_id IS NULL OR change.metering_point_id=sp.metering_point_id)
@@ -85,7 +86,9 @@ export async function enterCompletedReadingHostedPhase(suite: Suite, input: Appl
     password, permissionKeys: ['communication.read', 'metering.read'] })
 
   return (readings: readonly PersistedReading[]) => {
-    assert.deepEqual(readings.map(reading => reading.outcome), suite === 'fg' ? ['persisted'] : ['persisted', 'persisted', 'structural_err'])
+    const expectedOutcomes = suite === 'z10m' ? ['persisted', 'persisted', 'structural_err']
+      : [suite === 'fg' || suite === 'z06f-followup-own' ? 'persisted' : 'unfulfilled']
+    assert.deepEqual(readings.map(reading => reading.outcome), expectedOutcomes)
     assert.equal(readings.length, wireHashes.length)
     const sources = readings.map((reading, index) => {
       const source = sql<{ id: string; receivedAt: string; payloadHash: string }>(`

@@ -3,6 +3,8 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
 import {nativeSql as sql,literal,futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {supabaseService} from '@/lib/supabase/service'
+import {completedReadingHostedSuite,enterCompletedReadingHostedPhase,type Z06fFollowUpClockSuite} from './helpers/ediel-completed-reading-clock-native'
+import type {Z06fNativeReadingOptions} from './helpers/ediel-z06f-reading-followup-native-wire'
 
 // The external SMTP acceptance is explicitly synthetic. Database, registry,
 // canonical/source owner, original review, structural apply, accepted series,
@@ -20,14 +22,30 @@ const fixture=(withCompletedReading=false)=>createZ06fReadingNativeFixture(
  email=>external.send.mockResolvedValue({accepted:[email],rejected:[],messageId:'synthetic-owned-original',response:'250 explicitly synthetic accepted'}),
  {requestedStartDate:withCompletedReading?futureNativeSupplyDate(-15):undefined},
 )
+async function completedReading(
+ f:Awaited<ReturnType<typeof fixture>>,sourceId:string,suite:Z06fFollowUpClockSuite,hosted:boolean,options:Z06fNativeReadingOptions={},
+){
+ const phase:{finish?:Awaited<ReturnType<typeof enterCompletedReadingHostedPhase>>}={}
+ const reading=await f.reading(options,hosted?async wire=>{
+  const effectiveAt=sql<string>(`SELECT to_jsonb(effect->>'effectiveAt') FROM gridex_received_sources.structural_object_apply_receipts
+   WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(sourceId)} AND actor_user_id=${literal(f.operator.id)}`)
+  expect(effectiveAt).toBeTruthy()
+  phase.finish=await enterCompletedReadingHostedPhase(suite,{
+   supply:f.f,structuralSourceId:sourceId,structureEffectiveAt:effectiveAt,actor:f.operator,wires:[wire],
+  })
+ }:undefined)
+ return {reading,finish:phase.finish}
+}
 const own=(f:Awaited<ReturnType<typeof fixture>>,source:string)=>sql<{expectations:{id:string;source_message_id:string;contract:Record<string,unknown>;contract_hash:string}[];observations:{expectation_id:string;utilts_source_message_id:string;transaction_id:string;source_payload_hash:string;receipt:Record<string,unknown>;receipt_hash:string}[]}>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(source)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${literal(f.f.companyId)} AND e.source_message_id=${literal(source)}))`)
 
 it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY220/DTM597 persist fulfills only that source without extra market request',async()=>{
- const f=await fixture(true),change=await f.change(),before=own(f,change.message.id)
+ const suite='z06f-followup-own',hosted=completedReadingHostedSuite(suite)
+ const f=await fixture(!hosted),change=await f.change(),before=own(f,change.message.id)
  expect(before.expectations).toHaveLength(1);expect(before.observations).toEqual([])
  expect(before.expectations[0].contract).toMatchObject({mode:'meter_reading',expectedRegisterIds:['101'],measurementMethod:'Z04',deadline:null,automaticRequestAllowed:false})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.structural_object_apply_receipts WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(change.message.id)}`)).toBe(1)
- const reading=await f.reading(),outboundBefore=f.snapshots().outbound
+ const {reading,finish}=await completedReading(f,change.message.id,suite,hosted)
+ const outboundBefore=f.snapshots().outbound
  expect(reading.qualified.runtime.transactionDispositions).toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
  // Observe BEFORE the read-reconcile RPC: the actual after-persist callback,
  // rather than a later read or manually invoked helper, must mint the receipt.
@@ -42,10 +60,19 @@ it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY
  const view=await f.read(change.message.id);expect(view.error).toBeNull();expect(view.data).toMatchObject({criterion:'AT-Z06F-SUPPLIER',expectations:[{status:'reading_observed',automaticRequestAllowed:false,deadline:null}]})
  expect(f.snapshots().outbound).toBe(outboundBefore);expect(external.send).toHaveBeenCalledTimes(1)
  const stable=f.snapshots();await reading.persist();await change.apply();expect(f.snapshots()).toEqual(stable)
+ finish?.([{id:reading.message.id,outcome:'persisted'}])
 })
 
-it.each([{register:'901'},{meter:'FOREIGN-METER'},{agency:'89'},{date:'next-day' as const},{quantity:'NULL'}])('actual misaligned or missing own reading %j cannot fulfill F or borrow sibling evidence',async options=>{
- const f=await fixture(true),change=await f.change(),before=own(f,change.message.id),reading=await f.reading(options)
+it.each([
+ {caseId:'register',options:{register:'901'}},
+ {caseId:'meter',options:{meter:'FOREIGN-METER'}},
+ {caseId:'agency',options:{agency:'89'}},
+ {caseId:'date',options:{date:'next-day'}},
+ {caseId:'quantity',options:{quantity:'NULL'}},
+] as const)('actual misaligned or missing own reading ($caseId) cannot fulfill F or borrow sibling evidence',async ({caseId,options})=>{
+ const suite=`z06f-followup-${caseId}` as const,hosted=completedReadingHostedSuite(suite)
+ const f=await fixture(!hosted),change=await f.change(),before=own(f,change.message.id)
+ const {reading,finish}=await completedReading(f,change.message.id,suite,hosted,options)
  // The actual national/functional decision is observed rather than fabricated
  // as a caller-provided accepted flag. A valid reading at another instant can
  // be accepted and still not fulfill this precise F boundary. The actual native
@@ -54,6 +81,7 @@ it.each([{register:'901'},{meter:'FOREIGN-METER'},{agency:'89'},{date:'next-day'
  expect(persisted.map(x=>x.disposition)).toEqual(reading.qualified.runtime.transactionDispositions.map(x=>x.disposition))
  const after=own(f,change.message.id);expect(after.expectations).toEqual(before.expectations);expect(after.observations).toEqual([])
  const view=await f.read(change.message.id);expect(view.error).toBeNull();expect(view.data).toMatchObject({expectations:[{status:'pending'}]})
+ finish?.([{id:reading.message.id,outcome:'unfulfilled'}])
 })
 
 it('actual G apply creates no F expectation or fabricated boundary-reading fulfillment',async()=>{

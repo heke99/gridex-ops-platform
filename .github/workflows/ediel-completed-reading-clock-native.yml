@@ -40,7 +40,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [fg, z10m]
+        suite:
+          - fg
+          - z10m
+          - z06f-followup-own
+          - z06f-followup-register
+          - z06f-followup-meter
+          - z06f-followup-agency
+          - z06f-followup-date
+          - z06f-followup-quantity
     env:
       NODE_OPTIONS: --max-old-space-size=6144
       GRIDEX_COMPLETED_READING_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || inputs.reviewed_sha }}

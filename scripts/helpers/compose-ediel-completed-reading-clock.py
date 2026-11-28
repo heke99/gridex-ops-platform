@@ -25,6 +25,21 @@ CASES = {
 }
 
 
+FOLLOWUP_CONFIG = 'scripts/ediel-source-owner-native.config.ts'
+FOLLOWUP_TEST = 'scripts/ediel-z06f-reading-followup-native.test.ts'
+CASES['z06f-followup-own'] = (
+    FOLLOWUP_CONFIG, FOLLOWUP_TEST,
+    'actual F apply creates own pending expectation; accepted physical AES/MG/QTY220/DTM597 persist fulfills only that source without extra market request',
+    ['persisted'],
+)
+for variant in ('register', 'meter', 'agency', 'date', 'quantity'):
+    CASES[f'z06f-followup-{variant}'] = (
+        FOLLOWUP_CONFIG, FOLLOWUP_TEST,
+        f"actual misaligned or missing own reading ('{variant}') cannot fulfill F or borrow sibling evidence",
+        ['unfulfilled'],
+    )
+
+
 def splice(source, start, end, replacement):
     if source.count(start) != 1 or source.count(end) != 1:
         raise ValueError('completed_reading_controller_slot_preimage_unknown')
